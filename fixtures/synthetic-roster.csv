@@ -1,0 +1,11 @@
+athlete_code,first_name,preferred_name,last_name,pacific_email,jersey_number,primary_position,secondary_position,player_type,bats,throws,academic_class,eligibility_year,graduation_year,roster_status,profile_photo_url
+SYN-001,Fictional Avery,Avery,Northstar,synthetic.avery@example.com,0,CF,RF,position,L,R,freshman,1,2030,active,
+SYN-002,Fictional Blake,Blake,Cloudfield,synthetic.blake@example.com,2,SS,2B,position,R,R,sophomore,2,2029,active,
+SYN-003,Fictional Casey,Casey,Maplebrook,synthetic.casey@example.com,7,C,1B,position,S,R,junior,3,2028,active,
+SYN-004,Fictional Drew,Drew,Stonehaven,synthetic.drew@example.com,11,P,,pitcher,R,R,senior,4,2027,active,
+SYN-005,Fictional Ellis,Ellis,Meadowvale,synthetic.ellis@example.com,14,1B,DH,position,L,L,junior,3,2028,active,
+SYN-006,Fictional Finley,Finley,Skyridge,synthetic.finley@example.com,18,P,OF,two_way,L,L,sophomore,2,2029,active,
+SYN-007,Fictional Gray,Gray,Willowcrest,synthetic.gray@example.com,21,3B,1B,position,R,R,freshman,1,2030,redshirt,
+SYN-008,Fictional Harper,Harper,Sunmeadow,synthetic.harper@example.com,24,LF,CF,position,R,R,senior,4,2027,active,
+SYN-009,Fictional Indigo,Indigo,Brookhaven,synthetic.indigo@example.com,32,P,,pitcher,R,R,graduate,5,2027,active,
+SYN-010,Fictional Jordan,Jordan,Westcloud,synthetic.jordan@example.com,,2B,SS,position,S,R,freshman,1,2030,active,
