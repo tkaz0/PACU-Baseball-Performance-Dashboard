@@ -13,7 +13,7 @@ supabase/.temp/
 supabase/.branches/
 work/
 private-data/
-imports/
+/imports/
 exports/
 dumps/
 *.dump
@@ -22,6 +22,8 @@ dumps/
 *.csv
 !fixtures/synthetic-roster.csv
 !public/templates/master-roster.csv
+!public/templates/local-roster.csv
+!public/templates/measurements.csv
 *.xlsx
 *.xls
 *.pdf

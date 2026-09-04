@@ -35,7 +35,7 @@ button:disabled { cursor: not-allowed; opacity: .55; }
 .notice { padding: 14px 16px; border: 1px solid #e2c6a0; border-radius: 6px; background: #fff9ef; color: #75521e; font-size: 14px; }
 .notice-error { border-color: #f1bfc6; background: #fff1f3; color: #9a1730; }
 .notice-success { border-color: #bed8c6; background: #eff8f1; color: #235638; }
-.table-wrap { overflow-x: auto; }
+.table-wrap { position: relative; overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
 th { background: #fafafb; color: #67707d; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; font-weight: 600; white-space: nowrap; }
 th, td { padding: 16px 20px; border-bottom: 1px solid #eceef1; }

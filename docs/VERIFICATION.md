@@ -1,6 +1,18 @@
-# Phase 1 verification — September 4, 2026
+# Verification — September 4, 2026
 
-## Final checks
+## Browser workspace and importer release
+
+The owner expanded scope to no-sign-in dashboard/profile access and data importers while deferring password setup. The new `/preview` workspace serves a fictional starter roster and stores reviewed imports only in that browser's IndexedDB. Protected Supabase access is unchanged.
+
+Current checks: `pnpm check` passed lint, strict TypeScript, **150 tests across 8 files**, and production build. The production dependency audit reported no known vulnerabilities; the registry audit does not independently audit the vendor CDN package. SheetJS CE 0.20.3 is pinned to its official distribution with lockfile integrity.
+
+The final production-mode local browser run passed **18 tests with 4 authenticated tests skipped**. These checks cover no-sign-in navigation, profiles/jersey0, unavailable local IDs, roster and measurement imports, duplicate/repeat handling, explicit name review, XLSX sheet/header selection, backup export/restore, concurrent-tab stale previews, separate-browser isolation, no file-upload network requests, and rollback after an injected real IndexedDB transaction abort. Four real Supabase session tests remain opt-in and skipped. Public browser tests use fresh fictional data in disposable profiles.
+
+Visual checks found and fixed a mobile page-width issue caused by an absolutely positioned screen-reader table label; the scroll container now provides its containing block. The development server initially blocked HMR from 127.0.0.1 under Next 16.3.4's dev-origin rule. The exact loopback origin is now allowed; all four public-navigation browser tests pass in development mode. Production mode was unaffected.
+
+Exact deployed release/status and final browser totals are recorded in the owner's live-status receipt. No real roster files, vendor exports, credentials, or browser storage were committed. PDF parsing, verified vendor schema presets, direct Sheets sync, and shared cloud measurement persistence remain pending.
+
+## Original protected Phase 1 checks
 
 | Check | Result | What it establishes |
 | --- | --- | --- |
@@ -46,8 +58,8 @@ Successful authenticated app login remains unverified. Auth recorded two accepte
 - Successful login/logout, Supabase cookie refresh across token expiry, complete password recovery/replay, and custom SMTP remain unverified. Recovery was attempted: two accepted sends, an `otp_expired` error, and one email-rate-limited retry are recorded above and in the hosted receipt. The throttled retry did not send a fresh email.
 - Multi-connection concurrency timing was not run in embedded PostgreSQL. Lock ordering and transactional behavior were reviewed, and stale-state/rollback cases were executed. `TESTING.md` describes real local concurrency checks.
 - Authenticated dashboard/profile/import layouts could not be visually inspected with real sessions. Source compiles and browser integration tests are provided; only the login surface received visual inspection.
-- Hosted migrations, baseline Auth settings, owner/Admin provisioning, and the explicitly approved ten-athlete synthetic import are complete as recorded above. Real authenticated app checks remain pending. No Vercel deployment, DNS change, domain connection, or production smoke test was performed.
+- Hosted migrations, baseline Auth settings, owner/Admin provisioning, and the explicitly approved ten-athlete synthetic import are complete as recorded above. Real authenticated app checks remain pending. The subsequent owner-approved Vercel deployment completed, with ten anonymous production HTTP checks passing. No custom-domain connection or DNS change was made.
 
 ## Handoff boundary
 
-Phase 1 implementation is complete as a local source project. Hosted schema/Auth setup, owner/Admin provisioning, and the approved synthetic roster import are complete. Password recovery, successful owner login, and real authenticated integration verification remain unresolved. Source roster files contain only the exact empty CSV template and ten explicitly fictional athletes with `example.com` emails. See the hosted receipt for the current setup boundary.
+The public browser workspace provides immediate dashboard/profile access and reviewed CSV/TSV/XLSX imports. Hosted schema/Auth setup, owner/Admin provisioning, and the approved synthetic database roster import are complete. Password setup is paused at the owner's request; successful owner login and real authenticated integration verification remain outstanding. Browser imports do not publish or migrate real team data. See [PREVIEW](PREVIEW.md), [IMPORTS](IMPORTS.md), and the hosted receipt.

@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // APP_URL and the local launcher use this loopback origin during development.
+  allowedDevOrigins: ["127.0.0.1"],
   // Auth callback URLs and form arguments can contain private credentials.
   logging: { incomingRequests: false, serverFunctions: false },
   experimental: { serverActions: { bodySizeLimit: "2mb" } },

@@ -38,6 +38,8 @@ Auth recorded two accepted recovery sends and one throttled retry; the retry sen
 
 Recovery requests now buffer cookie writes until provider success; three installed-SDK tests with mocked responses passed. Failed sends preserve earlier verifier state, but cannot restore an expired or consumed link. These tests do not establish live recovery success.
 
-No custom SMTP, custom recovery-template installation, player invitations, Vercel deployment, domain connection, DNS change, or production smoke test was completed at this checkpoint. The default recovery flow requires the same browser and hostname; see [SETUP](SETUP.md) for configuration and email-sender requirements.
+The owner-approved Vercel deployment completed at 3:18 PM Pacific, using Node 24.x and pnpm 11.19.0. Its stable origin is `https://pacu-baseball-performance-dashboard.vercel.app`; APP_URL, Supabase Site URL, and the three exact HTTPS callback/confirm/reset redirects agree. Ten anonymous deployed HTTP checks passed, including protected-page redirects, athlete API denial, the CSV template, and no-store/security headers. A subsequent owner recovery request returned HTTP 200 with a mail-send event and the live callback address. Password replacement and successful owner login remain unverified, and the owner has now paused password setup.
+
+No custom SMTP, custom recovery-template installation, player invitations, custom-domain connection, or DNS change has been completed. The default recovery flow requires the same browser and hostname; see [SETUP](SETUP.md) for configuration and email-sender requirements. The owner has additionally approved the fixture-only public preview described in [PREVIEW](PREVIEW.md).
 
 Separate real authenticated permission and browser checks remain outstanding. See [VERIFICATION](VERIFICATION.md) for the passed checks and limitations, [TESTING](TESTING.md) for repeatable tests, and [DATA_MODEL](DATA_MODEL.md) for the authorization design.

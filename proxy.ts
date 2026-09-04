@@ -4,7 +4,9 @@ import { hasSupabaseConfig, supabaseConfig } from "@/lib/env";
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
-  if (hasSupabaseConfig()) {
+  const publicPreview = request.nextUrl.pathname === "/preview" || request.nextUrl.pathname.startsWith("/preview/");
+  // The browser workspace has no database access and works independently of Auth availability.
+  if (!publicPreview && hasSupabaseConfig()) {
     const { url, key } = supabaseConfig();
     const supabase = createServerClient(url, key, {
       cookies: {
@@ -24,4 +26,4 @@ export async function proxy(request: NextRequest) {
   response.headers.set("Pragma", "no-cache");
   return response;
 }
-export const config = { matcher: ["/((?!_next/static|_next/image|favicon.ico|templates/).*)"] };
+export const config = { matcher: ["/((?!_next/|favicon.ico|templates/).*)"] };

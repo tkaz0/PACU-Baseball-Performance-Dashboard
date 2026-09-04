@@ -1,0 +1,109 @@
+import type { RosterAthlete } from "@/lib/types";
+import { ROSTER_FIELDS, validateRosterValues, type Measurement, type RosterField } from "@/lib/imports/engine";
+
+export type ImportBatch = {
+  id: string; kind: "roster" | "measurements"; fileName: string; source: string;
+  importedAt: string; created: number; updated: number; unchanged: number;
+  fileHash?: string; sheetName?: string; season?: string;
+};
+export type StoredMeasurement = Measurement & { batch_id: string };
+export type LocalWorkspace = {
+  version: 1; revision: number; mode: "sample" | "local";
+  roster: RosterAthlete[]; measurements: StoredMeasurement[]; batches: ImportBatch[];
+};
+export const emptyWorkspace = (): LocalWorkspace => ({ version: 1, revision: 0, mode: "sample", roster: [], measurements: [], batches: [] });
+
+const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
+const str = (v: unknown, max = 300): v is string => typeof v === "string" && v.length <= max;
+const optionalText = (v: unknown, max = 300) => v === null || str(v, max);
+const optionalNumber = (v: unknown) => v === null || (typeof v === "number" && Number.isFinite(v));
+const CONTROL = /[\u0000-\u001f\u007f]/;
+const SEASON = /^20\d{2}(-\d{2})?$/;
+const FILE_HASH = /^[a-f0-9]{64}$/;
+const IDENTITY_FIELDS = new Set<RosterField>(["athlete_code", "first_name", "preferred_name", "last_name", "pacific_email", "profile_photo_url"]);
+const rosterValues = (athlete: Record<string, unknown>, season?: Record<string, unknown>) => Object.fromEntries(
+  ROSTER_FIELDS.map(field => [field, String((IDENTITY_FIELDS.has(field) ? athlete[field] : season?.[field]) ?? "")]),
+) as Record<RosterField, string>;
+
+/** Backups are data, never executable configuration. Reject incompatible or truncated files. */
+export function validateWorkspace(value: unknown): LocalWorkspace {
+  const fail = () => { throw new Error("This is not a valid PACU workspace backup. Your current data was not changed."); };
+  if (!record(value) || value.version !== 1 || !Number.isSafeInteger(value.revision) || (value.revision as number) < 0 || (value.mode !== "sample" && value.mode !== "local")) return fail();
+  if (!Array.isArray(value.roster) || value.roster.length > 1000 || !Array.isArray(value.measurements) || value.measurements.length > 20000 || !Array.isArray(value.batches) || value.batches.length > 1000) return fail();
+  const codes = new Set<string>();
+  const emails = new Set<string>();
+  for (const a of value.roster) {
+    if (!record(a) || !str(a.athlete_code, 40) || !a.athlete_code || a.athlete_code !== a.athlete_code.trim().toUpperCase() || a.id !== a.athlete_code || codes.has(a.athlete_code) || !str(a.first_name, 80) || !a.first_name.trim() || a.first_name !== a.first_name.trim() || !str(a.last_name, 80) || !a.last_name.trim() || a.last_name !== a.last_name.trim() || !optionalText(a.preferred_name, 80) || !optionalText(a.pacific_email, 254) || !optionalText(a.profile_photo_url, 2048) || !str(a.created_at) || !str(a.updated_at) || !Array.isArray(a.athlete_seasons) || a.athlete_seasons.length > 100) return fail();
+    if (validateRosterValues(rosterValues(a), 0).length) return fail();
+    if (a.pacific_email) {
+      const email = String(a.pacific_email);
+      if (email !== email.trim().toLowerCase() || emails.has(email)) return fail();
+      emails.add(email);
+    }
+    codes.add(a.athlete_code);
+    const seasons = new Set<string>();
+    for (const s of a.athlete_seasons) {
+      if (!record(s) || s.athlete_id !== a.id || !str(s.season, 7) || !SEASON.test(s.season) || seasons.has(s.season) || !["jersey_number", "eligibility_year", "graduation_year"].every(k => optionalNumber(s[k])) || !["primary_position", "secondary_position", "player_type", "bats", "throws", "academic_class", "roster_status"].every(k => optionalText(s[k]))) return fail();
+      if (validateRosterValues(rosterValues(a, s), 0).length) return fail();
+      seasons.add(s.season);
+    }
+  }
+  const batchIds = new Set<string>();
+  const measurementBatchIds = new Set<string>();
+  for (const b of value.batches) {
+    if (!record(b) || !str(b.id, 100) || !b.id || batchIds.has(b.id) || (b.kind !== "roster" && b.kind !== "measurements") || !str(b.fileName) || !str(b.source) || !str(b.importedAt) || !Number.isFinite(Date.parse(b.importedAt)) || !["created", "updated", "unchanged"].every(k => Number.isSafeInteger(b[k]) && (b[k] as number) >= 0)) return fail();
+    if (b.fileHash !== undefined && (!str(b.fileHash, 64) || !FILE_HASH.test(b.fileHash))) return fail();
+    if (b.sheetName !== undefined && (!str(b.sheetName, 255) || CONTROL.test(b.sheetName))) return fail();
+    if (b.season !== undefined && (!str(b.season, 7) || !SEASON.test(b.season))) return fail();
+    batchIds.add(b.id);
+    if (b.kind === "measurements") measurementBatchIds.add(b.id);
+  }
+  const ids = new Set<string>();
+  for (const m of value.measurements) {
+    if (!record(m) || !str(m.id, 2000) || !m.id || ids.has(m.id) || !str(m.athlete_code, 40) || !codes.has(m.athlete_code) || !str(m.measured_at, 10) || !/^\d{4}-\d{2}-\d{2}$/.test(m.measured_at) || !Number.isFinite(Date.parse(m.measured_at)) || new Date(m.measured_at).toISOString().slice(0, 10) !== m.measured_at || !str(m.metric) || !m.metric.trim() || !str(m.unit, 80) || !m.unit.trim() || typeof m.value !== "number" || !Number.isFinite(m.value) || !str(m.source) || !m.source.trim() || !str(m.source_file) || !str(m.source_sheet) || !str(m.file_hash, 128) || !Number.isSafeInteger(m.source_row) || (m.source_row as number) < 1 || !str(m.batch_id, 100) || !measurementBatchIds.has(m.batch_id)) return fail();
+    ids.add(m.id);
+  }
+  if (value.mode === "sample" && (value.roster.length || value.measurements.length || value.batches.length)) return fail();
+  return value as LocalWorkspace;
+}
+
+const DB_NAME = "pacu-local-workspace-v1";
+async function database(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, 1);
+    request.onupgradeneeded = () => request.result.createObjectStore("workspace");
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(new Error("Browser storage is unavailable. Enable site storage before importing."));
+    request.onblocked = () => reject(new Error("Close other PACU tabs and try again."));
+  });
+}
+export async function readWorkspace(): Promise<LocalWorkspace> {
+  const db = await database();
+  try {
+    return await new Promise((resolve, reject) => {
+      const request = db.transaction("workspace", "readonly").objectStore("workspace").get("current");
+      request.onsuccess = () => { try { resolve(request.result ? validateWorkspace(request.result) : emptyWorkspace()); } catch (error) { reject(error); } };
+      request.onerror = () => reject(new Error("Could not read saved data. Reload before importing."));
+    });
+  } finally { db.close(); }
+}
+/** Compare and save in one IndexedDB transaction, including across browser tabs. */
+export async function writeWorkspace(next: LocalWorkspace, expectedRevision: number): Promise<LocalWorkspace> {
+  validateWorkspace(next);
+  const db = await database();
+  try {
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction("workspace", "readwrite");
+      const store = tx.objectStore("workspace");
+      const read = store.get("current");
+      let failure = "Could not save. Your previous data is unchanged. Check available browser storage.";
+      const saved = { ...next, revision: expectedRevision + 1 };
+      read.onsuccess = () => {
+        if ((read.result?.revision ?? 0) !== expectedRevision) { failure = "The workspace changed in another tab. Reload and preview this import again."; tx.abort(); return; }
+        store.put(saved, "current");
+      };
+      tx.oncomplete = () => resolve(saved);
+      tx.onabort = tx.onerror = () => reject(new Error(failure));
+    });
+  } finally { db.close(); }
+}

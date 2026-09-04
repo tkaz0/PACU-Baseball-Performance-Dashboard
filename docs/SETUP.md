@@ -160,7 +160,7 @@ The production build does not need live credentials to compile. That proves the 
 
 ## 8. Deploy to Vercel when you explicitly choose to
 
-No deployment has been performed. After reviewing this source and completing development tests:
+The owner-approved synthetic development deployment is available at `https://pacu-baseball-performance-dashboard.vercel.app`. Its first cloud build used Node 24.x, Corepack, and pnpm 11.19.0. These steps describe deployment configuration for this project or a new environment:
 
 1. Copy the project into your chosen GitHub repository/branch after inspecting and preserving existing work. Before committing, inspect `git status` and staged changes. Only synthetic fixture/template CSVs should be tracked; never force-add `.env.local` or roster exports.
 2. In Vercel, import that repository. Choose the Next.js preset and set **Root Directory** to this project's location inside the repository. If its contents are at repository root, leave Root Directory at root.

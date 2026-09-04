@@ -80,3 +80,9 @@ After authorizing local email capture (or a test email to an owner-controlled in
 For actual concurrent sessions, use separate admin accounts/connections against a disposable local database: stage a draft, change the same roster before approval, and confirm stale rejection; approve a draft twice concurrently and confirm one audit application; disable an administrator while staging/approval waits and confirm access is checked after locks. The embedded suite covers state transitions and transactional rollback, but cannot reproduce multi-connection timing.
 
 Re-run the separate-identity UI/API tests after deployment with owner authorization and dedicated test data. A role switcher or hidden navigation item is not a permission test.
+
+## Browser-local importer tests
+
+`tests/import-engine.test.ts`, `tests/import-files.test.ts`, and `tests/local-workspace.test.ts` exercise pure previews, bounded CSV/XLSX parsing, provenance/deduplication, and backup integrity. They use generated fictional fixtures only. `tests/browser/preview.spec.ts` and `tests/browser/imports.spec.ts` cover the no-sign-in workspace, imported profiles, validation, reload persistence, and transfer. Local browser tests create isolated profiles and never use the owner's saved browser data.
+
+For a second local checkout, start it on an unused port and set `TEST_APP_URL=http://127.0.0.1:3101 PLAYWRIGHT_CHANNEL=chrome pnpm test:ui`. The test configuration rejects remote URLs. Production HTTP smoke checks are separate and read-only.
