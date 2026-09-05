@@ -1,6 +1,11 @@
 import { PGlite } from "@electric-sql/pglite";
-import { beforeAll, beforeEach, afterAll, describe, expect, it } from "vitest";
+import { beforeAll, beforeEach, afterAll, describe, expect, it, vi } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
+import { getPlayerPerformance } from "@/lib/player-performance";
+
+vi.mock("server-only", () => ({}));
+vi.mock("@/lib/auth", () => ({ requireAdminMutation: vi.fn() }));
+import { loadAthletePerformance } from "@/lib/performance-server";
 
 const db = new PGlite();
 const users = {
@@ -27,6 +32,29 @@ async function importRows(rows:unknown) {
 type Summary = {metricKey:string;measuredAt:string;observedValue:number;value:number|null;sampleSize:number;period:string;unit:string;source:string;direction:string};
 async function summary(id=athlete(1)):Promise<Summary[]> {
   return (await db.query<{data:Summary[]}>("select public.athlete_performance_summary($1::uuid) data",[id])).rows[0].data;
+}
+// Exercise the real server adapter with PostgreSQL JSON serialization, as the API does.
+async function loadPlayerProfile() {
+  let selectedAthlete: unknown;
+  const query = {
+    select: () => query,
+    eq: (key: string, value: unknown) => { expect(key).toBe("athlete_id"); selectedAthlete = value; return query; },
+    order: () => query,
+    range: async (start: number, end: number) => ({ data: (await db.query<{ data: Record<string, unknown>[] }>(
+      "select coalesce(jsonb_agg(to_jsonb(m)), '[]'::jsonb) data from (select * from public.performance_measurements where athlete_id=$1 order by imported_at,id offset $2 limit $3) m",
+      [selectedAthlete, start, end - start + 1],
+    )).rows[0].data, error: null }),
+  };
+  const access = { roles: ["player"], athleteId: athlete(1), supabase: {
+    from: (table: string) => { expect(table).toBe("performance_measurements"); return query; },
+    rpc: async (name: string, args: { p_athlete_id: string }) => {
+      expect(name).toBe("athlete_performance_summary");
+      return { data: await summary(args.p_athlete_id), error: null };
+    },
+  } } as unknown as Parameters<typeof loadAthletePerformance>[0];
+  const loaded = await loadAthletePerformance(access, { id: athlete(1), athlete_code: code(1) });
+  return { loaded, profile: getPlayerPerformance({ readings: loaded.measurements, batches: loaded.batches,
+    athleteCode: code(1), percentileOverrides: loaded.percentileOverrides }) };
 }
 async function counts() {
   return (await db.query<{n:number;imports:number;audit:number}>("select (select count(*)::integer from public.performance_measurements) n,(select count(*)::integer from public.performance_imports) imports,(select count(*)::integer from public.audit_events where event_type='performance_imported') audit")).rows[0];
@@ -133,6 +161,41 @@ describe("reviewed numerical import integrity",()=>{
 });
 
 describe("fixed cohort percentiles",()=>{
+  it("pins summary JSON precision without losing its restricted function configuration", async () => {
+    const config = (await db.query<{ proconfig: string[]; prosecdef: boolean }>(
+      "select proconfig,prosecdef from pg_catalog.pg_proc where oid='private.performance_summary(uuid)'::regprocedure",
+    )).rows[0];
+    expect(config.prosecdef).toBe(true);
+    expect(config.proconfig).toEqual(expect.arrayContaining(['search_path=""', "extra_float_digits=3"]));
+  });
+  it.each([
+    { weight: 179.1, muscle: 132.8, sampleSize: 1 },
+    { weight: 181.7, muscle: 130.6, sampleSize: 5 },
+  ])("retains decimal muscle summary identity through database JSON and the server model at n=$sampleSize", async ({ weight, muscle, sampleSize }) => {
+    const shared = { source: "RENPHO", source_sheet: "RENPHO report · Page 1", unit: "lb", measured_at: "2026-08-20" };
+    await asUser(users.admin, () => importRows(Array.from({ length: sampleSize }, (_, i) => [
+      row(i + 1, { ...shared, metric_key: "weight", value: weight }, 0),
+      row(i + 1, { ...shared, metric_key: "muscle_mass", value: muscle + i }, 1),
+    ]).flat()));
+    await db.exec("set extra_float_digits=0");
+    try {
+      const { loaded, profile } = await asUser(users.playerA, loadPlayerProfile);
+      const card = profile.body.find(item => item.metric.key === "muscle_mass_pct")!;
+      const override = loaded.percentileOverrides.find(item => item.metricKey === "muscle_mass_pct")!;
+      expect(card.latest).toMatchObject({ value: muscle / weight * 100, derived: true, period: "summer_2026" });
+      expect(override.observedValue).toBe(card.latest!.value);
+      expect(card.cohortSampleSize).toBe(sampleSize);
+      expect(card.percentileStatus).toBe(sampleSize < 5 ? "small_cohort" : "available");
+      expect(card.percentile).toEqual(sampleSize < 5 ? null : { value: 0, sampleSize, period: "summer_2026", unit: "%", direction: "neutral" });
+      expect(loaded.measurements).toHaveLength(2);
+      expect((await db.query<{ setting: string }>("select current_setting('extra_float_digits') setting")).rows[0].setting).toBe("0");
+
+      // Preserve strict target matching: even a nearby, different observed value is refused.
+      const altered = getPlayerPerformance({ readings: loaded.measurements, batches: loaded.batches, athleteCode: code(1),
+        percentileOverrides: loaded.percentileOverrides.map(item => item.metricKey === "muscle_mass_pct" ? { ...item, observedValue: item.observedValue + 1e-10 } : item) });
+      expect(altered.body.find(item => item.metric.key === "muscle_mass_pct")).toMatchObject({ cohortSampleSize: null, percentile: null, percentileStatus: "unavailable" });
+    } finally { await db.exec("reset extra_float_digits"); }
+  });
   it("counts measured eligible cohort athletes only, computes tied numeric ranks, excludes older/prior-season/inactive peers",async()=>{
     await asUser(users.admin,()=>importRows([10,20,20,30,40,999,999].map((value,i)=>row(i+1,{value}))));
     await asUser(users.admin,()=>importRows([row(2,{value:999,measured_at:"2026-09-01",file_hash:"f".repeat(64)})]));
