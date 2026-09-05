@@ -10,7 +10,12 @@ export type AthleteSeason = {
   bats: string | null; throws: string | null; academic_class: string | null;
   eligibility_year: number | null; graduation_year: number | null; roster_status: string | null;
 };
-export type RosterAthlete = Athlete & { athlete_seasons: AthleteSeason[] };
+export type RosterAthlete = Athlete & {
+  athlete_seasons: AthleteSeason[];
+  /** Optional browser-local identifiers; never columns in the protected Supabase roster. */
+  renpho_id?: string | null;
+  renpho_ids?: string[];
+};
 export type ImportRow = {
   row: number; athlete_code: string; action: "create" | "update" | "unchanged" | "reject";
   errors: string[]; changes: { field: string; before: string | number | null; after: string | number | null }[];

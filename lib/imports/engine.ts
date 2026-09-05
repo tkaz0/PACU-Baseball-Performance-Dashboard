@@ -8,8 +8,11 @@ export const MAX_TABLE_ROWS = 5000;
 export const MAX_TABLE_COLUMNS = 100;
 export const MAX_MEASUREMENTS = 20000;
 export const MAX_ROSTER_ATHLETES = 1000;
-export const ROSTER_FIELDS = HEADERS;
-export type RosterField = (typeof HEADERS)[number];
+export const ROSTER_FIELDS = [...HEADERS, "renpho_id"] as const;
+export type RosterField = (typeof ROSTER_FIELDS)[number];
+export const RENPHO_ID_PATTERN = /^[A-Z0-9_-]{1,80}$/;
+export const MAX_RENPHO_ALIASES = 1000;
+export const normalizeRenphoId = (value: string) => value.trim().toUpperCase();
 export type RosterMapping = Partial<Record<RosterField, number>>;
 export type ImportTable = { headers: string[]; rows: string[][]; rowNumbers: number[] };
 export type ImportIssue = { row: number; field: string; message: string };
@@ -51,6 +54,29 @@ const NUMERIC_FIELDS = new Set<RosterField>(["jersey_number", "eligibility_year"
 const normalizeCode = (value: string) => value.trim().toUpperCase();
 const normalizeEmail = (value: string) => value.trim().toLowerCase();
 const normalizeName = (value: string) => value.trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");
+
+function renphoOwners(roster: RosterAthlete[]): Map<string, string> {
+  const owners = new Map<string, string>();
+  for (const athlete of roster) {
+    for (const id of [athlete.renpho_id, ...(athlete.renpho_ids ?? [])]) {
+      if (!id) continue;
+      const normalized = normalizeRenphoId(id);
+      if (!RENPHO_ID_PATTERN.test(normalized)) throw new Error("Use a RENPHO ID with 1–80 letters, numbers, underscores or hyphens.");
+      const owner = owners.get(normalized);
+      if (owner && owner !== athlete.athlete_code) throw new Error("This RENPHO ID belongs to more than one athlete. Resolve the roster IDs before importing.");
+      owners.set(normalized, athlete.athlete_code);
+    }
+  }
+  return owners;
+}
+
+/** Report identifiers never match names, prefixes, dates, or parts of an identifier. */
+export function findRenphoAthlete(roster: RosterAthlete[], id: string): string | null {
+  const normalized = normalizeRenphoId(id);
+  if (!normalized) return null;
+  if (!RENPHO_ID_PATTERN.test(normalized)) throw new Error("Use a RENPHO ID with 1–80 letters, numbers, underscores or hyphens.");
+  return renphoOwners(roster).get(normalized) ?? null;
+}
 
 function issue(row: number, field: string, message: string): ImportIssue { return { row, field, message }; }
 function countsFor(rows: ImportRowResult[]): ImportCounts {
@@ -126,17 +152,20 @@ export function selectTable(matrix: string[][], headerRowIndex: number): ImportT
   return table;
 }
 
-/** Only the existing template and the ten observed roster-sheet aliases are recognized. */
+/** Only template fields and the observed compact/spaced roster headers are recognized. */
 export function suggestRosterMapping(headers: string[]): RosterMapping {
   const aliases: Record<string, RosterField> = {
     FirstName: "first_name", LastName: "last_name", PacificEmail: "pacific_email", JerseyNumber: "jersey_number",
     PrimaryPosition: "primary_position", SecondaryPosition: "secondary_position", PlayerType: "player_type",
+    "First Name": "first_name", "Last Name": "last_name", "Pacific Email": "pacific_email", "Jersey Number": "jersey_number",
+    "Primary Position": "primary_position", "Secondary Position": "secondary_position", "Player Type": "player_type",
     Bats: "bats", Throws: "throws", Class: "academic_class",
+    "RENPHO ID": "renpho_id", "Renpho ID": "renpho_id", RenphoID: "renpho_id",
   };
   const mapping: RosterMapping = {};
   headers.forEach((header, index) => {
     const name = header.trim();
-    const field = (HEADERS as readonly string[]).includes(name) ? name as RosterField : Object.hasOwn(aliases, name) ? aliases[name] : undefined;
+    const field = (ROSTER_FIELDS as readonly string[]).includes(name) ? name as RosterField : Object.hasOwn(aliases, name) ? aliases[name] : undefined;
     if (field) {
       if (mapping[field] !== undefined) throw new Error(`Multiple source headers match ${field}; choose the mapping explicitly.`);
       mapping[field] = index;
@@ -152,21 +181,28 @@ function validateTable(table: ImportTable) {
 }
 
 function rosterCells(row: string[], mapping: RosterMapping): Record<RosterField, string> {
-  const values = Object.fromEntries(HEADERS.map(field => [field, mapping[field] === undefined ? "" : (row[mapping[field]!] ?? "").trim()])) as Record<RosterField, string>;
+  const values = Object.fromEntries(ROSTER_FIELDS.map(field => [field, mapping[field] === undefined ? "" : (row[mapping[field]!] ?? "").trim()])) as Record<RosterField, string>;
   values.athlete_code = normalizeCode(values.athlete_code);
   values.pacific_email = normalizeEmail(values.pacific_email);
+  values.renpho_id = normalizeRenphoId(values.renpho_id);
   for (const field of ["primary_position", "secondary_position", "bats", "throws"] as const) values[field] = values[field].toUpperCase();
   for (const field of ["player_type", "academic_class", "roster_status"] as const) values[field] = values[field].toLowerCase();
   // These are the exact observed live-roster value conventions, not vendor guesses.
+  if (values.jersey_number === "/") values.jersey_number = "";
   if (values.player_type === "position player") values.player_type = "position";
   if (values.player_type === "two-way") values.player_type = "two_way";
   if (values.secondary_position === "N/A") values.secondary_position = "";
+  for (const field of ["bats", "throws"] as const) {
+    if (values[field] === "LEFT") values[field] = "L";
+    else if (values[field] === "RIGHT") values[field] = "R";
+    else if (values[field] === "SWITCH") values[field] = "S";
+  }
   return values;
 }
 
 export function validateRosterValues(values: Record<RosterField, string>, row: number, isNew = true): ImportIssue[] {
   const issues: ImportIssue[] = [];
-  for (const field of HEADERS) {
+  for (const field of ROSTER_FIELDS) {
     if (values[field].length > 2048 || CONTROL.test(values[field]) || values[field] !== values[field].trim()) issues.push(issue(row, field, "Use at most 2,048 characters without leading/trailing whitespace, control characters or line breaks."));
   }
   if (values.athlete_code && !CODE.test(values.athlete_code)) issues.push(issue(row, "athlete_code", "Use 3–40 uppercase letters, numbers, underscores or hyphens."));
@@ -175,6 +211,7 @@ export function validateRosterValues(values: Record<RosterField, string>, row: n
   }
   if (values.pacific_email && (values.pacific_email.length > 254 || !EMAIL.test(values.pacific_email) || values.pacific_email !== normalizeEmail(values.pacific_email))) issues.push(issue(row, "pacific_email", "Enter a valid lowercase email address or leave it blank."));
   if (values.profile_photo_url && !PHOTO.test(values.profile_photo_url)) issues.push(issue(row, "profile_photo_url", "Use an HTTPS domain URL without credentials or a port."));
+  if (values.renpho_id && !RENPHO_ID_PATTERN.test(values.renpho_id)) issues.push(issue(row, "renpho_id", "Use 1–80 uppercase letters, numbers, underscores or hyphens, or leave blank."));
   const enums: Partial<Record<RosterField, string[]>> = {
     primary_position: POSITIONS, secondary_position: POSITIONS, player_type: ["pitcher", "position", "two_way"],
     bats: ["L", "R", "S"], throws: ["L", "R", "S"], academic_class: ["freshman", "sophomore", "junior", "senior", "graduate"],
@@ -201,12 +238,13 @@ export function previewRoster(table: ImportTable, mapping: RosterMapping, season
   if (!/^20\d{2}(-\d{2})?$/.test(season)) throw new Error("Season must be YYYY or YYYY-YY.");
   if (!Object.keys(mapping).length) throw new Error("Map at least one roster field.");
   for (const [field, column] of Object.entries(mapping)) {
-    if (!(HEADERS as readonly string[]).includes(field)) throw new Error("Unknown roster field.");
+    if (!(ROSTER_FIELDS as readonly string[]).includes(field)) throw new Error("Unknown roster field.");
     validateColumn(column, table.headers.length, field);
   }
   if (new Set(Object.values(mapping)).size !== Object.values(mapping).length) throw new Error("Map each source column to only one roster field.");
   const values = table.rows.map(row => rosterCells(row, mapping));
-  const candidateRoster = existingRoster.map(athlete => ({ ...athlete, id: athlete.athlete_code, athlete_seasons: athlete.athlete_seasons.map(s => ({ ...s, athlete_id: athlete.athlete_code })) }));
+  const candidateRoster = existingRoster.map(athlete => ({ ...athlete, ...(athlete.renpho_ids ? { renpho_ids: [...athlete.renpho_ids] } : {}), id: athlete.athlete_code, athlete_seasons: athlete.athlete_seasons.map(s => ({ ...s, athlete_id: athlete.athlete_code })) }));
+  const renphoIndex = renphoOwners(candidateRoster);
   const codeIndex = new Map<string, RosterAthlete[]>();
   const emailIndex = new Map<string, RosterAthlete[]>();
   for (const athlete of candidateRoster) {
@@ -243,18 +281,26 @@ export function previewRoster(table: ImportTable, mapping: RosterMapping, season
     }
     row.athlete_code = value.athlete_code;
     if (byEmail.some(athlete => athlete.athlete_code !== value.athlete_code)) row.issues.push(issue(row.row, "pacific_email", "This email belongs to a different athlete code."));
+    if (value.renpho_id) {
+      const owner = renphoIndex.get(value.renpho_id);
+      if (owner && owner !== value.athlete_code) row.issues.push(issue(row.row, "renpho_id", "This RENPHO ID is already assigned to another athlete."));
+      if (matched?.renpho_id && matched.renpho_id !== value.renpho_id && !matched.renpho_ids?.includes(value.renpho_id) && (matched.renpho_ids?.length ?? 0) >= MAX_RENPHO_ALIASES) row.issues.push(issue(row.row, "renpho_id", "This athlete has reached the saved RENPHO ID limit."));
+    }
     row.issues.push(...validateRosterValues(value, row.row, !matched));
     return { value, row, matched };
   });
   const codeCounts = new Map<string, number>();
   const emailCounts = new Map<string, number>();
+  const renphoCounts = new Map<string, number>();
   for (const { value } of resolved) {
     if (value.athlete_code) codeCounts.set(value.athlete_code, (codeCounts.get(value.athlete_code) ?? 0) + 1);
     if (value.pacific_email) emailCounts.set(value.pacific_email, (emailCounts.get(value.pacific_email) ?? 0) + 1);
+    if (value.renpho_id) renphoCounts.set(value.renpho_id, (renphoCounts.get(value.renpho_id) ?? 0) + 1);
   }
   const rows = resolved.map(({ value, row, matched }) => {
     if ((codeCounts.get(value.athlete_code) ?? 0) > 1) row.issues.push(issue(row.row, "athlete_code", "Multiple source rows resolve to this athlete code."));
     if ((emailCounts.get(value.pacific_email) ?? 0) > 1) row.issues.push(issue(row.row, "pacific_email", "The email is repeated in multiple source rows."));
+    if ((renphoCounts.get(value.renpho_id) ?? 0) > 1) row.issues.push(issue(row.row, "renpho_id", "The RENPHO ID is repeated in multiple source rows."));
     if (!matched && candidateRoster.length >= MAX_ROSTER_ATHLETES) row.issues.push(issue(row.row, "capacity", "The local workspace supports at most 1,000 athletes."));
     if (row.issues.length) { row.status = "reject"; return row; }
     const athlete: RosterAthlete = matched ?? {
@@ -267,6 +313,13 @@ export function previewRoster(table: ImportTable, mapping: RosterMapping, season
       const after = value[field] || before;
       if (before !== after) row.changes.push({ field, before, after });
       if (after !== null) athlete[field] = after;
+    }
+    const previousRenphoId = athlete.renpho_id ?? null;
+    if (value.renpho_id && value.renpho_id !== previousRenphoId) {
+      const aliases = [...new Set([...(athlete.renpho_ids ?? []), ...(previousRenphoId ? [previousRenphoId] : [])])].filter(id => id !== value.renpho_id);
+      athlete.renpho_id = value.renpho_id;
+      if (aliases.length || athlete.renpho_ids) athlete.renpho_ids = aliases;
+      row.changes.push({ field: "renpho_id", before: previousRenphoId, after: value.renpho_id });
     }
     let seasonal = athlete.athlete_seasons.find(s => s.season === season);
     if (!seasonal) {

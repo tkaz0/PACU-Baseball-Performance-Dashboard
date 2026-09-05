@@ -1,8 +1,12 @@
 # Setup, step by step
 
-These steps are for Trevor's independently owned project. The dashboard opens without sign-in and supports roster/profile browsing plus reviewed CSV, TSV, and XLSX imports saved in this browser. Start at [the dashboard](https://pacubaseballperformance.com). The owner-approved domain, HTTPS certificates, and Auth URL settings are configured; see [HOSTED-SETUP](HOSTED-SETUP.md) for verification details and [Import Center](IMPORTS.md) for the file workflow.
+These steps are for Trevor's independently owned project. The dashboard opens without sign-in and supports roster/profile browsing plus reviewed CSV, TSV, XLSX and supported RENPHO report imports saved in this browser. Start at [the dashboard](https://pacubaseballperformance.com). The owner-approved domain, HTTPS certificates, and Auth URL settings are configured; see [HOSTED-SETUP](HOSTED-SETUP.md) for verification details and [Import Center](IMPORTS.md) for the file workflow.
 
 The browser workspace requires JavaScript and browser site storage; it does not require a Supabase account or database setup. The Auth, database, and account steps below configure the separate private team workspace. Use a development database with synthetic data first. Read [HOSTED-SETUP](HOSTED-SETUP.md) before repeating any migration or account-provisioning step. Nothing in this repository automatically provisions hosted accounts, sends email, deploys, or changes DNS.
+
+For body-composition reports, open **Import Center → RENPHO report** and choose a complete portrait PNG/JPG or one-page PDF. The local reader needs its first asset load before it can process a report. Confirm the selected player, test date and each extracted value/unit against the displayed original; uncheck unwanted readings, review, then approve saving. A new report ID requires player selection. You may explicitly remember that exact ID for later imports in this browser. The roster's optional `renpho_id` uses the same exact-match behavior. No IDs create sign-in accounts or connect Supabase identities.
+
+Use the [local roster template](../public/templates/local-roster.csv) for browser imports; the protected administrator template retains its original 16 fields. Export a workspace backup after importing real data. The report image/text is not included in the backup, but saved measurements and remembered report IDs are, so keep the backup private. Browser storage belongs to the exact domain and browser profile; it is not a team-shared database.
 
 ## 1. Install local software
 
@@ -15,7 +19,7 @@ pnpm --version
 pnpm install --frozen-lockfile
 ```
 
-The project requires Node 22 or later and was checked using Node 24.19.0. Use Node 24 in Vercel too. The committed lockfile preserves the installed dependency versions. `pnpm-workspace.yaml` approves only the named build dependencies and retains package security settings.
+The project requires Node 22.13 or later and was checked using Node 24.19.0. Use Node 24 in Vercel too. The committed lockfile preserves the installed dependency versions. `pnpm-workspace.yaml` approves only the named build dependencies and retains package security settings.
 
 Optional for a complete offline development stack: install [Docker Desktop](https://www.docker.com/products/docker-desktop/) and follow [Supabase CLI installation](https://supabase.com/docs/guides/local-development/cli/getting-started). The app and embedded PostgreSQL tests do not require Docker; full local Supabase Auth/API tests do.
 

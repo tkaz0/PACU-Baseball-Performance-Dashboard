@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   MAX_IMPORT_BYTES, MAX_MEASUREMENTS, MAX_TABLE_ROWS, parseDelimited, selectTable, suggestRosterMapping,
   previewRoster, previewMeasurements, parseMeasurementDate,
+  ROSTER_FIELDS, findRenphoAthlete, normalizeRenphoId,
   type ImportTable, type Measurement, type MeasurementMapping, type FileContext,
 } from "@/lib/imports/engine";
 import type { RosterAthlete } from "@/lib/types";
+import { HEADERS } from "@/lib/roster/csv";
 
 const table = (headers: string[], rows: string[][]): ImportTable => selectTable([headers, ...rows], 0);
 function athlete(code = "LOCAL-0001", first = "Fictional", last = "Example", email: string | null = "fictional@example.com"): RosterAthlete {
@@ -56,13 +58,26 @@ describe("local import table parsing", () => {
     expect(() => selectTable([["Name"]], 0)).toThrow("no data rows");
     expect(selectTable([["Name", "Optional"], ["Fictional"]], 0).rows).toEqual([["Fictional", ""]]);
   });
-  it("suggests only exact template headers and the ten observed roster aliases", () => {
+  it("suggests only exact template headers and the observed roster aliases", () => {
     expect(suggestRosterMapping(["FirstName", "LastName", "PacificEmail", "JerseyNumber", "PrimaryPosition", "SecondaryPosition", "PlayerType", "Bats", "Throws", "Class"])).toEqual({
       first_name: 0, last_name: 1, pacific_email: 2, jersey_number: 3, primary_position: 4, secondary_position: 5, player_type: 6, bats: 7, throws: 8, academic_class: 9,
     });
     expect(suggestRosterMapping(["Name", "DOB", "Velocity", "EMAIL", "first_name"])).toEqual({ first_name: 4 });
     expect(suggestRosterMapping(["constructor", "toString", "__proto__"])).toEqual({});
     expect(() => suggestRosterMapping(["FirstName", "first_name"])).toThrow("Multiple");
+  });
+  it("recognizes the observed spaced roster headers without guessing other labels", () => {
+    expect(suggestRosterMapping(["First Name", "Last Name", "Pacific Email", "Jersey Number", "Primary Position", "Secondary Position", "Player Type", "Bats", "Throws", "Class"])).toEqual({
+      first_name: 0, last_name: 1, pacific_email: 2, jersey_number: 3, primary_position: 4, secondary_position: 5, player_type: 6, bats: 7, throws: 8, academic_class: 9,
+    });
+    expect(suggestRosterMapping(["Full Name", "Player Email", "Jersey", "First  Name"])).toEqual({});
+  });
+  it.each([
+    ["FirstName", "First Name"], ["first_name", "First Name"],
+    ["PacificEmail", "Pacific Email"], ["Primary Position", "primary_position"],
+    ["Player Type", "PlayerType"],
+  ])("rejects ambiguous duplicate roster mappings for %s and %s", (first, second) => {
+    expect(() => suggestRosterMapping([first, second])).toThrow("Multiple source headers match");
   });
 });
 
@@ -98,6 +113,29 @@ describe("roster import previews", () => {
     expect(ambiguous.canApply).toBe(false);
     expect(ambiguous.rows[0].status).toBe("reject");
   });
+  it("treats the observed slash jersey placeholder as unassigned on create and preserves existing jerseys on merge", () => {
+    const source = table(["athlete_code", "first_name", "last_name", "jersey_number"], [["LOCAL-0003", "Fictional", "SlashExample", " / "]]);
+    const created = previewRoster(source, suggestRosterMapping(source.headers), "2026", []);
+    expect(created.canApply).toBe(true);
+    expect(created.candidateRoster[0].athlete_seasons[0].jersey_number).toBeNull();
+    const update = table(["athlete_code", "jersey_number"], [["LOCAL-0001", "/"]]);
+    const merged = previewRoster(update, suggestRosterMapping(update.headers), "2026", roster);
+    expect(merged.canApply).toBe(true);
+    expect(merged.counts.unchanged).toBe(1);
+    expect(merged.candidateRoster[0].athlete_seasons[0].jersey_number).toBe(17);
+    const zeroRoster = structuredClone(roster); zeroRoster[0].athlete_seasons[0].jersey_number = 0;
+    expect(previewRoster(update, suggestRosterMapping(update.headers), "2026", zeroRoster).candidateRoster[0].athlete_seasons[0].jersey_number).toBe(0);
+  });
+  it("does not extend the slash convention to other numeric fields or malformed jersey values", () => {
+    for (const jersey of ["//", "1/2", "N/A", "-", "one", "100", "-1", "1.5"]) {
+      const source = table(["athlete_code", "jersey_number"], [["LOCAL-0001", jersey]]);
+      expect(previewRoster(source, suggestRosterMapping(source.headers), "2026", roster).counts.reject).toBe(1);
+    }
+    for (const field of ["eligibility_year", "graduation_year"]) {
+      const source = table(["athlete_code", field], [["LOCAL-0001", "/"]]);
+      expect(previewRoster(source, suggestRosterMapping(source.headers), "2026", roster).counts.reject).toBe(1);
+    }
+  });
   it("does not merge an explicit new code by email, name or jersey", () => {
     const source = table(["athlete_code", "first_name", "last_name", "pacific_email", "jersey_number"], [["LOCAL-0002", "Fictional", "Example", "fictional@example.com", "17"]]);
     const conflicting = previewRoster(source, suggestRosterMapping(source.headers), "2026", roster);
@@ -124,6 +162,34 @@ describe("roster import previews", () => {
     expect(preview.canApply).toBe(true);
     expect(preview.candidateRoster[0].athlete_seasons[0]).toMatchObject({ player_type: "two_way", secondary_position: null, academic_class: "freshman", bats: "S", throws: "R" });
     expect(preview.candidateRoster[1].athlete_seasons[0].player_type).toBe("position");
+  });
+  it("imports a fictional spaced-header roster with full handedness words, jersey zero, and blank optional values", () => {
+    const headers = ["First Name", "Last Name", "Pacific Email", "Jersey Number", "Primary Position", "Secondary Position", "Player Type", "Bats", "Throws", "Class"];
+    const source = table(headers, [
+      ["Fictional", "LeftExample", "fictional.left@example.com", "0", "CF", "N/A", "Position Player", "Left", "Right", "Freshman"],
+      ["Fictional", "RightExample", "fictional.right@example.com", "17", "P", "", "Pitcher", "Right", "Left", "Senior"],
+      ["Fictional", "SwitchExample", "fictional.switch@example.com", "", "SS", "2B", "Two-Way", "Switch", "Right", "Junior"],
+      ["Fictional", "BlankExample", "fictional.blank@example.com", "", "", "", "", "", "", ""],
+    ]);
+    const before = structuredClone(source);
+    const preview = previewRoster(source, suggestRosterMapping(headers), "2026", []);
+    expect(preview.canApply).toBe(true);
+    expect(preview.counts).toEqual({ create: 4, update: 0, unchanged: 0, reject: 0 });
+    expect(preview.candidateRoster.map(athlete => {
+      const season = athlete.athlete_seasons[0];
+      return [season.bats, season.throws, season.jersey_number];
+    })).toEqual([["L", "R", 0], ["R", "L", 17], ["S", "R", null], [null, null, null]]);
+    expect(preview.candidateRoster[0].athlete_seasons[0].secondary_position).toBeNull();
+    expect(preview.candidateRoster.every(athlete => athlete.athlete_seasons[0].roster_status === null)).toBe(true);
+    expect(source).toEqual(before);
+    expect(previewRoster(source, suggestRosterMapping(headers), "2026", preview.candidateRoster).counts.unchanged).toBe(4);
+  });
+  it.each(["Left-handed", "Both", "Ambidextrous", "N/A"])("continues rejecting unsupported handedness text: %s", value => {
+    const source = table(["First Name", "Last Name", "Bats", "Throws"], [["Fictional", "InvalidExample", value, value]]);
+    const preview = previewRoster(source, suggestRosterMapping(source.headers), "2026", []);
+    expect(preview.canApply).toBe(false);
+    expect(preview.rows[0].issues.map(issue => issue.field)).toEqual(["bats", "throws"]);
+    expect(preview.candidateRoster).toEqual([]);
   });
   it("rejects invalid required identity fields, optional emails, numeric fields and enums atomically", () => {
     const headers = ["first_name", "last_name", "pacific_email", "jersey_number", "primary_position", "player_type", "bats", "academic_class", "eligibility_year", "graduation_year", "roster_status"];
@@ -164,6 +230,71 @@ describe("roster import previews", () => {
     expect(previewRoster(source, mapping, "2026", roster).canApply).toBe(true);
     const changed = [athlete("LOCAL-0001", "Fictional", "Example", "changed@example.com")];
     expect(previewRoster(source, mapping, "2026", changed).canApply).toBe(false);
+  });
+});
+
+describe("browser-local RENPHO identity", () => {
+  it("adds only the local canonical field and recognizes the explicit ID aliases", () => {
+    expect(HEADERS).toHaveLength(16);
+    expect(HEADERS).not.toContain("renpho_id");
+    expect(ROSTER_FIELDS).toEqual([...HEADERS, "renpho_id"]);
+    for (const header of ["renpho_id", "RENPHO ID", "Renpho ID", "RenphoID"]) expect(suggestRosterMapping([header])).toEqual({ renpho_id: 0 });
+    expect(() => suggestRosterMapping(["RENPHO ID", "RenphoID"])).toThrow("Multiple source headers");
+  });
+
+  it("normalizes exact report IDs and never matches names, code fields, or ID prefixes", () => {
+    const saved = [{ ...athlete(), renpho_id: "SYNTHETIC-PRIMARY-A", renpho_ids: ["SYNTHETIC-REPORT-20260904"] }];
+    expect(normalizeRenphoId(" synthetic-primary-a ")).toBe("SYNTHETIC-PRIMARY-A");
+    expect(findRenphoAthlete(saved, " synthetic-primary-a ")).toBe("LOCAL-0001");
+    expect(findRenphoAthlete(saved, "synthetic-report-20260904")).toBe("LOCAL-0001");
+    for (const id of ["", "FICTIONAL", "LOCAL-0001", "SYNTHETIC-REPORT", "SYNTHETIC-REPORT-20260905"]) expect(findRenphoAthlete(saved, id)).toBeNull();
+    expect(() => findRenphoAthlete(saved, "invalid id")).toThrow("RENPHO ID");
+  });
+
+  it("preserves former canonical IDs and blank updates without mutating the current roster", () => {
+    const saved = [{ ...athlete(), renpho_id: "SYNTHETIC-PRIMARY-A", renpho_ids: ["SYNTHETIC-OLDER-A"] }];
+    const before = structuredClone(saved);
+    const source = table(["athlete_code", "RENPHO ID"], [["LOCAL-0001", " synthetic-primary-b "]]);
+    const preview = previewRoster(source, suggestRosterMapping(source.headers), "2026", saved);
+    expect(preview.canApply).toBe(true);
+    expect(preview.rows[0].changes).toEqual([{ field: "renpho_id", before: "SYNTHETIC-PRIMARY-A", after: "SYNTHETIC-PRIMARY-B" }]);
+    expect(preview.candidateRoster[0]).toMatchObject({ renpho_id: "SYNTHETIC-PRIMARY-B", renpho_ids: ["SYNTHETIC-OLDER-A", "SYNTHETIC-PRIMARY-A"] });
+    expect(saved).toEqual(before);
+    expect(findRenphoAthlete(preview.candidateRoster, "SYNTHETIC-PRIMARY-A")).toBe("LOCAL-0001");
+    const blank = table(source.headers, [["LOCAL-0001", ""]]);
+    const unchanged = previewRoster(blank, suggestRosterMapping(blank.headers), "2026", preview.candidateRoster);
+    expect(unchanged.counts.unchanged).toBe(1);
+    expect(unchanged.candidateRoster).toEqual(preview.candidateRoster);
+    const promote = table(source.headers, [["LOCAL-0001", "SYNTHETIC-OLDER-A"]]);
+    const promoted = previewRoster(promote, suggestRosterMapping(promote.headers), "2026", preview.candidateRoster);
+    expect(promoted.candidateRoster[0]).toMatchObject({ renpho_id: "SYNTHETIC-OLDER-A", renpho_ids: ["SYNTHETIC-PRIMARY-A", "SYNTHETIC-PRIMARY-B"] });
+  });
+
+  it("rejects IDs already belonging to another athlete, including aliases, without creating a player by report ID", () => {
+    const saved = [{ ...athlete(), renpho_id: "SYNTHETIC-PRIMARY-A", renpho_ids: ["SYNTHETIC-REPORT-A"] }];
+    for (const id of ["SYNTHETIC-PRIMARY-A", "SYNTHETIC-REPORT-A"]) {
+      const source = table(["First Name", "Last Name", "RENPHO ID"], [["Fictional", "Different", id]]);
+      const preview = previewRoster(source, suggestRosterMapping(source.headers), "2026", saved);
+      expect(preview.canApply).toBe(false);
+      expect(preview.rows[0].issues.some(issue => issue.field === "renpho_id")).toBe(true);
+      expect(preview.candidateRoster).toEqual(saved);
+    }
+    const duplicate = table(["First Name", "Last Name", "RENPHO ID"], [["Fictional", "One", "synthetic-new"], ["Fictional", "Two", "SYNTHETIC-NEW"]]);
+    expect(previewRoster(duplicate, suggestRosterMapping(duplicate.headers), "2026", []).counts.reject).toBe(2);
+  });
+
+  it("fails closed when existing canonical and alias IDs belong to different athletes", () => {
+    const saved = [{ ...athlete(), renpho_id: "SYNTHETIC-DUPLICATE" }, { ...athlete("LOCAL-0002", "Fictional", "Other", "other@example.com"), renpho_ids: ["SYNTHETIC-DUPLICATE"] }];
+    expect(() => findRenphoAthlete(saved, "SYNTHETIC-DUPLICATE")).toThrow("more than one athlete");
+    const source = table(["athlete_code", "Jersey Number"], [["LOCAL-0001", "0"]]);
+    expect(() => previewRoster(source, suggestRosterMapping(source.headers), "2026", saved)).toThrow("more than one athlete");
+  });
+
+  it.each(["SYNTHETIC ID", "SYNTHETIC.ID", "SYNTHETIC\nID", "A".repeat(81)])("rejects an unsupported RENPHO ID value: %s", id => {
+    const source = table(["First Name", "Last Name", "RENPHO ID"], [["Fictional", "Invalid", id]]);
+    const preview = previewRoster(source, suggestRosterMapping(source.headers), "2026", []);
+    expect(preview.canApply).toBe(false);
+    expect(preview.candidateRoster).toEqual([]);
   });
 });
 

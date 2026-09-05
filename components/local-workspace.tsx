@@ -1,12 +1,10 @@
 "use client";
 
 import { createContext, useContext, useEffect, useRef, useState } from "react";
-import Papa from "papaparse";
-import { HEADERS } from "@/lib/roster/csv";
 import { getPreviewRoster } from "@/lib/preview-roster";
 import type { RosterAthlete } from "@/lib/types";
 import type { Measurement } from "@/lib/imports/engine";
-import { emptyWorkspace, readWorkspace, validateWorkspace, writeWorkspace, type ImportBatch, type LocalWorkspace } from "@/lib/local-workspace";
+import { emptyWorkspace, readWorkspace, validateWorkspace, writeWorkspace, exportLocalRosterCsv, prepareRenphoReport, type ImportBatch, type LocalWorkspace, type RenphoReportIdentity } from "@/lib/local-workspace";
 export type { ImportBatch } from "@/lib/local-workspace";
 
 type WorkspaceContext = {
@@ -14,6 +12,7 @@ type WorkspaceContext = {
   ready: boolean; error: string | null; mode: "sample" | "local"; revision: number;
   applyRoster: (roster: RosterAthlete[], batch: ImportBatch, expectedRevision: number) => Promise<void>;
   applyMeasurements: (measurements: Measurement[], batch: ImportBatch, expectedRevision: number) => Promise<void>;
+  applyRenphoReport: (measurements: Measurement[], batch: ImportBatch, expectedRevision: number, identity: RenphoReportIdentity) => Promise<void>;
   removeBatch: (id: string) => Promise<void>; resetWorkspace: () => Promise<void>;
   exportBackup: () => void; restoreBackup: (text: string) => Promise<void>;
   exportRoster: (season: string) => void;
@@ -50,6 +49,9 @@ export function LocalWorkspaceProvider({ children }: { children: React.ReactNode
     applyMeasurements: async (newMeasurements, batch, revision) => {
       await commit({ ...state, mode: "local", roster, measurements: [...state.measurements, ...newMeasurements.map(m => ({ ...m, batch_id: batch.id }))], batches: [...state.batches, batch] }, revision);
     },
+    applyRenphoReport: async (measurements, batch, revision, identity) => {
+      await commit(prepareRenphoReport(state, roster, measurements, batch, identity), revision);
+    },
     removeBatch: async id => {
       const batch = state.batches.find(b => b.id === id);
       if (!batch || batch.kind !== "measurements") throw new Error("Only measurement batches can be removed. Roster updates preserve athlete identities.");
@@ -63,12 +65,7 @@ export function LocalWorkspaceProvider({ children }: { children: React.ReactNode
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     },
     exportRoster: season => {
-      const rows = roster.filter(a => a.athlete_seasons.some(s => s.season === season)).map(a => {
-        const seasonal = a.athlete_seasons.find(s => s.season === season)!;
-        const combined = { ...a, ...seasonal };
-        return HEADERS.map(field => combined[field] ?? "");
-      });
-      const csv = Papa.unparse({ fields: [...HEADERS], data: rows }, { escapeFormulae: true });
+      const csv = exportLocalRosterCsv(roster, season);
       const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
       const link = document.createElement("a"); link.href = url; link.download = `pacu-roster-${season}.csv`; link.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);

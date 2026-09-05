@@ -11,6 +11,7 @@ import {
   type MeasurementPreview, type RosterField, type RosterMapping, type RosterPreview,
 } from "@/lib/imports/engine";
 import { athleteName } from "@/lib/types";
+import { RenphoImport } from "@/components/renpho-import";
 
 type LoadedFile = Awaited<ReturnType<typeof readImportFile>>;
 type ImportKind = "roster" | "measurements";
@@ -27,7 +28,7 @@ const FIELD_LABELS: Record<RosterField, string> = {
   last_name: "Last name", pacific_email: "Email", jersey_number: "Jersey number",
   primary_position: "Primary position", secondary_position: "Secondary position", player_type: "Player type",
   bats: "Bats", throws: "Throws", academic_class: "Academic class", eligibility_year: "Eligibility year",
-  graduation_year: "Graduation year", roster_status: "Roster status", profile_photo_url: "Profile photo URL",
+  graduation_year: "Graduation year", roster_status: "Roster status", profile_photo_url: "Profile photo URL", renpho_id: "RENPHO ID",
 };
 const message = (error: unknown) => error instanceof Error ? error.message : "This action could not be completed. Please try again.";
 const cellText = (value: string | number | null) => value === null || value === "" ? "—" : String(value);
@@ -102,6 +103,7 @@ function RowPreview({ preview, limit, onShowMore }: {
 export function ImportCenter() {
   const workspace = useLocalWorkspace();
   const [kind, setKind] = useState<ImportKind>("roster");
+  const [reportView, setReportView] = useState(false);
   const [file, setFile] = useState<LoadedFile | null>(null);
   const [sheetIndex, setSheetIndex] = useState(0);
   const [headerIndex, setHeaderIndex] = useState(0);
@@ -264,6 +266,12 @@ export function ImportCenter() {
       {success && <div role="status" className="notice notice-success flex flex-wrap items-center justify-between gap-3"><span>{success}</span><Link href="/preview" className="font-semibold">Open dashboard →</Link></div>}
       {busy && <p role="status" className="muted text-sm">{busy}</p>}
 
+      <div className="grid gap-3 sm:grid-cols-3" aria-label="Choose an import format">
+        <button type="button" className={`btn ${!reportView && kind === "roster" ? "btn-primary" : "btn-secondary"}`} onClick={() => { invalidate(); setKind("roster"); setReportView(false); }}>Roster spreadsheet</button>
+        <button type="button" className={`btn ${reportView ? "btn-primary" : "btn-secondary"}`} onClick={() => { invalidate(); setReportView(true); }}>RENPHO report</button>
+        <button type="button" className={`btn ${!reportView && kind === "measurements" ? "btn-primary" : "btn-secondary"}`} onClick={() => { invalidate(); setKind("measurements"); setReportView(false); }}>Other measurements</button>
+      </div>
+      {reportView ? <RenphoImport /> : <>
       <section className="panel p-5 sm:p-7">
         <h2 className="mb-1 text-lg font-bold">1. Choose your file</h2>
         <p className="muted mb-6 text-sm">CSV, TSV, or XLSX · up to 2 MiB · choose the sheet and header row yourself.</p>
@@ -335,6 +343,7 @@ export function ImportCenter() {
         <button type="button" className="btn btn-primary" disabled={!canApply} onClick={() => { void applyImport(); }}><Check size={17} />Apply reviewed import</button>
       </section>}
 
+      </>}
       <section className="panel p-5 sm:p-7">
         <h2 className="mb-1 text-lg font-bold">Import history</h2><p className="muted mb-5 text-sm">Saved batches in this browser. Removing a measurement batch removes its measurement values; roster imports remain in the history.</p>
         {!workspace.batches.length ? <p className="muted mb-0 text-sm">No imports saved yet.</p> : <div className="table-wrap"><table><thead><tr><th>File / source</th><th>Imported (UTC)</th><th>Created / updated / unchanged</th><th>Action</th></tr></thead><tbody>{[...workspace.batches].reverse().map(batch => <tr key={batch.id}><td><p className="mb-1 break-all font-semibold">{batch.fileName}</p><p className="muted mb-0 text-xs">{batch.source} · {batch.kind}</p></td><td className="whitespace-nowrap text-xs">{batch.importedAt.slice(0, 19).replace("T", " ")}</td><td>{batch.created} / {batch.updated} / {batch.unchanged}</td><td>{batch.kind === "measurements" && (batchToRemove === batch.id ? <div className="min-w-[200px]"><p className="mb-2 text-xs">Remove this batch and its measurements?</p><div className="flex flex-wrap gap-2"><button type="button" className="btn btn-secondary" disabled={Boolean(busy)} onClick={() => { void removeBatch(batch.id); }}>Confirm removal</button><button type="button" className="btn btn-secondary" disabled={Boolean(busy)} onClick={() => setBatchToRemove(null)}>Cancel</button></div></div> : <button type="button" className="btn btn-secondary" disabled={!workspace.ready || Boolean(busy)} onClick={() => setBatchToRemove(batch.id)}><Trash2 size={15} />Remove batch</button>)}</td></tr>)}</tbody></table></div>}

@@ -86,3 +86,31 @@ Re-run the separate-identity UI/API tests after deployment with owner authorizat
 `tests/import-engine.test.ts`, `tests/import-files.test.ts`, and `tests/local-workspace.test.ts` exercise pure previews, bounded CSV/XLSX parsing, provenance/deduplication, and backup integrity. They use generated fictional fixtures only. `tests/browser/preview.spec.ts` and `tests/browser/imports.spec.ts` cover the no-sign-in workspace, imported profiles, validation, reload persistence, and transfer. Local browser tests create isolated profiles and never use the owner's saved browser data.
 
 For a second local checkout, start it on an unused port and set `TEST_APP_URL=http://127.0.0.1:3101 PLAYWRIGHT_CHANNEL=chrome pnpm test:ui`. The test configuration rejects remote URLs. Production HTTP smoke checks are separate and read-only.
+
+## RENPHO reader checks
+
+`tests/renpho.test.ts` contains wholly fictional text and geometry-region fixtures. It covers supported labels, source-column mass units, explicit/known-layout unit evidence, zero/negative numbers, literal percentage points, ignored regions, duplicate removal, invalid values/ranges/units, title/ID/date anchors, full and abbreviated English months, invalid calendar/time values, metadata ambiguity and parser limits. SMI fallback tests require explicit unit confirmation or exclusion, prevent stripping the immutable flag, and keep the generic text parser strict. Narrow Fat-Free Mass unit-glyph tests preserve numeric digits and reject an unseparated digit-like suffix. No real report values, IDs, images or OCR text are fixture data.
+
+`tests/renpho-preview.test.ts` exercises the adapter into the existing measurement engine: fixed metric columns and page/source lines, excluded/reordered selections preserving observation IDs, repeats/renamed files becoming unchanged, OCR line drift reconciliation without rewriting existing provenance, athlete/date/unit/value remap conflicts, reviewed numeric edits, immutable provenance, unknown-athlete denial, parser-error blocking and aggregate capacity across pages. The local-workspace/engine tests additionally cover unique normalized RENPHO IDs, backup validation and the atomic measurement/remembered-ID save.
+
+Run the focused pure checks with:
+
+```sh
+pnpm exec vitest run tests/renpho.test.ts tests/renpho-preview.test.ts
+```
+
+The focused checks passed during implementation. They do not by themselves exercise browser OCR or establish exact extraction from an actual image. For each additional report layout/version, privately compare its browser-extracted candidates with the source and verify supported labels, exact numerical agreement, units, printed report ID/date and excluded regions. Keep actual values/IDs out of terminal output, screenshots, traces, fixtures and receipts; record aggregate pass/fail results only. Synthetic one-page PDF, oversized-input and multi-page rejection checks remain separate from actual-image verification.
+
+### Actual-image browser receipt
+
+At **2026-09-05T02:28:00.864Z**, the authorized private browser check passed for the owner's supplied portrait report. The browser workspace contained **33 roster profiles and 16 approved report readings**. All 16 values and units exactly matched the image; the report ID and test date matched exactly. The intended owner's profile was uniquely selected, its report-ID alias was remembered, and all 16 readings were present on the profile after reload. No fallback unit-confirmation checkboxes were needed. Observed uploads/external requests: **0**. Browser errors: **0**.
+
+The owner explicitly authorized including this report. A private workspace backup was saved outside the Git repository; its contents, filename details, actual values and report identifier are excluded from this receipt. This verifies the supplied image and that private browser workflow only. It does not establish support for every RENPHO layout or export version. The final full test suite and rebuild following subsequent profile-organization edits were still pending at this receipt and must be recorded separately before release.
+
+In an isolated browser profile, verify that choosing a file creates no saved measurements or ID mapping; edits invalidate approval; unknown IDs require selection; a remembered exact ID proposes only its owning athlete; conflicts fail; save persists approved values and optional ID atomically; reload/backup restore retain those results; repeats add nothing; a stale revision blocks both parts of the save. Inspect network requests to establish that reports/text are never uploaded and that PDF/OCR assets load from the app's own origin. Check the red/black workspace and report-review tables at desktop/mobile widths. Existing protected-route and Auth tests remain required and separate.
+
+## September 4, 2026 release verification
+
+The final `pnpm check` passed lint, strict TypeScript, 243 tests across 10 files, and the production build. The complete production-mode local Chrome suite passed 23 tests and skipped 4 tests requiring separately provisioned Supabase Auth sessions. The suite includes real OCR of synthetic PNG and single-page PDF reports, review/edit/revision guards, duplicate prevention, no upload or external-origin requests, and rejection of multi-page PDFs. Three failure tests verify reload-only retries after failed/canceled OCR initialization and bounded forced termination of a stalled PDF worker.
+
+The final reader build also re-read the private owner-provided PNG: 16 candidates, no parser errors, no browser errors or upload requests. The earlier exact-value/unit and actual-profile import receipt above remains the numerical validation. Separate synthetic profile checks verified that latest-report cards use one file hash/test date/source, do not backfill older measurements, preserve zeros and distinct units, and fit desktop/mobile widths. Private roster/report backups were restored through the UI on the custom domain in Chrome's School profile and the Codex browser; no real data was included in the public source or deployment.

@@ -3,5 +3,6 @@ allowBuilds:
   sharp: true
   '@tailwindcss/oxide': true
   esbuild: true
+  tesseract.js: false
 minimumReleaseAgeExclude:
   - '@supabase/ssr@0.12.6'

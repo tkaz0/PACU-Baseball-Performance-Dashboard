@@ -1,5 +1,6 @@
 import type { RosterAthlete } from "@/lib/types";
-import { ROSTER_FIELDS, validateRosterValues, type Measurement, type RosterField } from "@/lib/imports/engine";
+import Papa from "papaparse";
+import { ROSTER_FIELDS, validateRosterValues, findRenphoAthlete, normalizeRenphoId, RENPHO_ID_PATTERN, MAX_RENPHO_ALIASES, type Measurement, type RosterField } from "@/lib/imports/engine";
 
 export type ImportBatch = {
   id: string; kind: "roster" | "measurements"; fileName: string; source: string;
@@ -11,6 +12,7 @@ export type LocalWorkspace = {
   version: 1; revision: number; mode: "sample" | "local";
   roster: RosterAthlete[]; measurements: StoredMeasurement[]; batches: ImportBatch[];
 };
+export type RenphoReportIdentity = { athleteCode: string; renphoId?: string; remember: boolean };
 export const emptyWorkspace = (): LocalWorkspace => ({ version: 1, revision: 0, mode: "sample", roster: [], measurements: [], batches: [] });
 
 const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
@@ -20,7 +22,7 @@ const optionalNumber = (v: unknown) => v === null || (typeof v === "number" && N
 const CONTROL = /[\u0000-\u001f\u007f]/;
 const SEASON = /^20\d{2}(-\d{2})?$/;
 const FILE_HASH = /^[a-f0-9]{64}$/;
-const IDENTITY_FIELDS = new Set<RosterField>(["athlete_code", "first_name", "preferred_name", "last_name", "pacific_email", "profile_photo_url"]);
+const IDENTITY_FIELDS = new Set<RosterField>(["athlete_code", "first_name", "preferred_name", "last_name", "pacific_email", "profile_photo_url", "renpho_id"]);
 const rosterValues = (athlete: Record<string, unknown>, season?: Record<string, unknown>) => Object.fromEntries(
   ROSTER_FIELDS.map(field => [field, String((IDENTITY_FIELDS.has(field) ? athlete[field] : season?.[field]) ?? "")]),
 ) as Record<RosterField, string>;
@@ -32,9 +34,16 @@ export function validateWorkspace(value: unknown): LocalWorkspace {
   if (!Array.isArray(value.roster) || value.roster.length > 1000 || !Array.isArray(value.measurements) || value.measurements.length > 20000 || !Array.isArray(value.batches) || value.batches.length > 1000) return fail();
   const codes = new Set<string>();
   const emails = new Set<string>();
+  const renphoIds = new Set<string>();
   for (const a of value.roster) {
     if (!record(a) || !str(a.athlete_code, 40) || !a.athlete_code || a.athlete_code !== a.athlete_code.trim().toUpperCase() || a.id !== a.athlete_code || codes.has(a.athlete_code) || !str(a.first_name, 80) || !a.first_name.trim() || a.first_name !== a.first_name.trim() || !str(a.last_name, 80) || !a.last_name.trim() || a.last_name !== a.last_name.trim() || !optionalText(a.preferred_name, 80) || !optionalText(a.pacific_email, 254) || !optionalText(a.profile_photo_url, 2048) || !str(a.created_at) || !str(a.updated_at) || !Array.isArray(a.athlete_seasons) || a.athlete_seasons.length > 100) return fail();
     if (validateRosterValues(rosterValues(a), 0).length) return fail();
+    if (a.renpho_id !== undefined && !optionalText(a.renpho_id, 80)) return fail();
+    if (a.renpho_ids !== undefined && (!Array.isArray(a.renpho_ids) || a.renpho_ids.length > MAX_RENPHO_ALIASES)) return fail();
+    for (const id of [...(a.renpho_id ? [a.renpho_id] : []), ...(Array.isArray(a.renpho_ids) ? a.renpho_ids : [])]) {
+      if (!str(id, 80) || !RENPHO_ID_PATTERN.test(id) || id !== normalizeRenphoId(id) || renphoIds.has(id)) return fail();
+      renphoIds.add(id);
+    }
     if (a.pacific_email) {
       const email = String(a.pacific_email);
       if (email !== email.trim().toLowerCase() || emails.has(email)) return fail();
@@ -65,6 +74,40 @@ export function validateWorkspace(value: unknown): LocalWorkspace {
   }
   if (value.mode === "sample" && (value.roster.length || value.measurements.length || value.batches.length)) return fail();
   return value as LocalWorkspace;
+}
+
+/** Local CSV adds only the canonical ID; confirmed aliases remain in the JSON backup. */
+export function exportLocalRosterCsv(roster: RosterAthlete[], season: string): string {
+  if (!SEASON.test(season)) throw new Error("Select a valid roster season before exporting.");
+  const rows = roster.filter(athlete => athlete.athlete_seasons.some(item => item.season === season)).map(athlete => {
+    const seasonal = athlete.athlete_seasons.find(item => item.season === season)!;
+    const combined = { ...athlete, ...seasonal };
+    return ROSTER_FIELDS.map(field => combined[field] ?? "");
+  });
+  return Papa.unparse({ fields: [...ROSTER_FIELDS], data: rows }, { escapeFormulae: true });
+}
+
+/** Build one validated save: confirmed identity, measurements, and batch succeed together. */
+export function prepareRenphoReport(workspace: LocalWorkspace, visibleRoster: RosterAthlete[], measurements: Measurement[], batch: ImportBatch, identity: RenphoReportIdentity): LocalWorkspace {
+  const athlete = visibleRoster.filter(item => item.athlete_code === identity.athleteCode);
+  if (athlete.length !== 1) throw new Error("Select an existing roster athlete for this report.");
+  if (batch.kind !== "measurements" || measurements.some(item => item.athlete_code !== identity.athleteCode)) throw new Error("All report measurements must belong to the selected athlete.");
+  const id = normalizeRenphoId(identity.renphoId ?? "");
+  if (identity.remember && !id) throw new Error("A report ID is required before it can be remembered.");
+  if (id) {
+    const owner = findRenphoAthlete(visibleRoster, id);
+    if (owner && owner !== identity.athleteCode) throw new Error("This RENPHO ID is already assigned to another athlete.");
+  }
+  const roster = visibleRoster.map(item => {
+    if (!identity.remember || !id || item.athlete_code !== identity.athleteCode || item.renpho_id === id || item.renpho_ids?.includes(id)) return item;
+    if ((item.renpho_ids?.length ?? 0) >= MAX_RENPHO_ALIASES) throw new Error("This athlete has reached the saved RENPHO ID limit.");
+    return { ...item, renpho_ids: [...(item.renpho_ids ?? []), id] };
+  });
+  return validateWorkspace({
+    ...workspace, mode: "local", roster,
+    measurements: [...workspace.measurements, ...measurements.map(item => ({ ...item, batch_id: batch.id }))],
+    batches: [...workspace.batches, batch],
+  });
 }
 
 const DB_NAME = "pacu-local-workspace-v1";

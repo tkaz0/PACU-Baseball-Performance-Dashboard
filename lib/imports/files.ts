@@ -40,7 +40,7 @@ function validateXlsxArchive(bytes: ArrayBuffer) {
 /** User-selected bytes stay in this browser. No uploads, remote parsers, or telemetry. */
 export async function readImportFile(file: File): Promise<ImportFile> {
   const extension = file.name.split(".").pop()?.toLowerCase();
-  if (!["csv", "tsv", "xlsx"].includes(extension ?? "")) throw new Error("Choose a CSV, TSV, or XLSX file. PDF reports need a structured export first.");
+  if (!["csv", "tsv", "xlsx"].includes(extension ?? "")) throw new Error("Choose a CSV, TSV, or XLSX file. For RENPHO images or PDFs, select RENPHO report.");
   if (!file.size) throw new Error("The file is empty.");
   if (file.size > MAX_IMPORT_BYTES) throw new Error("Choose a file no larger than 2 MiB. Split large exports into smaller batches.");
   const bytes = await file.arrayBuffer();

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { emptyWorkspace, validateWorkspace, type LocalWorkspace } from "@/lib/local-workspace";
+import { emptyWorkspace, validateWorkspace, exportLocalRosterCsv, prepareRenphoReport, type LocalWorkspace } from "@/lib/local-workspace";
 import { getPreviewRoster } from "@/lib/preview-roster";
+import { parseDelimited, ROSTER_FIELDS } from "@/lib/imports/engine";
+import { HEADERS } from "@/lib/roster/csv";
 
 function validWorkspace(): LocalWorkspace {
   return {
@@ -204,6 +206,118 @@ describe("local workspace backup validation", () => {
     backup.measurements[0].batch_id = "missing-batch";
     const before = structuredClone(backup);
     rejectsBackup(backup);
+    expect(backup).toEqual(before);
+  });
+});
+
+describe("browser-local RENPHO IDs and report saves", () => {
+  function report() {
+    const backup = validWorkspace();
+    return {
+      measurements: [{ ...backup.measurements[0], id: "measurement-two", source: "RENPHO" }],
+      batch: { ...backup.batches[0], id: "batch-two", source: "RENPHO" },
+    };
+  }
+
+  it("restores legacy backups and retains canonical IDs plus confirmed aliases in JSON", () => {
+    const backup = validWorkspace();
+    expect(validateWorkspace(backup)).toEqual(backup);
+    backup.roster[0].renpho_id = "SYNTHETIC-ROSTER-A";
+    backup.roster[0].renpho_ids = ["SYNTHETIC-REPORT-A", "SYNTHETIC-REPORT-B"];
+    expect(validateWorkspace(JSON.parse(JSON.stringify(backup)))).toEqual(backup);
+    backup.roster[0].renpho_id = null;
+    expect(validateWorkspace(backup)).toEqual(backup);
+  });
+
+  it.each([
+    { renpho_id: 123 }, { renpho_id: "synthetic-lowercase" }, { renpho_id: "SYNTHETIC ID" },
+    { renpho_ids: "SYNTHETIC-REPORT-A" }, { renpho_ids: [null] }, { renpho_ids: [""] },
+    { renpho_ids: ["SYNTHETIC-REPORT-A", "SYNTHETIC-REPORT-A"] },
+    { renpho_id: "SYNTHETIC-REPORT-A", renpho_ids: ["SYNTHETIC-REPORT-A"] },
+  ])("rejects malformed or duplicate RENPHO backup fields %#", fields => {
+    const backup = validWorkspace();
+    Object.assign(backup.roster[0], fields);
+    rejectsBackup(backup);
+  });
+
+  it("rejects a canonical ID or alias shared by different athletes", () => {
+    const backup = validWorkspace();
+    backup.roster[0].renpho_ids = ["SYNTHETIC-SHARED-ID"];
+    const other = getPreviewRoster().find(athlete => athlete.athlete_code === "SYN-002")!;
+    other.renpho_id = "SYNTHETIC-SHARED-ID";
+    backup.roster.push(other);
+    rejectsBackup(backup);
+    other.renpho_id = null;
+    other.renpho_ids = ["SYNTHETIC-SHARED-ID"];
+    rejectsBackup(backup);
+  });
+
+  it("bounds the confirmed alias list", () => {
+    const backup = validWorkspace();
+    backup.roster[0].renpho_ids = Array.from({ length: 1000 }, (_, index) => `SYNTHETIC-REPORT-${index}`);
+    expect(validateWorkspace(backup)).toEqual(backup);
+    backup.roster[0].renpho_ids.push("SYNTHETIC-ONE-TOO-MANY");
+    rejectsBackup(backup);
+  });
+
+  it("exports only the canonical local field while preserving the protected 16-column format", () => {
+    const backup = validWorkspace();
+    backup.roster[0].renpho_id = "SYNTHETIC-ROSTER-A";
+    backup.roster[0].renpho_ids = ["SYNTHETIC-PRIVATE-ALIAS"];
+    const csv = exportLocalRosterCsv(backup.roster, "2026");
+    const records = parseDelimited(csv);
+    expect(records[0]).toEqual([...ROSTER_FIELDS]);
+    expect(records[1].at(-1)).toBe("SYNTHETIC-ROSTER-A");
+    expect(records[1][HEADERS.indexOf("jersey_number")]).toBe("0");
+    expect(csv).not.toContain("SYNTHETIC-PRIVATE-ALIAS");
+    expect(HEADERS).toHaveLength(16);
+    expect(HEADERS).not.toContain("renpho_id");
+  });
+
+  it("prepares the confirmed ID, measurements, and batch as one validated save without changing current state", () => {
+    const backup = validWorkspace();
+    backup.roster[0].renpho_id = "SYNTHETIC-ROSTER-A";
+    backup.roster[0].renpho_ids = ["SYNTHETIC-PRIOR-A"];
+    const before = structuredClone(backup);
+    const input = report();
+    const saved = prepareRenphoReport(backup, backup.roster, input.measurements, input.batch, { athleteCode: "SYN-001", renphoId: " synthetic-report-a ", remember: true });
+    expect(saved.roster[0]).toMatchObject({ renpho_id: "SYNTHETIC-ROSTER-A", renpho_ids: ["SYNTHETIC-PRIOR-A", "SYNTHETIC-REPORT-A"] });
+    expect(saved.measurements).toHaveLength(2);
+    expect(saved.measurements[1].batch_id).toBe("batch-two");
+    expect(saved.batches).toHaveLength(2);
+    expect(backup).toEqual(before);
+  });
+
+  it("allows an unremembered blank report ID and does not duplicate an already remembered ID", () => {
+    const backup = validWorkspace();
+    const input = report();
+    const saved = prepareRenphoReport(backup, backup.roster, input.measurements, input.batch, { athleteCode: "SYN-001", renphoId: "", remember: false });
+    expect(saved.roster).toEqual(backup.roster);
+    backup.roster[0].renpho_ids = ["SYNTHETIC-REPORT-A"];
+    const repeated = prepareRenphoReport(backup, backup.roster, input.measurements, input.batch, { athleteCode: "SYN-001", renphoId: "SYNTHETIC-REPORT-A", remember: true });
+    expect(repeated.roster[0].renpho_ids).toEqual(["SYNTHETIC-REPORT-A"]);
+    expect(() => prepareRenphoReport(backup, backup.roster, input.measurements, input.batch, { athleteCode: "SYN-001", renphoId: "", remember: true })).toThrow("required");
+  });
+
+  it("rejects an ID belonging to another athlete and cannot create an athlete from a report", () => {
+    const backup = validWorkspace();
+    const other = getPreviewRoster().find(athlete => athlete.athlete_code === "SYN-002")!;
+    other.renpho_ids = ["SYNTHETIC-OTHER-ID"];
+    backup.roster.push(other);
+    const before = structuredClone(backup);
+    const input = report();
+    for (const remember of [true, false]) expect(() => prepareRenphoReport(backup, backup.roster, input.measurements, input.batch, { athleteCode: "SYN-001", renphoId: "SYNTHETIC-OTHER-ID", remember })).toThrow("another athlete");
+    expect(() => prepareRenphoReport(backup, backup.roster, input.measurements, input.batch, { athleteCode: "SYN-999", remember: false })).toThrow("existing roster athlete");
+    expect(backup).toEqual(before);
+  });
+
+  it("does not retain a new ID when report validation fails", () => {
+    const backup = validWorkspace();
+    const before = structuredClone(backup);
+    const input = report();
+    const identity = { athleteCode: "SYN-001", renphoId: "SYNTHETIC-NEW-ID", remember: true };
+    expect(() => prepareRenphoReport(backup, backup.roster, [{ ...input.measurements[0], athlete_code: "SYN-002" }], input.batch, identity)).toThrow("selected athlete");
+    expect(() => prepareRenphoReport(backup, backup.roster, [{ ...input.measurements[0], value: Number.NaN }], input.batch, identity)).toThrow("valid PACU workspace backup");
     expect(backup).toEqual(before);
   });
 });

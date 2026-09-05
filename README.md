@@ -28,7 +28,9 @@ On Trevor's Mac, after connection setup is complete, double-click **Start PACU.c
 - Exact [CSV template](public/templates/master-roster.csv) and [10 clearly fictional athletes](fixtures/synthetic-roster.csv). The public browser workspace starts with that fictional fixture. The protected Supabase roster uses an explicit administrator import.
 - Tests that execute the migrations in embedded PostgreSQL and test browser access denial. Optional real local Supabase integration tests use separate owner-provisioned identities.
 
-The browser-local Import Center reads CSV, TSV, and XLSX with explicit column mapping. It supports roster imports and numeric measurements tagged RENPHO, Blast, Rapsodo, Full Swing, Player Metrics, or a custom source. Vendor-specific schemas are not assumed. Dates, units, athlete matches, and row changes are reviewed before saving. Imported measurements appear on athlete profiles; absent measurements display **“No data yet.”** No performance statistics are fabricated. PDF parsing and direct Google Sheets sync remain pending actual formats and scope.
+The browser-local Import Center reads CSV, TSV, and XLSX with explicit column mapping. It supports roster imports and numeric measurements tagged RENPHO, Blast, Rapsodo, Full Swing, Player Metrics, or a custom source. The separate RENPHO workflow reads the owner-supplied portrait Body Composition Analysis Report layout from PNG/JPG or a one-page PDF using local OCR, then requires review of the player, date, units and selected values. Other vendor-specific schemas are not assumed. Imported measurements appear on athlete profiles; absent measurements display **“No data yet.”** No performance statistics are fabricated.
+
+The workspace uses a red, black, gray and white baseball theme with original graphics and responsive roster/profile views. It remains Trevor's independent project. An optional local `renpho_id` roster field and manually confirmed report IDs support exact saved-ID matching; new IDs require explicit player selection. Reports, extracted text and images stay in browser memory. Only approved normalized measurements and any explicitly remembered ID mapping are saved locally. See [Import Center](docs/IMPORTS.md) for supported fields, limits and review requirements.
 
 ## Commands
 
@@ -56,4 +58,4 @@ The initial workspace contained only empty `work/` and `outputs/` folders, with 
 
 ## Deliberately deferred
 
-Vendor-specific automatic presets and PDF parsing, direct Google Sheets sync, shared cloud measurements, game/physical/sprint analytics, force plates, AI interpretation, and training recommendations remain deferred. CSV/TSV/XLSX exports work through explicit mapping in the browser Import Center. Actual vendor formats have not been supplied; no vendor fields or units were invented.
+Other vendor-specific automatic presets and report layouts, direct Google Sheets sync, shared cloud measurements, game/physical/sprint analytics, force plates, AI interpretation, and training recommendations remain deferred. CSV/TSV/XLSX exports work through explicit mapping. RENPHO support is limited to the supplied portrait layout and requires review; it is not a general document or health-analysis system.

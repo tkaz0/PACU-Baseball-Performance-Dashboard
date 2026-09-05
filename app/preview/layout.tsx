@@ -6,16 +6,18 @@ import { LocalWorkspaceProvider, WorkspaceBanner } from "@/components/local-work
 export default function PreviewLayout({ children }: { children: React.ReactNode }) {
   return (
     <LocalWorkspaceProvider>
+      <div className="workspace-shell">
       <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:bg-white focus:p-4">Skip to content</a>
       <PreviewSidebar />
-      <div className="app-body">
-        <header className="flex min-h-20 flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-white px-6 py-4 lg:px-10">
-          <p className="mb-0 text-sm font-semibold">Baseball workspace</p>
+      <div className="app-body workspace-body">
+        <header className="workspace-topbar">
+          <p><span className="topbar-diamond" aria-hidden="true" />Pacific Baseball<span className="topbar-divider" aria-hidden="true">/</span><span className="text-gray-500">Performance workspace</span></p>
           <Link className="btn btn-secondary" href="/login"><LockKeyhole size={16} />Sign in to private workspace</Link>
         </header>
         <WorkspaceBanner />
-        <main id="main-content" className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8 lg:px-10">{children}</main>
-        <footer className="px-6 pb-6 text-xs text-gray-500 lg:px-10">PACU Baseball Performance · An independent project, not an official university application.</footer>
+        <main id="main-content" className="workspace-main">{children}</main>
+        <footer className="workspace-footer"><span>Pacific Baseball Performance</span><span>An independent project · Not an official university application</span></footer>
+      </div>
       </div>
     </LocalWorkspaceProvider>
   );
