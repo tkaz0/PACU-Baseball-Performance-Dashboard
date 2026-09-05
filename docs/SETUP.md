@@ -1,6 +1,8 @@
 # Setup, step by step
 
-These steps are for Trevor's independently owned project. Nothing in this repository automatically connects to GitHub, changes a hosted database, creates Auth users, sends emails, deploys, or changes DNS. **You choose when to perform those steps.** Use a development database with synthetic data first. For the already connected project, read [HOSTED-SETUP](HOSTED-SETUP.md) before repeating any migration or account-provisioning step.
+These steps are for Trevor's independently owned project. The dashboard opens without sign-in and supports roster/profile browsing plus reviewed CSV, TSV, and XLSX imports saved in this browser. Start at [the dashboard](https://pacubaseballperformance.com). The owner-approved domain, HTTPS certificates, and Auth URL settings are configured; see [HOSTED-SETUP](HOSTED-SETUP.md) for verification details and [Import Center](IMPORTS.md) for the file workflow.
+
+The browser workspace requires JavaScript and browser site storage; it does not require a Supabase account or database setup. The Auth, database, and account steps below configure the separate private team workspace. Use a development database with synthetic data first. Read [HOSTED-SETUP](HOSTED-SETUP.md) before repeating any migration or account-provisioning step. Nothing in this repository automatically provisions hosted accounts, sends email, deploys, or changes DNS.
 
 ## 1. Install local software
 
@@ -17,7 +19,7 @@ The project requires Node 22 or later and was checked using Node 24.19.0. Use No
 
 Optional for a complete offline development stack: install [Docker Desktop](https://www.docker.com/products/docker-desktop/) and follow [Supabase CLI installation](https://supabase.com/docs/guides/local-development/cli/getting-started). The app and embedded PostgreSQL tests do not require Docker; full local Supabase Auth/API tests do.
 
-## 2. Create `.env.local`
+## 2. Create `.env.local` for the private workspace
 
 In Terminal, from the project folder:
 
@@ -31,10 +33,10 @@ Open `.env.local` in your editor. Copy **only the project URL and publishable ke
 | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | Your development project's HTTPS URL, or local `http://127.0.0.1:54321` |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | The public publishable key for that same project |
-| `APP_URL` | Trusted browser origin, initially `http://localhost:3000`. Used server-side for recovery redirects; not inferred from request headers. |
+| `APP_URL` | Trusted browser origin. Use the exact local origin during development; the custom-domain deployment target is `https://pacubaseballperformance.com`. Used server-side for recovery redirects; not inferred from request headers. |
 | `NEXT_PUBLIC_SYNTHETIC_DATA` | `true` for this synthetic development environment; shows a banner. It never grants access. Set `false` only for an intentionally configured non-synthetic environment. |
 
-The connected hosted development project currently uses `APP_URL=http://127.0.0.1:3000` and that same Auth Site URL. Use `127.0.0.1` consistently in its browser session. The localhost examples below apply when deliberately configuring a separate local environment.
+Keep local and deployed settings separate. For local development, choose `http://127.0.0.1:3000` or `http://localhost:3000` and use that host consistently. The localhost examples below describe a separately configured local Supabase environment. Vercel `APP_URL`, Supabase Auth Site URL, and the three exact custom-domain redirects use `https://pacubaseballperformance.com`. Redeploy after any later environment change; see [HOSTED-SETUP](HOSTED-SETUP.md).
 
 For the local CLI, `supabase status`/local Studio exposes connection settings; use the local publishable key. If using an older CLI that exposes only legacy keys, upgrade it; never substitute a privileged key. Keep URL and key from the same project. Do not include quotes around copied values unless your environment file parser requires them.
 
@@ -107,7 +109,7 @@ When template editing is available, in **Authentication → Email Templates → 
 
 The landing page waits for an explicit button click before consuming the one-time token. It then verifies `type=recovery`, establishes a cookie session, and opens the password form. Expired/invalid links return to login with an error. Successful changes request global session sign-out and return to login. Already-issued JWTs can last until their expiry; disabling a trusted app account independently removes database access on subsequent requests.
 
-The standard Supabase PKCE recovery flow is also supported by `/auth/callback`, which exchanges the code and uses a fixed trusted destination. The standard code flow requires the same browser and hostname that requested the link because its verifier cookie is host-bound. Requesting on `localhost` and returning to `127.0.0.1` (or the reverse) does not work merely because both callback URLs are allowed. For the connected development environment, use `http://127.0.0.1:3000` consistently. The supplied token-hash template is the recommended cross-device recovery path. Do not add an arbitrary `next` destination to these handlers.
+The standard Supabase PKCE recovery flow is also supported by `/auth/callback`, which exchanges the code and uses a fixed trusted destination. The standard code flow requires the same browser and hostname that requested the link because its verifier cookie is host-bound. Requesting on `localhost` and returning to `127.0.0.1`, or requesting on the Vercel alias and returning to the custom domain, does not work merely because both callback URLs are allowed. After the domain configuration is verified, start and finish private sign-in/reset flows on `https://pacubaseballperformance.com` in the same browser. The supplied token-hash template is the recommended cross-device recovery path. Do not add an arbitrary `next` destination to these handlers.
 
 Recovery requests buffer Auth cookie changes and commit them only after a successful provider response. A failed or rate-limited send preserves existing PKCE verifier cookies, so that failure does not replace the verifier for an earlier request. This cannot restore an expired or already consumed link, and it does not establish successful email delivery or recovery. The generic reset confirmation does not prove that a new email was sent; check the provider's actual result when diagnosing a failed attempt. Three installed-SDK tests with mocked responses cover this regression; see [TESTING](TESTING.md).
 
@@ -147,7 +149,7 @@ To make your own account both Admin and Player later, have a **different** admin
 pnpm dev
 ```
 
-Open the origin configured in `APP_URL`—currently `http://127.0.0.1:3000` for the connected development project. Keep this terminal open; stop with Ctrl+C. You should see a synthetic-data banner after connecting to your development environment. The generic login page never exposes athlete records. Full test instructions are in [TESTING.md](TESTING.md).
+Open the local URL printed by Next.js. The home page opens `/preview` without sign-in, showing ten fictional starter athletes until a roster import replaces them in that browser. Use Import Center to map, preview, and save files, then open the resulting athlete profiles. Keep this terminal open; stop with Ctrl+C. Private sign-in/reset flows must use the origin configured in `APP_URL`. Full test instructions are in [TESTING.md](TESTING.md).
 
 ```sh
 pnpm lint
@@ -160,15 +162,15 @@ The production build does not need live credentials to compile. That proves the 
 
 ## 8. Deploy to Vercel when you explicitly choose to
 
-The owner-approved synthetic development deployment is available at `https://pacu-baseball-performance-dashboard.vercel.app`. Its first cloud build used Node 24.x, Corepack, and pnpm 11.19.0. These steps describe deployment configuration for this project or a new environment:
+The owner-approved browser workspace is deployed at `https://pacubaseballperformance.com`; the original Vercel alias remains available for browser-data transfers. The deployment uses Node 24.x, Corepack, and pnpm 11.19.0. These steps describe configuration for this project or a new environment:
 
 1. Copy the project into your chosen GitHub repository/branch after inspecting and preserving existing work. Before committing, inspect `git status` and staged changes. Only synthetic fixture/template CSVs should be tracked; never force-add `.env.local` or roster exports.
 2. In Vercel, import that repository. Choose the Next.js preset and set **Root Directory** to this project's location inside the repository. If its contents are at repository root, leave Root Directory at root.
 3. Select Node 24.x. Add the **Vercel-only build variable** `ENABLE_EXPERIMENTAL_COREPACK=1` for each environment you will deploy. It enables Vercel's documented Corepack support so the existing `packageManager: "pnpm@11.19.0"` pin is used. This additional variable is not a secret and is not read by the app. Do not rely on an unqualified install override alone: Vercel can otherwise select an older pnpm version. See [Vercel package managers](https://vercel.com/docs/package-managers) and [Corepack configuration](https://vercel.com/docs/builds/configure-a-build#corepack).
 4. With Corepack enabled, use `pnpm install --frozen-lockfile` and `pnpm build`; keep the default Next.js output setting. Do not configure this as a static export: authentication requires server execution. Check the first build's output to confirm pnpm **11.19.0** was selected. A successful local build does not verify Vercel's build environment.
 5. Add the same four app environment variables for the intended environment, in addition to the Vercel-only build flag above. Point Preview deployments at a separate development Supabase project with synthetic data. For a deployed synthetic preview, keep `NEXT_PUBLIC_SYNTHETIC_DATA=true` even though Next.js uses production mode.
-6. Set `APP_URL` to the exact stable HTTPS deployment origin, such as your assigned Vercel project hostname. Do not guess a deployment hostname or use broad wildcard callback permissions. Redeploy after changing variables.
-7. Choose **Deploy** only when ready. Test login, logout, recovery, and each role with real separate test sessions before using any real roster data.
+6. Set `APP_URL` to the exact stable HTTPS deployment origin. This project's custom-domain target is `https://pacubaseballperformance.com`. Do not use broad wildcard callback permissions. Redeploy after changing variables.
+7. Choose **Deploy** only when ready. Check the public workspace and imports independently of Auth. Before using the private shared roster, test login, logout, recovery, and each role with separate test sessions.
 
 ## 9. Update Auth URLs after deployment
 
@@ -177,7 +179,17 @@ For the Supabase project serving that deployment:
 - Set Auth **Site URL** and Vercel `APP_URL` to the same exact HTTPS origin.
 - Add exact `/auth/callback`, `/auth/confirm`, and `/reset-password` redirect URLs for that origin.
 - Keep localhost URLs only in a development project that still needs them. Use separate development/production projects; changing Site URL changes where the recovery template sends users.
-- If/when you approve connecting `pacubaseballperformance.com`, add it in Vercel, follow Vercel's verified DNS instructions, then update `APP_URL`, Site URL, and the three redirect paths to `https://pacubaseballperformance.com`. Do not change DNS simply because the domain is mentioned here.
+- The owner-approved custom-domain settings are saved: Vercel `APP_URL` and Supabase Site URL use `https://pacubaseballperformance.com`, with exact redirects `https://pacubaseballperformance.com/auth/callback`, `https://pacubaseballperformance.com/auth/confirm`, and `https://pacubaseballperformance.com/reset-password`. Existing redirect entries were retained. After any address change, redeploy and verify the live callback destination; see [HOSTED-SETUP](HOSTED-SETUP.md).
+
+### Move saved browser data to the custom domain
+
+IndexedDB is specific to the exact origin and browser profile. Data saved at the Vercel alias does not automatically appear at the custom domain, even though both show the same app. Keep [the original Vercel alias](https://pacu-baseball-performance-dashboard.vercel.app) available for transfers.
+
+1. In the same browser profile that holds your data, open the original alias and choose **Import Center → Export backup**.
+2. Open `https://pacubaseballperformance.com` after its HTTPS configuration is verified, then choose **Restore workspace JSON backup** in Import Center.
+3. Select the exported JSON file, review the replacement confirmation, and choose **Restore backup**. Confirm your roster and measurements appear before clearing data at the old origin.
+
+Restore replaces the destination browser's roster, measurements, and import history. Export a destination backup first if it already holds data you want to keep. The alias and custom domain remain separate workspaces; later edits do not synchronize. The same rule applies to `www`, localhost, and another browser or device.
 
 ## Official references checked for this implementation
 

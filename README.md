@@ -1,6 +1,6 @@
 # PACU Baseball Performance
 
-Open [the live dashboard](https://pacu-baseball-performance-dashboard.vercel.app) without signing in. Browse ten fictional starter profiles, then import your roster and measurements into a **browser-local workspace**. Files stay in that browser; export a backup to keep or transfer them. The owner approved this scope on September 4, 2026 while password setup is paused. See [Import Center](docs/IMPORTS.md) and [the access boundary](docs/PREVIEW.md).
+Open [the live dashboard](https://pacubaseballperformance.com) without signing in. Browse ten fictional starter profiles, then import your roster and measurements into a **browser-local workspace**. Files stay in that browser; export a backup to keep or transfer them. The owner approved this scope on September 4, 2026 while password setup is paused. See [Import Center](docs/IMPORTS.md) and [the access boundary](docs/PREVIEW.md). If you previously imported data at the Vercel address, follow [the backup transfer steps](docs/SETUP.md#move-saved-browser-data-to-the-custom-domain) to bring it to the custom domain.
 
 Phase 1 plus the owner-requested browser-local Import Center: identity, access, roster, and measurement imports. An independently owned personal project by **Trevor Kazahaya**, for use by Pacific Baseball players and coaches. This is **not an official university-owned application**.
 
@@ -12,7 +12,7 @@ Built with Next.js 16, React 19, TypeScript, Tailwind 4, Supabase Auth, and Post
 2. Install Node.js 24 LTS and pnpm 11, then run `pnpm install --frozen-lockfile` from this folder.
 3. Copy `.env.example` to `.env.local`; enter your development project's public Supabase URL and publishable key.
 4. For a new database, apply the tracked migrations to your intended **development** project, disable public signup, and provision your chosen initial administrator as described in the guide. For the already connected project, consult the receipt first: its schema is already applied.
-5. Run `pnpm dev`, open the origin configured in `APP_URL` (currently `http://127.0.0.1:3000` for the connected development project), to use the browser workspace. The private team workspace additionally requires an owner-provisioned sign-in.
+5. Run `pnpm dev` and open the local URL printed by Next.js to use the browser workspace. For local private sign-in/reset flows, set `APP_URL` to that same local origin. The private team workspace additionally requires an owner-provisioned sign-in.
 
 The browser workspace works without Supabase configuration. Private sign-in remains disabled until configured; public browsing does not create an account or grant database access.
 
