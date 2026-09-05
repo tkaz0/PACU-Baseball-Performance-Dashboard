@@ -2,6 +2,12 @@
 
 PACU team accounts are invite-only. Each recipient verifies an invitation sent to their own inbox and chooses a unique password. Public signup remains disabled; no roster import creates an Auth user, password, role, or athlete link. The invitation form and acceptance flow are implemented, with sending disabled by default. This document does not establish that hosted SMTP, invitation delivery or a real recipient's password setup has been verified.
 
+## Prepare without sending
+
+The Admin-only **Team account preparation** page (`/admin/rollout`) lists `2026-27` player readiness and lets an administrator save a reviewed coach name/contact email. Coach preparation requires `202609060002_coach_rollout.sql`; it upserts by normalized email and records an audit. It does not inspect/provision Auth users, grant roles, link athletes or send email.
+
+**Ready to invite** indicates roster prerequisites, not verified inbox ownership. **Account connected** indicates an active Player role and trusted link, not a completed password. A saved coach remains a preparation record until the separately approved invitation/configuration steps succeed. The owner has explicitly said not yet to team emails. Keep sending disabled and unsent until new explicit recipient-send approval.
+
 ## Administrator flow
 
 The private **Account access** page shows **Invite a player or coach**. Sending is available only when the server has both `SUPABASE_AUTH_ADMIN_SECRET` and `PACU_INVITATIONS_ENABLED=true`. Leave the flag false until the migration, custom sender and email templates are verified. The separate browser-local Access & views page cannot send invitations or grant accounts.
@@ -46,12 +52,12 @@ Invitations may also be issued from Supabase's dashboard for a deliberately sele
 
 Normal app data access still uses `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and the signed-in user's session. The optional `SUPABASE_AUTH_ADMIN_SECRET` belongs to that same Supabase project and is read only by `lib/supabase/auth-admin.ts`, marked `server-only`. Its returned Auth interface is used only for directory lookup and `inviteUserByEmail`; it is never used for table reads/writes or the provisioning RPC. Store it privately in the server environment, with no `NEXT_PUBLIC_` prefix, client serialization, logging or source-control entry. Keep SMTP credentials separately in the provider/Supabase settings.
 
-Fresh databases apply all three tracked migrations. Existing databases whose original identity/access and roster migrations are already installed apply only `202609050003_invited_account_provisioning.sql`, after verifying migration history and reviewing the exact change. Do not replay the original schema, bootstrap another first administrator, or reimport fictional athletes to enable invitations.
+Fresh databases apply all tracked migrations in order. Existing databases apply only unapplied files after verifying migration history. Invitation provisioning uses `202609050003_invited_account_provisioning.sql`; shared performance and coach preparation have their own subsequent migrations. Do not replay the original schema, bootstrap another first administrator, or reimport fictional athletes to enable invitations.
 
 Keep `PACU_INVITATIONS_ENABLED=false` while setting up the migration, sender, Site URL and templates. Verify a deliberately approved recipient's invitation, password creation and fresh login using local Supabase/Mailpit first, then the intended hosted environment. Only after those checks set the flag to `true` with the server-only secret and restart/redeploy. Keep other environments disabled and never give a production Auth administrator secret to a Preview deployment. Setting the flag back to false blocks new app sends but does not disable existing accounts.
 
 ## Data and verification limits
 
-Separate logins use the protected Supabase workspace. Browser-local roster and RENPHO imports are not transferred by invitation acceptance; sharing those records requires a separately reviewed migration. Do not distribute a complete browser backup to give players their own accounts.
+Separate logins use the protected Supabase workspace. Invitation acceptance does not transfer browser-local roster or RENPHO data. Import the private roster and explicitly approve the numerical **Shared measurements** workflow after applying its migration; see [PLAYER_PROFILES](PLAYER_PROFILES.md). Do not distribute a complete browser backup to give players their own accounts.
 
 Focused tests use fictional tokens and mocked Auth responses for confirmation and invitation actions. Embedded PostgreSQL tests execute the new RPC with separate fictional subjects and verify role/link constraints, existing-account preservation, rollback, grants and lock order. They do not prove email delivery, actual concurrent hosted transactions, or a completed hosted invitation/password cycle. Verify those separately with an explicitly approved recipient, keeping tokens and passwords out of logs, screenshots, source, and reports. See [TESTING](TESTING.md).

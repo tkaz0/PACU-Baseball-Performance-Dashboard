@@ -1,4 +1,4 @@
-# Phase 1 data model
+# PACU data model
 
 ## Identities and ownership
 
@@ -13,6 +13,9 @@ An athlete is a baseball identity, not a login account. Its internal UUID and pe
 | `athletes` | Permanent identity plus name, contact, photo URL | Generated UUID; unique immutable-in-app athlete code; unique lowercase nonblank email |
 | `athlete_seasons` | Roster information for a season | `(athlete_id, season)`; jersey `0` valid; optional values NULL |
 | `roster_imports` | Staged source rows, authoritative preview and application status | Draft UUID, season, source SHA-256, actor, timestamps |
+| `performance_measurements` | Immutable reviewed numerical observations | Athlete UUID; unique observation ID and file/sheet/row/column position; canonical metric/unit; value/date and provenance |
+| `performance_imports` | Shared numerical import receipts | Actor/time and created/unchanged counts; no original report contents |
+| `coach_invitation_candidates` | Reviewed coach preparation contacts | Unique normalized email; bounded name; creator/time; no Auth or role link |
 | `audit_events` | Append-only application audit | Actor, event, target/import UUID, before/after or summary, timestamp |
 
 Application users cannot directly write or delete these tables. PostgreSQL owner access remains privileged and must be used deliberately. No views bypass RLS. Foreign keys prevent silently deleting accounts/athletes with history. No automatic Auth trigger provisions application accounts.
@@ -24,6 +27,9 @@ erDiagram
     APP_ACCOUNTS ||--o| ACCOUNT_ATHLETES : "trusted link"
     ATHLETES ||--o| ACCOUNT_ATHLETES : linked
     ATHLETES ||--o{ ATHLETE_SEASONS : "season roster"
+    ATHLETES ||--o{ PERFORMANCE_MEASUREMENTS : "reviewed observations"
+    PERFORMANCE_IMPORTS ||--o{ PERFORMANCE_MEASUREMENTS : contains
+    AUTH_USERS ||--o{ COACH_INVITATION_CANDIDATES : prepares
     AUTH_USERS ||--o{ ROSTER_IMPORTS : stages
     ROSTER_IMPORTS ||--o{ AUDIT_EVENTS : records
 ```
@@ -32,12 +38,12 @@ erDiagram
 
 All public application tables have RLS enabled, anonymous grants revoked, and no direct write grants/policies for authenticated users. Read policies require **current trusted active status**. Private functions avoid recursive RLS lookups, pin `search_path=''`, fully qualify tables, and have default PUBLIC execution revoked. Only the necessary helpers can execute for authenticated users. The `private` schema is not exposed by the Data API.
 
-| Identity | Athlete/season reads | Import preview/history/audit | Account administration |
+| Identity | Athlete/season/measurement reads | Import preview/history/audit | Account administration |
 | --- | --- | --- | --- |
 | Anonymous | Denied | Denied | Denied |
 | Unconfigured, role-free or disabled account | No athlete rows | Denied | Denied |
 | Player, no trusted athlete link | No athlete rows | Denied | Denied |
-| Active Player | Only linked athlete and its seasons | Denied | Denied |
+| Active Player | Only linked athlete, seasons and measurements | Denied | Denied |
 | Active Coach | Entire roster and profiles | Denied | Denied |
 | Active Admin | Entire roster and profiles | Allowed; only uploader approves its draft | Allowed for other accounts, with explicit approval/audit |
 | Active Admin + Player | Union of roles: administrative access plus own link | Admin access | Admin access |
@@ -105,11 +111,32 @@ Blank optional input never overwrites an existing populated value; explicit clea
 
 Audit records contain sensitive roster details once real data is introduced. Only active administrators can read them, and application users cannot edit/delete them. Retention/purge procedures are owner operations to define before collecting real data; this phase implements no automatic purge or raw-file storage.
 
-## Long-term import architecture — design only
+
+## Shared performance observations
+
+`202609060001_performance_profiles.sql` adds `performance_measurements`, `performance_imports`, and private canonical metric/unit catalogs. Catalog tables have no direct application read/write grants. Measurement read policies use live `private.can_read_athlete`: staff read all, Players only their linked athlete, inactive/unconfigured/anonymous identities read none. Import receipts and audit remain Admin-only. Application users have no direct write/delete grants.
+
+`admin_import_performance(p_rows jsonb)` calls a private definer function that pins `search_path`, acquires account lock `72104001`, then rechecks active Admin status. The 1–500-row/1-MiB JSON input accepts only observation ID, permanent athlete code, metric key, date, value, unit and source file/sheet/row/hash fields. The observation ID encodes hash/sheet/row/column and must match its supplied provenance. Canonical metric/unit foreign keys and mathematical value bounds supplement repeated RPC validation.
+
+A new observation is tied to the existing athlete UUID; no identity or Auth account is created. Duplicate input IDs/source positions and ambiguous same-report RENPHO metric/unit rows reject the transaction. Existing observations are immutable: semantic conflicts abort all rows, receipt and audit; equal observations remain unchanged. Renamed-file retries preserve original source metadata. Each accepted call has an import receipt and count-only audit, including unchanged-only retries; observation idempotence does not mean suppressing those receipts. No image, OCR text, report ID or full backup is stored.
+
+The private sharing UI parses a workspace backup locally and forwards a new object with exactly the eleven Measurement fields. It never forwards arbitrary properties from the backup. Unsupported metric labels are listed as exclusions; invalid recognized metrics or source evidence block approval. Both server action and adapter recheck access and input. The posted Measurement JSON and normalized RPC JSON each have a 1-MiB bound. See [PLAYER_PROFILES](PLAYER_PROFILES.md) for fields, units and workflow limits.
+
+`athlete_performance_summary(p_athlete_id uuid)` accepts only an exact authorized athlete. Its private definer reads peer observations solely to return fixed-metric, fixed-period aggregates for that athlete. The cohort is season `2026-27`, status null/active/redshirt, with one latest reading for each exact metric/unit/normalized source/period. Percentiles require at least five comparable athletes, include tied midranks, and invert lower-direction timings/rates. Body/spin ranks are neutral numerical positions. No caller-provided thresholds, periods or cohort lists can probe peer data; players cannot retrieve raw peer measurements. Fall 2026 and body-only Summer 2026 remain separate.
+
+`lib/performance-server.ts` adds explicit athlete filtering before every protected row query and summary call, because Admin View as retains the real Admin JWT. It reconstructs source batch metadata from permitted observations without granting players import-receipt access. Up to 20,000 observations per profile are supported. Pure metric projections share deterministic millisecond-precision import-time ties with SQL. Derived muscle percentage requires one same-report weight/muscle pair across all units, matching lb/kg units and canonical report provenance; it is not persisted as an invented raw measurement.
+
+## Coach account preparation
+
+`202609060002_coach_rollout.sql` adds `coach_invitation_candidates` and `admin_prepare_coach(p_display_name,p_email,p_reviewed)`. Only active administrators can read preparation contacts or save them through the audited RPC. After lock `72104001`, it requires explicit review, trims names, normalizes email case/spacing, and upserts the name by unique email. New entries are capped at 100; identical retries preserve the existing record.
+
+Preparation creates no Auth identity, account role, athlete link or invitation. `/admin/rollout` combines the current roster with already-authorized account links to show preparation status. A roster email is a contact field, not evidence of inbox ownership; connected access is not proof of completed password setup. Sending remains a separately approved operation described in [INVITATIONS](INVITATIONS.md).
+
+## Additional source adapters — roadmap
 
 Future sources will use the master roster as the identity registry:
 
-- Additional RENPHO formats and shared persistence (the supported portrait reader below is browser-local)
+- Additional RENPHO formats beyond the supported local portrait reader and approved numerical sharing workflow
 - Blast exports
 - Rapsodo hitting and pitching exports
 - Full Swing exports
@@ -121,7 +148,7 @@ Before implementation, obtain actual source files, export versions, field defini
 
 The intended future flow is **source receipt → versioned source-specific adapter → validation → explicit identity resolution → human preview/approval → transactional domain records with provenance → authorized reporting**. Unknown or ambiguous athlete references are queued for administrator resolution, never fuzzy-linked from name/email/jersey. Future import jobs should record source fingerprint, adapter version, units/time provenance, errors, approval, and idempotency rules. Measurements belong in separate time-stamped domain tables tied to athlete UUIDs, not in roster identity or seasonal membership.
 
-This shared-domain architecture is a roadmap only. The browser-local RENPHO reader described below does not add Supabase tables or implement a shared import pipeline. Google Sheets connectors, analytics calculations, force-plate schemas, AI interpretation and training recommendations remain outside this implementation.
+Additional source-specific adapters remain roadmap work. The implemented shared numerical import and fixed profile calculations are described below. Direct Google Sheets-to-dashboard synchronization, unverified vendor schemas, force plates, AI interpretation and training recommendations remain deferred.
 
 ## Browser-local import workspace (September 4 scope expansion)
 
@@ -141,10 +168,10 @@ Images, PDF contents, OCR text and unconfirmed ID evidence remain in memory, wit
 
 ### RENPHO chart projections
 
-Charts are read-only projections of existing browser measurements; they add no persisted fields or migration. Grouping requires the selected athlete code, source `RENPHO`, reviewed-report page provenance, file hash and test date. Distinct files on one date stay distinct, and missing values never backfill from a different report. Only unambiguous supported metric/unit pairs with finite, nonnegative values are charted; percentages also require 0–100. Excluded rows remain in the original history and backup. Units are never converted, and overlapping mass/percentage measurements are never summed. See [RENPHO_CHARTS.md](RENPHO_CHARTS.md) for chart and scale definitions.
+Charts are read-only projections of approved measurements supplied by the browser workspace or the authorized shared-data adapter. The chart component adds no persisted fields; shared persistence uses its separate migration. Grouping requires the selected athlete code, source `RENPHO`, reviewed-report page provenance, file hash and test date. Distinct files on one date stay distinct, and missing values never backfill from a different report. Only unambiguous supported metric/unit pairs with finite, nonnegative values are charted; percentages also require 0–100. Excluded rows remain in the original history and backup. Units are never converted, and overlapping mass/percentage measurements are never summed. See [RENPHO_CHARTS.md](RENPHO_CHARTS.md) for chart and scale definitions.
 
 ### Access views (September 5 scope expansion)
 
-No new tables or role grants are added. Protected display previews require an existing active administrator on each request. The actor-bound, HTTP-only, same-site session cookie selects Coach or an explicitly verified athlete for Player and carries a server-checked four-hour expiry. It can only reduce the displayed access. The real Auth identity and database roles stay unchanged; RLS continues to constrain that identity. Because admin RLS is broader than a player preview, every profile/API entry and overview query additionally applies the effective athlete restriction before returning data. All roster/account server mutations require actual admin access with no active preview.
+No new tables or role grants are added. Protected display previews require an existing active administrator on each request. The actor-bound, HTTP-only, same-site session cookie selects Coach or an explicitly verified athlete for Player and carries a server-checked four-hour expiry. It can only reduce the displayed access. The real Auth identity and database roles stay unchanged; RLS continues to constrain that identity. Because admin RLS is broader than a player preview, every profile/API entry and overview query additionally applies the effective athlete restriction before returning data. All roster/account/shared-measurement/coach-preparation server mutations require actual admin access with no active preview.
 
 The separate browser-local `sessionStorage` preference stores only role and optional local athlete code; it is not part of the IndexedDB workspace or JSON backup and is not authorization. Its player data projection includes only the selected athlete and readings. The owner's preview menu can still choose another player. Coach/player views hide imports, backups and account controls; local write/export handlers also reject calls while previewing. Existing measurements and permanent codes are never rewritten by switching views.

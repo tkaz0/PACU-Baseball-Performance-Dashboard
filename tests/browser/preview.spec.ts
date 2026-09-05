@@ -12,8 +12,11 @@ async function expectPublicWorkspace(page: Page) {
   await expect(page.locator('a[href^="/admin/"]')).toHaveCount(0);
 }
 
-test("the public home opens the fictional preview without signing in", async ({ page }) => {
+test("home requests sign-in and the saved browser workspace remains available explicitly", async ({ page }) => {
   await page.goto("/");
+  await expect(page).toHaveURL(/\/login\/?$/);
+  await expect(page.getByRole("heading", { name: "Welcome back.", exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "Open saved browser workspace", exact: true }).click();
   await expect(page).toHaveURL(/\/preview\/?$/);
   await expectPublicWorkspace(page);
   await page.locator('a[href="/preview/roster"]').first().click();

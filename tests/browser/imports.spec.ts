@@ -119,7 +119,10 @@ test("measurement batches persist, deduplicate source values, and can be removed
   await expect(page.getByText(/workspace changed after this preview/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Apply reviewed import", exact: true })).toBeDisabled();
   await page.goto("/preview/athletes/SYN-001");
-  await expect(page.getByText("No data yet.", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("player-performance-profile")).toBeVisible();
+  await expect(page.getByText("No data", { exact: true }).first()).toBeVisible();
+  await expect(page.locator('[data-testid="player-metric"][data-value]')).toHaveCount(0);
+  await expect(page.getByRole("table", { name: /Imported performance readings/ })).toHaveCount(0);
 });
 
 test("invalid mappings cannot apply and automatic name matches require explicit confirmation", async ({ page }) => {

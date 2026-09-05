@@ -132,6 +132,7 @@ test("player measurements are scoped and exiting preserves the complete saved ba
   expect(before.roster).toHaveLength(2);
   expect(before.measurements).toHaveLength(2);
   await selectPlayer(page);
+  await page.locator("#performance-history > summary").click();
   const readings = page.getByRole("table", { name: /Imported performance readings/ });
   await expect(readings.locator("tbody tr")).toHaveCount(1);
   await expect(readings).toContainText("Fictional own reading");
@@ -141,6 +142,7 @@ test("player measurements are scoped and exiting preserves the complete saved ba
   await expectNoManagement(page);
   await page.reload();
   await expect(page.getByText("Viewing as: Player", { exact: true })).toBeVisible();
+  await page.locator("#performance-history > summary").click();
   await expect(readings.locator("tbody tr")).toHaveCount(1);
   await expectNoManagement(page);
   await page.getByRole("button", { name: "Exit preview", exact: true }).click();

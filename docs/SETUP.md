@@ -1,8 +1,8 @@
 # Setup, step by step
 
-These steps are for Trevor's independently owned project. The dashboard opens without sign-in and supports roster/profile browsing plus reviewed CSV, TSV, XLSX and supported RENPHO report imports saved in this browser. Start at [the dashboard](https://pacubaseballperformance.com). The owner-approved domain, HTTPS certificates, and Auth URL settings are configured; see [HOSTED-SETUP](HOSTED-SETUP.md) for verification details and [Import Center](IMPORTS.md) for the file workflow.
+The private home route opens sign-in or the authorized team workspace. Player profiles combine reviewed shared measurements, history and fixed-cohort comparisons; coaches can read the team and administrators manage imports and access. The owner has requested this expanded scope. Historical environment receipts are in [HOSTED-SETUP](HOSTED-SETUP.md).
 
-The browser workspace requires JavaScript and browser site storage; it does not require a Supabase account or database setup. The Auth, database, and account steps below configure the separate private team workspace. Use a development database with synthetic data first. Read [HOSTED-SETUP](HOSTED-SETUP.md) before repeating any migration or account-provisioning step. Nothing in this repository automatically provisions hosted accounts, sends email, deploys, or changes DNS.
+The separate `/preview` browser workspace still supports fictional starter profiles and local CSV/TSV/XLSX/RENPHO review without a Supabase account. It requires JavaScript and site storage. Local imports do not become shared by signing in: an administrator must import the protected roster and approve the separate numerical sharing step. Use synthetic data in a development database first and inspect migration history before setup.
 
 For body-composition reports, open **Import Center → RENPHO report** and choose a complete portrait PNG/JPG or one-page PDF. The local reader needs its first asset load before it can process a report. Confirm the selected player, test date and each extracted value/unit against the displayed original; uncheck unwanted readings, review, then approve saving. A new report ID requires player selection. You may explicitly remember that exact ID for later imports in this browser. The roster's optional `renpho_id` uses the same exact-match behavior. No IDs create sign-in accounts or connect Supabase identities.
 
@@ -52,7 +52,7 @@ Restart `pnpm dev` after editing environment variables. `.env.local` and all `.e
 
 ## 3. Apply migrations to the intended development database
 
-There are three tracked migrations under `supabase/migrations/`. The first two create the identity/access schema and protected roster importer. `202609050003_invited_account_provisioning.sql` adds a narrow function that provisions new Coach or Player application access without replacing existing accounts. These migrations do **not** create Auth users, send email, or insert athletes. They do not delete or replace existing tables. If your database already has these table names or other prior schema work, inspect and reconcile it first; do not force migrations over existing work.
+There are five tracked migrations under `supabase/migrations/`. The first two create identity/access and the protected roster importer. `202609050003_invited_account_provisioning.sql` adds checked invitation provisioning; `202609060001_performance_profiles.sql` adds reviewed shared measurements and restricted aggregate comparisons; `202609060002_coach_rollout.sql` adds administrator-only coach preparation. These migrations do **not** create Auth users, send email, or insert athletes. They do not delete or replace existing tables. If your database already has these table names or other prior schema work, inspect and reconcile it first; do not force migrations over existing work.
 
 ### Option A: local Supabase (recommended for complete tests)
 
@@ -81,7 +81,7 @@ pnpm dlx supabase migration list
 pnpm dlx supabase db push --dry-run
 ```
 
-For a fresh database, the dry run should propose the three supplied migrations in order. For an existing database with the original two migrations already applied, it should propose **only** `202609050003_invited_account_provisioning.sql`. If the original schema was applied manually and migration history is missing, verify the existing schema and reconcile that history before proceeding; do not replay the original files. After confirming the intended development project and exact changes, run:
+For a fresh database, the dry run should propose all five supplied migrations in order. For an existing database, it should propose only the files absent from its verified migration history. Invitation provisioning, shared performance and coach preparation are separate upgrades; do not assume they were applied together. If the original schema was applied manually and migration history is missing, verify the existing schema and reconcile that history before proceeding; do not replay the original files. After confirming the intended development project and exact changes, run:
 
 ```sh
 pnpm dlx supabase db push
@@ -143,7 +143,7 @@ The invitation form is implemented under private **Account access**, but `.env.e
 
 With sending enabled, review one person's sign-in email, choose Coach or Player, select the exact unlinked private athlete for a Player, and explicitly approve **Send approved invitation**. This is separate from roster email matching. Existing Auth users are not reinvited; review their existing account and use password recovery. Timeouts can mean an email was sent: inspect Auth/provider records before retrying. If the invitation succeeds but database provisioning is not confirmed, the app instructs an administrator to review that user and configure existing access; it never silently overwrites an existing account. See [INVITATIONS](INVITATIONS.md) for the full flow and testing limits.
 
-Private logins do not transfer the real roster or report readings saved in one browser. Import the reviewed real roster into the protected database before linking actual players; sharing measurements remains a separate migration. Never distribute the complete local workspace backup as a way to give players access.
+Private logins do not transfer records saved in one browser. Import the reviewed roster into the protected database, retain its permanent codes, then approve shared numerical measurements using the workflow below. Never distribute the complete local workspace backup to give players access.
 
 ## 5. Create the first administrator deliberately
 
@@ -173,7 +173,7 @@ To make your own account both Admin and Player later, have a **different** admin
 pnpm dev
 ```
 
-Open the local URL printed by Next.js. The home page opens `/preview` without sign-in, showing ten fictional starter athletes until a roster import replaces them in that browser. Use Import Center to map, preview, and save files, then open the resulting athlete profiles. Keep this terminal open; stop with Ctrl+C. Private sign-in/reset flows must use the origin configured in `APP_URL`. Full test instructions are in [TESTING.md](TESTING.md).
+Open the local URL printed by Next.js. The home page directs visitors to sign-in and authorized accounts to `/overview`. To use local imports without sign-in, open `/preview` explicitly; it starts with ten fictional athletes until replaced by a reviewed local roster. Use its Import Center to map, review and save files. Keep this terminal open; stop with Ctrl+C. Private sign-in/reset flows must use the origin configured in `APP_URL`. Full test instructions are in [TESTING.md](TESTING.md).
 
 ```sh
 pnpm lint
@@ -230,4 +230,22 @@ The browser workspace has a **View as** menu and **Access & views** page. Choose
 
 After signing into the private workspace as an active administrator, its separate **View as** menu uses trusted server access checks. Choose Coach or a specific athlete for Player. The effective view hides administration and refuses roster/account mutations. Player routes and API responses are explicitly scoped to the selected athlete. Exit preview restores actual roles. An invalid, expired, or unavailable selection shows a recovery page rather than falling back to full admin access. The four-hour preview preference applies to private workspace tabs in that browser; refresh another tab to update its visible navigation.
 
-Account roles remain independent of preview choices. A real player login needs an administrator-approved athlete link. No accounts, links, invitations, hosted imports or cloud measurement storage are created by this feature. See [ACCESS_VIEWS.md](ACCESS_VIEWS.md).
+Account roles remain independent of preview choices. A real player login needs an administrator-approved athlete link. Switching a preview creates no accounts, links, invitations or measurement imports. Shared measurements have their own approved import workflow. See [ACCESS_VIEWS.md](ACCESS_VIEWS.md).
+
+
+## Share reviewed performance measurements
+
+The target database needs `202609060001_performance_profiles.sql` before this workflow. See [PLAYER_PROFILES](PLAYER_PROFILES.md) for supported metrics and comparison rules.
+
+1. Import and review the intended private roster, retaining permanent athlete codes and adding its `2026-27` season entries. Account links still require separate administrator approval.
+2. In `/preview/import`, finish reviewing the original reports, selected athletes, dates, values and units. Export a private workspace JSON backup.
+3. Sign in as Admin, exit View as, and open **Shared measurements** (`/admin/performance`). Choose the backup; the current UI accepts up to 2 MiB.
+4. Review every supported reading against its intended shared athlete. Unknown metrics are listed as exclusions; invalid recognized units/values/provenance and unmatched athletes block sharing. One approved batch supports at most 500 readings. Both the posted Measurement JSON and normalized database JSON must fit within 1 MiB. A larger batch needs deliberate selection/export of a smaller set; the app does not split and partly save it automatically.
+5. Confirm the review and select **Share with team**. Only the exact numerical Measurement fields and source provenance are posted. The full backup, report images/text, unknown extra fields and remembered report IDs remain on the device.
+6. Verify the resulting private profile and import receipt. Repeated observations are unchanged; conflicting data for the same observation rejects the transaction. The original source filename/import metadata survives a renamed-file retry. Removing a local batch does not delete a shared observation.
+
+## Prepare player and coach accounts
+
+After applying `202609060002_coach_rollout.sql`, open **Team account preparation** (`/admin/rollout`) as an active administrator outside preview. It lists `2026-27` players with roster/account readiness and stores individually reviewed coach names/emails. The list supports up to 100 coaches; saving the same normalized email updates the name and records an audit event.
+
+**Ready to invite** means roster prerequisites are present; it does not verify an inbox or send an email. **Account connected** means a trusted active Player link exists; it does not prove password setup. A saved coach is only a preparation record. Use the separate Account access flow and explicit recipient approval when invitations are authorized. The owner has said not yet to team emails; keep sending disabled and unsent until explicit approval.

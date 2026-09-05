@@ -9,11 +9,10 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
   const params = await searchParams;
   const configured = hasSupabaseConfig();
   return <AuthFrame><p className="eyebrow muted">PACU Baseball Performance</p><h1 className="mb-2 text-3xl font-bold tracking-tight">Welcome back.</h1><p className="muted mb-8 text-sm">Sign in to your team workspace.</p>
-    <div className="mb-7 rounded-lg border border-gray-200 bg-gray-50 p-4"><Link href="/preview" className="btn btn-secondary w-full">Open dashboard without sign-in <ArrowRight size={16} /></Link><p className="mb-0 mt-2 text-center text-xs text-gray-500">Browse profiles and import files into this browser workspace.</p></div>
     {!configured && <div className="notice mb-6">Setup needed: connect your development Supabase project using <code>.env.local</code>. Follow <code>docs/SETUP.md</code> in the project.</div>}
     {params.error && <p role="alert" className="notice notice-error mb-5">{params.error === "reset" ? "That reset link could not be verified. Request a new link." : "Unable to sign in. Check your credentials and try again."}</p>}
     {params.updated && <p role="status" className="notice notice-success mb-5">Password updated. Sign in with your new password.</p>}
     <form action={login} className="space-y-5"><label>Email address<input name="email" type="email" autoComplete="username" placeholder="you@example.com" required maxLength={254} disabled={!configured} /></label><label>Password<input name="password" type="password" autoComplete="current-password" required maxLength={1024} disabled={!configured} /></label><div className="text-right"><Link href="/forgot-password" className="text-sm font-semibold text-pacu-red">Forgot password?</Link></div><SubmitButton pendingText="Signing in…" disabled={!configured} className="btn btn-primary w-full">Sign in <ArrowRight size={16} /></SubmitButton></form>
-    {process.env.NEXT_PUBLIC_SYNTHETIC_DATA === "true" && <p className="mt-5 text-xs font-semibold text-pacu-red">Development environment · Synthetic athletes only</p>}
+    <p className="mb-0 mt-7 text-center text-xs text-gray-500"><Link href="/preview" className="font-semibold text-pacu-red">Open saved browser workspace</Link><span className="mt-1 block">Local imports saved on this device.</span></p>
   </AuthFrame>;
 }

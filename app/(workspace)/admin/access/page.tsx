@@ -17,7 +17,7 @@ export default async function AccessPage({ searchParams }: { searchParams: Promi
   const params = await searchParams;
   const [accountResult, athleteResult] = await Promise.all([
     supabase.from("app_accounts").select("user_id,is_active,account_roles(role),account_athletes(athlete_id)").order("created_at"),
-    supabase.from("athletes").select("id,athlete_code,first_name,preferred_name,last_name").order("last_name").limit(1000),
+    supabase.from("athletes").select("id,athlete_code,first_name,preferred_name,last_name,athlete_seasons!inner(season)").eq("athlete_seasons.season", "2026-27").order("last_name").limit(1000),
   ]);
   if (accountResult.error || athleteResult.error) throw new Error("Unable to load account access.");
   const accounts: ConfiguredAccount[] = ((accountResult.data ?? []) as AccountRow[]).map(account => {

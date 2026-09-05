@@ -6,8 +6,9 @@ import { Activity, ArrowLeft, ArrowRight, ClipboardList, Database, Upload, Users
 import { PageHeading } from "@/components/page-heading";
 import { RosterTable } from "@/components/roster-table";
 import { RenphoCharts } from "@/components/renpho-charts";
-import { useLocalWorkspace, type ImportBatch } from "@/components/local-workspace";
-import type { Measurement } from "@/lib/imports/engine";
+import { useLocalWorkspace } from "@/components/local-workspace";
+import { PlayerPerformanceProfile } from "@/components/player-performance-profile";
+import { getRenphoReports } from "@/lib/renpho-charts";
 import { athleteName, display } from "@/lib/types";
 
 function BaseballDiamond() {
@@ -20,33 +21,6 @@ function BaseballDiamond() {
     <path d="M175 254h10v7l-5 5-5-5Z" fill="currentColor" />
     <path d="M67 143q113-114 226 0" stroke="currentColor" strokeDasharray="3 6" />
   </svg>;
-}
-
-const RENPHO_HIGHLIGHTS = ["Weight", "Body Fat Percentage", "Skeletal Muscle Mass", "Fat-Free Mass", "Muscle Mass", "Body Water Mass"];
-
-function latestRenphoReport(readings: Measurement[], batches: ImportBatch[]) {
-  const importTimes = new Map<string, string>();
-  for (const batch of batches) {
-    if (batch.kind !== "measurements" || batch.source !== "RENPHO" || !batch.fileHash) continue;
-    if (batch.importedAt > (importTimes.get(batch.fileHash) ?? "")) importTimes.set(batch.fileHash, batch.importedAt);
-  }
-  const reports = new Map<string, { readings: Measurement[]; importedAt: string }>();
-  for (const reading of readings) {
-    // Only reviewed report imports have this provenance. A source label on an
-    // unrelated spreadsheet does not make it a body-composition report.
-    if (reading.source !== "RENPHO" || !reading.source_sheet.startsWith("RENPHO report · Page ")) continue;
-    const key = JSON.stringify([reading.source, reading.file_hash, reading.measured_at]);
-    const report = reports.get(key) ?? { readings: [], importedAt: importTimes.get(reading.file_hash) ?? "" };
-    report.readings.push(reading); reports.set(key, report);
-  }
-  const latest = [...reports.values()].sort((a, b) => b.readings[0].measured_at.localeCompare(a.readings[0].measured_at)
-    || b.importedAt.localeCompare(a.importedAt) || a.readings[0].file_hash.localeCompare(b.readings[0].file_hash))[0];
-  if (!latest) return null;
-  // Every card is an individual saved reading. Units are neither combined nor
-  // converted, and missing metrics are never filled from an older report.
-  const highlights = latest.readings.filter(reading => RENPHO_HIGHLIGHTS.includes(reading.metric))
-    .sort((a, b) => RENPHO_HIGHLIGHTS.indexOf(a.metric) - RENPHO_HIGHLIGHTS.indexOf(b.metric) || a.unit.localeCompare(b.unit) || a.id.localeCompare(b.id)).slice(0, 6);
-  return { ...latest, highlights, reference: latest.readings[0] };
 }
 
 export function LocalOverview() {
@@ -113,7 +87,7 @@ export function LocalRoster({ initialQuery = "", initialSeason = "" }: { initial
 }
 
 export function LocalAthleteProfile({ id }: { id: string }) {
-  const { roster, measurements, batches, ready, mode, canManage, view } = useLocalWorkspace();
+  const { roster, measurements, batches, ready, mode, canManage, view, getPerformance } = useLocalWorkspace();
   const [metric, setMetric] = useState("");
   const [source, setSource] = useState("");
   const [limit, setLimit] = useState(100);
@@ -121,46 +95,41 @@ export function LocalAthleteProfile({ id }: { id: string }) {
   if (!ready) return <p role="status">Opening athlete profile…</p>;
   if (!athlete) return <div className="panel empty-state"><UsersRound size={30} aria-hidden="true" /><h1 className="page-title">Profile unavailable</h1><p>{canManage ? "This athlete is not in this browser’s roster. Import the roster or restore your workspace backup." : "This profile is unavailable in the current view. Exit preview to choose another athlete."}</p>{view.role !== "player" && <Link href="/preview/roster" className="btn btn-primary">Back to roster</Link>}</div>;
   const seasons = [...athlete.athlete_seasons].sort((a, b) => b.season.localeCompare(a.season));
-  const latestSeason = seasons[0];
   const readings = measurements.filter(m => m.athlete_code === id).sort((a, b) => b.measured_at.localeCompare(a.measured_at) || b.source_row - a.source_row);
   const metricKey = (m: { metric: string; unit: string }) => JSON.stringify([m.metric, m.unit]);
   const metrics = [...new Map(readings.map(m => [metricKey(m), `${m.metric} (${m.unit})`])).entries()];
   const sources = [...new Set(readings.map(m => m.source))].sort();
   const filtered = readings.filter(m => (!metric || metricKey(m) === metric) && (!source || m.source === source));
-  const latestReport = latestRenphoReport(readings, batches);
+  const hasRenphoReports = getRenphoReports(readings, batches, id).length > 0;
   return <>
     {view.role !== "player" && <Link href="/preview/roster" className="profile-back"><ArrowLeft size={15} />Master roster</Link>}
-    <section className="athlete-hero">
-      <div className="athlete-identity"><p className="eyebrow">Pacific Baseball <span aria-hidden="true">/</span> {mode === "sample" ? "Fictional athlete profile" : "Athlete profile"}</p><h1>{athleteName(athlete)}</h1><div className="athlete-meta"><span className="athlete-code">{athlete.athlete_code}</span>{latestSeason?.primary_position && <span>{display(latestSeason.primary_position)}</span>}{latestSeason?.academic_class && <span className="capitalize">{display(latestSeason.academic_class)}</span>}</div></div>
-      <div className="athlete-jersey" aria-label={`Latest jersey number: ${display(latestSeason?.jersey_number)}`}><span>{latestSeason ? `Season ${latestSeason.season}` : "Pacific Baseball"}</span><strong>{display(latestSeason?.jersey_number)}</strong><span>Jersey number</span></div>
-      <BaseballDiamond />
-    </section>
-    <nav className="profile-section-nav" aria-label="Athlete profile sections"><a href="#performance">Performance <span>{readings.length} readings</span></a><a href="#season-details">Roster &amp; seasons <ArrowRight size={14} aria-hidden="true" /></a></nav>
+    <PlayerPerformanceProfile athlete={athlete} performance={getPerformance(id)} season={seasons[0]} fictional={mode === "sample"}
+      action={canManage ? <Link href="/preview/import" className="text-link">Import measurements <ArrowRight size={15} /></Link> : undefined} />
 
-    <section id="performance" className="panel measurement-panel">
-      <div className="section-heading"><div><p className="eyebrow text-pacu-red">{view.role === "player" ? "My performance" : "Athlete record"}</p><h2>Performance measurements</h2></div>{canManage && <Link href="/preview/import" className="text-link">Import measurements <ArrowRight size={15} /></Link>}</div>
-      {latestReport && <section className="renpho-summary" aria-label="Latest RENPHO report">
-        <div className="report-summary-heading"><div><p className="eyebrow">Latest RENPHO report</p><h3>Body composition</h3><p>Test date <time dateTime={latestReport.reference.measured_at}>{latestReport.reference.measured_at}</time> · {latestReport.readings.length} saved readings</p></div><span className="report-source-badge">RENPHO</span></div>
-        <p className="report-summary-file">{latestReport.reference.source_file}</p>
-        {latestReport.highlights.length > 0 && <div className="report-metric-grid">{latestReport.highlights.map(reading => <article className="report-metric-card" key={reading.id} aria-label={`${reading.metric} (${reading.unit})`}><h4>{reading.metric}</h4><p className="report-metric-value"><strong>{String(reading.value)}</strong><span>{reading.unit}</span></p><p className="report-metric-context">{reading.source} · <time dateTime={reading.measured_at}>{reading.measured_at}</time></p></article>)}</div>}
-        <a className="text-link" href="#performance-history" onClick={() => { setMetric(""); setSource(""); setLimit(100); }}>See full measurement history <ArrowRight size={15} /></a>
-      </section>}
-      <RenphoCharts key={id} readings={readings} batches={batches} athleteCode={id} />
-      {!readings.length ? <div className="measurement-empty"><span className="empty-diamond"><Activity size={26} aria-hidden="true" /></span><div><p className="font-semibold">No data yet.</p><p className="muted text-sm">{canManage ? "Import a performance file and match its readings to this athlete." : "Measurements appear here after an administrator imports a report for this athlete."}</p></div>{canManage && <Link href="/preview/import" className="btn btn-secondary">Add measurements <ArrowRight size={15} /></Link>}</div> : <>
-        <h3 id="performance-history" className="measurement-history-title">Measurement history</h3>
-        <div className="reading-summary"><div><span>Readings</span><strong>{readings.length.toLocaleString()}</strong></div><div><span>Latest test date</span><strong>{readings[0].measured_at}</strong></div><div><span>Sources</span><strong>{sources.length}</strong></div></div>
-        <div className="measurement-filters"><label>Measurement filter<select value={metric} onChange={e => { setMetric(e.target.value); setLimit(100); }}><option value="">All measurements</option>{metrics.map(([key, label]) => <option value={key} key={key}>{label}</option>)}</select></label><label>Source filter<select value={source} onChange={e => { setSource(e.target.value); setLimit(100); }}><option value="">All sources</option>{sources.map(s => <option key={s}>{s}</option>)}</select></label></div><p className="text-xs text-gray-500">{filtered.length} readings · Values and units exactly as reviewed at import</p>
-        <div className="table-wrap"><table><caption className="sr-only">Imported performance readings for {athleteName(athlete)}</caption><thead><tr><th>Date</th><th>Measurement</th><th>Value</th><th>Unit</th><th>Source</th><th>File / row</th></tr></thead><tbody>{filtered.slice(0, limit).map(m => <tr key={m.id}><td className="whitespace-nowrap">{m.measured_at}</td><td>{m.metric}</td><td className="font-semibold">{String(m.value)}</td><td>{m.unit}</td><td>{m.source}</td><td className="max-w-xs break-words text-xs text-gray-500">{m.source_file}{m.source_sheet && m.source_sheet !== "CSV" ? ` · ${m.source_sheet}` : ""} · Row {m.source_row}</td></tr>)}</tbody></table></div>{filtered.length > limit && <button className="btn btn-secondary mt-4" onClick={() => setLimit(limit + 100)}>Show 100 more readings</button>}
-      </>}
-    </section>
-    <section id="season-details" aria-label="Roster and season details">
-    <section className="panel athlete-details roster-detail-panel"><dl className="field-grid"><div><dt>Roster name</dt><dd>{athlete.first_name} {athlete.last_name}</dd></div><div><dt>{mode === "sample" ? "Sample email" : "Roster email"}</dt><dd>{display(athlete.pacific_email)}</dd></div><div><dt>Preferred name</dt><dd>{display(athlete.preferred_name)}</dd></div><div><dt>Roster RENPHO ID</dt><dd>{athlete.renpho_id || "Not added yet"}</dd></div>{!!athlete.renpho_ids?.length && <div><dt>Remembered report IDs</dt><dd><details><summary className="cursor-pointer">{athlete.renpho_ids.length} linked</summary><ul className="mt-2 space-y-1 text-sm">{athlete.renpho_ids.map(id => <li key={id}>{id}</li>)}</ul></details></dd></div>}</dl></section>
+    {hasRenphoReports && <details className="panel mt-6" open={canManage}>
+      <summary className="cursor-pointer px-5 py-5 text-sm font-bold sm:px-6">Full RENPHO charts &amp; report history</summary>
+      <div className="border-t border-[#eeeef0] px-5 pb-5 sm:px-6"><RenphoCharts key={id} readings={readings} batches={batches} athleteCode={id} /></div>
+    </details>}
 
-    {seasons.map(s => {
-      const fields: [string, string | number | null][] = [["Jersey number", s.jersey_number], ["Primary position", s.primary_position], ["Secondary position", s.secondary_position], ["Player type", s.player_type], ["Bats / throws", `${display(s.bats)} / ${display(s.throws)}`], ["Academic class", s.academic_class], ["Eligibility year", s.eligibility_year], ["Graduation year", s.graduation_year]];
-      return <section className="panel season-card" key={s.season}><div className="season-heading"><div><span className="season-marker" aria-hidden="true" /><h2>Season {s.season}</h2></div><span className={`badge capitalize ${s.roster_status === "active" ? "badge-green" : ""}`}>{display(s.roster_status)}</span></div><dl className="field-grid season-fields">{fields.map(([label, value]) => <div key={label}><dt>{label}</dt><dd className="capitalize">{display(value)}</dd></div>)}</dl></section>;
-    })}
+    {readings.length > 0 && <details id="performance-history" className="panel mt-6" open={canManage}>
+      <summary className="cursor-pointer px-5 py-5 text-sm font-bold sm:px-6">Measurement history <span className="ml-2 text-xs font-normal text-gray-500">{readings.length.toLocaleString()} readings</span></summary>
+      <div className="border-t border-[#eeeef0] p-5 sm:p-6">
+        <div className="measurement-filters"><label>Measurement filter<select value={metric} onChange={e => { setMetric(e.target.value); setLimit(100); }}><option value="">All measurements</option>{metrics.map(([key, label]) => <option value={key} key={key}>{label}</option>)}</select></label><label>Source filter<select value={source} onChange={e => { setSource(e.target.value); setLimit(100); }}><option value="">All sources</option>{sources.map(s => <option key={s}>{s}</option>)}</select></label></div>
+        <p className="text-xs text-gray-500">{filtered.length} readings · Values and units exactly as reviewed at import</p>
+        <div className="table-wrap"><table><caption className="sr-only">Imported performance readings for {athleteName(athlete)}</caption><thead><tr><th>Date</th><th>Measurement</th><th>Value</th><th>Unit</th><th>Source</th><th>File / row</th></tr></thead><tbody>{filtered.slice(0, limit).map(m => <tr key={m.id}><td className="whitespace-nowrap">{m.measured_at}</td><td>{m.metric}</td><td className="font-semibold">{String(m.value)}</td><td>{m.unit}</td><td>{m.source}</td><td className="max-w-xs break-words text-xs text-gray-500">{m.source_file}{m.source_sheet && m.source_sheet !== "CSV" ? ` · ${m.source_sheet}` : ""} · Row {m.source_row}</td></tr>)}</tbody></table></div>
+        {filtered.length > limit && <button className="btn btn-secondary mt-4" onClick={() => setLimit(limit + 100)}>Show 100 more readings</button>}
+      </div>
+    </details>}
 
-    </section>
+    {canManage && <details className="panel mt-6" open>
+      <summary className="cursor-pointer px-5 py-5 text-sm font-bold sm:px-6">Account and roster details <span className="ml-2 text-xs font-normal text-gray-500">Admin</span></summary>
+      <section id="season-details" className="border-t border-[#eeeef0] p-5 sm:p-6" aria-label="Roster and season details">
+        <dl className="field-grid mb-6"><div><dt>Roster name</dt><dd>{athlete.first_name} {athlete.last_name}</dd></div><div><dt>Permanent athlete code</dt><dd>{athlete.athlete_code}</dd></div><div><dt>{mode === "sample" ? "Sample email" : "Roster email"}</dt><dd>{display(athlete.pacific_email)}</dd></div><div><dt>Preferred name</dt><dd>{display(athlete.preferred_name)}</dd></div><div><dt>Roster RENPHO ID</dt><dd>{athlete.renpho_id || "Not added yet"}</dd></div>{!!athlete.renpho_ids?.length && <div><dt>Remembered report IDs</dt><dd><details><summary className="cursor-pointer">{athlete.renpho_ids.length} linked</summary><ul className="mt-2 space-y-1 text-sm">{athlete.renpho_ids.map(reportId => <li key={reportId}>{reportId}</li>)}</ul></details></dd></div>}</dl>
+        {seasons.map(s => {
+          const fields: [string, string | number | null][] = [["Season jersey", s.jersey_number], ["Primary position", s.primary_position], ["Secondary position", s.secondary_position], ["Player type", s.player_type], ["Bats / throws", `${display(s.bats)} / ${display(s.throws)}`], ["Academic class", s.academic_class], ["Eligibility year", s.eligibility_year], ["Graduation year", s.graduation_year]];
+          return <section className="panel season-card" key={s.season}><div className="season-heading"><div><span className="season-marker" aria-hidden="true" /><h2>Season {s.season}</h2></div><span className={`badge capitalize ${s.roster_status === "active" ? "badge-green" : ""}`}>{display(s.roster_status)}</span></div><dl className="field-grid season-fields">{fields.map(([label, value]) => <div key={label}><dt>{label}</dt><dd className="capitalize">{display(value)}</dd></div>)}</dl></section>;
+        })}
+      </section>
+    </details>}
   </>;
 }

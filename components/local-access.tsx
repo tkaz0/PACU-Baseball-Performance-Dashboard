@@ -34,7 +34,7 @@ export function LocalViewBanner() {
   const { view, setView } = useLocalWorkspace();
   const router = useRouter();
   if (view.role === "admin") return null;
-  return <div className="access-preview-banner" role="status"><div><Eye size={19} aria-hidden="true" /><span><strong>Viewing as: {view.role === "coach" ? "Coach" : "Player"}</strong><small>Read-only layout preview · Sign-in is still paused</small></span></div><button className="btn btn-secondary" onClick={() => { setView(adminView()); router.push("/preview"); }}>Exit preview</button></div>;
+  return <div className="access-preview-banner" role="status"><div><Eye size={19} aria-hidden="true" /><span><strong>Viewing as: {view.role === "coach" ? "Coach" : "Player"}</strong><small>Read-only layout preview · Saved in this browser</small></span></div><button className="btn btn-secondary" onClick={() => { setView(adminView()); router.push("/preview"); }}>Exit preview</button></div>;
 }
 
 export function LocalViewBoundary({ children }: { children: React.ReactNode }) {
@@ -55,7 +55,7 @@ export function LocalAccessPage() {
   ];
   return <>
     <PageHeading section="Pacific Baseball / Administration" title="Access & views" description="A clear workspace for every role. Preview the experience, then manage team accounts in the private workspace." />
-    <section className="access-intro panel"><div><span className="badge">Browser workspace</span><h2>Your workspace controls</h2><p>Roster imports, measurements, and backups are available here while sign-in is paused. The View as menu lets you explore coach and player layouts without changing saved data.</p></div><Link className="btn btn-secondary" href="/preview/import">Open Import Center <ArrowRight size={16} /></Link></section>
+    <section className="access-intro panel"><div><span className="badge">Browser workspace</span><h2>Your workspace controls</h2><p>Roster imports, measurements, and backups are saved on this device. The View as menu lets you explore coach and player layouts without changing saved data.</p></div><Link className="btn btn-secondary" href="/preview/import">Open Import Center <ArrowRight size={16} /></Link></section>
     <div className="access-role-grid">{roles.map(({ title, icon: Icon, description, items }) => <section className="panel access-role-card" key={title}><span className="access-role-icon"><Icon size={23} /></span><h2>{title}</h2><p>{description}</p><ul>{items.map(item => <li key={item}>{item}</li>)}</ul></section>)}</div>
     <section className="panel access-next"><div><p className="eyebrow text-pacu-red">Account access</p><h2>Ready for separate team logins</h2><p>Sign in as an approved administrator to enable or disable existing accounts, assign roles, and link a player to the correct athlete. These previews do not create accounts or protect data saved in this browser.</p></div><div className="flex flex-wrap gap-3"><Link className="btn btn-primary" href="/login">Sign in to manage accounts <ArrowRight size={16} /></Link><button className="btn btn-secondary" onClick={() => { setView({ role: "coach", athleteCode: null }); router.push("/preview"); }}>Preview coach view</button></div></section>
   </>;

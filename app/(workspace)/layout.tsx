@@ -8,9 +8,9 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
   const { supabase, user, roles, athleteId, actualRoles, preview, previewAthleteName } = await requireAccess();
   let athletes: { id: string; label: string }[] = [];
   if (actualRoles.includes("admin") && !preview) {
-    const { data, error } = await supabase.from("athletes").select("id,athlete_code,first_name,preferred_name,last_name").order("last_name").limit(1000);
+    const { data, error } = await supabase.from("athletes").select("id,athlete_code,first_name,preferred_name,last_name,athlete_seasons!inner(season)").eq("athlete_seasons.season", "2026-27").order("last_name").limit(1000);
     if (error) throw new Error("Unable to load player preview choices.");
-    athletes = (data ?? []).map(a => ({ id: a.id, label: `${a.athlete_code} · ${a.preferred_name || a.first_name} ${a.last_name}` }));
+    athletes = (data ?? []).map(a => ({ id: a.id, label: `${a.preferred_name || a.first_name} ${a.last_name}` }));
   }
   return <div className="workspace-shell">
     <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:bg-white focus:p-4">Skip to content</a>
@@ -25,7 +25,6 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
         </div>
       </header>
       {preview && <div className="flex flex-wrap items-center justify-between gap-3 border-b border-red-200 bg-red-50 px-6 py-4 lg:px-10" role="status"><div><p className="mb-1 flex items-center gap-2 font-bold text-pacu-red"><Eye size={17} aria-hidden="true" />Viewing as: <span className="capitalize">{preview.role}</span>{previewAthleteName && <span>· {previewAthleteName}</span>}</p><p className="mb-0 text-xs text-gray-600">Read-only preview · Your administrator account remains signed in. This view applies to private workspace tabs in this browser.</p></div></div>}
-      {process.env.NEXT_PUBLIC_SYNTHETIC_DATA === "true" && <div className="border-b border-red-100 bg-red-50 px-6 py-2 text-xs font-semibold text-pacu-red lg:px-10">Development environment · All roster data is synthetic</div>}
       <main id="main-content" className="workspace-main">{children}</main>
       <footer className="workspace-footer"><span>Pacific Baseball Performance</span><span>An independent project · Not an official university application</span></footer>
     </div>

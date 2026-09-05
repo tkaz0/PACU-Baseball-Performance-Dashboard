@@ -5,7 +5,7 @@ The owner requested Admin controls with the ability to inspect Coach and Player 
 | Capability | Admin | Coach | Player |
 | --- | --- | --- | --- |
 | Team roster and profiles | All | All | Own linked athlete |
-| Available performance charts | All in browser workspace | All in browser preview | Own in browser preview |
+| Shared performance cards/charts | Team | Team | Own linked athlete |
 | Import or change records | Yes | No | No |
 | Backup/export browser workspace | Yes | No | No |
 | Configure trusted accounts | Yes, after private sign-in | No | No |
@@ -15,9 +15,15 @@ The owner requested Admin controls with the ability to inspect Coach and Player 
 
 `/preview` is the existing unsigned browser-local workspace. Its View as is explicitly a layout preview, accessible without account authentication. The owner's inspection controls remain visible so they can choose another player or exit. Actual roster and RENPHO readings remain in that browser; the deployed source still uses fictional starter data. Switching views neither uploads nor changes saved data.
 
-`/overview`, `/roster`, `/athletes`, and `/admin` are the private Supabase workspace. Existing Auth and RLS enforce roles. Only a live active administrator can start its Coach/Player preview. The selected athlete must exist. A preview never changes trusted account roles, account links, Auth sessions or JWT claims. Protected overview/profile/API paths scope output using the effective view; mutations reject while previewing. Malformed, mismatched, stale or expired preferences stop on a recovery page with Exit preview.
+`/overview`, `/roster`, `/athletes`, and `/admin` are the private Supabase workspace. Existing Auth and RLS enforce roles. Only a live active administrator can start its Coach/Player preview. The selected athlete must exist. A preview never changes trusted account roles, account links, Auth sessions or JWT claims. Protected overview/profile/API paths and performance adapters scope output using the effective view; roster, account, shared-measurement and coach-preparation mutations reject while previewing. Malformed, mismatched, stale or expired preferences stop on a recovery page with Exit preview.
 
-Private workspace measurements are not cloud-backed yet; its profile currently shows roster/identity information. Browser-local RENPHO charts do not appear for separate team logins until shared measurement storage and import are implemented. No hosted accounts, roles, database schema, emails, or private data are changed by deploying this UI.
+Shared measurement storage and the approved import workflow are now implemented for private profiles. Signing in or switching View as never uploads browser data: an Admin must separately review and approve Shared measurements. That workflow uploads numerical observations and provenance only. See [PLAYER_PROFILES](PLAYER_PROFILES.md).
+
+## Shared metrics and account preparation
+
+Private Players see their own reviewed measurements and permitted aggregate comparisons; Coaches/Admins see team profiles. Percentiles use the fixed measured cohort and require at least five comparable athletes. The player-facing summary contains no raw peer measurements and accepts no arbitrary thresholds.
+
+Admin-only **Team account preparation** saves coach contacts and displays roster/account readiness. It does not create login accounts, grant roles or send emails. Invitations require their separate approved send workflow.
 
 ## Account management
 

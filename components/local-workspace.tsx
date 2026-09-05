@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { getPreviewRoster } from "@/lib/preview-roster";
 import type { RosterAthlete } from "@/lib/types";
 import type { Measurement } from "@/lib/imports/engine";
+import { getPlayerPerformance, type PlayerPerformance } from "@/lib/player-performance";
 import { adminView, LOCAL_VIEW_KEY, parseLocalView, projectLocalView, type LocalView } from "@/lib/local-view";
 import { emptyWorkspace, readWorkspace, validateWorkspace, writeWorkspace, exportLocalRosterCsv, prepareRenphoReport, type ImportBatch, type LocalWorkspace, type RenphoReportIdentity } from "@/lib/local-workspace";
 export type { ImportBatch } from "@/lib/local-workspace";
@@ -12,6 +13,7 @@ type WorkspaceContext = {
   view: LocalView; setView: (view: LocalView) => void; canManage: boolean;
   viewChoices: { code: string; name: string }[];
   roster: RosterAthlete[]; measurements: Measurement[]; batches: ImportBatch[];
+  getPerformance: (athleteCode: string) => PlayerPerformance;
   ready: boolean; error: string | null; mode: "sample" | "local"; revision: number;
   applyRoster: (roster: RosterAthlete[], batch: ImportBatch, expectedRevision: number) => Promise<void>;
   applyMeasurements: (measurements: Measurement[], batch: ImportBatch, expectedRevision: number) => Promise<void>;
@@ -60,6 +62,17 @@ export function LocalWorkspaceProvider({ children }: { children: React.ReactNode
       try { sessionStorage.setItem(LOCAL_VIEW_KEY, JSON.stringify(checked)); } catch { /* Optional tab preference; not workspace data. */ }
     },
     roster: visible.roster, measurements: visible.measurements,
+    getPerformance: athleteCode => {
+      if (!visible.roster.some(athlete => athlete.athlete_code === athleteCode)) {
+        return getPlayerPerformance({ readings: [], athleteCode, cohortAthleteCodes: [] });
+      }
+      const cohortAthleteCodes = roster.filter(athlete => athlete.athlete_seasons.some(season =>
+        season.season === "2026-27" && (season.roster_status === null || season.roster_status === "active" || season.roster_status === "redshirt"),
+      )).map(athlete => athlete.athlete_code);
+      // Return only the visible athlete's readings and aggregate comparisons.
+      // Other players' raw readings remain outside the projected context.
+      return getPlayerPerformance({ readings: state.measurements, batches: state.batches, athleteCode, cohortAthleteCodes });
+    },
     batches: view.role === "admin" ? state.batches : state.batches.filter(b => visibleBatchIds.has(b.id)),
     ready, error, mode: state.mode, revision: state.revision,
     applyRoster: async (candidate, batch, revision) => {
