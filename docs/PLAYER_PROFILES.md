@@ -9,7 +9,7 @@ This change adds shared private measurements, profile cards/history, and team co
 
 These are calendar windows, not a claim that every date has occurred or has measurements. Each reading keeps its actual test date. Latest selection uses date descending, import time descending at millisecond precision, then file hash and observation ID ascending. History uses the reverse order. Different units and source protocols are not converted or pooled.
 
-Shared comparison summaries retain round-trip floating-point precision in JSON. A summary attaches only to the exact athlete, metric, date, value, unit, source and period shown on the profile; derived percentages are not rounded for matching. Display rounding does not change the underlying measurements or cohort counts.
+Shared measurement pages and comparison summaries both retain round-trip floating-point precision in JSON, including values with more than 15 significant digits. A summary attaches only to the exact athlete, metric, date, value, unit, source and period shown on the profile; raw values and derived percentages are not rounded for matching. Display rounding does not change the underlying measurements or cohort counts.
 
 ## Profile metrics
 

@@ -29,19 +29,36 @@ type DatabaseMeasurement = {
   observation_id:string;athlete_id:string;metric_key:string;metric:string;unit:string;value:number;measured_at:string;
   source:string;source_file:string;source_sheet:string;source_row:number;file_hash:string;import_id:string;imported_at:string;
 };
-const columns="observation_id,athlete_id,metric_key,metric,unit,value,measured_at,source,source_file,source_sheet,source_row,file_hash,import_id,imported_at";
+const measurementFields = new Set(["observation_id", "athlete_id", "metric_key", "metric", "unit", "value", "measured_at",
+  "source", "source_file", "source_sheet", "source_row", "file_hash", "import_id", "imported_at"]);
 const batchIdentity=(row:DatabaseMeasurement)=>`performance:${createHash("sha256").update(JSON.stringify([row.import_id,row.file_hash,row.source])).digest("hex")}`;
+
+function readMeasurementPage(data: unknown, athleteId: string): DatabaseMeasurement[] {
+  if (!Array.isArray(data) || data.length > 1000) throw new Error("Shared measurement page format is invalid.");
+  return data.map(item => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) throw new Error("Shared measurement page format is invalid.");
+    const row = item as Record<string, unknown>;
+    if (row.athlete_id !== athleteId) throw new Error("Athlete performance access could not be verified.");
+    const strings = ["observation_id", "metric_key", "metric", "unit", "source", "source_file", "source_sheet", "file_hash", "import_id", "imported_at"];
+    if (Object.keys(row).length !== measurementFields.size || Object.keys(row).some(key => !measurementFields.has(key)) ||
+      strings.some(key => typeof row[key] !== "string" || (key !== "source_sheet" && !(row[key] as string).length)) ||
+      typeof row.measured_at !== "string" || !dateCell(row.measured_at) ||
+      typeof row.value !== "number" || !Number.isFinite(row.value) || row.value < 0 ||
+      !Number.isSafeInteger(row.source_row) || (row.source_row as number) < 1 || (row.source_row as number) > 1000000 ||
+      !/^[a-f0-9]{64}$/.test(row.file_hash as string) || !UUID_PATTERN.test(row.import_id as string) ||
+      !Number.isFinite(Date.parse(row.imported_at as string))) throw new Error("Shared measurement page format is invalid.");
+    return row as DatabaseMeasurement;
+  });
+}
 
 /** Restrict on the server as well as RLS: a preview keeps its real administrator JWT. */
 export async function loadAthletePerformance(access:Access, athlete:Pick<Athlete,"id"|"athlete_code">):Promise<AthletePerformanceData> {
   if(!UUID_PATTERN.test(athlete.id) || !canReadPresentedAthlete(access,athlete.id)) throw new Error("Athlete performance access denied.");
   const stored:DatabaseMeasurement[]=[];
   for(let offset=0;offset<=20000;offset+=1000) {
-    const {data,error}=await access.supabase.from("performance_measurements").select(columns).eq("athlete_id",athlete.id)
-      .order("imported_at",{ascending:true}).order("id",{ascending:true}).range(offset,offset+999);
+    const {data,error}=await access.supabase.rpc("athlete_performance_measurements", {p_athlete_id:athlete.id,p_offset:offset});
     if(error) throw new Error("Shared performance measurements could not be loaded.");
-    const page=(data??[]) as DatabaseMeasurement[];
-    if(page.some(row=>row.athlete_id!==athlete.id)) throw new Error("Athlete performance access could not be verified.");
+    const page=readMeasurementPage(data,athlete.id);
     stored.push(...page);
     if(stored.length>20000) throw new Error("This profile exceeds the supported measurement history. Ask an administrator to review the archive.");
     if(page.length<1000) break;

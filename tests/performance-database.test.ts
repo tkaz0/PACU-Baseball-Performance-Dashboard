@@ -33,21 +33,16 @@ type Summary = {metricKey:string;measuredAt:string;observedValue:number;value:nu
 async function summary(id=athlete(1)):Promise<Summary[]> {
   return (await db.query<{data:Summary[]}>("select public.athlete_performance_summary($1::uuid) data",[id])).rows[0].data;
 }
+async function measurementPage(id=athlete(1), offset=0): Promise<Record<string, unknown>[]> {
+  return (await db.query<{ data: Record<string, unknown>[] }>(
+    "select public.athlete_performance_measurements($1::uuid,$2::integer) data", [id, offset],
+  )).rows[0].data;
+}
 // Exercise the real server adapter with PostgreSQL JSON serialization, as the API does.
 async function loadPlayerProfile() {
-  let selectedAthlete: unknown;
-  const query = {
-    select: () => query,
-    eq: (key: string, value: unknown) => { expect(key).toBe("athlete_id"); selectedAthlete = value; return query; },
-    order: () => query,
-    range: async (start: number, end: number) => ({ data: (await db.query<{ data: Record<string, unknown>[] }>(
-      "select coalesce(jsonb_agg(to_jsonb(m)), '[]'::jsonb) data from (select * from public.performance_measurements where athlete_id=$1 order by imported_at,id offset $2 limit $3) m",
-      [selectedAthlete, start, end - start + 1],
-    )).rows[0].data, error: null }),
-  };
   const access = { roles: ["player"], athleteId: athlete(1), supabase: {
-    from: (table: string) => { expect(table).toBe("performance_measurements"); return query; },
-    rpc: async (name: string, args: { p_athlete_id: string }) => {
+    rpc: async (name: string, args: { p_athlete_id: string; p_offset?: number }) => {
+      if (name === "athlete_performance_measurements") return { data: await measurementPage(args.p_athlete_id, args.p_offset), error: null };
       expect(name).toBe("athlete_performance_summary");
       return { data: await summary(args.p_athlete_id), error: null };
     },
@@ -86,6 +81,7 @@ describe("shared performance authorization",()=>{
       await expect(db.query("select * from public.performance_measurements")).rejects.toThrow("permission denied");
       await expect(importRows([row()])).rejects.toThrow("permission denied");
       await expect(summary()).rejects.toThrow("permission denied");
+      await expect(measurementPage()).rejects.toThrow("permission denied");
       await expect(db.query("select * from private.performance_metric_catalog")).rejects.toThrow("permission denied");
     });
   });
@@ -120,6 +116,19 @@ describe("shared performance authorization",()=>{
     await db.query("update public.app_accounts set is_active=false where user_id=$1",[users.playerA]);
     expect((await asUser(users.playerA,()=>db.query("select * from public.performance_measurements"))).rows).toEqual([]);
     await asUser(users.playerA,async()=>{await expect(summary()).rejects.toThrow("Athlete access denied");});
+    await asUser(users.playerA,async()=>{await expect(measurementPage()).rejects.toThrow("Athlete access denied");});
+  });
+  it("allows only the requested permitted athlete in measurement-page RPC results", async () => {
+    await asUser(users.admin, () => importRows([row(1), row(2)]));
+    for (const id of [users.admin, users.coach, users.playerA]) {
+      const data = await asUser(id, () => measurementPage());
+      expect(data).toHaveLength(1);
+      expect(data[0].athlete_id).toBe(athlete(1));
+    }
+    expect((await asUser(users.playerB, () => measurementPage(athlete(2))))[0].athlete_id).toBe(athlete(2));
+    for (const id of [users.playerB, users.unlinked, users.disabled]) {
+      await asUser(id, async () => { await expect(measurementPage()).rejects.toThrow("Athlete access denied"); });
+    }
   });
 });
 
@@ -171,11 +180,14 @@ describe("fixed cohort percentiles",()=>{
   it.each([
     { weight: 179.1, muscle: 132.8, sampleSize: 1 },
     { weight: 181.7, muscle: 130.6, sampleSize: 5 },
+    { weight: 179.10000000000002, muscle: 132.80000000000004, sampleSize: 1 },
+    { weight: 181.70000000000002, muscle: 130.60000000000002, sampleSize: 5 },
   ])("retains decimal muscle summary identity through database JSON and the server model at n=$sampleSize", async ({ weight, muscle, sampleSize }) => {
     const shared = { source: "RENPHO", source_sheet: "RENPHO report · Page 1", unit: "lb", measured_at: "2026-08-20" };
     await asUser(users.admin, () => importRows(Array.from({ length: sampleSize }, (_, i) => [
       row(i + 1, { ...shared, metric_key: "weight", value: weight }, 0),
       row(i + 1, { ...shared, metric_key: "muscle_mass", value: muscle + i }, 1),
+      row(i + 1, { metric_key: "home_to_first", unit: "s", value: 0.30000000000000004 + i / 10 }, 2),
     ]).flat()));
     await db.exec("set extra_float_digits=0");
     try {
@@ -187,7 +199,14 @@ describe("fixed cohort percentiles",()=>{
       expect(card.cohortSampleSize).toBe(sampleSize);
       expect(card.percentileStatus).toBe(sampleSize < 5 ? "small_cohort" : "available");
       expect(card.percentile).toEqual(sampleSize < 5 ? null : { value: 0, sampleSize, period: "summer_2026", unit: "%", direction: "neutral" });
-      expect(loaded.measurements).toHaveLength(2);
+      expect(loaded.measurements).toHaveLength(3);
+      expect(loaded.measurements.find(item => item.metric === "Weight")!.value).toBe(weight);
+      expect(loaded.measurements.find(item => item.metric === "Muscle Mass")!.value).toBe(muscle);
+      const direct = profile.hitting.find(item => item.metric.key === "home_to_first")!;
+      expect(direct.latest!.value).toBe(0.30000000000000004);
+      expect(direct.cohortSampleSize).toBe(sampleSize);
+      expect(direct.percentileStatus).toBe(sampleSize < 5 ? "small_cohort" : "available");
+      expect(direct.percentile?.value ?? null).toBe(sampleSize < 5 ? null : 100);
       expect((await db.query<{ setting: string }>("select current_setting('extra_float_digits') setting")).rows[0].setting).toBe("0");
 
       // Preserve strict target matching: even a nearby, different observed value is refused.

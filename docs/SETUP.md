@@ -52,7 +52,7 @@ Restart `pnpm dev` after editing environment variables. `.env.local` and all `.e
 
 ## 3. Apply migrations to the intended development database
 
-There are six tracked migrations under `supabase/migrations/`. The first two create identity/access and the protected roster importer. `202609050003_invited_account_provisioning.sql` adds checked invitation provisioning; `202609060001_performance_profiles.sql` adds reviewed shared measurements and restricted aggregate comparisons; `202609060002_coach_rollout.sql` adds administrator-only coach preparation. `202609060003_performance_summary_precision.sql` preserves exact floating-point values when comparison summaries serialize JSON, including derived muscle percentages. These migrations do **not** create Auth users, send email, or insert athletes. They do not delete or replace existing tables. If your database already has these table names or other prior schema work, inspect and reconcile it first; do not force migrations over existing work.
+There are seven tracked migrations under `supabase/migrations/`. The first two create identity/access and the protected roster importer. `202609050003_invited_account_provisioning.sql` adds checked invitation provisioning; `202609060001_performance_profiles.sql` adds reviewed shared measurements and restricted aggregate comparisons; `202609060002_coach_rollout.sql` adds administrator-only coach preparation. `202609060003_performance_summary_precision.sql` preserves exact floating-point values in comparison-summary JSON; `202609060004_performance_measurement_pages.sql` adds equally precise, permission-checked measurement pages. These migrations do **not** create Auth users, send email, or insert athletes. They do not delete or replace existing tables. If your database already has these table names or other prior schema work, inspect and reconcile it first; do not force migrations over existing work.
 
 ### Option A: local Supabase (recommended for complete tests)
 
@@ -81,7 +81,7 @@ pnpm dlx supabase migration list
 pnpm dlx supabase db push --dry-run
 ```
 
-For a fresh database, the dry run should propose all six supplied migrations in order. For an existing database, it should propose only the files absent from its verified migration history. Invitation provisioning, shared performance, coach preparation and summary precision are separate upgrades; do not assume they were applied together. If the original schema was applied manually and migration history is missing, verify the existing schema and reconcile that history before proceeding; do not replay the original files. After confirming the intended development project and exact changes, run:
+For a fresh database, the dry run should propose all seven supplied migrations in order. For an existing database, it should propose only the files absent from its verified migration history. Invitation provisioning, shared performance, coach preparation, summary precision and measurement pages are separate upgrades; do not assume they were applied together. If the original schema was applied manually and migration history is missing, verify the existing schema and reconcile that history before proceeding; do not replay the original files. After confirming the intended development project and exact changes, run:
 
 ```sh
 pnpm dlx supabase db push
@@ -235,7 +235,7 @@ Account roles remain independent of preview choices. A real player login needs a
 
 ## Share reviewed performance measurements
 
-The target database needs `202609060001_performance_profiles.sql` and `202609060003_performance_summary_precision.sql` before this workflow. The precision upgrade changes only the summary function's floating-point JSON setting, preserving its access checks and restoring the caller's setting after each call. Apply the new migration to an existing installation rather than replaying the original performance migration. See [PLAYER_PROFILES](PLAYER_PROFILES.md) for supported metrics and comparison rules.
+The target database needs `202609060001_performance_profiles.sql`, `202609060003_performance_summary_precision.sql` and `202609060004_performance_measurement_pages.sql` before this workflow. Both read functions form JSON with exact floating-point precision and restore the caller's setting after each call. The measurement-page RPC uses the signed-in caller's permissions and table RLS, a fixed field list, and bounded pages; it grants no new row access. Apply missing upgrades to an existing installation rather than replaying the original performance migration. See [PLAYER_PROFILES](PLAYER_PROFILES.md) for supported metrics and comparison rules.
 
 1. Import and review the intended private roster, retaining permanent athlete codes and adding its `2026-27` season entries. Account links still require separate administrator approval.
 2. In `/preview/import`, finish reviewing the original reports, selected athletes, dates, values and units. Export a private workspace JSON backup.
