@@ -21,6 +21,7 @@ On Trevor's Mac, after connection setup is complete, double-click **Start PACU.c
 ## Included in Phase 1
 
 - Email/password login, logout, password recovery, and SSR session handling.
+- Admin “View as” Coach/Player previews with explicit athlete selection, read-only controls, and an easy exit; searchable account management. Browser-local role previews are labeled separately from secure account access. See [Access & views](docs/ACCESS_VIEWS.md).
 - Multiple trusted roles per account: Admin, Coach, Player. Live active/disabled status and PostgreSQL RLS.
 - Separate permanent athlete identities, seasonal roster entries, login accounts, and administrator-approved account links.
 - Responsive overview, roster, athlete profiles, roster import, and account-access administration.

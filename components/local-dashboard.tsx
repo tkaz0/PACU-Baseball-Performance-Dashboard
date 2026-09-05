@@ -50,21 +50,22 @@ function latestRenphoReport(readings: Measurement[], batches: ImportBatch[]) {
 }
 
 export function LocalOverview() {
-  const { roster, measurements, batches, ready, mode } = useLocalWorkspace();
+  const { roster, measurements, batches, ready, mode, view, canManage } = useLocalWorkspace();
+  if (view.role === "player") return view.athleteCode ? <LocalAthleteProfile key={view.athleteCode} id={view.athleteCode} /> : <div className="panel empty-state"><UsersRound size={30} aria-hidden="true" /><h1 className="page-title">No player selected</h1><p>Choose a player from the View as menu to preview their profile.</p></div>;
   const athletes = [...roster].sort((a, b) => a.last_name.localeCompare(b.last_name));
   const latestSeason = [...new Set(roster.flatMap(a => a.athlete_seasons.map(s => s.season)))].sort().reverse()[0];
   const summaries = [
     { label: mode === "sample" ? "Fictional athletes" : "Roster athletes", value: String(athletes.length), detail: mode === "sample" ? "Starter profiles to explore" : "Permanent profiles across seasons", icon: UsersRound },
     { label: "Performance measurements", value: measurements.length ? measurements.length.toLocaleString() : "No data yet", detail: "Individual readings linked to athletes", icon: Activity },
-    { label: "Import history", value: String(batches.length), detail: "Reviewed batches saved in this browser", icon: ClipboardList },
+    ...(canManage ? [{ label: "Import history", value: String(batches.length), detail: "Reviewed batches saved in this browser", icon: ClipboardList }] : []),
   ];
   return <>
     <section className="team-hero">
       <div className="hero-copy">
         <p className="eyebrow">Pacific Baseball <span aria-hidden="true">/</span> Performance</p>
-        <h1>Team overview</h1>
+        <h1>{view.role === "coach" ? "Coach overview" : "Team overview"}</h1>
         <p className="hero-description">{mode === "sample" ? "Explore the roster. Open a profile. Build your performance workspace." : "Your roster and performance records. Every athlete, in one place."}</p>
-        <div className="hero-actions"><Link href="/preview/roster" className="btn btn-white">View roster <ArrowRight size={16} /></Link><Link href="/preview/import" className="hero-link"><Upload size={16} />Import data</Link></div>
+        <div className="hero-actions"><Link href="/preview/roster" className="btn btn-white">View roster <ArrowRight size={16} /></Link>{canManage && <Link href="/preview/import" className="hero-link"><Upload size={16} />Import data</Link>}</div>
       </div>
       <div className="hero-field"><BaseballDiamond /><span className="hero-season">{latestSeason ? `Season ${latestSeason}` : "Pacific Baseball"}</span></div>
     </section>
@@ -81,19 +82,19 @@ export function LocalOverview() {
       <RosterTable athletes={athletes.slice(0, 5)} profileBasePath="/preview/athletes" />
     </section>
 
-    <section className="overview-support">
+    {canManage ? <section className="overview-support">
       <div className="panel workspace-playbook">
         <div className="section-heading"><div><p className="eyebrow text-pacu-red">{mode === "sample" ? "Get started" : "Your activity"}</p><h2>{mode === "sample" ? "From file to profile." : "Recent imports"}</h2></div><ClipboardList size={22} className="text-pacu-red" aria-hidden="true" /></div>
         {mode === "sample" ? <ol className="playbook-steps"><li><span>01</span><div><strong>Start with your roster</strong><p>Bring in a CSV or Excel sheet.</p></div></li><li><span>02</span><div><strong>Connect the measurements</strong><p>Choose athlete matches, metrics, and units.</p></div></li><li><span>03</span><div><strong>Review, then save</strong><p>See the readings on each athlete’s profile.</p></div></li></ol> : batches.length ? <ul className="recent-imports">{[...batches].reverse().slice(0, 3).map(batch => <li key={batch.id}><span className="batch-dot" aria-hidden="true" /><div><strong>{batch.fileName}</strong><p>{batch.source} · {batch.importedAt.slice(0, 10)}</p></div><span className="badge">{batch.kind === "roster" ? "Roster" : "Measurements"}</span></li>)}</ul> : <p className="muted text-sm">No imports saved yet. Bring in your next roster or measurement file.</p>}
         <Link href="/preview/import" className="text-link">Open Import Center <ArrowRight size={15} /></Link>
       </div>
       <div className="workspace-backup"><Database size={26} aria-hidden="true" /><p className="eyebrow">Keep your work</p><h2>Your browser.<br />Your workspace.</h2><p>Imports are saved on this device. Export a backup before switching browsers or clearing site data.</p><Link href="/preview/import" className="text-link">Manage your backup <ArrowRight size={15} /></Link><div className="backup-format">CSV <span>·</span> TSV <span>·</span> XLSX</div></div>
-    </section>
+    </section> : <section className="panel access-next"><p className="eyebrow text-pacu-red">Coach workspace</p><h2>Start with an athlete.</h2><p>Open a profile to review available performance measurements and RENPHO charts. New reports appear after an administrator reviews and imports them.</p><Link className="text-link" href="/preview/roster">Explore the roster <ArrowRight size={15} /></Link></section>}
   </>;
 }
 
 export function LocalRoster({ initialQuery = "", initialSeason = "" }: { initialQuery?: string; initialSeason?: string }) {
-  const { roster, ready, mode } = useLocalWorkspace();
+  const { roster, ready, mode, canManage } = useLocalWorkspace();
   const [query, setQuery] = useState(initialQuery);
   const [appliedQuery, setAppliedQuery] = useState(initialQuery);
   const [requestedSeason, setSeason] = useState(initialSeason);
@@ -101,7 +102,7 @@ export function LocalRoster({ initialQuery = "", initialSeason = "" }: { initial
   const season = seasons.includes(requestedSeason) ? requestedSeason : seasons[0] ?? "";
   const athletes = [...roster].filter(a => (!season || a.athlete_seasons.some(s => s.season === season)) && `${a.first_name} ${a.preferred_name ?? ""} ${a.last_name} ${a.athlete_code}`.toLowerCase().includes(appliedQuery.trim().toLowerCase())).sort((a, b) => a.last_name.localeCompare(b.last_name));
   return <>
-    <PageHeading section="Pacific Baseball / Athlete directory" title="Master roster" description={mode === "sample" ? "Ten fictional profiles to explore while your team finishes the roster." : "Your team, season by season. Open a profile for roster details and performance records."}><Link className="btn btn-primary" href="/preview/import"><Upload size={16} />Import roster</Link></PageHeading>
+    <PageHeading section="Pacific Baseball / Athlete directory" title="Master roster" description={mode === "sample" ? "Ten fictional profiles to explore while your team finishes the roster." : "Your team, season by season. Open a profile for roster details and performance records."}>{canManage && <Link className="btn btn-primary" href="/preview/import"><Upload size={16} />Import roster</Link>}</PageHeading>
     <form className="panel roster-filters" onSubmit={event => { event.preventDefault(); setAppliedQuery(query); const search = new URLSearchParams({ q: query, season }); window.history.replaceState(null, "", `/preview/roster?${search}`); }}>
       <label className="roster-search">Search athletes<input name="q" placeholder="Name or athlete code" value={query} onChange={event => setQuery(event.target.value)} maxLength={100} /></label>
       <label className="roster-season">Season<select name="season" value={season} onChange={event => setSeason(event.target.value)}>{seasons.map(s => <option key={s}>{s}</option>)}</select></label>
@@ -112,13 +113,13 @@ export function LocalRoster({ initialQuery = "", initialSeason = "" }: { initial
 }
 
 export function LocalAthleteProfile({ id }: { id: string }) {
-  const { roster, measurements, batches, ready, mode } = useLocalWorkspace();
+  const { roster, measurements, batches, ready, mode, canManage, view } = useLocalWorkspace();
   const [metric, setMetric] = useState("");
   const [source, setSource] = useState("");
   const [limit, setLimit] = useState(100);
   const athlete = roster.find(a => a.athlete_code === id);
   if (!ready) return <p role="status">Opening athlete profile…</p>;
-  if (!athlete) return <div className="panel empty-state"><UsersRound size={30} aria-hidden="true" /><h1 className="page-title">Profile unavailable</h1><p>This athlete is not in this browser’s roster. Import the roster or restore your workspace backup.</p><Link href="/preview/roster" className="btn btn-primary">Back to roster</Link></div>;
+  if (!athlete) return <div className="panel empty-state"><UsersRound size={30} aria-hidden="true" /><h1 className="page-title">Profile unavailable</h1><p>{canManage ? "This athlete is not in this browser’s roster. Import the roster or restore your workspace backup." : "This profile is unavailable in the current view. Exit preview to choose another athlete."}</p>{view.role !== "player" && <Link href="/preview/roster" className="btn btn-primary">Back to roster</Link>}</div>;
   const seasons = [...athlete.athlete_seasons].sort((a, b) => b.season.localeCompare(a.season));
   const latestSeason = seasons[0];
   const readings = measurements.filter(m => m.athlete_code === id).sort((a, b) => b.measured_at.localeCompare(a.measured_at) || b.source_row - a.source_row);
@@ -128,7 +129,7 @@ export function LocalAthleteProfile({ id }: { id: string }) {
   const filtered = readings.filter(m => (!metric || metricKey(m) === metric) && (!source || m.source === source));
   const latestReport = latestRenphoReport(readings, batches);
   return <>
-    <Link href="/preview/roster" className="profile-back"><ArrowLeft size={15} />Master roster</Link>
+    {view.role !== "player" && <Link href="/preview/roster" className="profile-back"><ArrowLeft size={15} />Master roster</Link>}
     <section className="athlete-hero">
       <div className="athlete-identity"><p className="eyebrow">Pacific Baseball <span aria-hidden="true">/</span> {mode === "sample" ? "Fictional athlete profile" : "Athlete profile"}</p><h1>{athleteName(athlete)}</h1><div className="athlete-meta"><span className="athlete-code">{athlete.athlete_code}</span>{latestSeason?.primary_position && <span>{display(latestSeason.primary_position)}</span>}{latestSeason?.academic_class && <span className="capitalize">{display(latestSeason.academic_class)}</span>}</div></div>
       <div className="athlete-jersey" aria-label={`Latest jersey number: ${display(latestSeason?.jersey_number)}`}><span>{latestSeason ? `Season ${latestSeason.season}` : "Pacific Baseball"}</span><strong>{display(latestSeason?.jersey_number)}</strong><span>Jersey number</span></div>
@@ -137,7 +138,7 @@ export function LocalAthleteProfile({ id }: { id: string }) {
     <nav className="profile-section-nav" aria-label="Athlete profile sections"><a href="#performance">Performance <span>{readings.length} readings</span></a><a href="#season-details">Roster &amp; seasons <ArrowRight size={14} aria-hidden="true" /></a></nav>
 
     <section id="performance" className="panel measurement-panel">
-      <div className="section-heading"><div><p className="eyebrow text-pacu-red">Athlete record</p><h2>Performance measurements</h2></div><Link href="/preview/import" className="text-link">Import measurements <ArrowRight size={15} /></Link></div>
+      <div className="section-heading"><div><p className="eyebrow text-pacu-red">{view.role === "player" ? "My performance" : "Athlete record"}</p><h2>Performance measurements</h2></div>{canManage && <Link href="/preview/import" className="text-link">Import measurements <ArrowRight size={15} /></Link>}</div>
       {latestReport && <section className="renpho-summary" aria-label="Latest RENPHO report">
         <div className="report-summary-heading"><div><p className="eyebrow">Latest RENPHO report</p><h3>Body composition</h3><p>Test date <time dateTime={latestReport.reference.measured_at}>{latestReport.reference.measured_at}</time> · {latestReport.readings.length} saved readings</p></div><span className="report-source-badge">RENPHO</span></div>
         <p className="report-summary-file">{latestReport.reference.source_file}</p>
@@ -145,7 +146,7 @@ export function LocalAthleteProfile({ id }: { id: string }) {
         <a className="text-link" href="#performance-history" onClick={() => { setMetric(""); setSource(""); setLimit(100); }}>See full measurement history <ArrowRight size={15} /></a>
       </section>}
       <RenphoCharts key={id} readings={readings} batches={batches} athleteCode={id} />
-      {!readings.length ? <div className="measurement-empty"><span className="empty-diamond"><Activity size={26} aria-hidden="true" /></span><div><p className="font-semibold">No data yet.</p><p className="muted text-sm">Import a performance file and match its readings to this athlete.</p></div><Link href="/preview/import" className="btn btn-secondary">Add measurements <ArrowRight size={15} /></Link></div> : <>
+      {!readings.length ? <div className="measurement-empty"><span className="empty-diamond"><Activity size={26} aria-hidden="true" /></span><div><p className="font-semibold">No data yet.</p><p className="muted text-sm">{canManage ? "Import a performance file and match its readings to this athlete." : "Measurements appear here after an administrator imports a report for this athlete."}</p></div>{canManage && <Link href="/preview/import" className="btn btn-secondary">Add measurements <ArrowRight size={15} /></Link>}</div> : <>
         <h3 id="performance-history" className="measurement-history-title">Measurement history</h3>
         <div className="reading-summary"><div><span>Readings</span><strong>{readings.length.toLocaleString()}</strong></div><div><span>Latest test date</span><strong>{readings[0].measured_at}</strong></div><div><span>Sources</span><strong>{sources.length}</strong></div></div>
         <div className="measurement-filters"><label>Measurement filter<select value={metric} onChange={e => { setMetric(e.target.value); setLimit(100); }}><option value="">All measurements</option>{metrics.map(([key, label]) => <option value={key} key={key}>{label}</option>)}</select></label><label>Source filter<select value={source} onChange={e => { setSource(e.target.value); setLimit(100); }}><option value="">All sources</option>{sources.map(s => <option key={s}>{s}</option>)}</select></label></div><p className="text-xs text-gray-500">{filtered.length} readings · Values and units exactly as reviewed at import</p>

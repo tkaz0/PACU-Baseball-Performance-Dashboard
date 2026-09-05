@@ -1,10 +1,10 @@
 "use server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { requireAccess } from "@/lib/auth";
+import { requireAdminMutation } from "@/lib/auth";
 import { UUID_PATTERN } from "@/lib/types";
 export async function configureAccount(form: FormData) {
-  const { supabase } = await requireAccess(["admin"]);
+  const { supabase } = await requireAdminMutation();
   const id = String(form.get("user_id") ?? "");
   const athlete = String(form.get("athlete_id") ?? "");
   const roles = form.getAll("roles").map(String);

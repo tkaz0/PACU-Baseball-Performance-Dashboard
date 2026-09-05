@@ -3,10 +3,12 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Activity } from "lucide-react";
 import { requireAccess } from "@/lib/auth";
 import { athleteName, display, UUID_PATTERN, type RosterAthlete } from "@/lib/types";
+import { canReadPresentedAthlete } from "@/lib/access-preview";
 export default async function Profile({ params }: { params: Promise<{ id: string }> }) {
-  const { supabase, roles } = await requireAccess();
+  const access = await requireAccess();
+  const { supabase, roles } = access;
   const { id } = await params;
-  if (!UUID_PATTERN.test(id)) notFound();
+  if (!UUID_PATTERN.test(id) || !canReadPresentedAthlete(access, id)) notFound();
   const { data, error } = await supabase.from("athletes").select("*, athlete_seasons(*)").eq("id", id).maybeSingle();
   if (error) throw new Error("Unable to load this athlete profile.");
   if (!data) notFound();

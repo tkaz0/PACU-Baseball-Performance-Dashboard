@@ -11,3 +11,9 @@ The protected `/overview`, `/roster`, `/athletes`, `/admin`, private athlete API
 Dynamic workspace responses disable caching. `/preview` does not refresh a Supabase session and works independently of Auth availability. Source imports contain no server modules or privileged keys. IndexedDB saves compare revisions atomically so another tab cannot silently overwrite a reviewed import. State changes only after transaction completion; failures preserve the prior workspace.
 
 Run `pnpm check` and local browser tests before publishing changes. No custom-domain DNS change or password reset is needed to use this workspace. See [IMPORTS.md](IMPORTS.md) for supported formats and limitations.
+
+## Role layout previews
+
+The owner can use **View as** to inspect Coach or Player layouts and **Exit preview** to restore the full Admin layout. **Access & views** explains each role and links to private sign-in for real account management. Coach view includes team data but no import/backup/account controls. Player view includes the explicitly selected local athlete and their own readings; direct team, other-athlete, import and access routes show a restricted-view message. The owner-only inspection menu remains outside the role-specific content so another player can be chosen. These are display previews available to anyone using this unsigned browser workspace, not secured identities.
+
+The per-tab session preference survives reload when browser session storage is available. Missing player selections show no athlete data. Exports and revision-checked local writes reject while previewing. Switching views never changes the IndexedDB record and creates no accounts, cookies for Auth, links, or roles. Actual account access and admin preview enforcement are documented in [ACCESS_VIEWS.md](ACCESS_VIEWS.md).

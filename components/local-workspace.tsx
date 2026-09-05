@@ -4,10 +4,13 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { getPreviewRoster } from "@/lib/preview-roster";
 import type { RosterAthlete } from "@/lib/types";
 import type { Measurement } from "@/lib/imports/engine";
+import { adminView, LOCAL_VIEW_KEY, parseLocalView, projectLocalView, type LocalView } from "@/lib/local-view";
 import { emptyWorkspace, readWorkspace, validateWorkspace, writeWorkspace, exportLocalRosterCsv, prepareRenphoReport, type ImportBatch, type LocalWorkspace, type RenphoReportIdentity } from "@/lib/local-workspace";
 export type { ImportBatch } from "@/lib/local-workspace";
 
 type WorkspaceContext = {
+  view: LocalView; setView: (view: LocalView) => void; canManage: boolean;
+  viewChoices: { code: string; name: string }[];
   roster: RosterAthlete[]; measurements: Measurement[]; batches: ImportBatch[];
   ready: boolean; error: string | null; mode: "sample" | "local"; revision: number;
   applyRoster: (roster: RosterAthlete[], batch: ImportBatch, expectedRevision: number) => Promise<void>;
@@ -23,16 +26,25 @@ export function LocalWorkspaceProvider({ children }: { children: React.ReactNode
   const [state, setState] = useState<LocalWorkspace>(emptyWorkspace);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [view, setViewState] = useState<LocalView>(adminView);
+  const currentView = useRef<LocalView>(adminView());
   const channel = useRef<BroadcastChannel | null>(null);
   useEffect(() => {
     let active = true;
+    try { currentView.current = parseLocalView(sessionStorage.getItem(LOCAL_VIEW_KEY)); setViewState(currentView.current); } catch { /* View switching still works when session storage is unavailable. */ }
     const refresh = () => readWorkspace().then(data => { if (active) { setState(data); setError(null); } }).catch(() => { if (active) setError("Saved data could not be opened. Imports are paused; reload after enabling browser storage."); }).finally(() => { if (active) setReady(true); });
     void refresh();
     if (typeof BroadcastChannel !== "undefined") { channel.current = new BroadcastChannel("pacu-workspace-updates"); channel.current.onmessage = () => void refresh(); }
     return () => { active = false; channel.current?.close(); };
   }, []);
   const roster = state.mode === "sample" ? getPreviewRoster() : state.roster;
+  const visible = projectLocalView(view, roster, state.measurements);
+  const visibleBatchIds = new Set(visible.measurements.map(m => m.batch_id));
+  function assertManage() {
+    if (currentView.current.role !== "admin") throw new Error("Exit preview before changing or exporting workspace data.");
+  }
   async function commit(next: LocalWorkspace, expectedRevision: number) {
+    assertManage();
     if (!ready || error) throw new Error("Reload the workspace before saving.");
     if (expectedRevision !== state.revision) throw new Error("Data changed after this preview. Preview the file again before saving.");
     const saved = await writeWorkspace(next, expectedRevision);
@@ -40,7 +52,16 @@ export function LocalWorkspaceProvider({ children }: { children: React.ReactNode
     channel.current?.postMessage({ updated: true });
   }
   const value: WorkspaceContext = {
-    roster, measurements: state.measurements, batches: state.batches, ready, error, mode: state.mode, revision: state.revision,
+    view, canManage: view.role === "admin",
+    viewChoices: roster.map(a => ({ code: a.athlete_code, name: `${a.preferred_name || a.first_name} ${a.last_name}` })).sort((a, b) => a.name.localeCompare(b.name)),
+    setView: next => {
+      const checked = parseLocalView(JSON.stringify(next));
+      currentView.current = checked; setViewState(checked);
+      try { sessionStorage.setItem(LOCAL_VIEW_KEY, JSON.stringify(checked)); } catch { /* Optional tab preference; not workspace data. */ }
+    },
+    roster: visible.roster, measurements: visible.measurements,
+    batches: view.role === "admin" ? state.batches : state.batches.filter(b => visibleBatchIds.has(b.id)),
+    ready, error, mode: state.mode, revision: state.revision,
     applyRoster: async (candidate, batch, revision) => {
       const codes = new Set(candidate.map(a => a.athlete_code));
       if (state.measurements.some(m => !codes.has(m.athlete_code))) throw new Error("This roster would disconnect existing measurements. Keep those athlete codes or remove the measurement batches first.");
@@ -59,12 +80,14 @@ export function LocalWorkspaceProvider({ children }: { children: React.ReactNode
     },
     resetWorkspace: async () => { await commit({ ...emptyWorkspace(), revision: state.revision }, state.revision); },
     exportBackup: () => {
+      assertManage();
       const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a"); link.href = url; link.download = `pacu-workspace-${new Date().toISOString().slice(0, 10)}.json`; link.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     },
     exportRoster: season => {
+      assertManage();
       const csv = exportLocalRosterCsv(roster, season);
       const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
       const link = document.createElement("a"); link.href = url; link.download = `pacu-roster-${season}.csv`; link.click();

@@ -2,12 +2,12 @@
 import { createHash } from "node:crypto";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { requireAccess } from "@/lib/auth";
+import { requireAdminMutation } from "@/lib/auth";
 import { MAX_BYTES, parseRosterCsv } from "@/lib/roster/csv";
 import { UUID_PATTERN } from "@/lib/types";
 
 export async function stageImport(form: FormData) {
-  const { supabase } = await requireAccess(["admin"]);
+  const { supabase } = await requireAdminMutation();
   const file = form.get("file");
   const season = String(form.get("season") ?? "").trim();
   if (!(file instanceof File) || !file.name.toLowerCase().endsWith(".csv") || file.size === 0 || file.size > MAX_BYTES) redirect("/admin/import?error=file");
@@ -29,7 +29,7 @@ export async function stageImport(form: FormData) {
   redirect(`/admin/import/${id}`);
 }
 export async function approveImport(form: FormData) {
-  const { supabase } = await requireAccess(["admin"]);
+  const { supabase } = await requireAdminMutation();
   const id = String(form.get("import_id") ?? "");
   if (!UUID_PATTERN.test(id)) redirect("/admin/import?error=draft");
   if (form.get("confirm") !== "yes") redirect(`/admin/import/${id}?error=confirm`);

@@ -2,16 +2,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, UsersRound, Upload, HardDrive } from "lucide-react";
+import { LayoutDashboard, UsersRound, Upload, HardDrive, ShieldCheck, UserRound } from "lucide-react";
+import { useLocalWorkspace } from "@/components/local-workspace";
 
 const links = [
   { href: "/preview", label: "Overview", icon: LayoutDashboard },
   { href: "/preview/roster", label: "Master roster", icon: UsersRound },
   { href: "/preview/import", label: "Import Center", icon: Upload },
+  { href: "/preview/access", label: "Access & views", icon: ShieldCheck },
 ];
 
 export function PreviewSidebar() {
   const pathname = usePathname();
+  const { view } = useLocalWorkspace();
+  const visibleLinks = view.role === "admin" ? links : view.role === "coach" ? links.slice(0, 2) : [
+    { href: "/preview", label: "My overview", icon: LayoutDashboard },
+    ...(view.athleteCode ? [{ href: `/preview/athletes/${view.athleteCode}`, label: "My profile", icon: UserRound }] : []),
+  ];
 
   return (
     <aside className="sidebar baseball-sidebar">
@@ -22,7 +29,7 @@ export function PreviewSidebar() {
       <div className="sidebar-rule" />
       <p className="eyebrow hidden px-4 text-gray-500 min-[901px]:block">The clubhouse</p>
       <nav aria-label="Main navigation">
-        {links.map(({ href, label, icon: Icon }) => {
+        {visibleLinks.map(({ href, label, icon: Icon }) => {
           const current = pathname === href || (href === "/preview/roster" && pathname.startsWith("/preview/athletes/"));
           return (
             <Link className="nav-link" href={href} key={href} aria-current={current ? "page" : undefined}>

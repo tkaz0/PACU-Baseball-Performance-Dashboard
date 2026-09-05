@@ -2,6 +2,7 @@ import Link from "next/link";
 import { LockKeyhole } from "lucide-react";
 import { PreviewSidebar } from "@/components/preview-sidebar";
 import { LocalWorkspaceProvider, WorkspaceBanner } from "@/components/local-workspace";
+import { LocalViewBanner, LocalViewBoundary, LocalViewControl } from "@/components/local-access";
 
 export default function PreviewLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -12,10 +13,11 @@ export default function PreviewLayout({ children }: { children: React.ReactNode 
       <div className="app-body workspace-body">
         <header className="workspace-topbar">
           <p><span className="topbar-diamond" aria-hidden="true" />Pacific Baseball<span className="topbar-divider" aria-hidden="true">/</span><span className="text-gray-500">Performance workspace</span></p>
-          <Link className="btn btn-secondary" href="/login"><LockKeyhole size={16} />Sign in to private workspace</Link>
+          <div className="workspace-topbar-actions"><LocalViewControl /><Link className="btn btn-secondary" href="/login"><LockKeyhole size={16} />Sign in to private workspace</Link></div>
         </header>
         <WorkspaceBanner />
-        <main id="main-content" className="workspace-main">{children}</main>
+        <LocalViewBanner />
+        <main id="main-content" className="workspace-main"><LocalViewBoundary>{children}</LocalViewBoundary></main>
         <footer className="workspace-footer"><span>Pacific Baseball Performance</span><span>An independent project · Not an official university application</span></footer>
       </div>
       </div>

@@ -143,7 +143,7 @@ Never use last-name-plus-number passwords or a shared default. Keep credentials 
 2. Enter season `2026`, upload `fixtures/synthetic-roster.csv`, and choose **Validate and preview**.
 3. Review 10 fictional athletes and the field changes. Check the approval box and choose **Approve and apply import**. Verify Avery Northstar has jersey `0` and Jordan Westcloud has no jersey value. Importing the same file again should show 10 unchanged rows.
 4. Manually create separate **Coach**, **Player A**, and **Player B** Auth users as above, each with a unique password. No account is created by importing the fixture.
-5. In **Account access**, paste each verified Auth UUID, select its exact intended role(s), mark active, and confirm. Link Player A to `SYN-001` and Player B to `SYN-002`. Leave Coach without an athlete link. Verify names/codes independently of email before linking.
+5. In **Account access**, choose **Configure existing user** and paste each verified Auth UUID, select its exact intended role(s), mark active, and confirm. For later edits, search and select a configured account to prefill its current settings. Link Player A to `SYN-001` and Player B to `SYN-002`. Leave Coach without an athlete link. Verify names/codes independently of email before linking.
 
 This page replaces roles, active status, and the link as one approved/audited change. An unchecked active box disables access. An empty athlete selection removes the link. It refuses linking an athlete already assigned to another account, linking without Player role, or editing your own account. Admin+Player is supported as a union of permissions; it does not pretend to simulate a restricted player view.
 
@@ -205,3 +205,11 @@ Restore replaces the destination browser's roster, measurements, and import hist
 - [Auth configuration](https://supabase.com/docs/guides/auth/general-configuration), [redirect URLs](https://supabase.com/docs/guides/auth/redirect-urls), [custom SMTP](https://supabase.com/docs/guides/auth/auth-smtp)
 - [Database migrations](https://supabase.com/docs/guides/local-development/database-migrations), [local config](https://supabase.com/docs/guides/local-development/cli/config), [RLS](https://supabase.com/docs/guides/database/postgres/row-level-security)
 - [Next.js on Vercel](https://vercel.com/docs/frameworks/full-stack/nextjs)
+
+## Preview coach and player access
+
+The browser workspace has a **View as** menu and **Access & views** page. Choose Coach or select a player and choose Preview player. A visible banner identifies this as a read-only layout preview. Exit preview restores full browser-workspace controls without changing its saved roster, measurements, or backups. This does not grant accounts, change real roles, or protect browser storage.
+
+After signing into the private workspace as an active administrator, its separate **View as** menu uses trusted server access checks. Choose Coach or a specific athlete for Player. The effective view hides administration and refuses roster/account mutations. Player routes and API responses are explicitly scoped to the selected athlete. Exit preview restores actual roles. An invalid, expired, or unavailable selection shows a recovery page rather than falling back to full admin access. The four-hour preview preference applies to private workspace tabs in that browser; refresh another tab to update its visible navigation.
+
+Account roles remain independent of preview choices. A real player login needs an administrator-approved athlete link. No accounts, links, invitations, hosted imports or cloud measurement storage are created by this feature. See [ACCESS_VIEWS.md](ACCESS_VIEWS.md).

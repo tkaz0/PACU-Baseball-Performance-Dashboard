@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { requestPasswordRecovery } from "@/lib/supabase/recovery";
 import { createClient } from "@/lib/supabase/server";
 import { appUrl, hasSupabaseConfig, supabaseConfig } from "@/lib/env";
+import { ACCESS_PREVIEW_COOKIE } from "@/lib/access-preview";
 
 function field(form: FormData, key: string) { return String(form.get(key) ?? ""); }
 export async function login(form: FormData) {
@@ -20,6 +21,7 @@ export async function logout() {
   const supabase = await createClient();
   const { error } = await supabase.auth.signOut({ scope: "local" });
   if (error) redirect("/access-denied?error=logout");
+  (await cookies()).delete(ACCESS_PREVIEW_COOKIE);
   redirect("/login");
 }
 export async function requestReset(form: FormData) {
