@@ -32,6 +32,8 @@ The browser-local Import Center reads CSV, TSV, and XLSX with explicit column ma
 
 The workspace uses a red, black, gray and white baseball theme with original graphics and responsive roster/profile views. It remains Trevor's independent project. An optional local `renpho_id` roster field and manually confirmed report IDs support exact saved-ID matching; new IDs require explicit player selection. Reports, extracted text and images stay in browser memory. Only approved normalized measurements and any explicitly remembered ID mapping are saved locally. See [Import Center](docs/IMPORTS.md) for supported fields, limits and review requirements.
 
+Athlete profiles include interactive RENPHO charts: select a saved report for separate mass bars, percentage bars and other indicators, or select a measurement/unit to compare reports over time. A single report establishes a starting point; later imports fill in the history. Charts use only reviewed report readings saved in this browser. See [chart definitions](docs/RENPHO_CHARTS.md).
+
 ## Commands
 
 | Command | Purpose |

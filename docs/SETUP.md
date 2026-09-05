@@ -8,6 +8,8 @@ For body-composition reports, open **Import Center → RENPHO report** and choos
 
 Use the [local roster template](../public/templates/local-roster.csv) for browser imports; the protected administrator template retains its original 16 fields. Export a workspace backup after importing real data. The report image/text is not included in the backup, but saved measurements and remembered report IDs are, so keep the backup private. Browser storage belongs to the exact domain and browser profile; it is not a team-shared database.
 
+After saving a RENPHO report, open that player's profile and scroll to **RENPHO charts**. The **RENPHO report** selector changes the mass bars, percentage bars and individual indicators together. **History measurement** compares the same measurement and unit across reports; use **View chart values and sources** for the exact dates, readings and source files. Your existing saved reports populate the charts after refreshing the dashboard; no re-import is needed.
+
 ## 1. Install local software
 
 Install [Node.js 24 LTS](https://nodejs.org/en/download), [Git](https://git-scm.com/downloads), and an editor such as VS Code. Node includes npm. Open Terminal inside this project folder, then install the pinned package manager:

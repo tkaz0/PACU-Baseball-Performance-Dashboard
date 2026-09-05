@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Activity, ArrowLeft, ArrowRight, ClipboardList, Database, Upload, UsersRound } from "lucide-react";
 import { PageHeading } from "@/components/page-heading";
 import { RosterTable } from "@/components/roster-table";
+import { RenphoCharts } from "@/components/renpho-charts";
 import { useLocalWorkspace, type ImportBatch } from "@/components/local-workspace";
 import type { Measurement } from "@/lib/imports/engine";
 import { athleteName, display } from "@/lib/types";
@@ -143,6 +144,7 @@ export function LocalAthleteProfile({ id }: { id: string }) {
         {latestReport.highlights.length > 0 && <div className="report-metric-grid">{latestReport.highlights.map(reading => <article className="report-metric-card" key={reading.id} aria-label={`${reading.metric} (${reading.unit})`}><h4>{reading.metric}</h4><p className="report-metric-value"><strong>{String(reading.value)}</strong><span>{reading.unit}</span></p><p className="report-metric-context">{reading.source} · <time dateTime={reading.measured_at}>{reading.measured_at}</time></p></article>)}</div>}
         <a className="text-link" href="#performance-history" onClick={() => { setMetric(""); setSource(""); setLimit(100); }}>See full measurement history <ArrowRight size={15} /></a>
       </section>}
+      <RenphoCharts key={id} readings={readings} batches={batches} athleteCode={id} />
       {!readings.length ? <div className="measurement-empty"><span className="empty-diamond"><Activity size={26} aria-hidden="true" /></span><div><p className="font-semibold">No data yet.</p><p className="muted text-sm">Import a performance file and match its readings to this athlete.</p></div><Link href="/preview/import" className="btn btn-secondary">Add measurements <ArrowRight size={15} /></Link></div> : <>
         <h3 id="performance-history" className="measurement-history-title">Measurement history</h3>
         <div className="reading-summary"><div><span>Readings</span><strong>{readings.length.toLocaleString()}</strong></div><div><span>Latest test date</span><strong>{readings[0].measured_at}</strong></div><div><span>Sources</span><strong>{sources.length}</strong></div></div>

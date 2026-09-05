@@ -234,6 +234,66 @@ tbody tr:hover { background: #fcfcfd; }
 .report-metric-value span { color: #666; font-size: 12px; }
 .report-metric-context { margin: 0; color: #76706a; font-size: 9px; line-height: 1.6; }
 .measurement-history-title { margin: 26px 0 18px; font-size: 16px; font-weight: 700; }
+.renpho-charts { margin: 30px 0 35px; }
+.renpho-charts-heading, .renpho-history-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+.renpho-charts-heading .eyebrow { display: flex; align-items: center; gap: 7px; margin: 0 0 8px; font-size: 10px; }
+.renpho-charts-heading h3 { margin: 0; font-size: 24px; line-height: 1.2; font-weight: 750; letter-spacing: -.035em; }
+.renpho-charts-heading p:not(.eyebrow) { margin: 8px 0 0; color: #68635f; font-size: 12px; line-height: 1.6; }
+.renpho-charts-heading > div, .renpho-history-heading > div { min-width: 0; }
+.renpho-charts-heading label, .renpho-history-heading label { flex: 0 1 310px; width: 310px; max-width: 100%; min-width: 0; font-size: 11px; }
+.renpho-charts select { width: 100%; min-width: 0; font-size: 12px; text-overflow: ellipsis; }
+.renpho-selected-report { display: flex; align-items: center; gap: 12px; padding: 16px 0; margin: 10px 0 7px; border-bottom: 1px solid #e4e0db; }
+.renpho-selected-report p { min-width: 0; margin: 0; font-size: 12px; line-height: 1.6; }
+.renpho-selected-report p > span { display: block; color: #706962; font-size: 11px; overflow-wrap: anywhere; }
+.renpho-chart-notice { font-size: 12px; }
+.renpho-chart-grid { display: grid; grid-template-columns: minmax(0,1.12fr) minmax(0,1fr); align-items: start; gap: 18px; margin: 18px 0; }
+.renpho-chart-panel { min-width: 0; border: 1px solid #e2ded9; border-radius: 6px; background: #fff; padding: 21px; }
+.renpho-chart-panel h4 { margin: 0; font-size: 15px; line-height: 1.4; font-weight: 750; letter-spacing: -.015em; }
+.renpho-chart-caption { color: #6c6660; font-size: 11px; line-height: 1.6; margin: 7px 0 19px; }
+.renpho-chart-panel figure { margin: 0; }
+.renpho-chart-panel figure + figure { margin-top: 22px; padding-top: 15px; border-top: 1px solid #e4e0db; }
+.renpho-unit-caption { margin: 0 0 12px; font-size: 11px; font-weight: 600; }
+.renpho-chart-scale { display: flex; align-items: end; justify-content: space-between; gap: 5px; margin-bottom: 16px; border-bottom: 1px solid #cbc5be; padding-bottom: 7px; color: #706962; font-size: 10px; font-variant-numeric: tabular-nums; }
+.renpho-chart-scale span { min-width: 0; overflow-wrap: anywhere; }
+.renpho-chart-scale span:last-child { text-align: right; }
+.renpho-bar-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 20px; }
+.renpho-bar-list li { min-width: 0; }
+.renpho-bar-label { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 5px 12px; margin-bottom: 8px; font-size: 12px; line-height: 1.5; }
+.renpho-bar-label > span { min-width: 0; color: #403c37; }
+.renpho-bar-label strong { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.renpho-bar-label small { font-size: 10px; font-weight: 500; color: #706962; }
+.renpho-bar-track { height: 13px; border-left: 1px solid #b7aea5; background: #f2efeb; }
+.renpho-bar-track > span { height: 100%; display: block; background: #990000; }
+.renpho-chart-note { margin: 20px 0 0; color: #6c6660; font-size: 11px; line-height: 1.7; }
+.renpho-chart-empty { margin: 15px 0; color: #6c6660; font-size: 12px; line-height: 1.7; }
+.renpho-chart-side { min-width: 0; display: grid; gap: 18px; }
+.renpho-indicator-grid { margin: 0; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px 15px; }
+.renpho-indicator-grid > div { min-width: 0; }
+.renpho-indicator-grid dt { color: #6c6660; font-size: 10px; line-height: 1.5; }
+.renpho-indicator-grid dd { margin: 6px 0 0; font-size: 21px; line-height: 1.4; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.renpho-indicator-grid dd span { color: #6c6660; font-size: 10px; font-weight: 500; }
+.renpho-history-panel { padding: 24px; }
+.renpho-history-heading .renpho-chart-caption { margin-bottom: 0; }
+.renpho-history-context { margin: 22px 0 15px; color: #58514a; font-size: 11px; line-height: 1.6; }
+.renpho-baseline-note { padding: 12px 14px; margin: 0 0 20px; border-left: 3px solid #a6a09a; background: #f6f4f1; font-size: 12px; line-height: 1.6; color: #58514a; }
+.renpho-history-bars .renpho-bar-track > span { background: #5c5751; }
+.renpho-history-bars .is-selected-report .renpho-bar-track > span { background: #990000; }
+.renpho-bar-label em { display: inline-block; margin-left: 9px; color: #990000; font-size: 9px; font-style: normal; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+.renpho-chart-data { margin-top: 20px; border-top: 1px solid #e4e0db; padding-top: 16px; }
+.renpho-chart-data summary { width: fit-content; cursor: pointer; color: #990000; font-size: 12px; font-weight: 600; }
+.renpho-chart-data .table-wrap { margin-top: 16px; }
+@media (max-width: 1100px) and (min-width: 901px), (max-width: 700px) {
+  .renpho-chart-grid { grid-template-columns: minmax(0,1fr); }
+  .renpho-charts-heading, .renpho-history-heading { flex-direction: column; gap: 16px; }
+  .renpho-charts-heading label, .renpho-history-heading label { flex: none; width: 100%; }
+}
+@media (max-width: 600px) {
+  .renpho-chart-panel, .renpho-history-panel { padding: 17px 14px; }
+  .renpho-charts-heading h3 { font-size: 22px; }
+  .renpho-bar-label { font-size: 11px; gap: 4px 8px; }
+  .renpho-bar-label strong { font-size: 12px; }
+  .renpho-indicator-grid { gap: 18px 10px; }
+}
 @media (max-width: 1100px) {
   .workspace-topbar, .workspace-body > [role="status"] { padding-left: 25px; padding-right: 25px; }
   .workspace-main { padding: 28px 25px 35px; }
