@@ -25,8 +25,10 @@ The database tests exercise PostgreSQL semantics, and the recovery tests exercis
 
 `tests/account-invitation.test.ts` tests input approval, bounded directory pagination and the invitation action against fictional provider mocks. It checks feature gating, live administrator checks before provider access/sending, existing-user refusal, player preflight, returned Auth identity verification, ordinary-session provisioning, and explicit handling of delivery/configuration uncertainty without automatic retries. These are application tests, not a hosted sender verification.
 
+`tests/password-policy.test.ts` checks the 6–128 character policy with mocked Auth: 6, 7, 8 and 128 accepted, 5 and 129 rejected, matching confirmation required, and invitation setup retained after validation/provider errors. It supersedes the earlier 8-character test boundary after the owner requested Supabase's lowest supported minimum. Generated letter-only test strings require no year suffix or character mix. Rendered invitation and recovery forms use the same limits. No real passwords, provider requests or hosted policy changes are used in these tests.
+
 ```sh
-pnpm exec vitest run tests/invitation-confirmation.test.ts tests/recovery.test.ts tests/invited-account-provisioning.test.ts tests/database.test.ts tests/account-invitation.test.ts
+pnpm exec vitest run tests/invitation-confirmation.test.ts tests/recovery.test.ts tests/invited-account-provisioning.test.ts tests/database.test.ts tests/account-invitation.test.ts tests/password-policy.test.ts
 ```
 
 The complete release checks and production build must also pass after integration. The focused results above do not supersede the separate historical release receipts later in this document, and no hosted migration, custom SMTP delivery, team invitation or real password-onboarding completion is claimed by them.

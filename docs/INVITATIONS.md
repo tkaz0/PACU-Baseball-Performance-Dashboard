@@ -22,7 +22,7 @@ Delivery and account configuration are separate outcomes. A timeout may mean an 
 1. Open the invitation email and select **Continue account setup**.
 2. The app shows **Accept your invitation**. Opening the link alone does not consume it; the recipient must select **Continue account setup** on that page.
 3. The server verifies this exact one-time token as an `invite` with Supabase. A valid invitation creates an authenticated session for the invited account and opens the password form at the fixed `/reset-password?setup=invite` destination.
-4. Choose and confirm a password of 12–128 characters. The existing password action updates that authenticated account, requests global session sign-out, and directs the recipient to sign in using their new password.
+4. Choose and confirm a password of 6–128 characters. No year, suffix or character mix is required. The existing password action updates that authenticated account, requests global session sign-out, and directs the recipient to sign in using their new password.
 
 Account permissions remain separate. An administrator must approve the recipient’s roles, active status, and exact athlete profile link through the existing audited account configuration. Invitation acceptance does not assign or increase permissions. An unconfigured or disabled account cannot read protected athlete data. Players see only their explicitly linked private profile; coaches can view the team roster.
 

@@ -16,6 +16,12 @@ import { confirmEmailLink, confirmRecovery } from "@/app/auth/confirm/actions";
 
 // Fictional token and identities only. Auth is mocked; no email or network calls.
 const token = "a".repeat(64);
+const prefixedToken = `pkce_${"b".repeat(56)}`;
+const malformedPrefixedTokens = [
+  `pkce${token}`, `pkce-${token}`, `pkce__${token}`, `other_${token}`, `pkce_pkce_${token}`,
+  ` ${prefixedToken}`, `${prefixedToken} `, `${prefixedToken}\n`, "pkce_",
+  `pkce_${"b".repeat(39)}`, `pkce_${"b".repeat(129)}`, `pkce_${"b".repeat(55)}g`,
+];
 function form(type: string | undefined, hash = token) {
   const data = new FormData();
   if (type !== undefined) data.set("type", type);
@@ -42,6 +48,22 @@ describe("scanner-safe invitation and recovery landing pages", () => {
     expect(html).toContain(type === "invite" ? "Continue account setup" : "Continue password reset");
     expect(html).toContain(`name="type" value="${type}"`);
     expect(html).toContain(`name="token_hash" value="${token}"`);
+    expect(fake.createClient).not.toHaveBeenCalled();
+    expect(fake.verifyOtp).not.toHaveBeenCalled();
+  });
+  it.each(["invite", "recovery"])("GET preserves the prefixed %s token without contacting Auth or consuming it", async type => {
+    const html = renderToStaticMarkup(await Confirm({ searchParams: Promise.resolve({ type, token_hash: prefixedToken }) }));
+    expect(html).toContain(type === "invite" ? "Continue account setup" : "Continue password reset");
+    expect(html).toContain(`name="type" value="${type}"`);
+    expect(html).toContain(`name="token_hash" value="${prefixedToken}"`);
+    expect(fake.createClient).not.toHaveBeenCalled();
+    expect(fake.verifyOtp).not.toHaveBeenCalled();
+  });
+  it.each(["invite", "recovery"])("GET rejects malformed %s token prefixes without an Auth call or token-bearing redirect", async type => {
+    const destination = type === "invite" ? "REDIRECT:/auth/confirm?type=invite&error=invalid" : "REDIRECT:/login?error=reset";
+    for (const token_hash of malformedPrefixedTokens) {
+      await expect(Confirm({ searchParams: Promise.resolve({ type, token_hash }) })).rejects.toEqual(new Error(destination));
+    }
     expect(fake.createClient).not.toHaveBeenCalled();
     expect(fake.verifyOtp).not.toHaveBeenCalled();
   });
@@ -75,6 +97,26 @@ describe("explicit email-link verification", () => {
     data.set("redirect_to", "https://external.example.com/");
     await expect(confirmEmailLink(data)).rejects.toThrow(type === "invite" ? "REDIRECT:/reset-password?setup=invite" : "REDIRECT:/reset-password");
     expect(fake.verifyOtp).toHaveBeenCalledExactlyOnceWith({ token_hash: token, type });
+  });
+  it.each(["invite", "recovery"])("POST passes the entire prefixed %s token unchanged to verifyOtp", async type => {
+    await expect(confirmEmailLink(form(type, prefixedToken))).rejects.toThrow(type === "invite" ? "REDIRECT:/reset-password?setup=invite" : "REDIRECT:/reset-password");
+    expect(fake.verifyOtp).toHaveBeenCalledExactlyOnceWith({ token_hash: prefixedToken, type });
+  });
+  it.each([40, 128])("accepts a prefixed token with %s hexadecimal suffix characters on both GET and POST", async length => {
+    const boundaryToken = `pkce_${"Ab".repeat(length / 2)}`;
+    const html = renderToStaticMarkup(await Confirm({ searchParams: Promise.resolve({ type: "recovery", token_hash: boundaryToken }) }));
+    expect(html).toContain(`name="token_hash" value="${boundaryToken}"`);
+    expect(fake.createClient).not.toHaveBeenCalled();
+    await expect(confirmEmailLink(form("recovery", boundaryToken))).rejects.toThrow("REDIRECT:/reset-password");
+    expect(fake.verifyOtp).toHaveBeenCalledExactlyOnceWith({ token_hash: boundaryToken, type: "recovery" });
+  });
+  it.each(["invite", "recovery"])("POST rejects malformed %s token prefixes before touching Auth", async type => {
+    const destination = type === "invite" ? "REDIRECT:/auth/confirm?type=invite&error=invalid" : "REDIRECT:/login?error=reset";
+    for (const hash of malformedPrefixedTokens) {
+      await expect(confirmEmailLink(form(type, hash))).rejects.toEqual(new Error(destination));
+    }
+    expect(fake.createClient).not.toHaveBeenCalled();
+    expect(fake.verifyOtp).not.toHaveBeenCalled();
   });
   it.each(["signup", "magiclink", "email", "email_change", "INVITE", "", undefined])("rejects POST type %s before touching Auth", async type => {
     await expect(confirmEmailLink(form(type))).rejects.toThrow("REDIRECT:/login?error=reset");

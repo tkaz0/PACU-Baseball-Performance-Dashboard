@@ -47,7 +47,7 @@ export async function updatePassword(form: FormData) {
   const setup = form.get("setup") === "invite";
   const resetPath = setup ? "/reset-password?setup=invite&error=" : "/reset-password?error=";
   const password = field(form, "password");
-  if (password.length < 12 || password.length > 128 || password !== field(form, "confirm")) redirect(`${resetPath}password`);
+  if (password.length < 6 || password.length > 128 || password !== field(form, "confirm")) redirect(`${resetPath}password`);
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) redirect("/login?error=reset");

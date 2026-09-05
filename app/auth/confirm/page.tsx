@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { AuthFrame } from "@/components/auth-frame";
 import { SubmitButton } from "@/components/submit-button";
+import { isEmailTokenHash } from "@/lib/auth-email-link";
 import { confirmEmailLink } from "./actions";
 export const dynamic = "force-dynamic";
 type ConfirmParams = { token_hash?: string | string[]; type?: string | string[]; error?: string | string[] };
@@ -12,7 +13,7 @@ export default async function Confirm({ searchParams }: { searchParams: Promise<
     return <AuthFrame><h1 className="mb-3 text-3xl font-bold">Invitation unavailable</h1><p role="alert" className="muted mb-6 text-sm">We could not verify this invitation. The link may have expired or already been used. Ask your administrator for a fresh invitation. If you already created a password, sign in instead.</p><Link href="/login" className="btn btn-primary w-full">Go to sign in</Link><Link href="/forgot-password" className="mt-4 block text-center text-sm font-semibold text-pacu-red">Forgot your password?</Link></AuthFrame>;
   }
   if (type !== "recovery" && type !== "invite") redirect("/login?error=reset");
-  if (typeof token_hash !== "string" || token_hash.trim() !== token_hash || !/^[a-f0-9]{40,128}$/i.test(token_hash) || error !== undefined) {
+  if (!isEmailTokenHash(token_hash) || error !== undefined) {
     redirect(type === "invite" ? "/auth/confirm?type=invite&error=invalid" : "/login?error=reset");
   }
   const invite = type === "invite";

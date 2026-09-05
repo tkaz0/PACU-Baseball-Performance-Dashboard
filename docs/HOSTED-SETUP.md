@@ -1,6 +1,20 @@
-# Hosted development setup — September 4, 2026
+# Hosted setup — updated September 5, 2026
 
 **The no-sign-in dashboard at https://pacubaseballperformance.com supports a fictional starter roster, athlete profiles, and reviewed browser-local roster/measurement imports. The owner-approved custom domain, DNS records, HTTPS certificates, and Auth URL settings are configured.** The separate development schema, baseline Auth configuration, owner/Admin account, and ten synthetic database athletes are configured. Successful owner login and authenticated app checks remain unverified. This is a public status summary. The detailed deployment and connection receipt is retained by the project owner.
+
+## September 5 account setup
+
+The owner resumed individual account setup and approved Resend plus the two server credentials. The verified sender is `accounts@auth.pacubaseballperformance.com`; its scoped Resend sending key is stored in Supabase SMTP. The sending domain and its DKIM, SPF and MX records are verified. Both invitation and recovery templates use the custom-domain confirmation page. Owner recovery email delivery is confirmed. No teammate invitations have been sent.
+
+The invitation migration `202609050003_invited_account_provisioning.sql` was applied in an owner-authorized SQL Editor transaction. The new RPC is present, anonymous execution remains denied, and there is still one configured account. This did not import the browser's real roster or measurements.
+
+`SUPABASE_AUTH_ADMIN_SECRET` is stored as a Production-only Vercel secret. `PACU_INVITATIONS_ENABLED` remains unset, so the app cannot send invitations yet. Enable it only after the remaining account setup checks in [INVITATIONS](INVITATIONS.md).
+
+The owner requested the simplest supported password policy, with no added year or suffix. Supabase's supported minimum is six characters, with no character-class requirement. The app accepts 6–128 characters. Password replacement and a fresh owner login still require live verification.
+
+A real emailed recovery link exposed an application bug: Supabase's `pkce_` token prefix was rejected by a hex-only format check. The confirmation GET and POST now share a bounded validator accepting that prefix and preserve the complete token for Supabase verification. The GET still only renders confirmation; it does not consume the token. Synthetic regression tests cover prefixed links and malformed input. See [Supabase's verification implementation](https://github.com/supabase/auth/blob/master/internal/api/verify.go).
+
+The sections below preserve earlier deployment checks. They are historical where superseded by this account-setup receipt.
 
 ## Browser workspace and custom domain
 
@@ -28,7 +42,7 @@ The two tracked migrations were applied successfully through one owner-authorize
 - All seven application tables have RLS enabled, deny anonymous access, allow authenticated SELECT, and deny direct authenticated writes. Seven SELECT-only policies match the migrations.
 - All eleven functions have the expected owner, security mode, empty `search_path`, and execution grants. Anonymous EXECUTE is denied; authenticated EXECUTE is also denied on the private planning/validation helpers.
 - Anonymous REST requests to all seven tables and all three administrative RPCs returned HTTP 401 / `42501`. Requests for the private API schema returned HTTP 406 / `PGRST106`.
-- Email/password is enabled; public signup, anonymous sign-ins, and manual identity linking are disabled; email confirmations are enabled; the password minimum is 12 characters. Development Site URL and exact callback/reset redirects were configured.
+- Historical September 4 verification: email/password was enabled; public signup, anonymous sign-ins, and manual identity linking were disabled; email confirmations were enabled; the password minimum was 12 characters. Development Site URL and exact callback/reset redirects were configured. The owner later requested simpler requirements; see the current account-setup receipt above.
 - An explicitly selected, manually created Auth user was bootstrapped as active and Admin-only. The database contains one Auth user and no account-to-athlete links.
 
 ## Synthetic import
@@ -42,7 +56,7 @@ The owner-approved [synthetic fixture](../fixtures/synthetic-roster.csv) was sta
 - A read-only repeat plan returned **0 create, 0 update, 10 unchanged, 0 reject**. No second import was applied.
 - Anonymous athlete/season reads remained denied after data existed.
 
-## Recovery and remaining verification
+## September 4 recovery checks (historical)
 
 Auth recorded two accepted recovery sends and one throttled retry; the retry sent no new email. An expired-link error was observed. Inbox delivery, successful password replacement, login/logout, expiry refresh, and replay handling remain unverified. Detailed account-specific recovery records are retained privately.
 
@@ -50,6 +64,6 @@ Recovery requests now buffer cookie writes until provider success; three install
 
 The original owner-approved Vercel deployment used Node 24.x and pnpm 11.19.0. At that deployment, the Vercel alias, `APP_URL`, Supabase Site URL, and three exact HTTPS callback/confirm/reset redirects agreed. Ten anonymous deployed HTTP checks passed, including protected-page redirects, athlete API denial, the CSV template, and no-store/security headers. A subsequent owner recovery request returned HTTP 200 with a mail-send event and the then-configured callback address. These earlier checks do not verify the custom-domain transition. Password replacement and successful owner login remain unverified, and password setup is paused.
 
-No custom SMTP, custom recovery-template installation, or player invitations have been completed. No new email or password test is part of the domain verification. The default recovery flow requires the same browser and hostname; after the custom-domain configuration is verified, start and finish future private recovery flows there. Registering both origins does not transfer a PKCE verifier between them. See [SETUP](SETUP.md) for configuration and email-sender requirements.
+At that earlier checkpoint, no custom SMTP, custom recovery-template installation, or player invitations had been completed. The September 5 receipt above supersedes the SMTP/template and email-delivery status. No new email or password test is part of the domain verification. The default recovery flow requires the same browser and hostname; after the custom-domain configuration is verified, start and finish future private recovery flows there. Registering both origins does not transfer a PKCE verifier between them. See [SETUP](SETUP.md) for configuration and email-sender requirements.
 
 Separate real authenticated permission and browser checks remain outstanding. See [VERIFICATION](VERIFICATION.md) for the passed checks and limitations, [TESTING](TESTING.md) for repeatable tests, and [DATA_MODEL](DATA_MODEL.md) for the authorization design.

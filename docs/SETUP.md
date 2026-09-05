@@ -100,7 +100,7 @@ In **Authentication → Sign In / Providers** (labels can vary):
 1. Enable email/password login.
 2. Turn **Allow new users to sign up OFF**. Hiding a signup page alone does not disable Supabase's signup API.
 3. Turn **Allow anonymous sign-ins OFF**. Do not enable unused providers.
-4. Keep email confirmations enabled. Set a password policy with at least 12 characters; use unique generated passwords for every test identity. The reset form accepts 12–128 characters and Supabase enforces the configured password policy.
+4. Keep email confirmations enabled. Set the password minimum to 6 characters, the lowest supported value in [Supabase's official configuration template](https://github.com/supabase/cli/blob/develop/apps/cli-go/pkg/config/templates/config.toml#L181-L182). The owner requested no additional minimum or year suffix; the reset form accepts 6–128 characters with no character-mix requirement. The earlier 12- and 8-character policies are historical. Use a different password for each test identity.
 5. In **Authentication → URL Configuration**, set **Site URL** to `http://localhost:3000` for the development project. Add these exact redirect URLs:
    - `http://localhost:3000/auth/callback`
    - `http://localhost:3000/auth/confirm`

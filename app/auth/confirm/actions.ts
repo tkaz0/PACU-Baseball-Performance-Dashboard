@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { hasSupabaseConfig } from "@/lib/env";
+import { isEmailTokenHash } from "@/lib/auth-email-link";
 
 type LinkType = "recovery" | "invite";
 const invalidLink = (type: LinkType) => type === "invite" ? "/auth/confirm?type=invite&error=invalid" : "/login?error=reset";
@@ -10,7 +11,7 @@ async function verifyEmailLink(form: FormData, type: LinkType) {
   if (!hasSupabaseConfig()) redirect("/login");
   const tokens = form.getAll("token_hash");
   const tokenHash = tokens[0];
-  if (tokens.length !== 1 || typeof tokenHash !== "string" || tokenHash.trim() !== tokenHash || !/^[a-f0-9]{40,128}$/i.test(tokenHash)) redirect(invalidLink(type));
+  if (tokens.length !== 1 || !isEmailTokenHash(tokenHash)) redirect(invalidLink(type));
   const supabase = await createClient();
   let verified = false;
   try {
