@@ -37,7 +37,8 @@ function ImportFields({ athletes }: { athletes: AthleteChoice[] }) {
   return <section className="panel p-5 sm:p-7"><fieldset disabled={pending} className="m-0 min-w-0 border-0 p-0">
     <h2 className="text-xl font-bold">Share reviewed measurements</h2>
     <p className="muted text-sm">Export a backup from the browser Import Center, choose it here, then review the readings below. Only approved numeric measurements are shared. Original reports and images stay on your device.</p>
-    <label className="mb-5 block">Workspace backup<input type="file" accept=".json,application/json" onChange={event => void readFile(event.target.files?.[0])} /></label>
+    <label className="mb-2 block">Workspace backup<input type="file" aria-describedby="shared-backup-help" onChange={event => void readFile(event.target.files?.[0])} /></label>
+    <p id="shared-backup-help" className="muted mb-5 text-xs">Choose a workspace JSON backup.</p>
     {busy && <p role="status" className="muted">Reading backup…</p>}
     {error && <p role="alert" className="notice notice-error">{error}</p>}
     {review && <>
