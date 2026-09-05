@@ -33,7 +33,7 @@ In Terminal, from the project folder:
 cp .env.example .env.local
 ```
 
-Open `.env.local` in your editor. Copy **only the project URL and publishable key** from your intended development Supabase project's Connect/API Keys settings. Do not paste secret keys into chat or source files. The app never needs a service-role key.
+Open `.env.local` in your editor. For normal private-workspace access, copy the project URL and publishable key from your intended development Supabase project's Connect/API Keys settings. Normal database reads and writes use these public connection values plus the signed-in session. The optional invitation feature has a separate server-only Auth administrator secret, described below; do not substitute it for the publishable key or paste it into chat or source files.
 
 | Variable | Value / purpose |
 | --- | --- |
@@ -41,6 +41,8 @@ Open `.env.local` in your editor. Copy **only the project URL and publishable ke
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | The public publishable key for that same project |
 | `APP_URL` | Trusted browser origin. Use the exact local origin during development; the custom-domain deployment target is `https://pacubaseballperformance.com`. Used server-side for recovery redirects; not inferred from request headers. |
 | `NEXT_PUBLIC_SYNTHETIC_DATA` | `true` for this synthetic development environment; shows a banner. It never grants access. Set `false` only for an intentionally configured non-synthetic environment. |
+| `SUPABASE_AUTH_ADMIN_SECRET` | Optional **server-only** Auth administration secret from the same project, used only to check Auth users and send invitations. Leave blank while invitations are disabled. Never use a `NEXT_PUBLIC_` prefix. |
+| `PACU_INVITATIONS_ENABLED` | Defaults to `false` in `.env.example`. Set exactly `true` only for an environment whose new migration, SMTP and email templates have been verified. The secret must also be present. |
 
 Keep local and deployed settings separate. For local development, choose `http://127.0.0.1:3000` or `http://localhost:3000` and use that host consistently. The localhost examples below describe a separately configured local Supabase environment. Vercel `APP_URL`, Supabase Auth Site URL, and the three exact custom-domain redirects use `https://pacubaseballperformance.com`. Redeploy after any later environment change; see [HOSTED-SETUP](HOSTED-SETUP.md).
 
@@ -50,7 +52,7 @@ Restart `pnpm dev` after editing environment variables. `.env.local` and all `.e
 
 ## 3. Apply migrations to the intended development database
 
-There are two tracked migrations under `supabase/migrations/`. They create tables, policies, and functions; they do **not** create users, send email, or insert athletes. They do not delete or replace existing tables. If your database already has these table names or other prior schema work, inspect and reconcile it first; do not force the migrations over existing work.
+There are three tracked migrations under `supabase/migrations/`. The first two create the identity/access schema and protected roster importer. `202609050003_invited_account_provisioning.sql` adds a narrow function that provisions new Coach or Player application access without replacing existing accounts. These migrations do **not** create Auth users, send email, or insert athletes. They do not delete or replace existing tables. If your database already has these table names or other prior schema work, inspect and reconcile it first; do not force migrations over existing work.
 
 ### Option A: local Supabase (recommended for complete tests)
 
@@ -79,7 +81,7 @@ pnpm dlx supabase migration list
 pnpm dlx supabase db push --dry-run
 ```
 
-Read the dry-run output. It should propose only the two supplied migrations. After confirming the intended development project and changes, run:
+For a fresh database, the dry run should propose the three supplied migrations in order. For an existing database with the original two migrations already applied, it should propose **only** `202609050003_invited_account_provisioning.sql`. If the original schema was applied manually and migration history is missing, verify the existing schema and reconcile that history before proceeding; do not replay the original files. After confirming the intended development project and exact changes, run:
 
 ```sh
 pnpm dlx supabase db push
@@ -88,6 +90,8 @@ pnpm dlx supabase db push
 If asked for a database password, enter it privately in the CLI prompt. Never add it to app environment variables, commands in shared documents, logs, source, or this chat. Do not put connection strings containing passwords in shell history. If a migration fails, stop and inspect it; do not delete existing tables to make it pass.
 
 The app requires the `public` API schema, but **`private` must not be exposed through Supabase Data API settings**. The private schema contains carefully checked database functions. The browser and app server use public RPC wrappers with the user's session.
+
+For the already connected hosted project, the invitation migration is a separate, explicitly reviewed upgrade. A passing local test or production build does not apply it remotely. Keep invitation sending disabled until its exact public RPC and grants are confirmed in the intended database; do not rerun the first-admin script or synthetic roster import as part of this upgrade.
 
 ## 4. Configure Supabase Auth before creating player access
 
@@ -126,6 +130,20 @@ Development logging of incoming request URLs and Server Function arguments is di
 Supabase's default sender is for limited testing and restricts recipients/delivery. Before inviting players or relying on production resets, choose an SMTP provider, verify a sending domain you control, and configure sender address, name, host, port, username, and password in **Supabase Auth → SMTP Settings**. Set the provider's required SPF/DKIM records and appropriate DMARC policy through your DNS provider only when you explicitly approve those DNS changes. Store SMTP secrets with Supabase/provider settings, never this app.
 
 Use your independently owned domain and branding; do not assume permission to send from the university domain. Disable provider click tracking if it rewrites Auth links. Send a test to an owner-controlled inbox after authorizing it and verify delivery, reset, expiration, and replay handling. Purchasing `pacubaseballperformance.com` does not by itself configure SMTP or email delivery. No player invitations or custom-SMTP delivery tests have been performed. Owner recovery sends and the throttled retry are recorded in [HOSTED-SETUP](HOSTED-SETUP.md).
+
+### Enable reviewed individual invitations
+
+The invitation form is implemented under private **Account access**, but `.env.example` leaves sending disabled. Complete the following for the exact environment before enabling it:
+
+1. Verify the owner can sign in as an active administrator, and apply the new invitation-provisioning migration after reviewing the existing migration history.
+2. Configure and verify custom SMTP. Install `supabase/templates/invite.html` as **Invite user** and the existing recovery template as **Reset password** in hosted Auth settings. The local `supabase/config.toml` template entries do not change hosted templates.
+3. Keep the verified Site URL and exact authentication redirects on the intended origin. Exercise an explicitly approved owner-controlled invitation and recovery flow, including the confirmation button, recipient-chosen password, fresh login, expiry and replay. Use local Supabase/Mailpit first; Supabase Dashboard invitations can verify the hosted recipient flow while the app's sending flag remains false. Do not send team invitations as a setup test.
+4. Add `SUPABASE_AUTH_ADMIN_SECRET` privately to the server environment for that same Supabase project. The code exposes only its Auth administrator interface; it uses this privilege to inspect the Auth directory and invite a new user. The application still uses the administrator's ordinary session for audited database provisioning. The SMTP password remains in Supabase/provider settings, not this environment variable.
+5. Set `PACU_INVITATIONS_ENABLED=true` for the verified environment and restart/redeploy. Keep it false in every other environment. Disabling this flag removes the sending form and blocks its server action; it does not revoke accounts already provisioned.
+
+With sending enabled, review one person's sign-in email, choose Coach or Player, select the exact unlinked private athlete for a Player, and explicitly approve **Send approved invitation**. This is separate from roster email matching. Existing Auth users are not reinvited; review their existing account and use password recovery. Timeouts can mean an email was sent: inspect Auth/provider records before retrying. If the invitation succeeds but database provisioning is not confirmed, the app instructs an administrator to review that user and configure existing access; it never silently overwrites an existing account. See [INVITATIONS](INVITATIONS.md) for the full flow and testing limits.
+
+Private logins do not transfer the real roster or report readings saved in one browser. Import the reviewed real roster into the protected database before linking actual players; sharing measurements remains a separate migration. Never distribute the complete local workspace backup as a way to give players access.
 
 ## 5. Create the first administrator deliberately
 
@@ -174,7 +192,7 @@ The owner-approved browser workspace is deployed at `https://pacubaseballperform
 2. In Vercel, import that repository. Choose the Next.js preset and set **Root Directory** to this project's location inside the repository. If its contents are at repository root, leave Root Directory at root.
 3. Select Node 24.x. Add the **Vercel-only build variable** `ENABLE_EXPERIMENTAL_COREPACK=1` for each environment you will deploy. It enables Vercel's documented Corepack support so the existing `packageManager: "pnpm@11.19.0"` pin is used. This additional variable is not a secret and is not read by the app. Do not rely on an unqualified install override alone: Vercel can otherwise select an older pnpm version. See [Vercel package managers](https://vercel.com/docs/package-managers) and [Corepack configuration](https://vercel.com/docs/builds/configure-a-build#corepack).
 4. With Corepack enabled, use `pnpm install --frozen-lockfile` and `pnpm build`; keep the default Next.js output setting. Do not configure this as a static export: authentication requires server execution. Check the first build's output to confirm pnpm **11.19.0** was selected. A successful local build does not verify Vercel's build environment.
-5. Add the same four app environment variables for the intended environment, in addition to the Vercel-only build flag above. Point Preview deployments at a separate development Supabase project with synthetic data. For a deployed synthetic preview, keep `NEXT_PUBLIC_SYNTHETIC_DATA=true` even though Next.js uses production mode.
+5. Add the four normal app environment variables for the intended environment, in addition to the Vercel-only build flag above. Keep optional invitation sending disabled until its separate rollout is verified; only then add the server-only Auth secret and enable its flag. Point Preview deployments at a separate development Supabase project with synthetic data, and never copy a production Auth administrator secret into previews. For a deployed synthetic preview, keep `NEXT_PUBLIC_SYNTHETIC_DATA=true` even though Next.js uses production mode.
 6. Set `APP_URL` to the exact stable HTTPS deployment origin. This project's custom-domain target is `https://pacubaseballperformance.com`. Do not use broad wildcard callback permissions. Redeploy after changing variables.
 7. Choose **Deploy** only when ready. Check the public workspace and imports independently of Auth. Before using the private shared roster, test login, logout, recovery, and each role with separate test sessions.
 

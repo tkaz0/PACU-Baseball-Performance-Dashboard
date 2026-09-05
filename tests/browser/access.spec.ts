@@ -23,7 +23,8 @@ test("login has no signup or demo bypass and reset navigation works", async ({ p
   await page.goto("/reset-password");
   await expect(page).toHaveURL(/login/);
   await page.goto("/auth/confirm?type=invite&token_hash=not-a-token");
-  await expect(page).toHaveURL(/login\?error=reset/);
+  await expect(page).toHaveURL(/auth\/confirm\?type=invite&error=invalid/);
+  await expect(page.getByRole("heading", { name: "Invitation unavailable" })).toBeVisible();
 });
 test("login fits mobile and desktop and has labelled controls", async ({ page }) => {
   for (const viewport of [{width:390,height:844},{width:1440,height:1000}]) {

@@ -44,13 +44,15 @@ export async function requestReset(form: FormData) {
   redirect("/forgot-password?sent=1");
 }
 export async function updatePassword(form: FormData) {
+  const setup = form.get("setup") === "invite";
+  const resetPath = setup ? "/reset-password?setup=invite&error=" : "/reset-password?error=";
   const password = field(form, "password");
-  if (password.length < 12 || password.length > 128 || password !== field(form, "confirm")) redirect("/reset-password?error=password");
+  if (password.length < 12 || password.length > 128 || password !== field(form, "confirm")) redirect(`${resetPath}password`);
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) redirect("/login?error=reset");
   const { error } = await supabase.auth.updateUser({ password });
-  if (error) redirect("/reset-password?error=update");
+  if (error) redirect(`${resetPath}update`);
   await supabase.auth.signOut({ scope: "global" });
   redirect("/login?updated=1");
 }

@@ -41,3 +41,7 @@ double_confirm_changes = true
 [auth.email.template.recovery]
 subject = "Reset your PACU Baseball Performance password"
 content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.invite]
+subject = "Set up your PACU Baseball Performance account"
+content_path = "./supabase/templates/invite.html"

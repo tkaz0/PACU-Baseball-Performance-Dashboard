@@ -17,6 +17,30 @@ Covered cases include anonymous reads/RPCs; Player A versus Player B direct data
 
 The database tests exercise PostgreSQL semantics, and the recovery tests exercise the installed SDK's cookie behavior against mocks. They do **not** run Supabase's Auth server, token refresh, PostgREST, email delivery, or multiple database connections. Cookie preservation cannot restore expired or consumed links. Full concurrent-session and Auth/API integration remain separate checks.
 
+## Individual invitation checks
+
+`tests/invitation-confirmation.test.ts` covers the actual confirmation page/actions using fictional tokens and mocked Auth. GET creates no Auth client and consumes no token; POST verifies only the matching `invite` or `recovery` type. Cases include template/route consistency, duplicate and malformed fields, expired/replayed/incomplete/provider-error responses, fixed password redirects, token-free failure pages, and the original recovery action. The focused confirmation plus existing recovery SDK tests passed **29 tests** during implementation.
+
+`tests/invited-account-provisioning.test.ts` applies all three migrations in a separate PGlite instance. It checks unauthorized/inactive/revoked actors; one Coach or Player role; required/forbidden and unique athlete links; existing Auth users; preservation of active, disabled and role-free accounts; another administrator's retry; rollback when audit insertion fails; function security/search paths/grants; and the shared lock's order before authorization/absence checks. Its focused run with the existing database suite passed **42 tests**. PGlite uses one connection: lock-structure and sequential retry assertions are not a real concurrent-session test.
+
+`tests/account-invitation.test.ts` tests input approval, bounded directory pagination and the invitation action against fictional provider mocks. It checks feature gating, live administrator checks before provider access/sending, existing-user refusal, player preflight, returned Auth identity verification, ordinary-session provisioning, and explicit handling of delivery/configuration uncertainty without automatic retries. These are application tests, not a hosted sender verification.
+
+```sh
+pnpm exec vitest run tests/invitation-confirmation.test.ts tests/recovery.test.ts tests/invited-account-provisioning.test.ts tests/database.test.ts tests/account-invitation.test.ts
+```
+
+The complete release checks and production build must also pass after integration. The focused results above do not supersede the separate historical release receipts later in this document, and no hosted migration, custom SMTP delivery, team invitation or real password-onboarding completion is claimed by them.
+
+Before enabling hosted app invitations, verify these in a deliberately prepared local Supabase/Mailpit environment, then repeat the required delivery/onboarding checks with an explicitly approved owner-controlled hosted recipient:
+
+1. Public signup stays disabled; an anonymous, Coach, Player, inactive administrator, or administrator in preview cannot invoke app invitation sending or provisioning.
+2. Missing secret/disabled `PACU_INVITATIONS_ENABLED` blocks the sending form and action. The server-only secret never appears in HTML, browser bundles, logs or network responses. Ordinary data calls use the actor's session and remain subject to RLS.
+3. A reviewed invitation creates one Auth identity, one intended application role and the correct unique athlete link. The recipient chooses a password and signs in independently. Verify Player A cannot read B through the UI, app API or direct Supabase API.
+4. Opening the email's landing page does not consume the token; the explicit confirmation does. Check a second browser, invalid/expired/replayed tokens, password validation, sign-out and a fresh password login.
+5. Existing Auth accounts are not reinvited or overwritten. Inject directory, delivery and post-send provisioning failures and inspect partial outcomes before any manual retry. Verify another administrator cannot replace a just-provisioned account, and revocation while waiting on the shared lock prevents the database write.
+
+Use only fictional local fixtures or the individually authorized hosted test account. Do not enable the feature for the team or send real invitations merely to run automated tests. See [INVITATIONS](INVITATIONS.md) for the staged environment configuration.
+
 ## Anonymous browser tests
 
 Start `pnpm dev` in a separate terminal. Then:
