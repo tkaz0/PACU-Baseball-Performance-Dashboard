@@ -300,7 +300,7 @@ export function ImportCenter() {
           {kind === "roster" ? <>
             {workspace.mode === "sample" && <p className="notice">Your first roster import replaces the fictional sample roster in this browser.</p>}
             <label className="max-w-xs">Season<input value={season} maxLength={7} placeholder="2026 or 2026-27" onChange={event => { invalidate(); setSeason(event.target.value); }} /></label>
-            <p className="muted text-sm">New athletes need first and last names. Keep existing permanent codes when available; new athletes without codes receive local codes. Blank cells preserve existing values. Matching by email is shown in the preview.</p>
+            <p className="muted text-sm">New athletes need first and last names. Keep existing permanent codes when available; new athletes without codes receive the next PAC ID in this roster. Blank cells preserve existing values. Matching by email is shown in the preview.</p>
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{ROSTER_FIELDS.map(field => <ColumnSelect key={field} label={FIELD_LABELS[field]} headers={table.headers} value={rosterMapping[field] ?? -1} optional onChange={column => { invalidate(); setRosterMapping(current => { const next = { ...current }; if (column < 0) delete next[field]; else next[field] = column; return next; }); }} />)}</div>
           </> : <>
             <div className="grid gap-5 md:grid-cols-2">

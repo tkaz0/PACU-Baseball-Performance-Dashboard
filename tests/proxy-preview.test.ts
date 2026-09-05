@@ -9,20 +9,24 @@ vi.mock("@/lib/env", () => ({
 }));
 import { proxy } from "@/proxy";
 
-describe("fixture preview and private session boundary", () => {
+describe("browser workspace and private session boundary", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     createServerClient.mockReturnValue({ auth: { getClaims } });
     getClaims.mockResolvedValue({ data: null, error: null });
   });
 
-  it("serves public preview paths even when the authentication provider is unavailable", async () => {
-    createServerClient.mockImplementation(() => { throw new Error("Auth unavailable"); });
-    for (const path of ["/preview", "/preview/roster", "/preview/athletes/SYN-001"]) {
+  it("refreshes authentication on every browser workspace route without a public bypass", async () => {
+    for (const path of ["/preview", "/preview/roster", "/preview/import", "/preview/access", "/preview/athletes/SYN-001"]) {
       const response = await proxy(new NextRequest(`https://example.com${path}`));
       expect(response.headers.get("cache-control")).toContain("no-store");
     }
-    expect(createServerClient).not.toHaveBeenCalled();
+    expect(getClaims).toHaveBeenCalledTimes(5);
+  });
+
+  it("never skips the browser workspace check when the authentication provider is unavailable", async () => {
+    createServerClient.mockImplementation(() => { throw new Error("Auth unavailable"); });
+    await expect(proxy(new NextRequest("https://example.com/preview/import"))).rejects.toThrow("Auth unavailable");
   });
 
   it("keeps session validation for private routes and similar-looking prefixes", async () => {
@@ -30,5 +34,14 @@ describe("fixture preview and private session boundary", () => {
       await proxy(new NextRequest(`https://example.com${path}`));
     }
     expect(getClaims).toHaveBeenCalledTimes(4);
+  });
+
+  it("preserves normal handling of sign-in and recovery entry routes", async () => {
+    for (const path of ["/login", "/forgot-password", "/reset-password", "/auth/callback", "/auth/confirm"]) {
+      const response = await proxy(new NextRequest(`https://example.com${path}`));
+      expect(response.headers.get("location")).toBeNull();
+      expect(response.headers.get("cache-control")).toContain("no-store");
+    }
+    expect(getClaims).toHaveBeenCalledTimes(5);
   });
 });

@@ -12,6 +12,8 @@ export type AthleteSeason = {
 };
 export type RosterAthlete = Athlete & {
   athlete_seasons: AthleteSeason[];
+  /** Exact former local IDs retained when the owner renumbers an athlete. */
+  athlete_code_aliases?: string[];
   /** Optional browser-local identifiers; never columns in the protected Supabase roster. */
   renpho_id?: string | null;
   renpho_ids?: string[];

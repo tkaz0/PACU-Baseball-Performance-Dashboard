@@ -1,2 +1,3 @@
 import { LocalAccessPage } from "@/components/local-access";
-export default function AccessViewsPage() { return <LocalAccessPage />; }
+import { requireAdminWorkspaceAccess } from "@/lib/auth";
+export default async function AccessViewsPage() { await requireAdminWorkspaceAccess(); return <LocalAccessPage />; }

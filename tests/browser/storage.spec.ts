@@ -1,13 +1,13 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./local-admin";
 
-const sampleBanner = "Sample roster · Fictional athletes · No sign-in needed";
+const sampleBanner = "Sample roster · Fictional athletes · Administrator workspace";
 const approval = "I reviewed the rows and approve saving this import in this browser.";
 const firstAthlete = {
-  code: "LOCAL-STORAGE-001", first: "Fictional BrowserOne", last: "StorageSentinel",
+  code: "SYN-STORAGE-001", first: "Fictional BrowserOne", last: "StorageSentinel",
   email: "fictional.browser.one@example.com", fileName: "fictional-storage-one.csv",
 };
 const secondAthlete = {
-  code: "LOCAL-STORAGE-002", first: "Fictional BrowserTwo", last: "StorageSentinel",
+  code: "SYN-STORAGE-002", first: "Fictional BrowserTwo", last: "StorageSentinel",
   email: "fictional.browser.two@example.com", fileName: "fictional-storage-two.csv",
 };
 type FictionalAthlete = typeof firstAthlete;
@@ -88,7 +88,7 @@ test("canceling a roster preview changes no saved data and a local import sends 
 
 test("a committed import invalidates another tab's preview while a separate browser stays independent", async ({ page, context, browser, baseURL }) => {
   const secondPage = await context.newPage();
-  const isolated = await browser.newContext({ baseURL });
+  const isolated = await browser.newContext({ baseURL, storageState: await context.storageState() });
   try {
     await prepareRosterPreview(page, firstAthlete);
     await prepareRosterPreview(secondPage, secondAthlete);

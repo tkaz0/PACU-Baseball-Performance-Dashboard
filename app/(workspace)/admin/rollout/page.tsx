@@ -35,7 +35,7 @@ export default async function RolloutPage({ searchParams }: { searchParams: Prom
   });
 
   return <>
-    <PageHeading section="Administration" title="Team account preparation" description="Review the 2026–27 player roster and save coach details before sending invitations.">
+    <PageHeading section="Administration" title="Team Account Preparation" description="Review the 2026–27 player roster and save coach details before sending invitations.">
       <Link href="/admin/access" className="btn btn-primary">Open Account access</Link>
     </PageHeading>
     {params.saved === "1" && <p className="notice notice-success mb-5" role="status">Coach details saved. Invitation not sent.</p>}

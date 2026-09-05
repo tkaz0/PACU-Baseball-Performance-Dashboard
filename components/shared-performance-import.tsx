@@ -1,7 +1,7 @@
 "use client";
 import { useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { validateWorkspace } from "@/lib/local-workspace";
+import { migrateWorkspaceAthleteCodes, validateWorkspace } from "@/lib/local-workspace";
 import { reviewPerformanceImport, type PerformanceImportReview } from "@/lib/performance-import";
 import { SubmitButton } from "@/components/submit-button";
 
@@ -21,7 +21,7 @@ function ImportFields({ athletes }: { athletes: AthleteChoice[] }) {
     setBusy(true);
     try {
       if (file.size > 2 * 1024 * 1024) throw new Error("Choose a workspace backup no larger than 2 MiB. Export a smaller measurement batch if needed.");
-      const workspace = validateWorkspace(JSON.parse(await file.text()));
+      const workspace = migrateWorkspaceAthleteCodes(validateWorkspace(JSON.parse(await file.text())));
       const next = reviewPerformanceImport(workspace.measurements);
       if (version !== generation.current) return;
       for (const [index, row] of next.rows.entries()) if (!names.has(row.athlete_code)) next.errors.push({ index, message: "This athlete is not in the shared roster. Import and review the roster first." });

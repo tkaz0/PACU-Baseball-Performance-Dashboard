@@ -2,7 +2,7 @@
 
 The private home route opens sign-in or the authorized team workspace. Player profiles combine reviewed shared measurements, history and fixed-cohort comparisons; coaches can read the team and administrators manage imports and access. The owner has requested this expanded scope. Historical environment receipts are in [HOSTED-SETUP](HOSTED-SETUP.md).
 
-The separate `/preview` browser workspace still supports fictional starter profiles and local CSV/TSV/XLSX/RENPHO review without a Supabase account. It requires JavaScript and site storage. Local imports do not become shared by signing in: an administrator must import the protected roster and approve the separate numerical sharing step. Use synthetic data in a development database first and inspect migration history before setup.
+The separate `/preview` browser import workspace requires a signed-in, active Admin outside Coach/Player View as. It supports fictional starter profiles and local CSV/TSV/XLSX/RENPHO review, with JavaScript, site storage and a working connection for authorization. Report processing stays on the device. Local imports do not become shared by signing in: an administrator must import the protected roster and approve the separate numerical sharing step. Use synthetic data in a development database first and inspect migration history before setup.
 
 For body-composition reports, open **Import Center → RENPHO report** and choose a complete portrait PNG/JPG or one-page PDF. The local reader needs its first asset load before it can process a report. Confirm the selected player, test date and each extracted value/unit against the displayed original; uncheck unwanted readings, review, then approve saving. A new report ID requires player selection. You may explicitly remember that exact ID for later imports in this browser. The roster's optional `renpho_id` uses the same exact-match behavior. No IDs create sign-in accounts or connect Supabase identities.
 
@@ -52,7 +52,7 @@ Restart `pnpm dev` after editing environment variables. `.env.local` and all `.e
 
 ## 3. Apply migrations to the intended development database
 
-There are seven tracked migrations under `supabase/migrations/`. The first two create identity/access and the protected roster importer. `202609050003_invited_account_provisioning.sql` adds checked invitation provisioning; `202609060001_performance_profiles.sql` adds reviewed shared measurements and restricted aggregate comparisons; `202609060002_coach_rollout.sql` adds administrator-only coach preparation. `202609060003_performance_summary_precision.sql` preserves exact floating-point values in comparison-summary JSON; `202609060004_performance_measurement_pages.sql` adds equally precise, permission-checked measurement pages. These migrations do **not** create Auth users, send email, or insert athletes. They do not delete or replace existing tables. If your database already has these table names or other prior schema work, inspect and reconcile it first; do not force migrations over existing work.
+There are eight tracked migrations under `supabase/migrations/`. The first two create identity/access and the protected roster importer. `202609050003_invited_account_provisioning.sql` adds checked invitation provisioning; `202609060001_performance_profiles.sql` adds reviewed shared measurements and restricted aggregate comparisons; `202609060002_coach_rollout.sql` adds administrator-only coach preparation. `202609060003_performance_summary_precision.sql` preserves exact floating-point values in comparison-summary JSON; `202609060004_performance_measurement_pages.sql` adds equally precise, permission-checked measurement pages. `202609060005_pac_athlete_codes.sql` adds reviewed PAC ID changes and legacy aliases; installing it does not rename existing athletes automatically. The owner-approved mapping is applied separately through its bounded, audited RPC. See [ATHLETE_IDS](ATHLETE_IDS.md). These migrations do **not** create Auth users, send email, or insert athletes. They do not delete or replace existing tables. If your database already has these table names or other prior schema work, inspect and reconcile it first; do not force migrations over existing work.
 
 ### Option A: local Supabase (recommended for complete tests)
 
@@ -81,7 +81,7 @@ pnpm dlx supabase migration list
 pnpm dlx supabase db push --dry-run
 ```
 
-For a fresh database, the dry run should propose all seven supplied migrations in order. For an existing database, it should propose only the files absent from its verified migration history. Invitation provisioning, shared performance, coach preparation, summary precision and measurement pages are separate upgrades; do not assume they were applied together. If the original schema was applied manually and migration history is missing, verify the existing schema and reconcile that history before proceeding; do not replay the original files. After confirming the intended development project and exact changes, run:
+For a fresh database, the dry run should propose all eight supplied migrations in order. For an existing database, it should propose only the files absent from its verified migration history. Invitation provisioning, shared performance, coach preparation, summary precision and measurement pages are separate upgrades; do not assume they were applied together. If the original schema was applied manually and migration history is missing, verify the existing schema and reconcile that history before proceeding; do not replay the original files. After confirming the intended development project and exact changes, run:
 
 ```sh
 pnpm dlx supabase db push
@@ -173,7 +173,7 @@ To make your own account both Admin and Player later, have a **different** admin
 pnpm dev
 ```
 
-Open the local URL printed by Next.js. The home page directs visitors to sign-in and authorized accounts to `/overview`. To use local imports without sign-in, open `/preview` explicitly; it starts with ten fictional athletes until replaced by a reviewed local roster. Use its Import Center to map, review and save files. Keep this terminal open; stop with Ctrl+C. Private sign-in/reset flows must use the origin configured in `APP_URL`. Full test instructions are in [TESTING.md](TESTING.md).
+Open the local URL printed by Next.js. The home page directs visitors to sign-in and authorized accounts to `/overview`. Sign in as an active Admin and exit View as before opening `/preview`; it starts with ten fictional athletes until replaced by a reviewed local roster. Use its Import Center to map, review and save files. Every local-workspace page checks access, and local data mounts only after a current server check. Authorization is rechecked on navigation/focus and periodically while the page is visible; an unavailable or expired session closes the local view. Existing IndexedDB data and exported backups are not encrypted or deleted by login gating. Keep this terminal open; stop with Ctrl+C. Private sign-in/reset flows must use the origin configured in `APP_URL`. Full test instructions are in [TESTING.md](TESTING.md).
 
 ```sh
 pnpm lint
@@ -194,7 +194,7 @@ The owner-approved browser workspace is deployed at `https://pacubaseballperform
 4. With Corepack enabled, use `pnpm install --frozen-lockfile` and `pnpm build`; keep the default Next.js output setting. Do not configure this as a static export: authentication requires server execution. Check the first build's output to confirm pnpm **11.19.0** was selected. A successful local build does not verify Vercel's build environment.
 5. Add the four normal app environment variables for the intended environment, in addition to the Vercel-only build flag above. Keep optional invitation sending disabled until its separate rollout is verified; only then add the server-only Auth secret and enable its flag. Point Preview deployments at a separate development Supabase project with synthetic data, and never copy a production Auth administrator secret into previews. For a deployed synthetic preview, keep `NEXT_PUBLIC_SYNTHETIC_DATA=true` even though Next.js uses production mode.
 6. Set `APP_URL` to the exact stable HTTPS deployment origin. This project's custom-domain target is `https://pacubaseballperformance.com`. Do not use broad wildcard callback permissions. Redeploy after changing variables.
-7. Choose **Deploy** only when ready. Check the public workspace and imports independently of Auth. Before using the private shared roster, test login, logout, recovery, and each role with separate test sessions.
+7. Choose **Deploy** only when ready. Verify that every dashboard path, including `/preview`, requires login. Check local imports using an active Admin outside View as, and test login, logout, recovery and each role with separate test sessions.
 
 ## 9. Update Auth URLs after deployment
 

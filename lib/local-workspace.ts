@@ -1,5 +1,6 @@
 import type { RosterAthlete } from "@/lib/types";
 import Papa from "papaparse";
+import { athleteCodeIndex, pacCodeForLegacy } from "@/lib/athlete-codes";
 import { ROSTER_FIELDS, validateRosterValues, findRenphoAthlete, normalizeRenphoId, RENPHO_ID_PATTERN, MAX_RENPHO_ALIASES, type Measurement, type RosterField } from "@/lib/imports/engine";
 
 export type ImportBatch = {
@@ -50,6 +51,7 @@ export function validateWorkspace(value: unknown): LocalWorkspace {
       emails.add(email);
     }
     codes.add(a.athlete_code);
+    if (a.athlete_code_aliases !== undefined && (!Array.isArray(a.athlete_code_aliases) || a.athlete_code_aliases.some(code => typeof code !== "string"))) return fail();
     const seasons = new Set<string>();
     for (const s of a.athlete_seasons) {
       if (!record(s) || s.athlete_id !== a.id || !str(s.season, 7) || !SEASON.test(s.season) || seasons.has(s.season) || !["jersey_number", "eligibility_year", "graduation_year"].every(k => optionalNumber(s[k])) || !["primary_position", "secondary_position", "player_type", "bats", "throws", "academic_class", "roster_status"].every(k => optionalText(s[k]))) return fail();
@@ -57,6 +59,7 @@ export function validateWorkspace(value: unknown): LocalWorkspace {
       seasons.add(s.season);
     }
   }
+  try { athleteCodeIndex(value.roster as RosterAthlete[]); } catch { return fail(); }
   const batchIds = new Set<string>();
   const measurementBatchIds = new Set<string>();
   for (const b of value.batches) {
@@ -74,6 +77,34 @@ export function validateWorkspace(value: unknown): LocalWorkspace {
   }
   if (value.mode === "sample" && (value.roster.length || value.measurements.length || value.batches.length)) return fail();
   return value as LocalWorkspace;
+}
+
+/** One deterministic identity change, including every local foreign key. */
+export function migrateWorkspaceAthleteCodes(workspace: LocalWorkspace): LocalWorkspace {
+  validateWorkspace(workspace);
+  const index = athleteCodeIndex(workspace.roster);
+  const mapping = new Map<string, string>();
+  for (const athlete of workspace.roster) {
+    const next = pacCodeForLegacy(athlete.athlete_code);
+    if (!next) continue;
+    if (index.has(next)) throw new Error("A PAC athlete ID conflicts with an existing identity. Your saved data was not changed.");
+    mapping.set(athlete.athlete_code, next);
+  }
+  if (!mapping.size) return workspace;
+  return validateWorkspace({
+    ...workspace,
+    roster: workspace.roster.map(athlete => {
+      const next = mapping.get(athlete.athlete_code);
+      return next ? { ...athlete, id: next, athlete_code: next,
+        athlete_code_aliases: [...(athlete.athlete_code_aliases ?? []), athlete.athlete_code],
+        athlete_seasons: athlete.athlete_seasons.map(season => ({ ...season, athlete_id: next })),
+      } : athlete;
+    }),
+    measurements: workspace.measurements.map(reading => {
+      const next = mapping.get(reading.athlete_code);
+      return next ? { ...reading, athlete_code: next } : reading;
+    }),
+  });
 }
 
 /** Local CSV adds only the canonical ID; confirmed aliases remain in the JSON backup. */
@@ -124,15 +155,25 @@ export async function readWorkspace(): Promise<LocalWorkspace> {
   const db = await database();
   try {
     return await new Promise((resolve, reject) => {
-      const request = db.transaction("workspace", "readonly").objectStore("workspace").get("current");
-      request.onsuccess = () => { try { resolve(request.result ? validateWorkspace(request.result) : emptyWorkspace()); } catch (error) { reject(error); } };
-      request.onerror = () => reject(new Error("Could not read saved data. Reload before importing."));
+      const tx = db.transaction("workspace", "readwrite"), store = tx.objectStore("workspace");
+      const request = store.get("current");
+      let current: LocalWorkspace = emptyWorkspace();
+      let failure: unknown = new Error("Could not read saved data. Reload before importing.");
+      request.onsuccess = () => {
+        try {
+          const previous = request.result ? validateWorkspace(request.result) : emptyWorkspace();
+          current = migrateWorkspaceAthleteCodes(previous);
+          if (current !== previous) { current = { ...current, revision: previous.revision + 1 }; store.put(current, "current"); }
+        } catch (error) { failure = error; tx.abort(); }
+      };
+      tx.oncomplete = () => resolve(current);
+      tx.onabort = tx.onerror = () => reject(failure);
     });
   } finally { db.close(); }
 }
 /** Compare and save in one IndexedDB transaction, including across browser tabs. */
 export async function writeWorkspace(next: LocalWorkspace, expectedRevision: number): Promise<LocalWorkspace> {
-  validateWorkspace(next);
+  const normalized = migrateWorkspaceAthleteCodes(next);
   const db = await database();
   try {
     return await new Promise((resolve, reject) => {
@@ -140,7 +181,7 @@ export async function writeWorkspace(next: LocalWorkspace, expectedRevision: num
       const store = tx.objectStore("workspace");
       const read = store.get("current");
       let failure = "Could not save. Your previous data is unchanged. Check available browser storage.";
-      const saved = { ...next, revision: expectedRevision + 1 };
+      const saved = { ...normalized, revision: expectedRevision + 1 };
       read.onsuccess = () => {
         if ((read.result?.revision ?? 0) !== expectedRevision) { failure = "The workspace changed in another tab. Reload and preview this import again."; tx.abort(); return; }
         store.put(saved, "current");

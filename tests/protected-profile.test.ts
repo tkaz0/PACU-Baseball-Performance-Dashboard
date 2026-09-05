@@ -70,7 +70,7 @@ describe("protected profile route authorization and integration", () => {
     expect(fake.eq).toHaveBeenCalledExactlyOnceWith("id", ownId.toUpperCase());
     expect(fake.load).toHaveBeenCalledExactlyOnceWith(trusted, athlete);
     expect(html).toContain("Fictional Profile"); expect(html).toContain('data-metric-key="max_exit_velocity"');
-    expect(html).toContain('data-value="10"'); expect(html).toContain("Jersey number");
+    expect(html).toContain('data-value="10"'); expect(html).toContain("Jersey Number");
   });
   it.each([false, true])("omits administrative controls, roster email and account metadata from rendered player view (preview=%s)", async preview => {
     fake.access.mockResolvedValueOnce(access(["player"], ownId, preview));

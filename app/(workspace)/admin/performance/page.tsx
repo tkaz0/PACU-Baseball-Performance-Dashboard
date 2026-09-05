@@ -15,7 +15,7 @@ export default async function PerformanceImport({ searchParams }: { searchParams
   if (roster.error || imports.error) throw new Error("Unable to load shared measurement imports.");
   const saved = (imports.data ?? []).find(item => item.id === params.import);
   return <>
-    <PageHeading section="Administration" title="Shared measurements" description="Publish reviewed readings to the private player profiles."><Link href="/preview/import" className="btn btn-secondary">Browser Import Center</Link></PageHeading>
+    <PageHeading section="Administration" title="Shared Measurements" description="Publish reviewed readings to the private player profiles."><Link href="/preview/import" className="btn btn-secondary">Browser Import Center</Link></PageHeading>
     {params.error && <p role="alert" className="notice notice-error mb-6">{Object.hasOwn(messages, params.error) ? messages[params.error] : "Unable to share measurements."}</p>}
     {saved && <p role="status" className="notice notice-success mb-6">Shared measurements saved: {saved.created_count} new · {saved.unchanged_count} already present.</p>}
     <SharedPerformanceImport athletes={(roster.data ?? []).map(athlete => ({ code:athlete.athlete_code, name:athleteName(athlete) }))} action={shareMeasurements} />

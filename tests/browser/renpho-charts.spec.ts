@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "./local-admin";
 import type { LocalWorkspace } from "../../lib/local-workspace";
 
 type Reading = readonly [metric: string, value: number, unit: string];

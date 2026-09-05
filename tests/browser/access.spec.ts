@@ -1,10 +1,10 @@
 import { test, expect } from "@playwright/test";
 const otherAthlete = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 test("anonymous pages redirect to sign-in without revealing athletes", async ({ page }) => {
-  for (const route of ["/overview","/roster",`/athletes/${otherAthlete}`,"/admin/import","/admin/access"]) {
+  for (const route of ["/overview","/roster",`/athletes/${otherAthlete}`,"/admin/import","/admin/access","/preview","/preview/import","/preview/roster","/preview/access", "/preview/athletes/SYN-001"]) {
     await page.goto(route);
     await expect(page).toHaveURL(/\/login/);
-    await expect(page.getByRole("heading",{name:"Welcome back."})).toBeVisible();
+    await expect(page.getByRole("heading",{name:/^Welcome Back$/i})).toBeVisible();
     await expect(page.getByText("Northstar")).toHaveCount(0);
   }
 });
@@ -16,10 +16,11 @@ test("anonymous API requests return no athlete and disable caching", async ({ re
 });
 test("login has no signup or demo bypass and reset navigation works", async ({ page }) => {
   await page.goto("/login");
-  await expect(page.getByRole("link",{name:/sign up|demo/i})).toHaveCount(0);
-  await page.getByRole("link",{name:"Forgot password?"}).click();
+  await expect(page.getByRole("link",{name:/sign up|demo|saved browser workspace/i})).toHaveCount(0);
+  await expect(page.locator('a[href^="/preview"]')).toHaveCount(0);
+  await page.getByRole("link",{name:/^Forgot Password\?$/i}).click();
   await expect(page).toHaveURL(/forgot-password/);
-  await expect(page.getByRole("heading",{name:"Reset your password"})).toBeVisible();
+  await expect(page.getByRole("heading",{name:/^Reset Your Password$/i})).toBeVisible();
   await page.goto("/reset-password");
   await expect(page).toHaveURL(/login/);
   await page.goto("/auth/confirm?type=invite&token_hash=not-a-token");
@@ -30,7 +31,7 @@ test("login fits mobile and desktop and has labelled controls", async ({ page })
   for (const viewport of [{width:390,height:844},{width:1440,height:1000}]) {
     await page.setViewportSize(viewport);
     await page.goto("/login");
-    await expect(page.getByLabel("Email address")).toBeVisible();
+    await expect(page.getByLabel(/^Email Address$/i)).toBeVisible();
     await expect(page.getByLabel("Password",{exact:true})).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   }

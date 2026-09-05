@@ -53,10 +53,41 @@ tbody tr:hover { background: #fcfcfd; }
 .field-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 26px; }
 .field-grid dt { font-size: 12px; color: #67707d; margin-bottom: 4px; }
 .field-grid dd { margin: 0; overflow-wrap: anywhere; }
-.login-grid { min-height: 100svh; display: grid; grid-template-columns: 1fr 1fr; }
-.login-brand { position: relative; overflow: hidden; padding: 52px; background: #16171a; color: white; display: flex; flex-direction: column; justify-content: space-between; }
-.login-brand::after { content: ""; position: absolute; right: -140px; bottom: -190px; width: 620px; height: 620px; border: 1px solid #38393e; transform: rotate(45deg); pointer-events: none; }
-.login-brand::before { content: ""; position: absolute; right: -75px; bottom: -130px; width: 480px; height: 480px; border: 1px solid #333439; transform: rotate(45deg); pointer-events: none; }
+.pacific-logo { display: block; max-width: 100%; height: auto; object-fit: contain; }
+.pacific-brand { display: inline-flex; align-items: center; gap: 19px; color: white; }
+.pacific-brand > .pacific-logo { width: 53px; flex: 0 0 53px; }
+.pacific-brand-copy { display: block; min-width: 0; }
+.pacific-brand-name { display: block; font-size: 24px; font-weight: 800; line-height: 1.18; letter-spacing: -.035em; }
+.pacific-brand-descriptor { display: block; margin-top: 7px; color: #c2c2c6; font-size: 12px; font-weight: 500; letter-spacing: .06em; }
+.pacific-brand-compact { gap: 13px; }
+.pacific-brand-compact > .pacific-logo { width: 34px; flex-basis: 34px; }
+.pacific-brand-compact .pacific-brand-name { font-size: 17px; letter-spacing: -.03em; }
+.pacific-brand-compact .pacific-brand-descriptor { margin-top: 5px; font-size: 11px; }
+.sidebar-brand-link { display: block; padding: 0 4px; color: white; text-decoration: none; }
+.login-grid { min-height: 100svh; display: grid; grid-template-columns: minmax(0,1.2fr) minmax(0,1fr); background: white; }
+.login-brand { position: relative; isolation: isolate; overflow: hidden; min-height: 760px; padding: 48px clamp(32px,4.5vw,80px) 35px; background: #141416; color: white; display: flex; flex-direction: column; justify-content: space-between; }
+.login-brand::after { content: ""; position: absolute; right: -235px; bottom: -365px; width: 750px; height: 750px; border: 1px solid #ffffff0e; transform: rotate(45deg); z-index: -1; pointer-events: none; }
+.login-brand::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 6px; background: #990000; z-index: -1; pointer-events: none; }
+.login-wordmark { align-self: flex-start; }
+.login-statement { padding: 65px 0 70px; }
+.login-kicker { margin: 0 0 25px; color: #c9c9cd; font-size: 12px; font-weight: 600; letter-spacing: .04em; }
+.login-quote { margin: 0; font-size: clamp(45px,5.3vw,88px); font-weight: 900; line-height: 1.06; letter-spacing: -.065em; }
+.login-quote > span { display: block; }
+.login-quote > span:last-child { color: #edb4b5; }
+.login-accent { width: 54px; height: 4px; margin: 32px 0 24px; background: #c92c32; }
+.login-description { margin: 0; color: #b1b1b8; font-size: 14px; line-height: 1.8; }
+.login-brand-footer { display: flex; align-items: center; gap: 25px; padding-top: 26px; border-top: 1px solid #ffffff19; }
+.login-brand-footer .pacific-logo { width: 83px; flex: 0 0 83px; }
+.login-brand-footer p { margin: 0; color: #a0a0a9; font-size: 10px; line-height: 1.8; }
+.login-form-panel { display: flex; align-items: center; justify-content: center; min-width: 0; padding: 64px clamp(28px,5vw,88px); background: #fff; }
+.login-form-content { width: 100%; max-width: 380px; }
+.login-access-label { display: flex; align-items: center; gap: 8px; margin-bottom: 26px; color: #990000; font-size: 12px; font-weight: 700; }
+.login-title { margin: 0 0 11px; font-size: clamp(30px,3vw,38px); font-weight: 800; line-height: 1.15; letter-spacing: -.045em; }
+.login-intro { margin: 0 0 34px; color: #6b6b73; font-size: 14px; line-height: 1.7; }
+.login-form-content input { min-height: 50px; border-radius: 5px; border-color: #d9d9dd; }
+.login-form-content .btn-primary { min-height: 50px; border-radius: 5px; }
+.login-invitation-note { margin: 24px 0 0; color: #666670; font-size: 12px; line-height: 1.75; }
+.login-access-note { margin: 30px 0 0; padding-top: 22px; border-top: 1px solid #ececf0; color: #797981; font-size: 11px; line-height: 1.7; }
 @media (max-width: 900px) {
   .sidebar { position: relative; width: auto; padding: 20px; }
   .sidebar nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
@@ -64,8 +95,20 @@ tbody tr:hover { background: #fcfcfd; }
   .app-body { margin-left: 0; }
   .field-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .login-grid { grid-template-columns: 1fr; }
-  .login-brand { min-height: 230px; padding: 28px; }
-  .login-brand .brand-message { display: none; }
+  .login-brand { min-height: auto; padding: 30px 32px 24px; }
+  .login-brand > .pacific-brand > .pacific-logo { width: 36px; flex-basis: 36px; }
+  .login-brand .pacific-brand-name { font-size: 21px; }
+  .login-brand .pacific-brand-descriptor { font-size: 11px; margin-top: 4px; }
+  .login-statement { padding: 36px 0 29px; }
+  .login-kicker { margin-bottom: 17px; font-size: 10px; }
+  .login-quote { font-size: clamp(43px,8.5vw,68px); }
+  .login-accent { margin: 22px 0 16px; }
+  .login-description { font-size: 12px; }
+  .login-brand-footer { gap: 18px; padding-top: 19px; }
+  .login-brand-footer .pacific-logo { width: 64px; flex-basis: 64px; }
+  .login-brand-footer p { font-size: 9px; }
+  .login-form-panel { padding: 38px 28px 45px; }
+  .login-access-label { margin-bottom: 19px; }
 }
 @media (max-width: 540px) {
   .field-grid { grid-template-columns: 1fr; }
@@ -73,14 +116,13 @@ tbody tr:hover { background: #fcfcfd; }
 }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
 
-/* Pacific University published web palette: Boxer Red #990000, black, gray, white.
-   Original baseball graphics and text treatment for this independent project. */
+/* Pacific palette with unmodified official marks; asset provenance: docs/BRANDING.md. */
 .workspace-shell { background: #f4f4f2; min-height: 100svh; }
 .workspace-shell .panel { min-width: 0; border-color: #dededb; border-radius: 8px; box-shadow: 0 2px 3px #00000003; }
 .workspace-shell .btn { border-radius: 4px; }
 .workspace-shell .btn-secondary { border-color: #cfcfcb; }
 .workspace-shell input, .workspace-shell select { min-width: 0; border-color: #cececa; border-radius: 4px; }
-.workspace-shell .page-title { font-family: var(--athletic-font); font-size: clamp(36px, 4.2vw, 54px); font-weight: 400; line-height: 1.03; letter-spacing: .015em; text-transform: uppercase; }
+.workspace-shell .page-title { font-family: Arial, Helvetica, sans-serif; font-size: clamp(30px, 3.5vw, 42px); font-weight: 800; line-height: 1.12; letter-spacing: -.035em; }
 .workspace-shell .page-description { max-width: 650px; color: #666; line-height: 1.7; }
 .workspace-shell .page-head { margin-bottom: 30px; }
 .page-actions { flex-shrink: 0; padding-top: 12px; }
@@ -312,7 +354,7 @@ tbody tr:hover { background: #fcfcfd; }
   .brand-baseball { margin-top: 3px; font-size: 11px; }
   .brand-performance { display: none; }
   .sidebar-rule { display: none; }
-  .baseball-sidebar nav { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0,1fr); gap: 8px; margin-top: 20px; }
+  .baseball-sidebar nav { display: grid; grid-template-columns: repeat(auto-fit,minmax(104px,1fr)); grid-auto-flow: row; gap: 8px; margin-top: 20px; }
   .baseball-sidebar .nav-link { justify-content: center; min-width: 0; min-height: 44px; margin: 0; padding: 10px; gap: 9px; font-size: 12px; }
   .workspace-body { margin-left: 0; }
   .workspace-topbar { min-height: 64px; }

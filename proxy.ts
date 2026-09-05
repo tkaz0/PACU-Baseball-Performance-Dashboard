@@ -4,9 +4,7 @@ import { hasSupabaseConfig, supabaseConfig } from "@/lib/env";
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
-  const publicPreview = request.nextUrl.pathname === "/preview" || request.nextUrl.pathname.startsWith("/preview/");
-  // The browser workspace has no database access and works independently of Auth availability.
-  if (!publicPreview && hasSupabaseConfig()) {
+  if (hasSupabaseConfig()) {
     const { url, key } = supabaseConfig();
     const supabase = createServerClient(url, key, {
       cookies: {

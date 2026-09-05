@@ -8,12 +8,14 @@ The owner requested Admin controls with the ability to inspect Coach and Player 
 | Shared performance cards/charts | Team | Team | Own linked athlete |
 | Import or change records | Yes | No | No |
 | Backup/export browser workspace | Yes | No | No |
-| Configure trusted accounts | Yes, after private sign-in | No | No |
+| Configure trusted accounts | Yes | No | No |
 | View as another role | Admin inspection | No | No |
 
 ## Two separate surfaces
 
-`/preview` is the existing unsigned browser-local workspace. Its View as is explicitly a layout preview, accessible without account authentication. The owner's inspection controls remain visible so they can choose another player or exit. Actual roster and RENPHO readings remain in that browser; the deployed source still uses fictional starter data. Switching views neither uploads nor changes saved data.
+Every dashboard surface requires sign-in. `/preview` is the browser-local import workspace and requires a currently active Admin outside the private workspace's Coach/Player View as. Its layout and every page perform the trusted server check; the proxy no longer skips authentication for this path. Before mounting IndexedDB, a client boundary checks current authorization with a private no-store endpoint, bound to the exact user and path. It rechecks on navigation, focus, page restoration and visible-page intervals, and removes local content when access is denied or cannot be verified. A Coach, Player, inactive or unconfigured account cannot open this workspace.
+
+The browser workspace still offers Admin inspection of local Coach/Player layouts. Those switches neither grant account access nor upload/change saved data. Local roster and RENPHO readings stay on that device; login gating does not encrypt or erase IndexedDB or previously exported backups. A previously open page is revalidated when revisited or during the periodic check, rather than remotely retracting data already held by that browser. Local imports require a working connection for authorization, although report processing itself stays on the device.
 
 `/overview`, `/roster`, `/athletes`, and `/admin` are the private Supabase workspace. Existing Auth and RLS enforce roles. Only a live active administrator can start its Coach/Player preview. The selected athlete must exist. A preview never changes trusted account roles, account links, Auth sessions or JWT claims. Protected overview/profile/API paths and performance adapters scope output using the effective view; roster, account, shared-measurement and coach-preparation mutations reject while previewing. Malformed, mismatched, stale or expired preferences stop on a recovery page with Exit preview.
 
@@ -31,4 +33,4 @@ An administrator can search configured accounts by exact UUID, linked athlete/na
 
 ## Verification
 
-Unit and route tests cover role projections, malformed/expired/other-actor preferences, forbidden mutations, API isolation and direct route checks. Fictional browser tests cover Coach/Player transitions, reload persistence, direct-route restrictions, read-only controls, mobile fit and unchanged backups after Exit preview. The existing database authorization suite remains applicable. Separate live Supabase test identities are still required for full Auth/API integration testing.
+Unit and route tests cover role projections, malformed/expired/other-actor preferences, forbidden mutations, API isolation, every browser-workspace page guard and current-session authorization responses. Anonymous browser tests verify that `/preview` routes redirect to login without opening IndexedDB. Import/OCR/local-view browser tests now require a separately authorized local Admin session; earlier anonymous-browser results do not validate the new gate. The existing database authorization suite remains applicable. Separate live Supabase test identities are still required for full Auth/API integration testing.

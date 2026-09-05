@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./local-admin";
 
 // Draw a complete, fictional portrait report in the supported layout. This exercises
 // the installed OCR worker; it does not mock recognition or use any private report.

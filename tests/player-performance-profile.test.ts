@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { PlayerPerformanceProfile } from "@/components/player-performance-profile";
 import { getPlayerPerformance } from "@/lib/player-performance";
 import type { RosterAthlete } from "@/lib/types";
+import type { Measurement } from "@/lib/imports/engine";
 
 function fictionalAthlete(playerType: string | null): RosterAthlete {
   return { id: "SYN-001", athlete_code: "SYN-001", first_name: "Fictional Avery", preferred_name: "Avery", last_name: "Northstar",
@@ -30,9 +31,12 @@ describe("player profile presentation", () => {
     expect(html).toContain("CF / P");
     expect(html).toContain("L / R");
     expect(html).toContain("2026-27");
-    expect(html).toMatch(/Jersey number<\/dt><dd[^>]*>0<\/dd>/);
+    expect(html).toMatch(/Jersey Number<\/dt><dd[^>]*>0<\/dd>/);
     expect(html).not.toContain(athlete.pacific_email);
-    expect(html).not.toContain(athlete.athlete_code);
+    expect(html).toContain(athlete.athlete_code);
+    expect(html).toContain("Athlete ID");
+    expect(html).toContain("Not Yet Tested");
+    expect(html).not.toMatch(/summer baseline/i);
     expect(html).not.toContain(athlete.renpho_id);
     expect(html).not.toContain("Eligibility year");
     expect(html).not.toContain('role="meter"');
@@ -42,4 +46,21 @@ describe("player profile presentation", () => {
     expect(html).toContain("Sources &amp; percentile method");
     expect(html).not.toMatch(/<details[^>]*\sopen(?:[ =>])/);
   });
+  it("shows the last actual testing date and keeps older measurements out of the snapshot", () => {
+    const athlete = fictionalAthlete("position");
+    const readings: Measurement[] = ["2026-08-09", "2026-09-03"].map((date, index) => ({
+      id: `fictional-date-${index}`, athlete_code: athlete.athlete_code, measured_at: date,
+      source: "Fictional testing", metric: "Weight", value: 170 + index, unit: "lb",
+      source_file: "fictional.csv", source_sheet: "CSV", source_row: index + 2, file_hash: "a".repeat(64),
+    }));
+    const performance = getPlayerPerformance({ readings, athleteCode: athlete.athlete_code });
+    const html = renderToStaticMarkup(createElement(PlayerPerformanceProfile, { athlete, performance }));
+    expect(html).toContain("Last Tested");
+    expect(html).toContain("Sep 3, 2026");
+    expect(html).not.toContain("Aug 9, 2026");
+    expect(html).not.toMatch(/summer|baseline/i);
+    expect(html).toContain('data-value="171"');
+    expect(performance.body.find(card => card.metric.key === "weight")?.history).toHaveLength(2);
+  });
+
 });

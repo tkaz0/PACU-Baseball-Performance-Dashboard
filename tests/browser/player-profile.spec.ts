@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./local-admin";
 import { mkdir } from "node:fs/promises";
 import type { LocalWorkspace } from "../../lib/local-workspace";
 
@@ -51,9 +51,9 @@ test("player snapshot shows exact own readings and team percentiles without peer
   await restoreAndPreviewPlayer(page);
   const profile = page.getByTestId("player-performance-profile");
   await expect(profile.getByRole("heading", { name: "Avery Northstar", exact: true })).toBeVisible();
-  await expect(profile.locator("dt").filter({ hasText: /^Jersey number$/ }).locator("+ dd")).toHaveText("0");
-  for (const text of ["fictional.avery@example.com", "SYN-001", "Eligibility year", "Blake Cloudfield", "Account and roster details"]) await expect(page.locator("main")).not.toContainText(text);
-  await expect(profile.getByRole("heading", { name: "Pitching performance", exact: true })).toHaveCount(0);
+  await expect(profile.locator("dt").filter({ hasText: /^Jersey Number$/ }).locator("+ dd")).toHaveText("0");
+  for (const text of ["fictional.avery@example.com", "Eligibility year", "Blake Cloudfield", "Account and roster details"]) await expect(page.locator("main")).not.toContainText(text);
+  await expect(profile.getByRole("heading", { name: "Pitching Performance", exact: true })).toHaveCount(0);
   const max = profile.getByTestId("player-metric").filter({ has: page.locator('h3', { hasText: /^Max EV$/ }) });
   await expect(max).toHaveAttribute("data-value", "90");
   await expect(max).toHaveAttribute("data-unit", "mph");
@@ -68,9 +68,9 @@ test("player snapshot shows exact own readings and team percentiles without peer
   const body = profile.getByTestId("player-metric").filter({ has: page.locator('h3', { hasText: /^Weight$/ }) });
   await expect(body).toHaveAttribute("data-value", "170");
   await expect(body).toHaveAttribute("data-date", "2026-08-09");
-  await expect(body).toContainText("Summer baseline");
+  await expect(body).toContainText("Last Tested: Aug 9, 2026");
   await expect(body.getByTestId("player-percentile")).toHaveAttribute("data-direction", "neutral");
-  const missing = profile.getByTestId("player-metric").filter({ has: page.locator('h3', { hasText: /^Bat speed$/ }) });
+  const missing = profile.getByTestId("player-metric").filter({ has: page.locator('h3', { hasText: /^Bat Speed$/ }) });
   await expect(missing).toContainText("No data");
   await expect(missing.getByRole("meter")).toHaveCount(0);
   await expect(profile.getByTestId("player-performance-methods")).not.toHaveAttribute("open", "");

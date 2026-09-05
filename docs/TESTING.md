@@ -79,7 +79,11 @@ PLAYWRIGHT_CHANNEL=chrome pnpm test:ui
 
 On Windows PowerShell, set `$env:PLAYWRIGHT_CHANNEL='chrome'` first, then run `pnpm test:ui`.
 
-These tests verify anonymous protected-page redirects, no athlete API data, no public signup/demo affordance, password recovery navigation/invalid-link handling, labelled login fields and horizontal layout at 390px/1440px, and the template download. Without Supabase config the API returns 503 with a generic denial; with a working unauthenticated connection it returns 401. Disabled authenticated users receive 403.
+The anonymous `access.spec.ts` and `preview.spec.ts` tests verify redirects from every dashboard path, including `/preview`, no athlete API data, no public signup/demo/browser-workspace link, no IndexedDB opening before login, recovery navigation, labelled login fields and horizontal layout at 390px/1440px, and the template download. Without Supabase config the APIs return 503 with a generic denial; with a working unauthenticated connection they return 401. Disabled authenticated users receive 403.
+
+The remaining browser-local import, OCR, charts, storage and layout specs use `tests/browser/local-admin.ts`. They require an ignored `.env.test.local`, `RUN_LOCAL_SUPABASE_TESTS=true`, local-only app/Supabase URLs, and the separately provisioned `TEST_ADMIN_EMAIL`/`TEST_ADMIN_PASSWORD` below. Each isolated browser signs in through the real form and verifies current Admin access. Without that opt-in these specs are explicitly skipped. They never inject fake roles, bypass production routes, use hosted credentials, or reuse the owner's browser data. Their auth fixture creates no accounts and sends no email. Earlier anonymous-import release receipts below are historical, not verification of the current authenticated workflow.
+
+`tests/proxy-preview.test.ts`, `tests/preview-route-access.test.ts`, `tests/access-preview-server.test.ts`, `tests/local-workspace-access.test.ts` and `tests/admin-workspace-boundary.test.ts` exercise token refresh without a public exception, fresh Admin checks at every local page, denial for Coach/Player/inactive/invalid-preview sessions, exact user/path client authorization, current-session failure handling and preserving the current import view during successful periodic checks. Those component/provider mocks do not replace real authenticated browser coverage.
 
 No browser traces, screenshots, or videos of authenticated data are saved by default. Do not capture real credentials/rosters in test artifacts.
 
@@ -128,7 +132,7 @@ Re-run the separate-identity UI/API tests after deployment with owner authorizat
 
 ## Browser-local importer tests
 
-`tests/import-engine.test.ts`, `tests/import-files.test.ts`, and `tests/local-workspace.test.ts` exercise pure previews, bounded CSV/XLSX parsing, provenance/deduplication, and backup integrity. They use generated fictional fixtures only. `tests/browser/preview.spec.ts` and `tests/browser/imports.spec.ts` cover the no-sign-in workspace, imported profiles, validation, reload persistence, and transfer. Local browser tests create isolated profiles and never use the owner's saved browser data.
+`tests/import-engine.test.ts`, `tests/import-files.test.ts`, and `tests/local-workspace.test.ts` exercise pure previews, bounded CSV/XLSX parsing, provenance/deduplication, and backup integrity. They use generated fictional fixtures only. `tests/browser/preview.spec.ts` covers anonymous denial; the opt-in authenticated importer/storage specs cover reviewed profiles, validation, reload persistence and transfer using a real local Admin. Local browser tests create isolated profiles and never use the owner's saved browser data.
 
 For a second local checkout, start it on an unused port and set `TEST_APP_URL=http://127.0.0.1:3101 PLAYWRIGHT_CHANNEL=chrome pnpm test:ui`. The test configuration rejects remote URLs. Production HTTP smoke checks are separate and read-only.
 

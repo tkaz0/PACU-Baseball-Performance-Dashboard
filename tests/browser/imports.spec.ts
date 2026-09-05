@@ -1,4 +1,4 @@
-import { test, expect, type Download, type Page } from "@playwright/test";
+import { test, expect, type Download, type Page } from "./local-admin";
 import { utils, write } from "xlsx";
 
 const rosterCSV = "first_name,last_name,jersey_number\nFictional Rowan,Testfield,0\nFictional Taylor,Testbrook,12\n";
@@ -60,8 +60,8 @@ test("roster review replaces samples, preserves zero after reload, exports codes
   await page.getByRole("button", { name: "Validate and preview" }).click();
   const review = page.getByRole("table", { name: "Import row validation and proposed changes" });
   await expect(review.locator("tbody tr")).toHaveCount(2);
-  await expect(review).toContainText("LOCAL-0001");
-  await expect(review).toContainText("LOCAL-0002");
+  await expect(review).toContainText("PAC-0001");
+  await expect(review).toContainText("PAC-0002");
   await expect(page.getByText(/names alone will create new athletes/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Apply reviewed import", exact: true })).toBeDisabled();
   await applyPreview(page);
@@ -70,15 +70,15 @@ test("roster review replaces samples, preserves zero after reload, exports codes
   await page.getByRole("button", { name: "Export roster with athlete codes", exact: true }).click();
   const csv = (await downloadBytes(await exported)).toString("utf8");
   expect(csv).toContain("athlete_code");
-  expect(csv).toContain("LOCAL-0001");
-  expect(csv).toContain("LOCAL-0002");
+  expect(csv).toContain("PAC-0001");
+  expect(csv).toContain("PAC-0002");
   await page.goto("/preview/roster");
   await expect(page.locator("tbody tr")).toHaveCount(2);
   await expect(page.locator("tbody")).not.toContainText("Northstar");
-  await page.goto("/preview/athletes/LOCAL-0001");
+  await page.goto("/preview/athletes/PAC-0001");
   await page.reload();
   await expect(page.getByRole("heading", { name: "Fictional Rowan Testfield", exact: true })).toBeVisible();
-  await expect(page.locator("dt").filter({ hasText: /^Jersey number$/ }).locator("+ dd")).toHaveText("0");
+  await expect(page.locator("dt").filter({ hasText: /^Jersey Number$/ }).locator("+ dd")).toHaveText("0");
 
   await openImporter(page);
   await uploadCSV(page, rosterCSV, "fictional-roster.csv");
@@ -163,7 +163,7 @@ test("JSON backup restores the reviewed roster after a confirmed reset", async (
   await page.goto("/preview/roster");
   await page.reload();
   await expect(page.locator("tbody tr")).toHaveCount(2);
-  await expect(page.locator("tbody")).toContainText("LOCAL-0001");
+  await expect(page.locator("tbody")).toContainText("PAC-0001");
 });
 
 test("XLSX imports let the user choose a sheet and header row", async ({ page }) => {
@@ -187,5 +187,5 @@ test("XLSX imports let the user choose a sheet and header row", async ({ page })
   await applyPreview(page);
   await page.goto("/preview/athletes/TEST-101");
   await expect(page.getByRole("heading", { name: "Fictional Morgan Sheetfield", exact: true })).toBeVisible();
-  await expect(page.locator("dt").filter({ hasText: /^Jersey number$/ }).locator("+ dd")).toHaveText("0");
+  await expect(page.locator("dt").filter({ hasText: /^Jersey Number$/ }).locator("+ dd")).toHaveText("0");
 });

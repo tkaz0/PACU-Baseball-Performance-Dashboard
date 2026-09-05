@@ -5,7 +5,7 @@ import { getPreviewRoster } from "@/lib/preview-roster";
 import type { RosterAthlete } from "@/lib/types";
 import type { Measurement } from "@/lib/imports/engine";
 import { getPlayerPerformance, type PlayerPerformance } from "@/lib/player-performance";
-import { adminView, LOCAL_VIEW_KEY, parseLocalView, projectLocalView, type LocalView } from "@/lib/local-view";
+import { adminView, canonicalLocalView, LOCAL_VIEW_KEY, parseLocalView, projectLocalView, type LocalView } from "@/lib/local-view";
 import { emptyWorkspace, readWorkspace, validateWorkspace, writeWorkspace, exportLocalRosterCsv, prepareRenphoReport, type ImportBatch, type LocalWorkspace, type RenphoReportIdentity } from "@/lib/local-workspace";
 export type { ImportBatch } from "@/lib/local-workspace";
 
@@ -34,7 +34,14 @@ export function LocalWorkspaceProvider({ children }: { children: React.ReactNode
   useEffect(() => {
     let active = true;
     try { currentView.current = parseLocalView(sessionStorage.getItem(LOCAL_VIEW_KEY)); setViewState(currentView.current); } catch { /* View switching still works when session storage is unavailable. */ }
-    const refresh = () => readWorkspace().then(data => { if (active) { setState(data); setError(null); } }).catch(() => { if (active) setError("Saved data could not be opened. Imports are paused; reload after enabling browser storage."); }).finally(() => { if (active) setReady(true); });
+    const refresh = () => readWorkspace().then(data => {
+      if (active) {
+        const checked = canonicalLocalView(currentView.current, data.mode === "sample" ? getPreviewRoster() : data.roster);
+        currentView.current = checked; setViewState(checked);
+        try { sessionStorage.setItem(LOCAL_VIEW_KEY, JSON.stringify(checked)); } catch { /* Optional tab preference. */ }
+        setState(data); setError(null);
+      }
+    }).catch(() => { if (active) setError("Saved data could not be opened. Imports are paused; reload after enabling browser storage."); }).finally(() => { if (active) setReady(true); });
     void refresh();
     if (typeof BroadcastChannel !== "undefined") { channel.current = new BroadcastChannel("pacu-workspace-updates"); channel.current.onmessage = () => void refresh(); }
     return () => { active = false; channel.current?.close(); };
@@ -57,7 +64,7 @@ export function LocalWorkspaceProvider({ children }: { children: React.ReactNode
     view, canManage: view.role === "admin",
     viewChoices: roster.map(a => ({ code: a.athlete_code, name: `${a.preferred_name || a.first_name} ${a.last_name}` })).sort((a, b) => a.name.localeCompare(b.name)),
     setView: next => {
-      const checked = parseLocalView(JSON.stringify(next));
+      const checked = canonicalLocalView(parseLocalView(JSON.stringify(next)), roster);
       currentView.current = checked; setViewState(checked);
       try { sessionStorage.setItem(LOCAL_VIEW_KEY, JSON.stringify(checked)); } catch { /* Optional tab preference; not workspace data. */ }
     },
@@ -124,5 +131,5 @@ export function useLocalWorkspace() {
 
 export function WorkspaceBanner() {
   const { mode, ready, error } = useLocalWorkspace();
-  return <div className="bg-pacu-red px-6 py-3 text-sm font-semibold text-white lg:px-10" role="status">{error || (!ready ? "Opening your workspace…" : mode === "sample" ? "Sample roster · Fictional athletes · No sign-in needed" : "Saved in this browser · Export a backup to keep or transfer your data")}</div>;
+  return <div className="bg-pacu-red px-6 py-3 text-sm font-semibold text-white lg:px-10" role="status">{error || (!ready ? "Opening your workspace…" : mode === "sample" ? "Sample roster · Fictional athletes · Administrator workspace" : "Saved in this browser · Export a backup to keep or transfer your data")}</div>;
 }

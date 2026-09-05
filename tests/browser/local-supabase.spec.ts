@@ -20,9 +20,9 @@ async function signedClient(identity: string) {
 }
 async function signIn(page: Page, identity: string) {
   await page.goto("/login");
-  await page.getByLabel("Email address").fill(env(`TEST_${identity}_EMAIL`));
+  await page.getByLabel("Email Address").fill(env(`TEST_${identity}_EMAIL`));
   await page.getByLabel("Password",{exact:true}).fill(env(`TEST_${identity}_PASSWORD`));
-  await page.getByRole("button",{name:"Sign in",exact:true}).click();
+  await page.getByRole("button",{name:"Sign In",exact:true}).click();
   await expect(page).toHaveURL(/overview/);
 }
 test.describe("real local Supabase sessions (owner-provisioned identities)",() => {
@@ -60,7 +60,7 @@ test.describe("real local Supabase sessions (owner-provisioned identities)",() =
   });
   test("Coach reads roster and profiles but cannot open roster import",async ({page}) => {
     await signIn(page,"COACH");
-    await page.goto("/roster"); await expect(page.getByRole("heading",{name:"Master roster",exact:true})).toBeVisible();
+    await page.goto("/roster"); await expect(page.getByRole("heading",{name:"Roster",exact:true})).toBeVisible();
     await page.goto(`/athletes/${env("TEST_PLAYER_A_ATHLETE_ID")}`); await expect(page.getByText("Athlete profile",{exact:true})).toBeVisible();
     await page.goto("/admin/import"); await expect(page).toHaveURL(/access-denied/);
   });

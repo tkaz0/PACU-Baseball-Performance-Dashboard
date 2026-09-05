@@ -1,6 +1,7 @@
 import Papa from "papaparse";
 import { HEADERS } from "@/lib/roster/csv";
 import type { AthleteSeason, RosterAthlete } from "@/lib/types";
+import { athleteCodeIndex, nextPacCode } from "@/lib/athlete-codes";
 
 // Pure, local-only parsing and previews. This module does not read or write storage.
 export const MAX_IMPORT_BYTES = 2 * 1024 * 1024;
@@ -243,24 +244,21 @@ export function previewRoster(table: ImportTable, mapping: RosterMapping, season
   }
   if (new Set(Object.values(mapping)).size !== Object.values(mapping).length) throw new Error("Map each source column to only one roster field.");
   const values = table.rows.map(row => rosterCells(row, mapping));
-  const candidateRoster = existingRoster.map(athlete => ({ ...athlete, ...(athlete.renpho_ids ? { renpho_ids: [...athlete.renpho_ids] } : {}), id: athlete.athlete_code, athlete_seasons: athlete.athlete_seasons.map(s => ({ ...s, athlete_id: athlete.athlete_code })) }));
+  const candidateRoster = existingRoster.map(athlete => ({ ...athlete, ...(athlete.athlete_code_aliases ? { athlete_code_aliases: [...athlete.athlete_code_aliases] } : {}), ...(athlete.renpho_ids ? { renpho_ids: [...athlete.renpho_ids] } : {}), id: athlete.athlete_code, athlete_seasons: athlete.athlete_seasons.map(s => ({ ...s, athlete_id: athlete.athlete_code })) }));
+  if (candidateRoster.some(athlete => athlete.athlete_code_aliases)) athleteCodeIndex(candidateRoster);
   const renphoIndex = renphoOwners(candidateRoster);
   const codeIndex = new Map<string, RosterAthlete[]>();
   const emailIndex = new Map<string, RosterAthlete[]>();
   for (const athlete of candidateRoster) {
-    const code = normalizeCode(athlete.athlete_code);
-    codeIndex.set(code, [...(codeIndex.get(code) ?? []), athlete]);
+    for (const code of [athlete.athlete_code, ...(athlete.athlete_code_aliases ?? [])].map(normalizeCode)) {
+      codeIndex.set(code, [...(codeIndex.get(code) ?? []), athlete]);
+    }
     if (athlete.pacific_email) {
       const email = normalizeEmail(athlete.pacific_email);
       emailIndex.set(email, [...(emailIndex.get(email) ?? []), athlete]);
     }
   }
   const usedCodes = new Set([...codeIndex.keys(), ...values.map(row => row.athlete_code).filter(Boolean)]);
-  let nextLocal = 1;
-  for (const code of usedCodes) {
-    const match = /^LOCAL-(\d+)$/.exec(code);
-    if (match && Number.isSafeInteger(Number(match[1]))) nextLocal = Math.max(nextLocal, Number(match[1]) + 1);
-  }
   const resolved = values.map((value, index) => {
     const row = result(table.rowNumbers[index]);
     const byEmail = value.pacific_email ? emailIndex.get(value.pacific_email) ?? [] : [];
@@ -269,16 +267,21 @@ export function previewRoster(table: ImportTable, mapping: RosterMapping, season
       const byCode = codeIndex.get(value.athlete_code) ?? [];
       if (byCode.length > 1) row.issues.push(issue(row.row, "athlete_code", "The current roster contains duplicate codes; resolve them first."));
       else matched = byCode[0];
+      if (matched) value.athlete_code = matched.athlete_code;
+      else if (value.athlete_code.startsWith("LOCAL-")) row.issues.push(issue(row.row, "athlete_code", "This previous ID is not recorded in the roster. Restore its original backup or use a reviewed PAC ID."));
       row.matchMethod = matched ? "code" : "new";
     } else if (byEmail.length === 1) {
       matched = byEmail[0]; value.athlete_code = matched.athlete_code; row.matchMethod = "email";
     } else if (byEmail.length > 1) {
       row.issues.push(issue(row.row, "pacific_email", "The email matches multiple athletes; choose a permanent code."));
     } else {
-      if (!Number.isSafeInteger(nextLocal)) nextLocal = 1;
-      do { value.athlete_code = `LOCAL-${String(nextLocal++).padStart(4, "0")}`; } while (usedCodes.has(value.athlete_code));
+      value.athlete_code = nextPacCode(usedCodes);
       usedCodes.add(value.athlete_code); row.matchMethod = "new";
     }
+    if (matched?.athlete_code.startsWith("PAC-") &&
+      ["first_name", "last_name"].some(field => value[field as RosterField] && normalizeName(value[field as RosterField]) !== normalizeName(matched[field as "first_name" | "last_name"])) &&
+      !(value.pacific_email && matched.pacific_email && value.pacific_email === normalizeEmail(matched.pacific_email))
+    ) row.issues.push(issue(row.row, "athlete_code", "This PAC ID is already assigned to a different identity. Reconcile the roster before importing."));
     row.athlete_code = value.athlete_code;
     if (byEmail.some(athlete => athlete.athlete_code !== value.athlete_code)) row.issues.push(issue(row.row, "pacific_email", "This email belongs to a different athlete code."));
     if (value.renpho_id) {
@@ -386,10 +389,14 @@ export function previewMeasurements(table: ImportTable, mapping: MeasurementMapp
   if ((fileContext.sheetName?.length ?? 0) > 255 || CONTROL.test(fileContext.sheetName ?? "")) throw new Error("Use a valid source sheet name.");
   const byIdentity = new Map<string, RosterAthlete[]>();
   const byCode = new Map<string, RosterAthlete[]>();
+  if (roster.some(athlete => athlete.athlete_code_aliases)) athleteCodeIndex(roster);
   const normalizeIdentity = mapping.identityKind === "code" ? normalizeCode : mapping.identityKind === "email" ? normalizeEmail : normalizeName;
   for (const athlete of roster) {
     const code = normalizeCode(athlete.athlete_code);
-    byCode.set(code, [...(byCode.get(code) ?? []), athlete]);
+    for (const alias of [code, ...(athlete.athlete_code_aliases ?? [])]) {
+      byCode.set(alias, [...(byCode.get(alias) ?? []), athlete]);
+      if (mapping.identityKind === "code" && alias !== code) byIdentity.set(alias, [...(byIdentity.get(alias) ?? []), athlete]);
+    }
     const value = mapping.identityKind === "code" ? code : mapping.identityKind === "email" ? athlete.pacific_email ?? "" : `${athlete.first_name} ${athlete.last_name}`;
     if (value.trim()) {
       const key = normalizeIdentity(value); byIdentity.set(key, [...(byIdentity.get(key) ?? []), athlete]);

@@ -16,7 +16,7 @@ export default async function ImportReview({ params, searchParams }: { params: P
   const draft = data as ImportDraft;
   const applied = draft.status === "applied";
   const canApprove = !applied && draft.preview.reject === 0 && draft.created_by === user.id;
-  return <><PageHeading section="Administration / Roster import" title={applied ? "Import complete" : "Review roster changes"} description={`${draft.filename} · Season ${draft.season} · ${draft.preview.rows.length} rows`}><Link href="/admin/import" className="btn btn-secondary">New upload</Link></PageHeading>
+  return <><PageHeading section="Administration / Roster import" title={applied ? "Import Complete" : "Review Roster Changes"} description={`${draft.filename} · Season ${draft.season} · ${draft.preview.rows.length} rows`}><Link href="/admin/import" className="btn btn-secondary">New upload</Link></PageHeading>
     {query.error && <p role="alert" className="notice notice-error mb-6">{query.error === "confirm" ? "Confirm that you have reviewed the changes." : "Approval was not applied. The preview may be stale, expired, contain rejected rows, or belong to another administrator. Upload again to review current changes."}</p>}
     {applied && <p role="status" className="notice notice-success mb-6">The approved roster changes and audit record were saved together.</p>}
     <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">{([['create','Create'],['update','Update'],['unchanged','Unchanged'],['reject','Reject']] as const).map(([key,label]) => <div key={key} className="panel p-5"><p className="mb-2 text-sm text-gray-500">{label}</p><p className={`mb-0 text-3xl font-bold ${key === "reject" && draft.preview.reject ? "text-pacu-red" : ""}`}>{draft.preview[key]}</p></div>)}</div>

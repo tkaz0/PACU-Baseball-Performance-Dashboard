@@ -6,6 +6,7 @@ import { Activity, ArrowLeft, ArrowRight, ClipboardList, Database, Upload, Users
 import { PageHeading } from "@/components/page-heading";
 import { RosterTable } from "@/components/roster-table";
 import { RenphoCharts } from "@/components/renpho-charts";
+import { resolveAthleteCode } from "@/lib/athlete-codes";
 import { useLocalWorkspace } from "@/components/local-workspace";
 import { PlayerPerformanceProfile } from "@/components/player-performance-profile";
 import { getRenphoReports } from "@/lib/renpho-charts";
@@ -91,24 +92,25 @@ export function LocalAthleteProfile({ id }: { id: string }) {
   const [metric, setMetric] = useState("");
   const [source, setSource] = useState("");
   const [limit, setLimit] = useState(100);
-  const athlete = roster.find(a => a.athlete_code === id);
+  const code = resolveAthleteCode(roster, id);
+  const athlete = roster.find(a => a.athlete_code === code);
   if (!ready) return <p role="status">Opening athlete profile…</p>;
   if (!athlete) return <div className="panel empty-state"><UsersRound size={30} aria-hidden="true" /><h1 className="page-title">Profile unavailable</h1><p>{canManage ? "This athlete is not in this browser’s roster. Import the roster or restore your workspace backup." : "This profile is unavailable in the current view. Exit preview to choose another athlete."}</p>{view.role !== "player" && <Link href="/preview/roster" className="btn btn-primary">Back to roster</Link>}</div>;
   const seasons = [...athlete.athlete_seasons].sort((a, b) => b.season.localeCompare(a.season));
-  const readings = measurements.filter(m => m.athlete_code === id).sort((a, b) => b.measured_at.localeCompare(a.measured_at) || b.source_row - a.source_row);
+  const readings = measurements.filter(m => m.athlete_code === athlete.athlete_code).sort((a, b) => b.measured_at.localeCompare(a.measured_at) || b.source_row - a.source_row);
   const metricKey = (m: { metric: string; unit: string }) => JSON.stringify([m.metric, m.unit]);
   const metrics = [...new Map(readings.map(m => [metricKey(m), `${m.metric} (${m.unit})`])).entries()];
   const sources = [...new Set(readings.map(m => m.source))].sort();
   const filtered = readings.filter(m => (!metric || metricKey(m) === metric) && (!source || m.source === source));
-  const hasRenphoReports = getRenphoReports(readings, batches, id).length > 0;
+  const hasRenphoReports = getRenphoReports(readings, batches, athlete.athlete_code).length > 0;
   return <>
     {view.role !== "player" && <Link href="/preview/roster" className="profile-back"><ArrowLeft size={15} />Master roster</Link>}
-    <PlayerPerformanceProfile athlete={athlete} performance={getPerformance(id)} season={seasons[0]} fictional={mode === "sample"}
+    <PlayerPerformanceProfile athlete={athlete} performance={getPerformance(athlete.athlete_code)} season={seasons[0]} fictional={mode === "sample"}
       action={canManage ? <Link href="/preview/import" className="text-link">Import measurements <ArrowRight size={15} /></Link> : undefined} />
 
     {hasRenphoReports && <details className="panel mt-6" open={canManage}>
       <summary className="cursor-pointer px-5 py-5 text-sm font-bold sm:px-6">Full RENPHO charts &amp; report history</summary>
-      <div className="border-t border-[#eeeef0] px-5 pb-5 sm:px-6"><RenphoCharts key={id} readings={readings} batches={batches} athleteCode={id} /></div>
+      <div className="border-t border-[#eeeef0] px-5 pb-5 sm:px-6"><RenphoCharts key={athlete.athlete_code} readings={readings} batches={batches} athleteCode={athlete.athlete_code} /></div>
     </details>}
 
     {readings.length > 0 && <details id="performance-history" className="panel mt-6" open={canManage}>
@@ -124,7 +126,7 @@ export function LocalAthleteProfile({ id }: { id: string }) {
     {canManage && <details className="panel mt-6" open>
       <summary className="cursor-pointer px-5 py-5 text-sm font-bold sm:px-6">Account and roster details <span className="ml-2 text-xs font-normal text-gray-500">Admin</span></summary>
       <section id="season-details" className="border-t border-[#eeeef0] p-5 sm:p-6" aria-label="Roster and season details">
-        <dl className="field-grid mb-6"><div><dt>Roster name</dt><dd>{athlete.first_name} {athlete.last_name}</dd></div><div><dt>Permanent athlete code</dt><dd>{athlete.athlete_code}</dd></div><div><dt>{mode === "sample" ? "Sample email" : "Roster email"}</dt><dd>{display(athlete.pacific_email)}</dd></div><div><dt>Preferred name</dt><dd>{display(athlete.preferred_name)}</dd></div><div><dt>Roster RENPHO ID</dt><dd>{athlete.renpho_id || "Not added yet"}</dd></div>{!!athlete.renpho_ids?.length && <div><dt>Remembered report IDs</dt><dd><details><summary className="cursor-pointer">{athlete.renpho_ids.length} linked</summary><ul className="mt-2 space-y-1 text-sm">{athlete.renpho_ids.map(reportId => <li key={reportId}>{reportId}</li>)}</ul></details></dd></div>}</dl>
+        <dl className="field-grid mb-6"><div><dt>Roster name</dt><dd>{athlete.first_name} {athlete.last_name}</dd></div><div><dt>Athlete ID</dt><dd>{athlete.athlete_code}</dd></div><div><dt>{mode === "sample" ? "Sample email" : "Roster email"}</dt><dd>{display(athlete.pacific_email)}</dd></div><div><dt>Preferred name</dt><dd>{display(athlete.preferred_name)}</dd></div><div><dt>Roster RENPHO ID</dt><dd>{athlete.renpho_id || "Not added yet"}</dd></div>{!!athlete.renpho_ids?.length && <div><dt>Remembered report IDs</dt><dd><details><summary className="cursor-pointer">{athlete.renpho_ids.length} linked</summary><ul className="mt-2 space-y-1 text-sm">{athlete.renpho_ids.map(reportId => <li key={reportId}>{reportId}</li>)}</ul></details></dd></div>}</dl>
         {seasons.map(s => {
           const fields: [string, string | number | null][] = [["Season jersey", s.jersey_number], ["Primary position", s.primary_position], ["Secondary position", s.secondary_position], ["Player type", s.player_type], ["Bats / throws", `${display(s.bats)} / ${display(s.throws)}`], ["Academic class", s.academic_class], ["Eligibility year", s.eligibility_year], ["Graduation year", s.graduation_year]];
           return <section className="panel season-card" key={s.season}><div className="season-heading"><div><span className="season-marker" aria-hidden="true" /><h2>Season {s.season}</h2></div><span className={`badge capitalize ${s.roster_status === "active" ? "badge-green" : ""}`}>{display(s.roster_status)}</span></div><dl className="field-grid season-fields">{fields.map(([label, value]) => <div key={label}><dt>{label}</dt><dd className="capitalize">{display(value)}</dd></div>)}</dl></section>;

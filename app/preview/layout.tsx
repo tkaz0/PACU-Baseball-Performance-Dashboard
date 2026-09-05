@@ -1,11 +1,17 @@
 import Link from "next/link";
-import { LockKeyhole } from "lucide-react";
+import { LayoutDashboard, LogOut } from "lucide-react";
+import { requireAdminWorkspaceAccess } from "@/lib/auth";
+import { logout } from "@/app/auth/actions";
 import { PreviewSidebar } from "@/components/preview-sidebar";
 import { LocalWorkspaceProvider, WorkspaceBanner } from "@/components/local-workspace";
 import { LocalViewBanner, LocalViewBoundary, LocalViewControl } from "@/components/local-access";
+import { AdminWorkspaceBoundary } from "@/components/admin-workspace-boundary";
 
-export default function PreviewLayout({ children }: { children: React.ReactNode }) {
+export const dynamic = "force-dynamic";
+export default async function PreviewLayout({ children }: { children: React.ReactNode }) {
+  const access = await requireAdminWorkspaceAccess();
   return (
+    <AdminWorkspaceBoundary userId={access.user.id}>
     <LocalWorkspaceProvider>
       <div className="workspace-shell">
       <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:bg-white focus:p-4">Skip to content</a>
@@ -13,7 +19,7 @@ export default function PreviewLayout({ children }: { children: React.ReactNode 
       <div className="app-body workspace-body">
         <header className="workspace-topbar">
           <p><span className="topbar-diamond" aria-hidden="true" />Pacific Baseball<span className="topbar-divider" aria-hidden="true">/</span><span className="text-gray-500">Performance workspace</span></p>
-          <div className="workspace-topbar-actions"><LocalViewControl /><Link className="btn btn-secondary" href="/login"><LockKeyhole size={16} />Sign in to private workspace</Link></div>
+          <div className="workspace-topbar-actions"><LocalViewControl /><Link className="btn btn-secondary" href="/overview"><LayoutDashboard size={16} />Team dashboard</Link><form action={logout}><button className="btn btn-secondary" aria-label="Sign out"><LogOut size={16} /><span className="hidden sm:inline">Sign out</span></button></form></div>
         </header>
         <WorkspaceBanner />
         <LocalViewBanner />
@@ -22,5 +28,6 @@ export default function PreviewLayout({ children }: { children: React.ReactNode 
       </div>
       </div>
     </LocalWorkspaceProvider>
+    </AdminWorkspaceBoundary>
   );
 }

@@ -9,7 +9,7 @@ import type { RosterAthlete } from "@/lib/types";
 import { HEADERS } from "@/lib/roster/csv";
 
 const table = (headers: string[], rows: string[][]): ImportTable => selectTable([headers, ...rows], 0);
-function athlete(code = "LOCAL-0001", first = "Fictional", last = "Example", email: string | null = "fictional@example.com"): RosterAthlete {
+function athlete(code = "PAC-0001", first = "Fictional", last = "Example", email: string | null = "fictional@example.com"): RosterAthlete {
   return {
     id: code, athlete_code: code, first_name: first, last_name: last, preferred_name: null, pacific_email: email,
     profile_photo_url: null, created_at: "", updated_at: "", athlete_seasons: [{
@@ -25,7 +25,7 @@ const measurementMapping: MeasurementMapping = {
   identityKind: "code", identityColumn: 0, dateColumn: 1, dateFormat: "ISO", source: "User-selected test source",
   metrics: [{ column: 2, label: "User-selected test", unit: "s" }],
 };
-const measurementTable = () => table(["Athlete", "Date", "Test"], [["LOCAL-0001", "2026-09-04", "0"]]);
+const measurementTable = () => table(["Athlete", "Date", "Test"], [["PAC-0001", "2026-09-04", "0"]]);
 const runMeasurements = (input = measurementTable(), mapping = measurementMapping, existing: Measurement[] = [], sourceContext = context, athletes = roster) => previewMeasurements(input, mapping, athletes, existing, sourceContext);
 
 describe("local import table parsing", () => {
@@ -36,7 +36,7 @@ describe("local import table parsing", () => {
     expect(parseDelimited('Name,Note\nFictional,"two\nlines"')).toEqual([["Name", "Note"], ["Fictional", "two\nlines"]]);
   });
   it("accepts a single column and rejects malformed quotes, oversized UTF-8 and wide tables", () => {
-    expect(parseDelimited("Athlete\nLOCAL-0001")).toEqual([["Athlete"], ["LOCAL-0001"]]);
+    expect(parseDelimited("Athlete\nPAC-0001")).toEqual([["Athlete"], ["PAC-0001"]]);
     expect(() => parseDelimited('Name,Note\nFictional,"unterminated')).toThrow("could not be read");
     expect(() => parseDelimited("é".repeat(MAX_IMPORT_BYTES / 2 + 1))).toThrow("2 MiB");
     expect(() => parseDelimited(Array.from({ length: 101 }, (_, i) => `h${i}`).join(","))).toThrow("100 columns");
@@ -83,18 +83,18 @@ describe("local import table parsing", () => {
 
 describe("roster import previews", () => {
   it("creates permanent sequential codes, reserving explicit codes from this file", () => {
-    const source = table(["athlete_code", "first_name", "last_name"], [["", "Fictional", "Two"], ["LOCAL-0007", "Fictional", "Three"]]);
+    const source = table(["athlete_code", "first_name", "last_name"], [["", "Fictional", "Two"], ["PAC-0007", "Fictional", "Three"]]);
     const preview = previewRoster(source, suggestRosterMapping(source.headers), "2026", roster);
     expect(preview.canApply).toBe(true);
-    expect(preview.rows.map(row => row.athlete_code)).toEqual(["LOCAL-0008", "LOCAL-0007"]);
-    expect(preview.candidateRoster.map(a => a.id)).toEqual(["LOCAL-0001", "LOCAL-0008", "LOCAL-0007"]);
+    expect(preview.rows.map(row => row.athlete_code)).toEqual(["PAC-0008", "PAC-0007"]);
+    expect(preview.candidateRoster.map(a => a.id)).toEqual(["PAC-0001", "PAC-0008", "PAC-0007"]);
     expect(preview.candidateRoster[1].pacific_email).toBeNull();
     expect(preview.candidateRoster[1].athlete_seasons[0].jersey_number).toBeNull();
   });
   it("matches an explicit code, preserves blanks and jersey zero, and leaves omitted athletes intact", () => {
-    const existing = [athlete(), athlete("LOCAL-0002", "Fictional", "Other", "other@example.com")];
+    const existing = [athlete(), athlete("PAC-0002", "Fictional", "Other", "other@example.com")];
     const before = JSON.stringify(existing);
-    const source = table(["athlete_code", "first_name", "last_name", "pacific_email", "jersey_number", "primary_position"], [["local-0001", "", "", "", "0", ""]]);
+    const source = table(["athlete_code", "first_name", "last_name", "pacific_email", "jersey_number", "primary_position"], [["pac-0001", "", "", "", "0", ""]]);
     const preview = previewRoster(source, suggestRosterMapping(source.headers), "2026", existing);
     expect(preview.counts).toEqual({ create: 0, update: 1, unchanged: 0, reject: 0 });
     expect(preview.rows[0].changes).toEqual([{ field: "jersey_number", before: 17, after: 0 }]);
@@ -108,17 +108,17 @@ describe("roster import previews", () => {
     const source = table(["pacific_email", "jersey_number"], [[" FICTIONAL@EXAMPLE.COM ", "0"]]);
     const preview = previewRoster(source, suggestRosterMapping(source.headers), "2026", roster);
     expect(preview.rows[0].matchMethod).toBe("email");
-    expect(preview.rows[0].athlete_code).toBe("LOCAL-0001");
-    const ambiguous = previewRoster(source, suggestRosterMapping(source.headers), "2026", [...roster, athlete("LOCAL-0002")]);
+    expect(preview.rows[0].athlete_code).toBe("PAC-0001");
+    const ambiguous = previewRoster(source, suggestRosterMapping(source.headers), "2026", [...roster, athlete("PAC-0002")]);
     expect(ambiguous.canApply).toBe(false);
     expect(ambiguous.rows[0].status).toBe("reject");
   });
   it("treats the observed slash jersey placeholder as unassigned on create and preserves existing jerseys on merge", () => {
-    const source = table(["athlete_code", "first_name", "last_name", "jersey_number"], [["LOCAL-0003", "Fictional", "SlashExample", " / "]]);
+    const source = table(["athlete_code", "first_name", "last_name", "jersey_number"], [["PAC-0003", "Fictional", "SlashExample", " / "]]);
     const created = previewRoster(source, suggestRosterMapping(source.headers), "2026", []);
     expect(created.canApply).toBe(true);
     expect(created.candidateRoster[0].athlete_seasons[0].jersey_number).toBeNull();
-    const update = table(["athlete_code", "jersey_number"], [["LOCAL-0001", "/"]]);
+    const update = table(["athlete_code", "jersey_number"], [["PAC-0001", "/"]]);
     const merged = previewRoster(update, suggestRosterMapping(update.headers), "2026", roster);
     expect(merged.canApply).toBe(true);
     expect(merged.counts.unchanged).toBe(1);
@@ -128,16 +128,16 @@ describe("roster import previews", () => {
   });
   it("does not extend the slash convention to other numeric fields or malformed jersey values", () => {
     for (const jersey of ["//", "1/2", "N/A", "-", "one", "100", "-1", "1.5"]) {
-      const source = table(["athlete_code", "jersey_number"], [["LOCAL-0001", jersey]]);
+      const source = table(["athlete_code", "jersey_number"], [["PAC-0001", jersey]]);
       expect(previewRoster(source, suggestRosterMapping(source.headers), "2026", roster).counts.reject).toBe(1);
     }
     for (const field of ["eligibility_year", "graduation_year"]) {
-      const source = table(["athlete_code", field], [["LOCAL-0001", "/"]]);
+      const source = table(["athlete_code", field], [["PAC-0001", "/"]]);
       expect(previewRoster(source, suggestRosterMapping(source.headers), "2026", roster).counts.reject).toBe(1);
     }
   });
   it("does not merge an explicit new code by email, name or jersey", () => {
-    const source = table(["athlete_code", "first_name", "last_name", "pacific_email", "jersey_number"], [["LOCAL-0002", "Fictional", "Example", "fictional@example.com", "17"]]);
+    const source = table(["athlete_code", "first_name", "last_name", "pacific_email", "jersey_number"], [["PAC-0002", "Fictional", "Example", "fictional@example.com", "17"]]);
     const conflicting = previewRoster(source, suggestRosterMapping(source.headers), "2026", roster);
     expect(conflicting.rows[0].issues.some(i => i.message.includes("different athlete code"))).toBe(true);
     const nameOnly = table(["first_name", "last_name", "jersey_number"], [["Fictional", "Example", "17"]]);
@@ -147,7 +147,7 @@ describe("roster import previews", () => {
   });
   it("rejects every repeated code, repeated email, and two source rows resolving to one identity", () => {
     const source = table(["athlete_code", "first_name", "last_name", "pacific_email"], [
-      ["LOCAL-0001", "", "", ""], ["", "", "", "fictional@example.com"],
+      ["PAC-0001", "", "", ""], ["", "", "", "fictional@example.com"],
     ]);
     expect(previewRoster(source, suggestRosterMapping(source.headers), "2026", roster).counts.reject).toBe(2);
     const duplicateEmail = table(["first_name", "last_name", "pacific_email"], [["Fictional", "One", "new@example.com"], ["Fictional", "Two", "NEW@example.com"]]);
@@ -207,7 +207,7 @@ describe("roster import previews", () => {
     expect(() => previewRoster(source, { first_name: 0 }, "26", [])).toThrow("Season");
   });
   it("adds a season without replacing history and recognizes an identical replay", () => {
-    const source = table(["athlete_code", "jersey_number"], [["LOCAL-0001", "0"]]);
+    const source = table(["athlete_code", "jersey_number"], [["PAC-0001", "0"]]);
     const first = previewRoster(source, suggestRosterMapping(source.headers), "2027", roster);
     expect(first.candidateRoster[0].athlete_seasons).toHaveLength(2);
     expect(first.candidateRoster[0].athlete_seasons[0].jersey_number).toBe(17);
@@ -215,20 +215,20 @@ describe("roster import previews", () => {
     expect(previewRoster(source, suggestRosterMapping(source.headers), "2027", first.candidateRoster).counts.unchanged).toBe(1);
   });
   it("blocks new identities at the roster capacity while still allowing existing athlete updates", () => {
-    const full = Array.from({ length: 1000 }, (_, index) => athlete(`LOCAL-${String(index + 1).padStart(4, "0")}`, "Fictional", `Example ${index + 1}`, `fictional.${index + 1}@example.com`));
+    const full = Array.from({ length: 1000 }, (_, index) => athlete(`PAC-${String(index + 1).padStart(4, "0")}`, "Fictional", `Example ${index + 1}`, `fictional.${index + 1}@example.com`));
     const source = table(["first_name", "last_name"], [["Fictional", "Additional"]]);
     const blocked = previewRoster(source, suggestRosterMapping(source.headers), "2026", full);
     expect(blocked.canApply).toBe(false);
     expect(blocked.candidateRoster).toHaveLength(1000);
     expect(blocked.rows[0].issues.some(value => value.field === "capacity")).toBe(true);
-    const update = table(["athlete_code", "jersey_number"], [["LOCAL-0001", "0"]]);
+    const update = table(["athlete_code", "jersey_number"], [["PAC-0001", "0"]]);
     expect(previewRoster(update, suggestRosterMapping(update.headers), "2026", full).canApply).toBe(true);
   });
   it("recomputes against current roster state so a changed email match cannot reuse an old preview", () => {
     const source = table(["pacific_email", "jersey_number"], [["fictional@example.com", "0"]]);
     const mapping = suggestRosterMapping(source.headers);
     expect(previewRoster(source, mapping, "2026", roster).canApply).toBe(true);
-    const changed = [athlete("LOCAL-0001", "Fictional", "Example", "changed@example.com")];
+    const changed = [athlete("PAC-0001", "Fictional", "Example", "changed@example.com")];
     expect(previewRoster(source, mapping, "2026", changed).canApply).toBe(false);
   });
 });
@@ -245,27 +245,27 @@ describe("browser-local RENPHO identity", () => {
   it("normalizes exact report IDs and never matches names, code fields, or ID prefixes", () => {
     const saved = [{ ...athlete(), renpho_id: "SYNTHETIC-PRIMARY-A", renpho_ids: ["SYNTHETIC-REPORT-20260904"] }];
     expect(normalizeRenphoId(" synthetic-primary-a ")).toBe("SYNTHETIC-PRIMARY-A");
-    expect(findRenphoAthlete(saved, " synthetic-primary-a ")).toBe("LOCAL-0001");
-    expect(findRenphoAthlete(saved, "synthetic-report-20260904")).toBe("LOCAL-0001");
-    for (const id of ["", "FICTIONAL", "LOCAL-0001", "SYNTHETIC-REPORT", "SYNTHETIC-REPORT-20260905"]) expect(findRenphoAthlete(saved, id)).toBeNull();
+    expect(findRenphoAthlete(saved, " synthetic-primary-a ")).toBe("PAC-0001");
+    expect(findRenphoAthlete(saved, "synthetic-report-20260904")).toBe("PAC-0001");
+    for (const id of ["", "FICTIONAL", "PAC-0001", "SYNTHETIC-REPORT", "SYNTHETIC-REPORT-20260905"]) expect(findRenphoAthlete(saved, id)).toBeNull();
     expect(() => findRenphoAthlete(saved, "invalid id")).toThrow("RENPHO ID");
   });
 
   it("preserves former canonical IDs and blank updates without mutating the current roster", () => {
     const saved = [{ ...athlete(), renpho_id: "SYNTHETIC-PRIMARY-A", renpho_ids: ["SYNTHETIC-OLDER-A"] }];
     const before = structuredClone(saved);
-    const source = table(["athlete_code", "RENPHO ID"], [["LOCAL-0001", " synthetic-primary-b "]]);
+    const source = table(["athlete_code", "RENPHO ID"], [["PAC-0001", " synthetic-primary-b "]]);
     const preview = previewRoster(source, suggestRosterMapping(source.headers), "2026", saved);
     expect(preview.canApply).toBe(true);
     expect(preview.rows[0].changes).toEqual([{ field: "renpho_id", before: "SYNTHETIC-PRIMARY-A", after: "SYNTHETIC-PRIMARY-B" }]);
     expect(preview.candidateRoster[0]).toMatchObject({ renpho_id: "SYNTHETIC-PRIMARY-B", renpho_ids: ["SYNTHETIC-OLDER-A", "SYNTHETIC-PRIMARY-A"] });
     expect(saved).toEqual(before);
-    expect(findRenphoAthlete(preview.candidateRoster, "SYNTHETIC-PRIMARY-A")).toBe("LOCAL-0001");
-    const blank = table(source.headers, [["LOCAL-0001", ""]]);
+    expect(findRenphoAthlete(preview.candidateRoster, "SYNTHETIC-PRIMARY-A")).toBe("PAC-0001");
+    const blank = table(source.headers, [["PAC-0001", ""]]);
     const unchanged = previewRoster(blank, suggestRosterMapping(blank.headers), "2026", preview.candidateRoster);
     expect(unchanged.counts.unchanged).toBe(1);
     expect(unchanged.candidateRoster).toEqual(preview.candidateRoster);
-    const promote = table(source.headers, [["LOCAL-0001", "SYNTHETIC-OLDER-A"]]);
+    const promote = table(source.headers, [["PAC-0001", "SYNTHETIC-OLDER-A"]]);
     const promoted = previewRoster(promote, suggestRosterMapping(promote.headers), "2026", preview.candidateRoster);
     expect(promoted.candidateRoster[0]).toMatchObject({ renpho_id: "SYNTHETIC-OLDER-A", renpho_ids: ["SYNTHETIC-PRIMARY-A", "SYNTHETIC-PRIMARY-B"] });
   });
@@ -284,9 +284,9 @@ describe("browser-local RENPHO identity", () => {
   });
 
   it("fails closed when existing canonical and alias IDs belong to different athletes", () => {
-    const saved = [{ ...athlete(), renpho_id: "SYNTHETIC-DUPLICATE" }, { ...athlete("LOCAL-0002", "Fictional", "Other", "other@example.com"), renpho_ids: ["SYNTHETIC-DUPLICATE"] }];
+    const saved = [{ ...athlete(), renpho_id: "SYNTHETIC-DUPLICATE" }, { ...athlete("PAC-0002", "Fictional", "Other", "other@example.com"), renpho_ids: ["SYNTHETIC-DUPLICATE"] }];
     expect(() => findRenphoAthlete(saved, "SYNTHETIC-DUPLICATE")).toThrow("more than one athlete");
-    const source = table(["athlete_code", "Jersey Number"], [["LOCAL-0001", "0"]]);
+    const source = table(["athlete_code", "Jersey Number"], [["PAC-0001", "0"]]);
     expect(() => previewRoster(source, suggestRosterMapping(source.headers), "2026", saved)).toThrow("more than one athlete");
   });
 
@@ -313,23 +313,23 @@ describe("measurement dates and numeric values", () => {
     expect(() => runMeasurements(undefined, { ...measurementMapping, dateColumn: undefined, fixedDate: "" })).toThrow("test-date");
   });
   it("preserves zero and negatives without conversions, and skips blank measurements", () => {
-    const source = table(["Athlete", "Date", "Test", "Other test"], [["LOCAL-0001", "2026-09-04", "0", "-1.25"], ["LOCAL-0001", "2026-09-05", "", ""]]);
+    const source = table(["Athlete", "Date", "Test", "Other test"], [["PAC-0001", "2026-09-04", "0", "-1.25"], ["PAC-0001", "2026-09-05", "", ""]]);
     const preview = runMeasurements(source, { ...measurementMapping, metrics: [...measurementMapping.metrics, { column: 3, label: "Another test", unit: "user unit" }] });
     expect(preview.canApply).toBe(true);
     expect(preview.candidateMeasurements.map(m => m.value)).toEqual([0, -1.25]);
     expect(preview.counts).toEqual({ create: 1, update: 0, unchanged: 1, reject: 0 });
   });
   it.each(["#DIV/0!", "#VALUE!", "15%", "<5", "2 s", "1,234", "NaN", "Infinity", "1e999"])("rejects mixed/formula/nonfinite measurement %s", value => {
-    const source = table(["Athlete", "Date", "Test"], [["LOCAL-0001", "2026-09-04", value]]);
+    const source = table(["Athlete", "Date", "Test"], [["PAC-0001", "2026-09-04", value]]);
     const preview = runMeasurements(source);
     expect(preview.canApply).toBe(false);
     expect(preview.candidateMeasurements).toEqual([]);
     expect(preview.rows[0].status).toBe("reject");
   });
   it("supports a user-selected fixed test date and rejects invalid row dates", () => {
-    const preview = runMeasurements(table(["Athlete", "Ignored", "Test"], [["LOCAL-0001", "", "5"]]), { ...measurementMapping, dateColumn: undefined, fixedDate: "09/04/2026", dateFormat: "MDY" });
+    const preview = runMeasurements(table(["Athlete", "Ignored", "Test"], [["PAC-0001", "", "5"]]), { ...measurementMapping, dateColumn: undefined, fixedDate: "09/04/2026", dateFormat: "MDY" });
     expect(preview.candidateMeasurements[0].measured_at).toBe("2026-09-04");
-    expect(runMeasurements(table(["Athlete", "Date", "Test"], [["LOCAL-0001", "2026-02-30", "5"]])).canApply).toBe(false);
+    expect(runMeasurements(table(["Athlete", "Date", "Test"], [["PAC-0001", "2026-02-30", "5"]])).canApply).toBe(false);
   });
 });
 
@@ -339,16 +339,16 @@ describe("measurement identity and repeat imports", () => {
     const mapping = { ...measurementMapping, identityKind: "name" as const };
     const preview = runMeasurements(source, mapping);
     expect(preview.nameMatches).toBe(1);
-    expect(preview.rows[0]).toMatchObject({ matchMethod: "name", requiresNameReview: true, athlete_code: "LOCAL-0001" });
+    expect(preview.rows[0]).toMatchObject({ matchMethod: "name", requiresNameReview: true, athlete_code: "PAC-0001" });
     expect(runMeasurements(table(["Name", "Date", "Test"], [["Example", "2026-09-04", "1"]]), mapping).canApply).toBe(false);
-    expect(runMeasurements(source, mapping, [], context, [athlete(), athlete("LOCAL-0002")]).canApply).toBe(false);
+    expect(runMeasurements(source, mapping, [], context, [athlete(), athlete("PAC-0002")]).canApply).toBe(false);
   });
   it("uses explicit athlete-code overrides to resolve ambiguous names and validates the chosen code", () => {
     const source = table(["Name", "Date", "Test"], [["Fictional Example", "2026-09-04", "1"]]);
-    const athletes = [athlete(), athlete("LOCAL-0002")];
-    const mapping: MeasurementMapping = { ...measurementMapping, identityKind: "name", identityOverrides: { "Fictional Example": "LOCAL-0002" } };
+    const athletes = [athlete(), athlete("PAC-0002")];
+    const mapping: MeasurementMapping = { ...measurementMapping, identityKind: "name", identityOverrides: { "Fictional Example": "PAC-0002" } };
     const preview = runMeasurements(source, mapping, [], context, athletes);
-    expect(preview.rows[0]).toMatchObject({ athlete_code: "LOCAL-0002", matchMethod: "override", requiresNameReview: false });
+    expect(preview.rows[0]).toMatchObject({ athlete_code: "PAC-0002", matchMethod: "override", requiresNameReview: false });
     expect(runMeasurements(source, { ...mapping, identityOverrides: { "Fictional Example": "MISSING" } }, [], context, athletes).canApply).toBe(false);
   });
   it("matches normalized email without creating accounts and rejects missing or unknown identity", () => {
@@ -360,7 +360,7 @@ describe("measurement identity and repeat imports", () => {
     }
   });
   it("retains repeated trials and source provenance, but makes an identical reimport unchanged", () => {
-    const source = table(["Athlete", "Date", "Trial1", "Trial2"], [["LOCAL-0001", "2026-09-04", "1", "1"], ["LOCAL-0001", "2026-09-04", "1", "1"]]);
+    const source = table(["Athlete", "Date", "Trial1", "Trial2"], [["PAC-0001", "2026-09-04", "1", "1"], ["PAC-0001", "2026-09-04", "1", "1"]]);
     const mapping = { ...measurementMapping, metrics: [{ column: 2, label: "Test", unit: "s" }, { column: 3, label: "Test", unit: "s" }] };
     const preview = runMeasurements(source, mapping);
     expect(preview.candidateMeasurements).toHaveLength(4);
@@ -378,10 +378,10 @@ describe("measurement identity and repeat imports", () => {
     expect(runMeasurements(undefined, unitChange, existing).canApply).toBe(false);
     const labelChange = { ...measurementMapping, metrics: [{ column: 2, label: "Different test", unit: "s" }] };
     expect(runMeasurements(undefined, labelChange, existing).canApply).toBe(false);
-    for (const row of [["LOCAL-0001", "2026-09-05", "0"], ["LOCAL-0001", "2026-09-04", "1"]]) {
+    for (const row of [["PAC-0001", "2026-09-05", "0"], ["PAC-0001", "2026-09-04", "1"]]) {
       expect(runMeasurements(table(["Athlete", "Date", "Test"], [row]), measurementMapping, existing).canApply).toBe(false);
     }
-    expect(runMeasurements(undefined, { ...measurementMapping, identityOverrides: { "LOCAL-0001": "LOCAL-0002" } }, existing, context, [...roster, athlete("LOCAL-0002")]).canApply).toBe(false);
+    expect(runMeasurements(undefined, { ...measurementMapping, identityOverrides: { "PAC-0001": "PAC-0002" } }, existing, context, [...roster, athlete("PAC-0002")]).canApply).toBe(false);
   });
   it("keeps different files/sheets distinct and does not duplicate a renamed identical file", () => {
     const existing = runMeasurements().candidateMeasurements;
@@ -390,7 +390,7 @@ describe("measurement identity and repeat imports", () => {
     expect(runMeasurements(undefined, undefined, existing, { ...context, fileName: "renamed.csv" }).candidateMeasurements).toHaveLength(0);
   });
   it("blocks whole apply if one row fails and discards all candidate observations for that failed row", () => {
-    const source = table(["Athlete", "Date", "Good", "Bad"], [["LOCAL-0001", "2026-09-04", "1", "2"], ["LOCAL-0001", "2026-09-05", "1", "#DIV/0!"]]);
+    const source = table(["Athlete", "Date", "Good", "Bad"], [["PAC-0001", "2026-09-04", "1", "2"], ["PAC-0001", "2026-09-05", "1", "#DIV/0!"]]);
     const mapping = { ...measurementMapping, metrics: [{ column: 2, label: "Good", unit: "s" }, { column: 3, label: "Bad", unit: "s" }] };
     const preview = runMeasurements(source, mapping);
     expect(preview.canApply).toBe(false);

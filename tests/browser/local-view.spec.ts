@@ -1,4 +1,4 @@
-import { expect, test, type Download, type Page } from "@playwright/test";
+import { expect, test, type Download, type Page } from "./local-admin";
 import type { LocalWorkspace } from "../../lib/local-workspace";
 
 // This fixture contains only fictional profiles and readings, restored through
@@ -109,7 +109,7 @@ test("player preview requires a selection, persists, and blocks the roster and o
   await page.goto("/preview");
   await expect(page.getByRole("navigation", { name: "Main navigation" })).toBeVisible();
   await selectPlayer(page);
-  await expect(page.locator("dt").filter({ hasText: /^Jersey number$/ }).locator("+ dd")).toHaveText("0");
+  await expect(page.locator("dt").filter({ hasText: /^Jersey Number$/ }).locator("+ dd")).toHaveText("0");
   await expectNoManagement(page);
   await expect(page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Master roster", exact: true })).toHaveCount(0);
   await expect(page.locator("main")).not.toContainText("Blake Cloudfield");

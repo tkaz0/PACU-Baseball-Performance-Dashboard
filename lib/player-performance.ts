@@ -15,17 +15,17 @@ export type PlayerMetricDefinition = {
 export const PLAYER_METRICS: readonly PlayerMetricDefinition[] = [
   { key: "height", label: "Height", group: "body", units: ["in", "cm"], direction: "neutral" },
   { key: "weight", label: "Weight", group: "body", units: ["lb", "kg", "st"], direction: "neutral" },
-  { key: "body_fat_pct", label: "Body fat %", group: "body", units: ["%"], direction: "neutral" },
-  { key: "muscle_mass_pct", label: "Muscle mass %", group: "body", units: ["%"], direction: "neutral" },
+  { key: "body_fat_pct", label: "Body Fat %", group: "body", units: ["%"], direction: "neutral" },
+  { key: "muscle_mass_pct", label: "Muscle Mass %", group: "body", units: ["%"], direction: "neutral" },
   { key: "max_exit_velocity", label: "Max EV", group: "hitting", units: ["mph", "km/h", "m/s"], direction: "higher" },
   { key: "avg_exit_velocity", label: "Average EV", group: "hitting", units: ["mph", "km/h", "m/s"], direction: "higher" },
-  { key: "bat_speed", label: "Bat speed", group: "hitting", units: ["mph", "km/h", "m/s"], direction: "higher" },
+  { key: "bat_speed", label: "Bat Speed", group: "hitting", units: ["mph", "km/h", "m/s"], direction: "higher" },
   { key: "home_to_first", label: "Home to 1st", group: "hitting", units: ["s"], direction: "lower" },
   { key: "home_to_second", label: "Home to 2nd", group: "hitting", units: ["s"], direction: "lower" },
-  { key: "steal_break", label: "Steal break", group: "hitting", units: ["s"], direction: "lower" },
+  { key: "steal_break", label: "Steal Break", group: "hitting", units: ["s"], direction: "lower" },
   { key: "boxer_t", label: "Boxer T", group: "hitting", units: ["s"], direction: "lower" },
-  { key: "max_pitch_velocity", label: "Max velocity", group: "pitching", units: ["mph", "km/h", "m/s"], direction: "higher" },
-  { key: "avg_fastball_spin", label: "Average fastball spin", group: "pitching", units: ["rpm"], direction: "neutral" },
+  { key: "max_pitch_velocity", label: "Max Velocity", group: "pitching", units: ["mph", "km/h", "m/s"], direction: "higher" },
+  { key: "avg_fastball_spin", label: "Average Fastball Spin", group: "pitching", units: ["rpm"], direction: "neutral" },
   { key: "strike_pct", label: "Strike %", group: "pitching", units: ["%"], direction: "higher" },
   { key: "k_pct", label: "K %", group: "pitching", units: ["%"], direction: "higher" },
   { key: "bb_pct", label: "BB %", group: "pitching", units: ["%"], direction: "lower" },
@@ -33,7 +33,7 @@ export const PLAYER_METRICS: readonly PlayerMetricDefinition[] = [
 
 export const PLAYER_PERFORMANCE_PERIODS = {
   fall_2026: { label: "Fall 2026 · Sep 1–Dec 31", start: "2026-09-01", end: "2026-12-31" },
-  summer_2026: { label: "Summer 2026 baseline · Jun 1–Aug 31", start: "2026-06-01", end: "2026-08-31" },
+  summer_2026: { label: "Jun 1–Aug 31, 2026", start: "2026-06-01", end: "2026-08-31" },
 } as const;
 export type PlayerPerformancePeriod = keyof typeof PLAYER_PERFORMANCE_PERIODS;
 export type PlayerMetricReading = {

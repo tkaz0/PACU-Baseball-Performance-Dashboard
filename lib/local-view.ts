@@ -1,5 +1,6 @@
 import type { RosterAthlete } from "@/lib/types";
 import type { StoredMeasurement } from "@/lib/local-workspace";
+import { resolveAthleteCode } from "@/lib/athlete-codes";
 
 // A browser-local display preference, never a trusted account role.
 export type LocalView = { role: "admin" | "coach" | "player"; athleteCode: string | null };
@@ -18,16 +19,30 @@ export function parseLocalView(raw: string | null): LocalView {
 
 export function projectLocalView(view: LocalView, roster: RosterAthlete[], measurements: StoredMeasurement[]) {
   if (view.role !== "player") return { roster, measurements };
-  const visible = roster.filter(a => a.athlete_code === view.athleteCode);
+  const canonical = canonicalLocalView(view, roster);
+  const visible = roster.filter(a => a.athlete_code === canonical.athleteCode);
   if (visible.length !== 1) return { roster: [], measurements: [] };
   return { roster: visible, measurements: measurements.filter(m => m.athlete_code === visible[0].athlete_code) };
 }
 
-export function localViewAllowsPath(view: LocalView, pathname: string): boolean {
+export function canonicalLocalView(view: LocalView, roster: RosterAthlete[]): LocalView {
+  if (view.role !== "player") return view;
+  if (view.athleteCode !== view.athleteCode?.trim().toUpperCase()) return { ...view, athleteCode: null };
+  try { return { ...view, athleteCode: view.athleteCode ? resolveAthleteCode(roster, view.athleteCode) : null }; }
+  catch { return { ...view, athleteCode: null }; }
+}
+
+export function localViewAllowsPath(view: LocalView, pathname: string, roster?: RosterAthlete[]): boolean {
   if (view.role === "admin") return true;
   pathname = pathname.replace(/\/+$/, "");
   if (["/preview/import", "/preview/access"].some(path => pathname === path || pathname.startsWith(`${path}/`))) return false;
   if (view.role === "coach") return true;
   if (pathname === "/preview") return true;
+  if (roster && pathname.startsWith("/preview/athletes/")) {
+    try {
+      const code = resolveAthleteCode(roster, pathname.slice("/preview/athletes/".length));
+      return !!code && code === canonicalLocalView(view, roster).athleteCode;
+    } catch { return false; }
+  }
   return !!view.athleteCode && pathname === `/preview/athletes/${view.athleteCode}`;
 }

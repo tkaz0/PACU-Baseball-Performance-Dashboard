@@ -34,8 +34,9 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({
   },
 }) }));
 
-import { getAccess, requireAdminMutation, requireAccess } from "@/lib/auth";
+import { getAccess, requireAdminMutation, requireAdminWorkspaceAccess, requireAccess } from "@/lib/auth";
 import { GET } from "@/app/api/athletes/[id]/route";
+import { GET as localWorkspaceAccess } from "@/app/api/local-workspace/access/route";
 import { startAccessPreview, exitAccessPreview } from "@/app/(workspace)/view-as/actions";
 import { configureAccount } from "@/app/(workspace)/admin/access/actions";
 import { stageImport, approveImport } from "@/app/(workspace)/admin/import/actions";
@@ -51,6 +52,35 @@ beforeEach(() => {
 });
 
 describe("server preview enforcement", () => {
+  it("requires a live active administrator outside role preview before opening local data", async () => {
+    expect((await requireAdminWorkspaceAccess()).user.id).toBe(fake.actorId);
+    const allowed = await localWorkspaceAccess();
+    expect(await allowed.json()).toEqual({ allowed: true, userId: fake.actorId });
+    expect(allowed.headers.get("Cache-Control")).toContain("no-store");
+    for (const roles of [["coach"], ["player"], []]) {
+      fake.roles = roles;
+      await expect(requireAdminWorkspaceAccess()).rejects.toThrow("REDIRECT:/access-denied");
+      expect((await localWorkspaceAccess()).status).toBe(403);
+    }
+    fake.roles = ["admin"]; fake.active = false;
+    await expect(requireAdminWorkspaceAccess()).rejects.toThrow("REDIRECT:/access-denied");
+    expect((await localWorkspaceAccess()).status).toBe(403);
+    fake.active = true; fake.authenticated = false;
+    await expect(requireAdminWorkspaceAccess()).rejects.toThrow("REDIRECT:/login");
+    expect((await localWorkspaceAccess()).status).toBe(401);
+  });
+  it.each(["coach", "player"])("blocks browser data during real administrator %s preview", async role => {
+    preview(role, role === "coach" ? null : athleteA);
+    await expect(requireAdminWorkspaceAccess()).rejects.toThrow("REDIRECT:/overview?preview=read-only");
+    const denied = await localWorkspaceAccess();
+    expect(denied.status).toBe(403);
+    expect(await denied.json()).toEqual({ allowed: false });
+  });
+  it("fails closed for a malformed role preview during local workspace checks", async () => {
+    fake.raw = "broken";
+    await expect(requireAdminWorkspaceAccess()).rejects.toThrow("REDIRECT:/access-preview-unavailable");
+    expect((await localWorkspaceAccess()).status).toBe(403);
+  });
   it("verifies selected athlete and exposes only effective player roles", async () => {
     preview(); const { access } = await getAccess();
     expect(access?.roles).toEqual(["player"]); expect(access?.actualRoles).toEqual(["admin"]); expect(access?.athleteId).toBe(athleteA);

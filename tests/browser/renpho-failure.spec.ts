@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./local-admin";
 
 const reloadMessage = "The local text reader could not initialize. Reload this page before trying another report.";
 

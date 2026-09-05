@@ -5,7 +5,9 @@ This change adds shared private measurements, profile cards/history, and team co
 ## Periods and latest readings
 
 - **Fall 2026:** September 1–December 31, inclusive, for body, hitting and pitching metrics.
-- **Summer 2026 baseline:** June 1–August 31, inclusive, for body metrics only. It remains separate from Fall; baseball summer statistics are excluded.
+- **Earlier body testing:** June 1–August 31, inclusive, for body metrics only. It remains separate from Fall; baseball summer statistics are excluded.
+
+Profiles display **Last Tested** with the actual latest date and show the requested **Athlete ID**. They do not use summer-baseline labels or duplicate older readings in the snapshot; older observations remain in measurement history.
 
 These are calendar windows, not a claim that every date has occurred or has measurements. Each reading keeps its actual test date. Latest selection uses date descending, import time descending at millisecond precision, then file hash and observation ID ascending. History uses the reverse order. Different units and source protocols are not converted or pooled.
 
@@ -38,7 +40,7 @@ Max/average labels describe approved source summaries; the importer does not cal
 
 The explicit cohort is athletes with an `athlete_seasons` row for `2026-27` and status null, active or redshirt. Inactive, alumni and other-season entries are excluded. A player type is not required when a comparable metric exists.
 
-Use one latest observation per measured cohort athlete for the exact metric, unit, period and source/protocol. Source comparison trims/collapses whitespace and ignores case; distinct protocols must have distinct source labels. Body Summer and Fall observations never share a cohort calculation. The target athlete must belong to the cohort. A percentile appears only when at least **five** comparable athletes are measured; otherwise the sample size is shown without a rank bar.
+Use one latest observation per measured cohort athlete for the exact metric, unit, period and source/protocol. Source comparison trims/collapses whitespace and ignores case; distinct protocols must have distinct source labels. Body June–August and September–December observations never share a cohort calculation. The target athlete must belong to the cohort. A percentile appears only when at least **five** comparable athletes are measured; otherwise the sample size is shown without a rank bar.
 
 For `n` comparable athletes, ascending tied rank is `100 × (below + (equal − 1) / 2) / (n − 1)`, including the target. Lower-direction metrics invert this value. Neutral body metrics and fastball spin show numerical position only: a larger percentile is not a health target, a better body composition or inherently better pitching.
 
@@ -52,7 +54,7 @@ Muscle mass percentage may be calculated as `muscle mass / weight × 100` only f
 
 ## From browser review to shared profiles
 
-1. Review the original supported report locally and approve its athlete, date, values and units. Export a private workspace backup.
+1. Sign in as an active Admin outside private View as. Review the original supported report locally and approve its athlete, date, values and units. Export a private workspace backup.
 2. As an active Admin outside preview, open **Shared measurements** (`/admin/performance`) and choose the backup. The file is parsed on the device; the UI accepts up to 2 MiB.
 3. Inspect exact shared-athlete matches, supported readings and explicitly listed unsupported metrics. Invalid recognized metrics/units/values/provenance block sharing. A reviewed transaction supports 1–500 observations. Both the posted Measurement JSON and normalized database JSON must fit within 1 MiB.
 4. Approve **Share with team**. Only the eleven whitelisted Measurement fields are serialized; images, OCR/report text, unknown backup properties, local report IDs and the full backup are excluded.

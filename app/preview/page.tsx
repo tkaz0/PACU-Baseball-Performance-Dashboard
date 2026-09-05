@@ -1,2 +1,3 @@
 import { LocalOverview } from "@/components/local-dashboard";
-export default function PreviewOverview() { return <LocalOverview />; }
+import { requireAdminWorkspaceAccess } from "@/lib/auth";
+export default async function PreviewOverview() { await requireAdminWorkspaceAccess(); return <LocalOverview />; }

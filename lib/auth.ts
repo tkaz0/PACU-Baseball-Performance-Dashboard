@@ -54,8 +54,13 @@ export async function requireAccess(allowed?: Role[]) {
   return access;
 }
 
-export async function requireAdminMutation() {
+/** Browser-local data and administrative writes share the same live Admin boundary. */
+export async function requireAdminWorkspaceAccess() {
   const access = await requireAccess();
   if (!canMutatePresentedAccess(access)) redirect(access.preview ? "/overview?preview=read-only" : "/access-denied");
   return access;
+}
+
+export async function requireAdminMutation() {
+  return requireAdminWorkspaceAccess();
 }
