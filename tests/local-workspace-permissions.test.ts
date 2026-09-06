@@ -6,7 +6,7 @@ import type { Role } from "@/lib/types";
 describe("actual staff permissions are independent from an administrator's local preview", () => {
   it.each([
     { actual: "admin" as const, view: "admin" as const, manage: true, imports: true, preview: false },
-    { actual: "admin" as const, view: "coach" as const, manage: false, imports: false, preview: true },
+    { actual: "admin" as const, view: "coach" as const, manage: false, imports: true, preview: true },
     { actual: "admin" as const, view: "player" as const, manage: false, imports: false, preview: true },
     { actual: "coach" as const, view: "coach" as const, manage: false, imports: true, preview: false },
     { actual: "coach" as const, view: "admin" as const, manage: false, imports: false, preview: false },
@@ -21,12 +21,17 @@ describe("actual staff permissions are independent from an administrator's local
     const access = resolveAccessPreview({ userId: "11111111-1111-4111-8111-111111111111", roles: roles as Role[], athleteId: null }, undefined)!;
     expect(canImportPresentedAccess(access)).toBe(imports);
   });
-  it("never imports during either valid administrator role preview", () => {
+  it("permits Coach imports during an administrator view while keeping Player view read-only", () => {
     const actor = { userId: "11111111-1111-4111-8111-111111111111", roles: ["admin"] as Role[], athleteId: null };
     for (const role of ["coach", "player"] as const) {
       const access = resolveAccessPreview(actor, JSON.stringify({ version: 1, actorId: actor.userId, role,
         athleteId: role === "player" ? "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" : null, expiresAt: Date.now() + 10000 }))!;
-      expect(canImportPresentedAccess(access)).toBe(false);
+      expect(canImportPresentedAccess(access)).toBe(role === "coach");
+    }
+  });
+  it("rejects a malformed Coach display preference with a player identity", () => {
+    for (const actual of ["admin", "coach"] as const) {
+      expect(localWorkspacePermissions(actual, { role: "coach", athleteCode: "SYN-001" }).canImport).toBe(false);
     }
   });
 });

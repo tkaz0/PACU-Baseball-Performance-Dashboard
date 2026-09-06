@@ -256,7 +256,7 @@ export function ImportCenter() {
     finally { setBusy(null); }
   }
 
-  if (!workspace.canImport) return <p className="notice">Information imports are unavailable during View as. Exit preview to import.</p>;
+  if (!workspace.canImport) return <p className="notice">Switch from Player view to import information.</p>;
   return (
     <div className="space-y-6">
       <div className="panel flex flex-wrap items-center justify-between gap-4 border-l-4 border-l-pacu-red p-5">

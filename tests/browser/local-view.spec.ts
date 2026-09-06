@@ -44,17 +44,19 @@ async function selectPlayer(page: Page) {
   await expect(page.getByRole("heading", { name: "Avery Northstar", exact: true })).toBeVisible();
 }
 
-async function expectNoManagement(page: Page) {
-  await expect(page.locator('a[href="/preview/import"], a[href="/preview/access"]')).toHaveCount(0);
+async function expectNoManagement(page: Page, importsAllowed = false) {
+  await expect(page.locator('a[href="/preview/access"]')).toHaveCount(0);
+  if (!importsAllowed) await expect(page.locator('a[href="/preview/import"]')).toHaveCount(0);
   await expect(page.getByRole("button", { name: /Export backup|Restore backup|Export roster with athlete codes|Reset browser workspace/ })).toHaveCount(0);
   await expect(page.getByLabel("Restore workspace JSON backup", { exact: true })).toHaveCount(0);
-  await expect(page.getByLabel("Spreadsheet file", { exact: true })).toHaveCount(0);
+  if (!importsAllowed) await expect(page.getByLabel("Spreadsheet file", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Roster spreadsheet", exact: true })).toHaveCount(0);
 }
 
-async function expectDenied(page: Page, path: string) {
+async function expectDenied(page: Page, path: string, importsAllowed = false) {
   await page.goto(path);
   await expect(page.getByRole("heading", { name: "Not part of this view", exact: true })).toBeVisible();
-  await expectNoManagement(page);
+  await expectNoManagement(page, importsAllowed);
   await expect(page.getByRole("table", { name: /Imported performance readings/ })).toHaveCount(0);
 }
 
@@ -82,21 +84,43 @@ async function exportBackup(page: Page) {
   return downloadJSON(await download);
 }
 
-test("coach preview retains the team, removes management, and blocks direct management URLs", async ({ page }) => {
+test("Coach view imports reviewed measurements while keeping roster and workspace management unavailable", async ({ page }) => {
   await page.goto("/preview/access");
   await expect(page.getByRole("heading", { name: "Access & views", exact: true })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Import Center", exact: true })).toBeVisible();
   await openViewMenu(page);
   await page.getByRole("button", { name: /^Coach/ }).click();
   await expect(page.getByText("Viewing as: Coach", { exact: true })).toBeVisible();
-  await expectNoManagement(page);
+  await expectNoManagement(page, true);
   await page.goto("/preview/roster");
   await expect(page.locator("tbody tr")).toHaveCount(10);
-  await expectNoManagement(page);
+  await expectNoManagement(page, true);
   await page.goto("/preview/athletes/SYN-002");
   await expect(page.getByRole("heading", { name: "Blake Cloudfield", exact: true })).toBeVisible();
-  await expectNoManagement(page);
-  for (const path of ["/preview/import", "/preview/access"]) await expectDenied(page, path);
+  await expectNoManagement(page, true);
+  await page.goto("/preview/import");
+  await expect(page.getByLabel("Spreadsheet file", { exact: true })).toBeEnabled();
+  await expectNoManagement(page, true);
+  await expect(page.getByLabel("Import type", { exact: true }).locator("option")).toHaveCount(1);
+  await expect(page.getByRole("button", { name: "RENPHO report", exact: true })).toBeEnabled();
+  await page.getByLabel("Spreadsheet file", { exact: true }).setInputFiles({
+    name: "fictional-coach-measurements.csv", mimeType: "text/csv",
+    buffer: Buffer.from("athlete_code,date,value\nSYN-002,2026-09-12,88\n"),
+  });
+  await page.getByLabel("Measurement source", { exact: true }).selectOption("Other");
+  await page.getByLabel("Source name", { exact: true }).fill("Fictional coach protocol");
+  await page.getByLabel("Athlete identity column", { exact: true }).selectOption("0");
+  await page.getByLabel("Date column", { exact: true }).selectOption("1");
+  await page.getByLabel("Metric 1 column", { exact: true }).selectOption("2");
+  await page.getByLabel("Measurement name", { exact: true }).fill("Outfield Velocity");
+  await page.getByLabel("Unit", { exact: true }).fill("mph");
+  await page.getByRole("button", { name: "Validate and preview", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Apply reviewed import", exact: true })).toBeDisabled();
+  await page.getByLabel("I reviewed the rows and approve saving this import in this browser.", { exact: true }).check();
+  await page.getByRole("button", { name: "Apply reviewed import", exact: true }).click();
+  await expect(page.getByText("fictional-coach-measurements.csv was saved in this browser.", { exact: true })).toBeVisible();
+  await expectNoManagement(page, true);
+  await expectDenied(page, "/preview/access", true);
   await page.reload();
   await expect(page.getByText("Viewing as: Coach", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Not part of this view", exact: true })).toBeVisible();
@@ -151,6 +175,7 @@ test("player measurements are scoped and exiting preserves the complete saved ba
   expect(await exportBackup(page)).toEqual(before);
   await page.goto("/preview/athletes/SYN-002");
   await expect(page.getByRole("heading", { name: "Blake Cloudfield", exact: true })).toBeVisible();
+  await page.locator("#performance-history > summary").click();
   await expect(readings).toContainText("Fictional other reading");
   await expect(readings).not.toContainText("Fictional own reading");
 });

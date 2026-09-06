@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ACCESS_PREVIEW_SECONDS, canMutatePresentedAccess, canReadPresentedAthlete, resolveAccessPreview, type AccessActor, type AccessPreview } from "@/lib/access-preview";
+import { ACCESS_PREVIEW_SECONDS, canImportPresentedAccess, canMutatePresentedAccess, canReadPresentedAthlete, resolveAccessPreview, type AccessActor, type AccessPreview } from "@/lib/access-preview";
 import type { Role } from "@/lib/types";
 
 const actorId = "11111111-1111-4111-8111-111111111111";
@@ -31,14 +31,16 @@ describe("access preview independent role matrix", () => {
     expect(canReadPresentedAthlete(access, athleteA)).toBe(false);
     expect(canReadPresentedAthlete(access, athleteB)).toBe(true);
     expect(canMutatePresentedAccess(access)).toBe(false);
+    expect(canImportPresentedAccess(access)).toBe(false);
     expect(original).toEqual(actor(["admin", "player"]));
   });
-  it("allows coach roster display but no writes in coach preview", () => {
+  it("allows Coach performance imports and roster display without Admin management in Coach view", () => {
     const access = resolveAccessPreview(actor(["admin"]), cookie({ role: "coach", athleteId: null }), now)!;
     expect(access.roles).toEqual(["coach"]);
     expect(canReadPresentedAthlete(access, athleteA)).toBe(true);
     expect(canReadPresentedAthlete(access, athleteB)).toBe(true);
     expect(canMutatePresentedAccess(access)).toBe(false);
+    expect(canImportPresentedAccess(access)).toBe(true);
   });
   it.each([{ roles: ["coach"] as Role[] }, { roles: ["player"] as Role[] }, { roles: [] as Role[] }])("a cookie cannot confer preview or admin rights to $roles", ({ roles }) => {
     expect(resolveAccessPreview(actor(roles), cookie(), now)).toBeNull();

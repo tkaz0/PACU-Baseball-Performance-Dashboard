@@ -66,13 +66,13 @@ describe("local preview navigation rules", () => {
     for (const path of ["/preview", "/preview/roster", "/preview/athletes/SYN-002", "/preview/import", "/preview/access"]) {
       expect(localViewAllowsPath(adminView(), path)).toBe(true);
     }
-    for (const path of ["/preview", "/preview/roster", "/preview/athletes/SYN-002"]) {
+    for (const path of ["/preview", "/preview/roster", "/preview/athletes/SYN-002", "/preview/import", "/preview/import/"]) {
       expect(localViewAllowsPath(coach, path)).toBe(true);
     }
   });
-  it("blocks management paths, trailing slashes and descendants for both restricted previews", () => {
+  it("blocks account management paths and unknown import descendants for both restricted views", () => {
     for (const view of [coach, player]) {
-      for (const path of ["/preview/import", "/preview/import/", "/preview/import/nested", "/preview/access", "/preview/access/", "/preview/access/nested"]) {
+      for (const path of ["/preview/import/nested", "/preview/access", "/preview/access/", "/preview/access/nested"]) {
         expect(localViewAllowsPath(view, path), `${view.role}: ${path}`).toBe(false);
       }
     }
@@ -80,7 +80,7 @@ describe("local preview navigation rules", () => {
   it("limits player navigation to their exact profile and own overview", () => {
     expect(localViewAllowsPath(player, "/preview")).toBe(true);
     expect(localViewAllowsPath(player, "/preview/athletes/SYN-001")).toBe(true);
-    for (const path of ["/preview/roster", "/preview/athletes/SYN-002", "/preview/athletes/SYN-001-OTHER", "/preview/athletes/SYN-001/edit"]) {
+    for (const path of ["/preview/import", "/preview/import/", "/preview/roster", "/preview/athletes/SYN-002", "/preview/athletes/SYN-001-OTHER", "/preview/athletes/SYN-001/edit"]) {
       expect(localViewAllowsPath(player, path)).toBe(false);
     }
     expect(localViewAllowsPath({ role: "player", athleteCode: null }, "/preview")).toBe(true);

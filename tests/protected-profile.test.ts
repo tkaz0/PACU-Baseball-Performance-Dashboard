@@ -27,7 +27,7 @@ const reading = (change: Partial<Measurement> = {}): Measurement => ({
   value: 10, unit: "mph", source_file: "fictional.csv", source_sheet: "Values", source_row: 2, file_hash: "a".repeat(64), ...change,
 });
 function access(roles: Role[] = ["player"], athleteId: string | null = ownId, preview = false) {
-  return { roles, athleteId, actualRoles: preview ? ["admin"] : roles, preview: preview ? { role: "player", athleteId: ownId } : null,
+  return { roles, athleteId, actualRoles: preview ? ["admin"] : roles, preview: preview ? { role: roles[0], athleteId: roles[0] === "player" ? ownId : null } : null,
     user: { id: "fictional-user", email: "private-login@example.com" }, supabase: { from: fake.from } };
 }
 beforeEach(() => {
@@ -85,17 +85,17 @@ describe("protected profile route authorization and integration", () => {
   it("preserves read-only notices after the compatibility redirect without giving the preview import controls", async () => {
     fake.access.mockResolvedValueOnce(access(["player"], ownId, true));
     const html = renderToStaticMarkup(await Profile({ params: Promise.resolve({ id: ownId }), searchParams: Promise.resolve({ preview: "read-only" }) }));
-    expect(html).toContain("Exit preview to add or manage information. No change was saved.");
+    expect(html).toContain("This action is unavailable in the selected view. No change was saved.");
     expect(html).not.toContain('href="/imports"');
     expect(fake.games).not.toHaveBeenCalled();
   });
-  it("shows imports to actual staff, hides them in View as, and limits management details to presented admin", async () => {
+  it("shows imports to actual staff and Coach view, and limits management details to presented admin", async () => {
     fake.access.mockResolvedValueOnce(access(["coach"], null));
     const coach = renderToStaticMarkup(await Profile({ params: Promise.resolve({ id: ownId }) }));
     expect(coach).toContain("Team roster"); expect(coach).not.toContain("Administrative roster details"); expect(coach).not.toContain("private-roster@example.com"); expect(coach).toContain('href="/imports"');
     fake.access.mockResolvedValueOnce(access(["coach"], null, true));
     const preview = renderToStaticMarkup(await Profile({ params: Promise.resolve({ id: ownId }) }));
-    expect(preview).not.toContain('href="/imports"');
+    expect(preview).toContain('href="/imports"');
     fake.access.mockResolvedValueOnce(access(["admin"], null));
     const admin = renderToStaticMarkup(await Profile({ params: Promise.resolve({ id: ownId }) }));
     expect(admin).toContain("Administrative roster details"); expect(admin).toContain("private-roster@example.com"); expect(admin).toContain('href="/imports"');
@@ -109,6 +109,16 @@ describe("protected profile route authorization and integration", () => {
     expect(html).toContain("Pacific n=5"); expect(html).toContain('data-percentile="50"');
     expect(html).not.toContain("Summer-only metric"); expect(html).not.toContain("Old-only metric");
     expect(fake.load).toHaveBeenCalledTimes(1);
+  });
+  it("hides pitcher speed tests from cards and history without changing saved input", async () => {
+    const pitcher = {...athlete, athlete_seasons: athlete.athlete_seasons.map(s => ({...s, player_type: "pitcher", primary_position: "P"}))};
+    fake.single.mockResolvedValueOnce({data: pitcher, error: null});
+    const measurements = [reading({metric: "Home to First", value: 4.2, unit: "s"}), reading({id: "fictional-weight", metric: "Weight", value: 180, unit: "lb"})];
+    fake.load.mockResolvedValueOnce({measurements, batches: [], percentileOverrides: []});
+    const html = renderToStaticMarkup(await Profile({params: Promise.resolve({id: ownId})}));
+    expect(html).not.toContain("Home to First"); expect(html).not.toContain("Speed &amp; Agility");
+    expect(html).toContain("Measurement history · 1 readings"); expect(html).toContain('data-value="180"');
+    expect(measurements).toHaveLength(2);
   });
   it("does not present a failed performance load as a successful empty profile", async () => {
     fake.load.mockRejectedValueOnce(new Error("Fictional performance unavailable"));

@@ -9,6 +9,7 @@ import { RenphoCharts } from "@/components/renpho-charts";
 import { resolveAthleteCode } from "@/lib/athlete-codes";
 import { useLocalWorkspace } from "@/components/local-workspace";
 import { PlayerPerformanceProfile } from "@/components/player-performance-profile";
+import { profileMeasurementVisible } from "@/lib/player-profile-layout";
 import { getRenphoReports } from "@/lib/renpho-charts";
 import { athleteName, display } from "@/lib/types";
 
@@ -97,7 +98,8 @@ export function LocalAthleteProfile({ id }: { id: string }) {
   if (!ready) return <p role="status">Opening athlete profile…</p>;
   if (!athlete) return <div className="panel empty-state"><UsersRound size={30} aria-hidden="true" /><h1 className="page-title">Profile unavailable</h1><p>{canManage ? "This athlete is not in this browser’s roster. Import the roster or restore your workspace backup." : "This profile is unavailable in the current view. Exit preview to choose another athlete."}</p>{view.role !== "player" && <Link href="/preview/roster" className="btn btn-primary">Back to roster</Link>}</div>;
   const seasons = [...athlete.athlete_seasons].sort((a, b) => b.season.localeCompare(a.season));
-  const readings = measurements.filter(m => m.athlete_code === athlete.athlete_code).sort((a, b) => b.measured_at.localeCompare(a.measured_at) || b.source_row - a.source_row);
+  const selectedSeason = seasons.find(s => s.season === "2026-27") ?? seasons[0];
+  const readings = measurements.filter(m => m.athlete_code === athlete.athlete_code && profileMeasurementVisible(m, selectedSeason)).sort((a, b) => b.measured_at.localeCompare(a.measured_at) || b.source_row - a.source_row);
   const metricKey = (m: { metric: string; unit: string }) => JSON.stringify([m.metric, m.unit]);
   const metrics = [...new Map(readings.map(m => [metricKey(m), `${m.metric} (${m.unit})`])).entries()];
   const sources = [...new Set(readings.map(m => m.source))].sort();
@@ -118,7 +120,7 @@ export function LocalAthleteProfile({ id }: { id: string }) {
     </details>;
   return <>
     {view.role !== "player" && <Link href="/preview/roster" className="profile-back"><ArrowLeft size={15} />Master roster</Link>}
-    <PlayerPerformanceProfile athlete={athlete} performance={getPerformance(athlete.athlete_code)} season={seasons.find(s => s.season === "2026-27") ?? seasons[0]} fictional={mode === "sample"}
+    <PlayerPerformanceProfile athlete={athlete} performance={getPerformance(athlete.athlete_code)} season={selectedSeason} fictional={mode === "sample"}
       action={canImport ? <Link href="/preview/import" className="text-link">Import Information <ArrowRight size={15} /></Link> : undefined}
       physicalityDetails={physicalityDetails} history={history} />
 

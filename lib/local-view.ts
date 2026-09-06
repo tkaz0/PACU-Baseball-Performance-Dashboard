@@ -35,7 +35,8 @@ export function canonicalLocalView(view: LocalView, roster: RosterAthlete[]): Lo
 export function localViewAllowsPath(view: LocalView, pathname: string, roster?: RosterAthlete[]): boolean {
   if (view.role === "admin") return true;
   pathname = pathname.replace(/\/+$/, "");
-  if (["/preview/import", "/preview/access"].some(path => pathname === path || pathname.startsWith(`${path}/`))) return false;
+  if (pathname === "/preview/access" || pathname.startsWith("/preview/access/")) return false;
+  if (pathname === "/preview/import" || pathname.startsWith("/preview/import/")) return view.role === "coach" && pathname === "/preview/import";
   if (view.role === "coach") return true;
   if (pathname === "/preview") return true;
   if (roster && pathname.startsWith("/preview/athletes/")) {

@@ -40,6 +40,8 @@ import { GET as localWorkspaceAccess } from "@/app/api/local-workspace/access/ro
 import { startAccessPreview, exitAccessPreview } from "@/app/(workspace)/view-as/actions";
 import { configureAccount } from "@/app/(workspace)/admin/access/actions";
 import { stageImport, approveImport } from "@/app/(workspace)/admin/import/actions";
+import { saveReviewedMeasurements, loadSharedReportMeasurements } from "@/app/(workspace)/imports/actions";
+import { importGameSnapshot } from "@/app/(workspace)/imports/game-stats/actions";
 
 const athleteA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const athleteB = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
@@ -73,13 +75,67 @@ describe("server preview enforcement", () => {
     await expect(requireAdminWorkspaceAccess()).rejects.toThrow("REDIRECT:/login");
     expect((await localWorkspaceAccess()).status).toBe(401);
   });
-  it.each(["coach", "player"])("blocks browser data during real administrator %s preview", async role => {
-    preview(role, role === "coach" ? null : athleteA);
+  it("keeps Player view read-only and blocks its browser import workspace", async () => {
+    preview();
     await expect(requireAdminWorkspaceAccess()).rejects.toThrow("REDIRECT:/overview?preview=read-only");
     await expect(requireImportAccess()).rejects.toThrow("REDIRECT:/overview?preview=read-only");
     const denied = await localWorkspaceAccess();
     expect(denied.status).toBe(403);
     expect(await denied.json()).toEqual({ allowed: false });
+  });
+  it("opens the browser workspace with effective Coach permissions during a trusted Admin Coach view", async () => {
+    preview("coach", null);
+    const access = await requireImportAccess();
+    expect(access.roles).toEqual(["coach"]); expect(access.actualRoles).toEqual(["admin"]);
+    expect(access.user.id).toBe(fake.actorId);
+    expect(await (await localWorkspaceAccess()).json()).toEqual({ allowed: true, userId: fake.actorId, importRole: "coach" });
+    await expect(requireAdminWorkspaceAccess()).rejects.toThrow("REDIRECT:/overview?preview=read-only");
+  });
+  it("requires the real Admin to remain active and authorized on every Coach-view import check", async () => {
+    preview("coach", null);
+    expect((await requireImportAccess()).roles).toEqual(["coach"]);
+    fake.roles = ["coach"];
+    await expect(requireImportAccess()).rejects.toThrow("REDIRECT:/access-preview-unavailable");
+    expect((await localWorkspaceAccess()).status).toBe(403);
+    fake.roles = ["admin"]; fake.active = false;
+    await expect(requireImportAccess()).rejects.toThrow("REDIRECT:/access-denied");
+    fake.active = true; fake.authenticated = false;
+    await expect(requireImportAccess()).rejects.toThrow("REDIRECT:/login");
+    expect(fake.rpc).not.toHaveBeenCalled();
+  });
+  it("lets Coach view save reviewed performance rows and read report matches under the real Admin session", async () => {
+    preview("coach", null);
+    const hash = "a".repeat(64), receipt = { import_id: athleteA, created: 1, unchanged: 0 };
+    const measurement = { id: `observation:${JSON.stringify([hash, "Fictional tests", 2, 0])}`, athlete_code: "SYN-001",
+      measured_at: "2026-09-12", source: "Fictional testing", metric: "Max EV", value: 10, unit: "mph",
+      source_file: "fictional.csv", source_sheet: "Fictional tests", source_row: 2, file_hash: hash };
+    fake.rpc.mockResolvedValueOnce({ data: receipt, error: null });
+    expect(await saveReviewedMeasurements([measurement], true)).toEqual(receipt);
+    expect(fake.rpc.mock.calls[0][0]).toBe("admin_import_performance");
+    expect(fake.queries.filter(q => q.table === "app_accounts")).toHaveLength(2);
+    expect(fake.queries.filter(q => q.table === "app_accounts").every(q => q.filters[0][1] === fake.actorId)).toBe(true);
+    fake.rpc.mockResolvedValueOnce({ data: [], error: null });
+    expect(await loadSharedReportMeasurements(hash)).toEqual({ measurements: [] });
+    expect(fake.rpc.mock.calls[1]).toEqual(["performance_report_measurements", { p_file_hash: hash }]);
+  });
+  it("lets Coach view process a reviewed game snapshot and still refuses all imports in Player view", async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date("2026-09-14T12:00:00Z"));
+    try {
+      preview("coach", null);
+      const form = new FormData();
+      form.set("snapshot", JSON.stringify({ source: "qpa_fall_2026", contentHash: "a".repeat(64), fetchedAt: "2026-09-13T12:00:00Z",
+        observations: [{ athleteCode: "PAC-0001", metric: "pa", value: 0, unit: "count", scope: "cumulative_fall", eventId: null, playedOn: null, sourceRow: 2, sourceColumn: 2, derivedFrom: [] }] }));
+      form.set("confirm", "yes");
+      fake.rpc.mockResolvedValueOnce({ data: { snapshot_id: athleteA, changed: true, observations: 1 }, error: null });
+      await expect(importGameSnapshot(form)).rejects.toThrow(`REDIRECT:/imports/game-stats?saved=${athleteA}`);
+      expect(fake.rpc.mock.calls[0][0]).toBe("import_game_snapshot");
+      expect(fake.queries.filter(q => q.table === "app_accounts")).toHaveLength(2);
+      preview();
+      await expect(importGameSnapshot(form)).rejects.toThrow("REDIRECT:/overview?preview=read-only");
+      await expect(saveReviewedMeasurements([], true)).rejects.toThrow("REDIRECT:/overview?preview=read-only");
+      await expect(loadSharedReportMeasurements("a".repeat(64))).rejects.toThrow("REDIRECT:/overview?preview=read-only");
+      expect(fake.rpc).toHaveBeenCalledTimes(1);
+    } finally { vi.useRealTimers(); }
   });
   it("fails closed for a malformed role preview during local workspace checks", async () => {
     fake.raw = "broken";

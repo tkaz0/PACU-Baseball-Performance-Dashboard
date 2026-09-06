@@ -1,6 +1,6 @@
 # Import Center
 
-For direct shared profile uploads, open **Information Imports** from the dashboard sidebar; see [INFORMATION_IMPORTS](INFORMATION_IMPORTS.md). This document covers **Advanced Browser Imports** at `/preview/import`, which requires an active Admin or Coach outside private View as. The first Admin roster import replaces the fictional starter roster in that browser. Roster changes, backup restore/export and workspace reset remain Admin-only. A fresh Coach browser should use the shared hub and its live roster for imports.
+For direct shared profile uploads, open **Information Imports** from the dashboard sidebar; see [INFORMATION_IMPORTS](INFORMATION_IMPORTS.md). This document covers **Advanced Browser Imports** at `/preview/import`, which requires an active Admin or Coach, including interactive Coach View as; Player View as is blocked. The first Admin roster import replaces the fictional starter roster in that browser. Roster changes, backup restore/export and workspace reset remain Admin-only. A fresh Coach browser should use the shared hub and its live roster for imports.
 
 ## Roster
 

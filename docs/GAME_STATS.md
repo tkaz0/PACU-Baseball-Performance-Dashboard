@@ -1,6 +1,6 @@
 # Fall game statistics
 
-The protected **Game Stats** page (`/game-stats`) displays reviewed shared game statistics. Player profiles do not duplicate this section or request its data. Admins and Coaches outside View as may review and save a prepared source snapshot at `/imports/game-stats`. Players read only their linked athlete. The Game Stats panel shows primary QPA totals and one pitching row per game; additional recorded fields stay in **More Stats**. Missing inputs remain unavailable.
+The protected **Game Stats** page (`/game-stats`) displays reviewed shared game statistics. Player profiles do not duplicate this section or request its data. Admins and Coaches, including interactive Coach View as, may review and save a prepared source snapshot at `/imports/game-stats`. Players read only their linked athlete. The Game Stats panel shows primary QPA totals and one pitching row per game; additional recorded fields stay in **More Stats**. Missing inputs remain unavailable.
 
 Only these user-selected tabs are supported:
 

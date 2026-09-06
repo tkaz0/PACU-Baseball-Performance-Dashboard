@@ -2,7 +2,7 @@
 
 Pacific Baseball's independent performance workspace provides private player profiles, team access for coaches, and administrator controls. It is a personal project by **Trevor Kazahaya**, not an official university application.
 
-The home route opens Team Roster for staff, the linked profile for Players, and the Pacific Baseball sign-in page for visitors. The former team Overview route redirects to that same authorized destination. Every dashboard requires login. [Information Imports](https://pacubaseballperformance.com/imports) gives active Admins and Coaches four labeled upload areas that save reviewed readings directly to private profiles. The advanced browser workspace remains local until readings are explicitly shared. Both import workflows are unavailable during private Coach/Player View as.
+The home route opens Team Roster for staff, the linked profile for Players, and the Pacific Baseball sign-in page for visitors. The former team Overview route redirects to that same authorized destination. Every dashboard requires login. [Information Imports](https://pacubaseballperformance.com/imports) gives active Admins and Coaches four labeled upload areas that save reviewed readings directly to private profiles. The advanced browser workspace remains local until readings are explicitly shared. Admin **View as Coach** includes the same performance import tools; reviewed saves use the signed-in administrator account. Player View as remains read-only.
 
 Built with Next.js 16, React 19, TypeScript, Tailwind 4, Supabase Auth/PostgreSQL and Vercel. Consult [HOSTED-SETUP](docs/HOSTED-SETUP.md) for completed environment receipts.
 
@@ -15,7 +15,7 @@ Built with Next.js 16, React 19, TypeScript, Tailwind 4, Supabase Auth/PostgreSQ
 
 ## Available workflows
 
-- **Admin:** roster and measurement imports, account configuration, coach preparation, and read-only **View as Coach/Player** with explicit athlete selection and **Exit preview**.
+- **Admin:** roster and measurement imports, account configuration, coach preparation, and **View as Coach** with working performance imports and read-only **View as Player** with explicit athlete selection and **Exit preview**.
 - **Coach:** team roster, shared profiles and performance imports. **Player:** the explicitly linked profile plus the owner-authorized team leaderboard. Live account status and PostgreSQL RLS enforce access.
 - **Appearance:** Light, Dark or System, saved in the current browser; System follows device appearance. Every account can change it in Settings or the header.
 - **Player profiles:** Overview, Physicality, Hitting and Throwing tabs with main values/units and actual Last Tested dates. Overview shows data-supported strengths, weaknesses and biggest jumps; pitcher-only profiles omit Hitting, while two-way players retain it. RENPHO and history remain secondary views; game statistics live in the separate Game Stats section. Baseball uses **Fall 2026**; body measurements retain their actual testing dates and separate comparison periods. Height displays in feet and inches; untested measurements show a simple placeholder. See [PLAYER_PROFILES](docs/PLAYER_PROFILES.md).

@@ -36,7 +36,9 @@ export function canMutatePresentedAccess(access: AccessPresentation): boolean {
   return access.preview === null && access.roles.includes("admin");
 }
 
-/** Performance information imports are staff work; a role preview is always read-only. */
+/** Coach view retains Coach imports; only Player view is read-only. The server
+ * resolves each preview from a fresh, active administrator session first. */
 export function canImportPresentedAccess(access: AccessPresentation): boolean {
-  return access.preview === null && access.roles.some(role => role === "admin" || role === "coach");
+  if (access.preview) return access.preview.role === "coach" && access.roles.includes("coach");
+  return access.roles.some(role => role === "admin" || role === "coach");
 }

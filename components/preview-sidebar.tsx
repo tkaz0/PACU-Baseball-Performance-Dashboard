@@ -7,7 +7,7 @@ import { useLocalWorkspace } from "@/components/local-workspace";
 import { PacificBrand } from "@/components/pacific-brand";
 
 const links = [
-  { href: "/preview", label: "Overview", icon: LayoutDashboard },
+  { href: "/preview", label: "Team", icon: LayoutDashboard },
   { href: "/preview/roster", label: "Master Roster", icon: UsersRound },
   { href: "/preview/import", label: "Import Center", icon: Upload },
   { href: "/preview/access", label: "Access & Views", icon: ShieldCheck },
@@ -17,7 +17,7 @@ export function PreviewSidebar() {
   const pathname = usePathname();
   const { view, canImport, canManage } = useLocalWorkspace();
   const visibleLinks = canManage ? links : view.role === "coach" ? links.slice(0, canImport ? 3 : 2) : [
-    { href: "/preview", label: "My Overview", icon: LayoutDashboard },
+    ...(!view.athleteCode ? [{ href: "/preview", label: "My Profile", icon: UserRound }] : []),
     ...(view.athleteCode ? [{ href: `/preview/athletes/${view.athleteCode}`, label: "My Profile", icon: UserRound }] : []),
   ];
 

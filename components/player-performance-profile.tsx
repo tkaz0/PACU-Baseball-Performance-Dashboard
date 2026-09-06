@@ -45,7 +45,7 @@ function MetricCard({ card }: { card: PlayerMetricCard }) {
   </li>;
 }
 function MetricGroup({ id, title, cards }: { id: string; title: string; cards: PlayerMetricCard[] }) {
-  return <section id={id} aria-labelledby={`${id}-heading`} className="min-w-0"><h2 id={`${id}-heading`} className="mb-4 text-lg font-bold">{title}</h2><ul className={`m-0 grid list-none grid-cols-1 gap-3 p-0 min-[360px]:grid-cols-2 ${cards.length === 4 ? "xl:grid-cols-4" : "xl:grid-cols-3"}`}>{cards.map(card => <MetricCard key={card.metric.key} card={card} />)}</ul></section>;
+  return <section id={id} aria-labelledby={`${id}-heading`} className="min-w-0"><h2 id={`${id}-heading`} className="mb-4 text-lg font-bold">{title}</h2><ul className={`m-0 grid list-none grid-cols-1 gap-3 p-0 min-[360px]:grid-cols-2 ${cards.length === 2 ? "xl:grid-cols-2" : cards.length === 4 ? "xl:grid-cols-4" : "xl:grid-cols-3"}`}>{cards.map(card => <MetricCard key={card.metric.key} card={card} />)}</ul></section>;
 }
 export function PlayerPerformanceProfile({ athlete, performance, season, fictional = false, action, physicalityDetails, history }: PlayerPerformanceProfileProps) {
   const selectedSeason = season ?? [...athlete.athlete_seasons].sort((a, b) => b.season.localeCompare(a.season))[0];

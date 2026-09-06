@@ -10,6 +10,7 @@ import { getPlayerPerformance, normalizePlayerMetric, PLAYER_METRICS } from "@/l
 import { getRenphoReports } from "@/lib/renpho-charts";
 import { RenphoCharts } from "@/components/renpho-charts";
 import { PlayerPerformanceProfile } from "@/components/player-performance-profile";
+import { profileMeasurementVisible } from "@/lib/player-profile-layout";
 
 export default async function Profile({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ preview?: string }> }) {
   const access = await requireAccess();
@@ -28,6 +29,7 @@ export default async function Profile({ params, searchParams }: { params: Promis
   const shared = await loadAthletePerformance(access,athlete);
   const performance = getPlayerPerformance({ readings:shared.measurements, batches:shared.batches, athleteCode:athlete.athlete_code, cohortAthleteCodes:[], percentileOverrides:shared.percentileOverrides });
   const readings = shared.measurements.filter(reading => {
+    if (!profileMeasurementVisible(reading, season)) return false;
     const metric = normalizePlayerMetric(reading.metric,reading.unit);
     const group = PLAYER_METRICS.find(item => item.key === metric?.key)?.group;
     const body = group === "body" || reading.source === "RENPHO";

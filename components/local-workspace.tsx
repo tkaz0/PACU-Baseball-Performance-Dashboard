@@ -57,7 +57,7 @@ export function LocalWorkspaceProvider({ children, importRole }: { children: Rea
     if (!localWorkspacePermissions(importRole, currentView.current).canManage) throw new Error("Roster and workspace management require an administrator outside preview.");
   }
   function assertImport() {
-    if (!localWorkspacePermissions(importRole, currentView.current).canImport) throw new Error("Information imports require an administrator or coach outside preview.");
+    if (!localWorkspacePermissions(importRole, currentView.current).canImport) throw new Error("Information imports require an administrator or coach view.");
   }
   async function commit(next: LocalWorkspace, expectedRevision: number) {
     assertImport();

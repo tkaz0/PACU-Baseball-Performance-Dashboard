@@ -6,11 +6,15 @@ import { SharedPerformanceImport } from "@/components/shared-performance-import"
 import { shareMeasurements } from "./actions";
 const messages: Record<string,string> = { review: "Review the measurements and check the approval box before sharing.", input: "These measurements could not be validated. Choose the backup again and review its values and source details.", save: "The import could not be confirmed. Refresh the profiles and import history before trying again; no conflicting observation is overwritten." };
 export default async function PerformanceImport({ searchParams }: { searchParams: Promise<{error?:string;import?:string}> }) {
-  const { supabase, roles } = await requireImportAccess();
+  const { supabase, roles, user } = await requireImportAccess();
   const params = await searchParams;
+  // A Coach view keeps the real Admin session, so apply the same own-receipt
+  // restriction as Coach RLS before reading any import history.
+  let receiptQuery = supabase.from("performance_imports").select("id,created_at,created_count,unchanged_count");
+  if (!roles.includes("admin")) receiptQuery = receiptQuery.eq("created_by", user.id);
   const [roster,imports] = await Promise.all([
     supabase.from("athletes").select("athlete_code,first_name,preferred_name,last_name,athlete_seasons!inner(season)").eq("athlete_seasons.season","2026-27").order("last_name").limit(1000),
-    supabase.from("performance_imports").select("id,created_at,created_count,unchanged_count").order("created_at",{ascending:false}).limit(10),
+    receiptQuery.order("created_at",{ascending:false}).limit(10),
   ]);
   if (roster.error || imports.error) throw new Error("Unable to load shared measurement imports.");
   const saved = (imports.data ?? []).find(item => item.id === params.import);

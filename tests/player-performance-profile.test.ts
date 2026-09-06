@@ -34,11 +34,13 @@ describe("player profile tabs and presentation",()=>{
   const athlete=fictionalAthlete(type,primary,secondary),layout=getPlayerProfileLayout(model(),athlete.athlete_seasons[0]);expect(layout.fieldThrowing.map(c=>c.metric.key)).toEqual(field);expect(layout.pitching.length>0).toBe(pitch);expect(layout.hasThrowingRole).toBe(pitch||!!field.length);
  });
  it("keeps speed testing periods and legacy bat speed distinct while reordering cards",()=>{
-  const performance=model([measurement("Home to First",4.2,"s"),measurement("Bat Speed",72,"mph")]),layout=getPlayerProfileLayout(performance,fictionalAthlete("position").athlete_seasons[0]);
-  expect(layout.physicality.map(c=>c.metric.key)).toEqual(["weight","height","grip_strength","body_fat_pct"]);expect(layout.hitting.map(c=>c.metric.key)).toEqual(["max_exit_velocity","avg_exit_velocity","max_bat_speed","avg_bat_speed","smash_factor","max_distance"]);
+  const performance=model([measurement("Home to First",4.2,"s"),measurement("Bat Speed",72,"mph"),measurement("Body Fat Percentage",18,"%")]),layout=getPlayerProfileLayout(performance,fictionalAthlete("position").athlete_seasons[0]);
+  expect(layout.physicality.map(c=>c.metric.key)).toEqual(["weight","height","grip_strength"]);expect(layout.hitting.map(c=>c.metric.key)).toEqual(["max_exit_velocity","avg_exit_velocity","max_bat_speed","avg_bat_speed","smash_factor","max_distance"]);
   const speed=layout.speedAgility.find(c=>c.metric.key==="home_to_first")!;expect(speed).toBe(performance.hitting.find(c=>c.metric.key==="home_to_first"));expect(speed.latest).toMatchObject({measuredAt:"2026-09-03",period:"fall_2026",unit:"s",value:4.2});
+  expect(layout.additionalBody.map(c=>c.metric.key)).toEqual(["body_fat_pct","muscle_mass_pct"]);
   expect(layout.otherHitting.map(c=>c.metric.key)).toEqual(["bat_speed"]);expect(layout.hitting.find(c=>c.metric.key==="max_bat_speed")?.latest).toBeNull();expect(layout.hitting.find(c=>c.metric.key==="avg_bat_speed")?.latest).toBeNull();
   const html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete:fictionalAthlete("position"),performance}));expect(html).toContain("Bat Speed (Unspecified)");expect(html).toContain('data-value="72"');
+  const physicality=html.split('id="body-measurements"')[1].split('id="body-composition"');expect(physicality[0]).not.toContain('data-metric-key="body_fat_pct"');expect(physicality[1]).toContain('data-metric-key="body_fat_pct" data-value="18" data-unit="%"');
  });
  it("shows actual latest dates, retains older data only in the model history, and keeps source information collapsed",()=>{
   const athlete=fictionalAthlete("position"),performance=model([measurement("Weight",170,"lb","2026-08-09"),measurement("Weight",171,"lb")]);const html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete,performance}));
@@ -55,10 +57,11 @@ describe("player profile tabs and presentation",()=>{
   {type:"two_way",primary:"P",hitting:true},
   {type:"position",primary:"CF",hitting:true},
  ])("shows role-relevant tabs and insights for $type/$primary",({type,primary,hitting})=>{
-  const athlete=fictionalAthlete(type,primary),performance=model([measurement("Max Exit Velocity",80,"mph","2026-09-01"),measurement("Max Exit Velocity",90,"mph","2026-09-03")]);
+  const athlete=fictionalAthlete(type,primary),performance=model([measurement("Max Exit Velocity",80,"mph","2026-09-01"),measurement("Max Exit Velocity",90,"mph","2026-09-03"),measurement("Home to First",4.5,"s","2026-09-01"),measurement("Home to First",4.2,"s","2026-09-04")]);
   const html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete,performance}));
   expect(html.includes('>Hitting</button>')).toBe(hitting);expect((html.match(/role="tab"/g)??[])).toHaveLength(hitting?4:3);
-  const overview=html.split('role="tabpanel"')[1];expect(overview.includes("Max Exit Velocity")).toBe(hitting);
+  const overview=html.split('role="tabpanel"')[1];expect(overview.includes("Max Exit Velocity")).toBe(hitting);expect(overview.includes("Home to 1st")).toBe(hitting);
+  expect(html.includes("Speed &amp; Agility")).toBe(hitting);expect(html.includes('data-metric-key="home_to_first"')).toBe(hitting);expect(html.includes("Sep 4, 2026")).toBe(hitting);
   expect(overview).toContain("Strengths");expect(overview).toContain("Weaknesses");expect(overview).toContain("Biggest Jumps");
  });
  it("shows eligible percentile bars without transmitting another athlete's raw provenance",()=>{
