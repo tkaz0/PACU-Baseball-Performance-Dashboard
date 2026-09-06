@@ -2,11 +2,13 @@ import type { Measurement } from "@/lib/imports/engine";
 import type { ImportBatch } from "@/lib/local-workspace";
 import { getRenphoChartReadings, getRenphoReports } from "@/lib/renpho-charts";
 
-export type PlayerMetricGroup = "body" | "hitting" | "pitching";
+export type PlayerMetricGroup = "body" | "hitting" | "pitching" | "throwing";
 export type PlayerMetricDirection = "neutral" | "higher" | "lower";
-export type PlayerMetricKey = "height" | "weight" | "body_fat_pct" | "muscle_mass_pct"
+export type PlayerMetricKey = "height" | "weight" | "grip_strength" | "body_fat_pct" | "muscle_mass_pct"
   | "max_exit_velocity" | "avg_exit_velocity" | "bat_speed" | "home_to_first" | "home_to_second" | "steal_break" | "boxer_t"
-  | "max_pitch_velocity" | "avg_fastball_spin" | "strike_pct" | "k_pct" | "bb_pct";
+  | "max_bat_speed" | "avg_bat_speed" | "smash_factor" | "max_distance"
+  | "infield_velocity" | "outfield_velocity"
+  | "max_pitch_velocity" | "avg_pitch_velocity" | "avg_fastball_spin" | "strike_pct" | "k_pct" | "bb_pct";
 export type PlayerMetricDefinition = {
   key: PlayerMetricKey; label: string; group: PlayerMetricGroup;
   units: readonly string[]; direction: PlayerMetricDirection;
@@ -15,20 +17,28 @@ export type PlayerMetricDefinition = {
 export const PLAYER_METRICS: readonly PlayerMetricDefinition[] = [
   { key: "height", label: "Height", group: "body", units: ["in", "cm"], direction: "neutral" },
   { key: "weight", label: "Weight", group: "body", units: ["lb", "kg", "st"], direction: "neutral" },
+  { key: "grip_strength", label: "Grip Strength", group: "body", units: ["lb", "kg", "N"], direction: "higher" },
   { key: "body_fat_pct", label: "Body Fat %", group: "body", units: ["%"], direction: "neutral" },
   { key: "muscle_mass_pct", label: "Muscle Mass %", group: "body", units: ["%"], direction: "neutral" },
   { key: "max_exit_velocity", label: "Max EV", group: "hitting", units: ["mph", "km/h", "m/s"], direction: "higher" },
   { key: "avg_exit_velocity", label: "Average EV", group: "hitting", units: ["mph", "km/h", "m/s"], direction: "higher" },
   { key: "bat_speed", label: "Bat Speed", group: "hitting", units: ["mph", "km/h", "m/s"], direction: "higher" },
+  { key: "max_bat_speed", label: "Max Bat Speed", group: "hitting", units: ["mph", "km/h", "m/s"], direction: "higher" },
+  { key: "avg_bat_speed", label: "Average Bat Speed", group: "hitting", units: ["mph", "km/h", "m/s"], direction: "higher" },
+  { key: "smash_factor", label: "Smash Factor", group: "hitting", units: ["ratio"], direction: "higher" },
+  { key: "max_distance", label: "Max Distance", group: "hitting", units: ["ft", "m"], direction: "higher" },
   { key: "home_to_first", label: "Home to 1st", group: "hitting", units: ["s"], direction: "lower" },
   { key: "home_to_second", label: "Home to 2nd", group: "hitting", units: ["s"], direction: "lower" },
   { key: "steal_break", label: "Steal Break", group: "hitting", units: ["s"], direction: "lower" },
   { key: "boxer_t", label: "Boxer T", group: "hitting", units: ["s"], direction: "lower" },
   { key: "max_pitch_velocity", label: "Max Velocity", group: "pitching", units: ["mph", "km/h", "m/s"], direction: "higher" },
+  { key: "avg_pitch_velocity", label: "Average Velocity", group: "pitching", units: ["mph", "km/h", "m/s"], direction: "higher" },
   { key: "avg_fastball_spin", label: "Average Fastball Spin", group: "pitching", units: ["rpm"], direction: "neutral" },
   { key: "strike_pct", label: "Strike %", group: "pitching", units: ["%"], direction: "higher" },
   { key: "k_pct", label: "K %", group: "pitching", units: ["%"], direction: "higher" },
   { key: "bb_pct", label: "BB %", group: "pitching", units: ["%"], direction: "lower" },
+  { key: "infield_velocity", label: "Infield Velocity", group: "throwing", units: ["mph", "km/h", "m/s"], direction: "higher" },
+  { key: "outfield_velocity", label: "Outfield Velocity", group: "throwing", units: ["mph", "km/h", "m/s"], direction: "higher" },
 ];
 
 export const PLAYER_PERFORMANCE_PERIODS = {
@@ -66,14 +76,20 @@ const aliases = new Map<string, PlayerMetricKey>();
 for (const metric of PLAYER_METRICS) for (const label of [metric.key, metric.label]) aliases.set(labelKey(label), metric.key);
 const extraAliases: Record<PlayerMetricKey, readonly string[]> = {
   height: ["Body height"], weight: ["Body weight"],
+  grip_strength: ["Grip Force"],
   body_fat_pct: ["Body Fat Percentage", "Body Fat Percent"],
   muscle_mass_pct: ["Muscle Mass Percentage", "Muscle Mass Percent"],
   max_exit_velocity: ["Maximum Exit Velocity", "Max Exit Velocity", "Max Exit Velo", "Maximum EV"],
   avg_exit_velocity: ["Average Exit Velocity", "Avg Exit Velocity", "Avg EV", "Average Exit Velo"],
   bat_speed: ["Bat Speed"], home_to_first: ["Home1st", "Home 1st", "Home to First", "Home to 1st Time"],
+  max_bat_speed: ["Maximum Bat Speed"], avg_bat_speed: ["Avg Bat Speed"],
+  smash_factor: [], max_distance: ["Maximum Distance", "Max Hit Distance"],
   home_to_second: ["Home2nd", "Home 2nd", "Home to Second", "Home to 2nd Time"],
   steal_break: ["Steal Break Time"], boxer_t: ["BoxerT", "Boxer T Time"],
   max_pitch_velocity: ["Max Velo", "Max Pitch Velocity", "Maximum Pitch Velocity", "Maximum Velocity"],
+  avg_pitch_velocity: ["Average Pitch Velocity", "Avg Pitch Velocity", "Avg Velocity"],
+  infield_velocity: ["Infield Velo", "Infield Throwing Velocity"],
+  outfield_velocity: ["Outfield Velo", "Outfield Throwing Velocity"],
   avg_fastball_spin: ["Avg Fastball Spin", "Average Fastball Spin Rate", "Avg Fastball Spin Rate"],
   strike_pct: ["Strike Percentage", "Strike Percent", "Strike Rate"],
   k_pct: ["K Percentage", "Strikeout %", "Strikeout Percentage", "Strikeout Rate"],
@@ -85,6 +101,7 @@ const unitAliases = new Map([
   ["lb", "lb"], ["lbs", "lb"], ["kg", "kg"], ["st", "st"],
   ["%", "%"], ["percent", "%"], ["mph", "mph"], ["km/h", "km/h"], ["m/s", "m/s"],
   ["s", "s"], ["sec", "s"], ["seconds", "s"], ["rpm", "rpm"],
+  ["n", "N"], ["newtons", "N"], ["ratio", "ratio"], ["ft", "ft"], ["feet", "ft"], ["m", "m"], ["meters", "m"],
 ]);
 
 /** Explicit label/unit aliases only. Generic velocity/spin and unitless values stay unresolved. */
@@ -230,7 +247,7 @@ export function getPlayerPerformance({ readings, batches = [], athleteCode, coho
   }
   const own = getPlayerMetricReadings(grouped.get(athleteCode) ?? [], batches, athleteCode);
   const cohort = cohortAthleteCodes === undefined ? [] : [...new Set(cohortAthleteCodes)].flatMap(code => code === athleteCode ? own : getPlayerMetricReadings(grouped.get(code) ?? [], batches, code));
-  const model: PlayerPerformance = { body: [], hitting: [], pitching: [] };
+  const model: PlayerPerformance = { body: [], hitting: [], pitching: [], throwing: [] };
   for (const metric of PLAYER_METRICS) {
     const matching = own.filter(reading => reading.metricKey === metric.key);
     const latest = matching[0] ?? null;

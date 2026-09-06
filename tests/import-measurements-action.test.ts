@@ -31,7 +31,7 @@ describe("staff information import actions", () => {
       observation_id: measurement().id, athlete_code: "SYN-001", metric_key: "max_exit_velocity", measured_at: "2026-09-12", value: 10, unit: "mph",
       source: "Fictional testing", source_file: "fictional.csv", source_sheet: "Fictional tests", source_row: 2, file_hash: fileHash,
     }] });
-    expect(fake.revalidate.mock.calls).toEqual([["/imports"], ["/overview"], ["/athletes", "layout"]]);
+    expect(fake.revalidate.mock.calls).toEqual([["/imports"], ["/overview"], ["/leaderboards"], ["/athletes", "layout"]]);
   });
   it("never forwards extra provider receipt fields to the client", async () => {
     fake.rpc.mockResolvedValue({ data: { import_id: importId, created: 1, unchanged: 0, internal_note: "Fictional unrequested metadata" }, error: null });

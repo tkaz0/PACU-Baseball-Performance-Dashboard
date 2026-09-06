@@ -88,7 +88,7 @@ export function LocalRoster({ initialQuery = "", initialSeason = "" }: { initial
 }
 
 export function LocalAthleteProfile({ id }: { id: string }) {
-  const { roster, measurements, batches, ready, mode, canManage, view, getPerformance } = useLocalWorkspace();
+  const { roster, measurements, batches, ready, mode, canManage, canImport, view, getPerformance } = useLocalWorkspace();
   const [metric, setMetric] = useState("");
   const [source, setSource] = useState("");
   const [limit, setLimit] = useState(100);
@@ -103,17 +103,11 @@ export function LocalAthleteProfile({ id }: { id: string }) {
   const sources = [...new Set(readings.map(m => m.source))].sort();
   const filtered = readings.filter(m => (!metric || metricKey(m) === metric) && (!source || m.source === source));
   const hasRenphoReports = getRenphoReports(readings, batches, athlete.athlete_code).length > 0;
-  return <>
-    {view.role !== "player" && <Link href="/preview/roster" className="profile-back"><ArrowLeft size={15} />Master roster</Link>}
-    <PlayerPerformanceProfile athlete={athlete} performance={getPerformance(athlete.athlete_code)} season={seasons[0]} fictional={mode === "sample"}
-      action={canManage ? <Link href="/preview/import" className="text-link">Import measurements <ArrowRight size={15} /></Link> : undefined} />
-
-    {hasRenphoReports && <details className="panel mt-6" open={canManage}>
+  const physicalityDetails = hasRenphoReports && <details className="panel mt-6">
       <summary className="cursor-pointer px-5 py-5 text-sm font-bold sm:px-6">Full RENPHO charts &amp; report history</summary>
       <div className="border-t border-[#eeeef0] px-5 pb-5 sm:px-6"><RenphoCharts key={athlete.athlete_code} readings={readings} batches={batches} athleteCode={athlete.athlete_code} /></div>
-    </details>}
-
-    {readings.length > 0 && <details id="performance-history" className="panel mt-6" open={canManage}>
+    </details>;
+  const history = readings.length > 0 && <details id="performance-history" className="panel mt-6">
       <summary className="cursor-pointer px-5 py-5 text-sm font-bold sm:px-6">Measurement history <span className="ml-2 text-xs font-normal text-gray-500">{readings.length.toLocaleString()} readings</span></summary>
       <div className="border-t border-[#eeeef0] p-5 sm:p-6">
         <div className="measurement-filters"><label>Measurement filter<select value={metric} onChange={e => { setMetric(e.target.value); setLimit(100); }}><option value="">All measurements</option>{metrics.map(([key, label]) => <option value={key} key={key}>{label}</option>)}</select></label><label>Source filter<select value={source} onChange={e => { setSource(e.target.value); setLimit(100); }}><option value="">All sources</option>{sources.map(s => <option key={s}>{s}</option>)}</select></label></div>
@@ -121,9 +115,14 @@ export function LocalAthleteProfile({ id }: { id: string }) {
         <div className="table-wrap"><table><caption className="sr-only">Imported performance readings for {athleteName(athlete)}</caption><thead><tr><th>Date</th><th>Measurement</th><th>Value</th><th>Unit</th><th>Source</th><th>File / row</th></tr></thead><tbody>{filtered.slice(0, limit).map(m => <tr key={m.id}><td className="whitespace-nowrap">{m.measured_at}</td><td>{m.metric}</td><td className="font-semibold">{String(m.value)}</td><td>{m.unit}</td><td>{m.source}</td><td className="max-w-xs break-words text-xs text-gray-500">{m.source_file}{m.source_sheet && m.source_sheet !== "CSV" ? ` · ${m.source_sheet}` : ""} · Row {m.source_row}</td></tr>)}</tbody></table></div>
         {filtered.length > limit && <button className="btn btn-secondary mt-4" onClick={() => setLimit(limit + 100)}>Show 100 more readings</button>}
       </div>
-    </details>}
+    </details>;
+  return <>
+    {view.role !== "player" && <Link href="/preview/roster" className="profile-back"><ArrowLeft size={15} />Master roster</Link>}
+    <PlayerPerformanceProfile athlete={athlete} performance={getPerformance(athlete.athlete_code)} season={seasons.find(s => s.season === "2026-27") ?? seasons[0]} fictional={mode === "sample"}
+      action={canImport ? <Link href="/preview/import" className="text-link">Import Information <ArrowRight size={15} /></Link> : undefined}
+      physicalityDetails={physicalityDetails} history={history} />
 
-    {canManage && <details className="panel mt-6" open>
+    {canManage && <details className="panel mt-6">
       <summary className="cursor-pointer px-5 py-5 text-sm font-bold sm:px-6">Account and roster details <span className="ml-2 text-xs font-normal text-gray-500">Admin</span></summary>
       <section id="season-details" className="border-t border-[#eeeef0] p-5 sm:p-6" aria-label="Roster and season details">
         <dl className="field-grid mb-6"><div><dt>Roster name</dt><dd>{athlete.first_name} {athlete.last_name}</dd></div><div><dt>Athlete ID</dt><dd>{athlete.athlete_code}</dd></div><div><dt>{mode === "sample" ? "Sample email" : "Roster email"}</dt><dd>{display(athlete.pacific_email)}</dd></div><div><dt>Preferred name</dt><dd>{display(athlete.preferred_name)}</dd></div><div><dt>Roster RENPHO ID</dt><dd>{athlete.renpho_id || "Not added yet"}</dd></div>{!!athlete.renpho_ids?.length && <div><dt>Remembered report IDs</dt><dd><details><summary className="cursor-pointer">{athlete.renpho_ids.length} linked</summary><ul className="mt-2 space-y-1 text-sm">{athlete.renpho_ids.map(reportId => <li key={reportId}>{reportId}</li>)}</ul></details></dd></div>}</dl>

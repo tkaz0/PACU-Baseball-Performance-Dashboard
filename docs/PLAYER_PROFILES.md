@@ -4,7 +4,7 @@ This change adds shared private measurements, profile cards/history, and team co
 
 ## Periods and latest readings
 
-- **Fall 2026:** September 1–December 31, inclusive, for body, hitting and pitching metrics.
+- **Fall 2026:** September 1–December 31, inclusive, for body, hitting, field-throwing and pitching metrics.
 - **Earlier body testing:** June 1–August 31, inclusive, for body metrics only. It remains separate from Fall; baseball summer statistics are excluded.
 
 Profiles display **Last Tested** with the actual latest date and show the requested **Athlete ID**. They do not use summer-baseline labels or duplicate older readings in the snapshot; older observations remain in measurement history.
@@ -13,19 +13,31 @@ These are calendar windows, not a claim that every date has occurred or has meas
 
 Shared measurement pages and comparison summaries both retain round-trip floating-point precision in JSON, including values with more than 15 significant digits. A summary attaches only to the exact athlete, metric, date, value, unit, source and period shown on the profile; raw values and derived percentages are not rounded for matching. Display rounding does not change the underlying measurements or cohort counts.
 
+## Profile tabs
+
+**Physicality** opens first: Weight, Height, Grip Strength and Body Fat % are the main values. Muscle Mass %, recorded speed/agility tests and full RENPHO charts follow below. **Hitting** leads with Max EV, Average EV, Max Bat Speed, Average Bat Speed, Smash Factor and Max Distance. **Throwing** uses explicit primary/secondary positions to show infield or outfield velocity, plus pitching metrics for pitchers and two-way players. An unknown position does not invent a throwing discipline. Gameplay and longer history remain secondary views.
+
+The main display emphasizes the measured value, original unit and **Last Tested** date. Repeated import/provenance and unavailable-percentile messages are removed from the main canvas; optional source/method details remain inspectable. Status is hidden from the staff roster table without changing stored status or comparison eligibility. Staff name searches suggest matching current players as they type; Player views receive no staff directory search.
+
 ## Profile metrics
 
 | Group | Metric | Definition / input | Units | Comparison direction |
 | --- | --- | --- | --- | --- |
 | Body | Height | Reviewed measured height | in, cm | Neutral |
 | Body | Weight | Reviewed body weight | lb, kg, st | Neutral |
+| Body | Grip strength | Explicitly reviewed dynamometer value and protocol | lb, kg, N | Higher |
 | Body | Body fat % | Reported body-fat percentage | % | Neutral |
 | Body | Muscle mass % | Reported percentage, or the supported same-report calculation below | % | Neutral |
 | Hitting | Max EV | Source's reviewed maximum exit velocity for its stated session/sample | mph, km/h, m/s | Higher |
 | Hitting | Average EV | Source's reviewed mean exit velocity for its stated session/sample | mph, km/h, m/s | Higher |
-| Hitting | Bat speed | Reviewed source bat-speed reading | mph, km/h, m/s | Higher |
+| Hitting | Bat speed | Legacy generic source reading; never relabeled as a maximum or average | mph, km/h, m/s | Higher |
+| Hitting | Max / Average bat speed | Separately reviewed session summaries | mph, km/h, m/s | Higher |
+| Hitting | Smash factor | Explicit source-reported ratio; no calculation from unrelated averages | ratio | Higher |
+| Hitting | Max distance | Reviewed session maximum hit distance | ft, m | Higher |
 | Hitting | Home to 1st / Home to 2nd | Elapsed times under the named testing protocol | s | Lower |
 | Hitting | Steal break / Boxer T | Elapsed times under the named testing protocol | s | Lower |
+| Field throwing | Infield / Outfield velocity | Separate reviewed throwing protocols; never substituted for pitch velocity | mph, km/h, m/s | Higher |
+| Pitching | Average velocity | Reviewed mean pitch velocity for its stated session/sample | mph, km/h, m/s | Higher |
 | Pitching | Max velocity | Source's reviewed maximum pitch velocity for its stated session/sample | mph, km/h, m/s | Higher |
 | Pitching | Average fastball spin | Source's reviewed mean fastball spin for its stated sample | rpm | Neutral |
 | Pitching | Strike % | Strikes ÷ pitches × 100 | % | Higher |
@@ -40,11 +52,15 @@ Max/average labels describe approved source summaries; the importer does not cal
 
 The explicit cohort is athletes with an `athlete_seasons` row for `2026-27` and status null, active or redshirt. Inactive, alumni and other-season entries are excluded. A player type is not required when a comparable metric exists.
 
-Use one latest observation per measured cohort athlete for the exact metric, unit, period and source/protocol. Source comparison trims/collapses whitespace and ignores case; distinct protocols must have distinct source labels. Body June–August and September–December observations never share a cohort calculation. The target athlete must belong to the cohort. A percentile appears only when at least **five** comparable athletes are measured; otherwise the sample size is shown without a rank bar.
+Use one latest observation per measured cohort athlete for the exact metric, unit, period and source/protocol. Source comparison trims/collapses whitespace and ignores case; distinct protocols must have distinct source labels. Body June–August and September–December observations never share a cohort calculation. The target athlete must belong to the cohort. A percentile appears only when at least **five** comparable athletes are measured; otherwise no percentile bar is shown. The method detail explains the minimum without repeating it on each card.
 
 For `n` comparable athletes, ascending tied rank is `100 × (below + (equal − 1) / 2) / (n − 1)`, including the target. Lower-direction metrics invert this value. Neutral body metrics and fastball spin show numerical position only: a larger percentile is not a health target, a better body composition or inherently better pitching.
 
-The private summary RPC accepts only the authorized athlete UUID. Its periods, metrics and cohort are fixed. Players receive their own values and aggregate comparison results, never raw peer measurements; they cannot supply thresholds to probe peers. Admin View as also restricts the returned athlete before invoking the RPC.
+The private summary RPC accepts only the authorized athlete UUID. Its periods, metrics and cohort are fixed. For this profile RPC, Players receive their own values and aggregate comparison results, never raw peer measurements; they cannot supply thresholds to probe peers. Admin View as also restricts the returned athlete before invoking the RPC.
+
+## Team leaderboards
+
+The owner separately authorized **all active signed-in players and staff** to see team leaderboard values, including physicality. The dedicated leaderboard RPC exposes a minimal latest-result projection and does not expand normal peer profile/history/contact access. Leaders use one latest comparable reading per eligible athlete, exact metric/unit/source/period choices, tied places and actual measurement dates. Neutral body/spin tables show numerical comparisons without a good/bad score. A leaderboard can show recorded results before five players have tested; the five-player minimum still applies to percentile bars. See [LEADERBOARDS](LEADERBOARDS.md).
 
 ## RENPHO details and derived muscle percentage
 

@@ -22,7 +22,7 @@ const report = (change: Partial<Measurement> = {}) => reading({ source: "RENPHO"
 const own = (readings: Measurement[], batches: ImportBatch[] = []) => getPlayerMetricReadings(readings, batches, athlete(1));
 function card(readings: Measurement[], key: PlayerMetricKey, options: Partial<Parameters<typeof getPlayerPerformance>[0]> = {}) {
   const model = getPlayerPerformance({ readings, athleteCode: athlete(1), ...options });
-  return [...model.body, ...model.hitting, ...model.pitching].find(row => row.metric.key === key)!;
+  return Object.values(model).flat().find(row => row.metric.key === key)!;
 }
 const peers = (values: number[], change: Partial<Measurement> = {}) => values.map((value, index) => reading({
   ...change, id: `fictional-${index}`, athlete_code: athlete(index + 1), value,
@@ -31,10 +31,10 @@ const cohort = (count = 5) => Array.from({ length: count }, (_, i) => athlete(i 
 
 describe("canonical player metric catalog", () => {
   it("defines exactly the requested ordered groups and directions", () => {
-    expect(PLAYER_METRICS.filter(metric => metric.group === "body").map(metric => metric.key)).toEqual(["height", "weight", "body_fat_pct", "muscle_mass_pct"]);
-    expect(PLAYER_METRICS.filter(metric => metric.group === "hitting")).toHaveLength(7);
-    expect(PLAYER_METRICS.filter(metric => metric.group === "pitching")).toHaveLength(5);
-    expect(new Set(PLAYER_METRICS.map(metric => metric.key)).size).toBe(16);
+    expect(PLAYER_METRICS.filter(metric => metric.group === "body").map(metric => metric.key)).toEqual(["height", "weight", "grip_strength", "body_fat_pct", "muscle_mass_pct"]);
+    expect(PLAYER_METRICS.filter(metric => metric.group === "hitting")).toHaveLength(11);
+    expect(PLAYER_METRICS.filter(metric => metric.group === "pitching")).toHaveLength(6);
+    expect(new Set(PLAYER_METRICS.map(metric => metric.key)).size).toBe(24);
     expect(PLAYER_METRICS.filter(metric => metric.direction === "neutral").map(metric => metric.key)).toEqual(["height", "weight", "body_fat_pct", "muscle_mass_pct", "avg_fastball_spin"]);
     expect(PLAYER_METRICS.find(metric => metric.key === "bb_pct")?.direction).toBe("lower");
   });
@@ -62,6 +62,29 @@ describe("canonical player metric catalog", () => {
     for (const [key, unit] of [["height", "in"], ["weight", "kg"], ["home_to_first", "s"]] as const) expect(validatePlayerMetricValue(key, 0, unit)).toBe(false);
     expect(validatePlayerMetricValue("avg_fastball_spin", 0, "rpm")).toBe(true);
     expect(validatePlayerMetricValue("weight", 10, "lbs")).toBe(false); // Normalize aliases first.
+  });
+  it("keeps generic bat speed distinct from maximum and average, with no derived smash factor", () => {
+    const result = getPlayerPerformance({ readings: [reading({ metric: "Bat Speed", value: 70 })], athleteCode: athlete(1) });
+    expect(result.hitting.find(item => item.metric.key === "bat_speed")?.latest?.value).toBe(70);
+    for (const key of ["max_bat_speed", "avg_bat_speed", "smash_factor"]) expect(result.hitting.find(item => item.metric.key === key)?.latest).toBeNull();
+    for (const label of ["Grip", "Throwing Velocity", "Distance", "Average", "Max"]) expect(normalizePlayerMetric(label, "mph")).toBeNull();
+  });
+  it.each([
+    ["Grip Strength", "N", "grip_strength"], ["Maximum Bat Speed", "mph", "max_bat_speed"],
+    ["Avg Bat Speed", "mph", "avg_bat_speed"], ["Smash Factor", "ratio", "smash_factor"],
+    ["Max Distance", "ft", "max_distance"], ["Average Pitch Velocity", "mph", "avg_pitch_velocity"],
+    ["Infield Throwing Velocity", "mph", "infield_velocity"], ["Outfield Velo", "km/h", "outfield_velocity"],
+  ])("retains explicit %s observations and their original %s units", (metric, unit, key) => {
+    const result = own([reading({ metric, unit, value: 42 })]);
+    expect(result[0]).toMatchObject({ metricKey: key, unit, value: 42, measuredAt: "2026-09-12" });
+    expect(result[0].derived).toBe(false);
+  });
+  it("keeps throwing tests in Fall and never uses an infield result as a pitch velocity", () => {
+    const input = [reading({ metric: "Infield Velocity", value: 84 }), reading({ metric: "Outfield Velocity", id: "fictional-of", measured_at: "2026-08-09", value: 90 })];
+    const model = getPlayerPerformance({ readings: input, athleteCode: athlete(1) });
+    expect(model.throwing.find(item => item.metric.key === "infield_velocity")?.latest?.value).toBe(84);
+    expect(model.throwing.find(item => item.metric.key === "outfield_velocity")?.latest).toBeNull();
+    expect(model.pitching.find(item => item.metric.key === "max_pitch_velocity")?.latest).toBeNull();
   });
 });
 

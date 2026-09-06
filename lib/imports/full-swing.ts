@@ -7,8 +7,8 @@ export type FullSwingCategory = "hitting" | "pitching" | "game" | "intrasquad";
 export const FULL_SWING_LABELS: Record<FullSwingCategory, string> = {
   hitting: "Hitting", pitching: "Pitching", game: "Game", intrasquad: "Intrasquad",
 };
-const hittingKeys = ["max_exit_velocity", "avg_exit_velocity", "bat_speed"];
-const pitchingKeys = ["max_pitch_velocity", "avg_fastball_spin", "strike_pct", "k_pct", "bb_pct"];
+const hittingKeys = ["max_exit_velocity", "avg_exit_velocity", "bat_speed", "max_bat_speed", "avg_bat_speed", "smash_factor", "max_distance"];
+const pitchingKeys = ["max_pitch_velocity", "avg_pitch_velocity", "avg_fastball_spin", "strike_pct", "k_pct", "bb_pct"];
 export function fullSwingMetrics(category: FullSwingCategory): PlayerMetricDefinition[] {
   const keys = category === "hitting" ? hittingKeys : category === "pitching" ? pitchingKeys : [...hittingKeys, ...pitchingKeys];
   return PLAYER_METRICS.filter(metric => keys.includes(metric.key));
@@ -41,9 +41,11 @@ export function previewFullSwingSummary(input: {
     if (seen.has(key)) throw new Error("More than one summary appears for the same player, date, and metric. Review the sessions before importing; individual swings and pitches cannot be labeled as a maximum or average.");
     seen.add(key);
   }
-  for (const row of preview.candidateMeasurements.filter(item => item.metric === "Average EV")) {
-    const maximum = preview.candidateMeasurements.find(item => item.athlete_code === row.athlete_code && item.measured_at === row.measured_at && item.metric === "Max EV" && item.unit === row.unit);
-    if (maximum && row.value > maximum.value) throw new Error("Average exit velocity cannot exceed the maximum for the same player and session. Check those columns.");
+  for (const [averageLabel, maximumLabel] of [["Average EV", "Max EV"], ["Average Bat Speed", "Max Bat Speed"], ["Average Velocity", "Max Velocity"]]) {
+    for (const row of preview.candidateMeasurements.filter(item => item.metric === averageLabel)) {
+      const maximum = preview.candidateMeasurements.find(item => item.athlete_code === row.athlete_code && item.measured_at === row.measured_at && item.metric === maximumLabel && item.unit === row.unit);
+      if (maximum && row.value > maximum.value) throw new Error(`${averageLabel} cannot exceed ${maximumLabel} for the same player and session. Check those columns.`);
+    }
   }
   if (preview.canApply) prepareReviewedPerformanceRows(preview.candidateMeasurements);
   return preview;

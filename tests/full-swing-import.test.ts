@@ -47,4 +47,21 @@ describe("reviewed Full Swing summary imports", () => {
   it("rejects averages above the maximum in the same unit", () => {
     expect(() => run(`Player,Date,Max,Avg\n${player.athlete_code},2026-09-12,92,94`, { mapping: { ...mapping, metrics: [mapping.metrics[0], { column: 3, label: "Average EV", unit: "mph" }] } })).toThrow("cannot exceed");
   });
+  it.each([
+    ["hitting", "Max Bat Speed", "Average Bat Speed"],
+    ["pitching", "Max Velocity", "Average Velocity"],
+  ] as const)("requires consistent reviewed %s maximum and average", (category, maximum, average) => {
+    const selected = { ...mapping, metrics: [{ column: 2, label: maximum, unit: "mph" }, { column: 3, label: average, unit: "mph" }] };
+    expect(() => run(`Player,Date,Max,Avg\n${player.athlete_code},2026-09-12,70,75`, { category, mapping: selected })).toThrow("cannot exceed");
+    const result = run(`Player,Date,Max,Avg\n${player.athlete_code},2026-09-12,75,70`, { category, mapping: selected });
+    expect(result.canApply).toBe(true);
+    expect(result.candidateMeasurements.map(row => row.value)).toEqual([75, 70]);
+  });
+  it("accepts separately reviewed smash factor and distance without calculating either", () => {
+    const result = run(`Player,Date,Ratio,Distance\n${player.athlete_code},2026-09-12,1.3,300`, { mapping: { ...mapping, metrics: [
+      { column: 2, label: "Smash Factor", unit: "ratio" }, { column: 3, label: "Max Distance", unit: "ft" },
+    ] } });
+    expect(result.canApply).toBe(true);
+    expect(result.candidateMeasurements.map(row => [row.metric, row.value, row.unit])).toEqual([["Smash Factor", 1.3, "ratio"], ["Max Distance", 300, "ft"]]);
+  });
 });

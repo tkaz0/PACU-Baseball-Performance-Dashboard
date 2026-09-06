@@ -7,8 +7,8 @@ Open **Information Imports** at `/imports` while signed in as an active Admin or
 | Area | Input | Destination |
 | --- | --- | --- |
 | Physicality | Supported RENPHO Body Composition Analysis Report: PNG/JPG or one-page PDF, up to 10 MiB | Body measurements and RENPHO report charts |
-| Hitting | Explicitly mapped CSV, up to 2 MiB | Max/average exit velocity and bat speed |
-| Pitching | Explicitly mapped CSV, up to 2 MiB | Max velocity, average fastball spin, strike/strikeout/walk percentages |
+| Hitting | Explicitly mapped CSV, up to 2 MiB | Max/average exit velocity, separate max/average bat speed, smash factor and max distance |
+| Pitching | Explicitly mapped CSV, up to 2 MiB | Max/average pitch velocity, average fastball spin, strike/strikeout/walk percentages |
 | Games / Intrasquad | Select Game or Intrasquad, then explicitly map a CSV | Separately labeled Full Swing game or intrasquad readings |
 
 Each shared import accepts 1–500 reviewed readings within 1 MiB. Inputs retain the actual file hash, source sheet, row and column. Repeat observations are unchanged; conflicting remaps fail atomically. A filename change alone never overwrites the original provenance.
@@ -25,7 +25,7 @@ The reader fetches only numerical observations with the exact uploaded file hash
 
 **No actual Full Swing export was available for this release.** The labeled upload areas support manual review of summary CSV columns; they are not a validated automatic Full Swing parser. The first real export is needed before adding a vendor-specific adapter, including any individual-swing/pitch aggregation.
 
-Each row must already contain one player's session summaries. Map player name, PAC ID or email; explicitly resolve unmatched export identities against the roster. Choose the original date and units, then select only supported profile metrics. Percentages are 0–100 percentage points. Average fastball spin must already exclude other pitch types. Repeated player/date/metric rows block saving rather than silently selecting a raw event as the maximum or average. Average EV cannot exceed max EV in the same unit.
+Each row must already contain one player's session summaries. Map player name, PAC ID or email; explicitly resolve unmatched export identities against the roster. Choose the original date and units, then select only supported profile metrics. Percentages are 0–100 percentage points. Average fastball spin must already exclude other pitch types. Repeated player/date/metric rows block saving rather than silently selecting a raw event as the maximum or average. Average EV, bat speed and pitch velocity cannot exceed their matching maximum in the same unit. Generic Bat Speed remains separate; smash factor and distance must be explicitly supplied, not derived from other summaries.
 
 Only September 1–December 31, 2026 dates are accepted in these Full Swing flows. Hitting, Pitching, Game and Intrasquad use distinct source labels so comparisons do not mix their protocols. Raw CSV files stay in the browser; only approved numeric observations and provenance are sent.
 
@@ -36,3 +36,5 @@ Blank PACU summary templates are downloadable from each lane. These are explicit
 The hub links to shared import receipts, the advanced browser importer, and the Admin-only roster importer. Advanced CSV/TSV/XLSX mapping and backup restore remain available within their existing permissions. The separate Fall 2026 Google Sheets snapshot workflow is described in [GAME_STATS](GAME_STATS.md); Google game totals never become Full Swing readings.
 
 Account invitations remain disabled and unsent pending the owner's review.
+
+The shared metric catalog also accepts reviewed grip strength and separate infield/outfield velocity through the advanced measurement mapping and shared-review path. These are not extracted from RENPHO reports or inferred from Full Swing pitch velocity. Existing active Coaches can import; an administrator choosing **View as Coach** is deliberately a read-only preview, not a second Coach login.

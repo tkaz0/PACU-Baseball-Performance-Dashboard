@@ -28,6 +28,7 @@ export async function saveReviewedMeasurements(measurements: unknown, confirmed:
   } catch { return { error: "The save could not be confirmed. Refresh the profiles before retrying; conflicting observations are never replaced." }; }
   revalidatePath("/imports");
   revalidatePath("/overview");
+  revalidatePath("/leaderboards");
   revalidatePath("/athletes", "layout");
   return receipt;
 }

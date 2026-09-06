@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, UsersRound, Upload, ShieldCheck, UserRound, ChevronRight, Settings, BarChart3 } from "lucide-react";
+import { LayoutDashboard, UsersRound, Upload, ShieldCheck, UserRound, ChevronRight, Settings, BarChart3, ListOrdered } from "lucide-react";
 import type { Role } from "@/lib/types";
 import { PacificBrand } from "@/components/pacific-brand";
 export function Sidebar({ roles, athleteId, isPreview = false }: { roles: Role[]; athleteId: string | null; isPreview?: boolean }) {
@@ -11,6 +11,7 @@ export function Sidebar({ roles, athleteId, isPreview = false }: { roles: Role[]
     ...(staff ? [{ href: "/roster", label: "Team Roster", icon: UsersRound }] : []),
     ...(athleteId ? [{ href: `/athletes/${athleteId}`, label: "My Profile", icon: UserRound }] : []),
     { href: "/game-stats", label: "Game Stats", icon: BarChart3 },
+    { href: "/leaderboards", label: "Leaderboards", icon: ListOrdered },
     ...(staff && !isPreview ? [{ href: "/imports", label: "Information Imports", icon: Upload }] : []),
     ...(roles.includes("admin") ? [{ href: "/admin/rollout", label: "Team Rollout", icon: UsersRound }, { href: "/admin/access", label: "Account Access", icon: ShieldCheck }] : []),
     { href: "/settings", label: "Settings", icon: Settings }];

@@ -53,7 +53,8 @@ test("player snapshot shows exact own readings and team percentiles without peer
   await expect(profile.getByRole("heading", { name: "Avery Northstar", exact: true })).toBeVisible();
   await expect(profile.locator("dt").filter({ hasText: /^Jersey Number$/ }).locator("+ dd")).toHaveText("0");
   for (const text of ["fictional.avery@example.com", "Eligibility year", "Blake Cloudfield", "Account and roster details"]) await expect(page.locator("main")).not.toContainText(text);
-  await expect(profile.getByRole("heading", { name: "Pitching Performance", exact: true })).toHaveCount(0);
+  await expect(profile.getByRole("heading", { name: "Pitching", exact: true, includeHidden: true })).toHaveCount(0);
+  await profile.getByRole("tab", { name: "Hitting", exact: true }).click();
   const max = profile.getByTestId("player-metric").filter({ has: page.locator('h3', { hasText: /^Max EV$/ }) });
   await expect(max).toHaveAttribute("data-value", "90");
   await expect(max).toHaveAttribute("data-unit", "mph");
@@ -62,15 +63,16 @@ test("player snapshot shows exact own readings and team percentiles without peer
   await expect(max.getByRole("meter")).toHaveAttribute("aria-valuenow", "0");
   const average = profile.getByTestId("player-metric").filter({ has: page.locator('h3', { hasText: /^Average EV$/ }) });
   await expect(average).toHaveAttribute("data-value", "80");
-  await expect(average).toContainText("Pacific n=3");
-  await expect(average).toContainText("Need 5 comparable players");
+  await expect(average).not.toContainText("Need 5 comparable players");
   await expect(average.getByRole("meter")).toHaveCount(0);
+  await profile.getByRole("tab", { name: "Physicality", exact: true }).click();
   const body = profile.getByTestId("player-metric").filter({ has: page.locator('h3', { hasText: /^Weight$/ }) });
   await expect(body).toHaveAttribute("data-value", "170");
   await expect(body).toHaveAttribute("data-date", "2026-08-09");
   await expect(body).toContainText("Last Tested: Aug 9, 2026");
   await expect(body.getByTestId("player-percentile")).toHaveAttribute("data-direction", "neutral");
-  const missing = profile.getByTestId("player-metric").filter({ has: page.locator('h3', { hasText: /^Bat Speed$/ }) });
+  await profile.getByRole("tab", { name: "Hitting", exact: true }).click();
+  const missing = profile.getByTestId("player-metric").filter({ has: page.locator('h3', { hasText: /^Max Bat Speed$/ }) });
   await expect(missing).toContainText("No data");
   await expect(missing.getByRole("meter")).toHaveCount(0);
   await expect(profile.getByTestId("player-performance-methods")).not.toHaveAttribute("open", "");
@@ -103,4 +105,21 @@ test("players can expand their full RENPHO charts, own history and source method
   await expect(sources).toContainText("Muscle mass ÷ weight × 100");
   await expect(sources).not.toContainText("fictional-body-1.png");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+
+test("profile tabs have keyboard selection and only the chosen panel is visible", async ({ page }) => {
+  await restoreAndPreviewPlayer(page);
+  const profile=page.getByTestId("player-performance-profile"),physicality=profile.getByRole("tab",{name:"Physicality",exact:true});
+  await expect(physicality).toHaveAttribute("aria-selected","true");
+  await expect(profile.getByRole("tabpanel",{name:"Physicality",exact:true})).toBeVisible();
+  await physicality.focus();await page.keyboard.press("ArrowRight");
+  await expect(profile.getByRole("tab",{name:"Hitting",exact:true})).toBeFocused();
+  await expect(profile.getByRole("tabpanel",{name:"Hitting",exact:true})).toBeVisible();
+  await expect(profile.getByRole("tabpanel",{name:"Physicality",exact:true,includeHidden:true})).not.toBeVisible();
+  await page.keyboard.press("End");await expect(profile.getByRole("tab",{name:"Throwing",exact:true})).toBeFocused();
+  await expect(profile.getByRole("heading",{name:"Outfield Velocity",exact:true})).toBeVisible();
+  await expect(profile.getByRole("heading",{name:"Infield Velocity",exact:true})).toHaveCount(0);
+  await page.keyboard.press("Home");await expect(physicality).toBeFocused();
+  await page.keyboard.press("ArrowLeft");await expect(profile.getByRole("tab",{name:"Throwing",exact:true})).toBeFocused();
 });

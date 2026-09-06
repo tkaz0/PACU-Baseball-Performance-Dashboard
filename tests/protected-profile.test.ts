@@ -78,17 +78,20 @@ describe("protected profile route authorization and integration", () => {
   it.each([false, true])("omits administrative controls, roster email and account metadata from rendered player view (preview=%s)", async preview => {
     fake.access.mockResolvedValueOnce(access(["player"], ownId, preview));
     const html = renderToStaticMarkup(await Profile({ params: Promise.resolve({ id: ownId }) }));
-    for (const hidden of ["private-roster@example.com", "private-login@example.com", "Administrative roster details", "Roster email", "Academic class", "graduate", "redshirt", "Permanent athlete code", "/admin/performance", "Team roster"]) expect(html).not.toContain(hidden);
+    for (const hidden of ["private-roster@example.com", "private-login@example.com", "Administrative roster details", "Roster email", "Academic class", "graduate", "redshirt", "Permanent athlete code", "/admin/performance", "/imports", "Team roster"]) expect(html).not.toContain(hidden);
     expect(html).toContain("Measurement history");
     expect(html).not.toContain('data-testid="player-percentile"');
   });
-  it("keeps coach view read-only and renders management details only for presented admin", async () => {
+  it("shows imports to actual staff, hides them in View as, and limits management details to presented admin", async () => {
     fake.access.mockResolvedValueOnce(access(["coach"], null));
     const coach = renderToStaticMarkup(await Profile({ params: Promise.resolve({ id: ownId }) }));
-    expect(coach).toContain("Team roster"); expect(coach).not.toContain("Administrative roster details"); expect(coach).not.toContain("private-roster@example.com"); expect(coach).not.toContain("Share measurements");
+    expect(coach).toContain("Team roster"); expect(coach).not.toContain("Administrative roster details"); expect(coach).not.toContain("private-roster@example.com"); expect(coach).toContain('href="/imports"');
+    fake.access.mockResolvedValueOnce(access(["coach"], null, true));
+    const preview = renderToStaticMarkup(await Profile({ params: Promise.resolve({ id: ownId }) }));
+    expect(preview).not.toContain('href="/imports"');
     fake.access.mockResolvedValueOnce(access(["admin"], null));
     const admin = renderToStaticMarkup(await Profile({ params: Promise.resolve({ id: ownId }) }));
-    expect(admin).toContain("Administrative roster details"); expect(admin).toContain("private-roster@example.com"); expect(admin).toContain('href="/admin/performance"');
+    expect(admin).toContain("Administrative roster details"); expect(admin).toContain("private-roster@example.com"); expect(admin).toContain('href="/imports"');
   });
   it("uses own aggregate overlays without peer rows and keeps baseball outside Fall out of history", async () => {
     fake.load.mockResolvedValueOnce({ measurements: [reading(), reading({ id: "fictional-summer", measured_at: "2026-08-12", metric: "Summer-only metric" }), reading({ id: "fictional-old", measured_at: "2025-09-12", metric: "Old-only metric" })], batches: [], percentileOverrides: [{

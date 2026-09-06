@@ -16,9 +16,11 @@ Built with Next.js 16, React 19, TypeScript, Tailwind 4, Supabase Auth/PostgreSQ
 ## Available workflows
 
 - **Admin:** roster and measurement imports, account configuration, coach preparation, and read-only **View as Coach/Player** with explicit athlete selection and **Exit preview**.
-- **Coach:** team roster, shared profiles and performance imports. **Player:** only the explicitly linked athlete. Live account status and PostgreSQL RLS enforce access.
+- **Coach:** team roster, shared profiles and performance imports. **Player:** the explicitly linked profile plus the owner-authorized team leaderboard. Live account status and PostgreSQL RLS enforce access.
 - **Appearance:** Light, Dark or System, saved in the current browser; System follows device appearance. Every account can change it in Settings or the header.
-- **Player profiles:** body, hitting and pitching cards with exact values/units, history and measured-team percentiles. Baseball uses **Fall 2026**; body measurements retain their actual testing dates and separate comparison periods. Missing measurements stay empty. See [PLAYER_PROFILES](docs/PLAYER_PROFILES.md).
+- **Player profiles:** Physicality, Hitting and Throwing tabs with main values/units and actual Last Tested dates, plus secondary RENPHO, Games and history views. Baseball uses **Fall 2026**; body measurements retain their actual testing dates and separate comparison periods. Missing measurements stay empty. See [PLAYER_PROFILES](docs/PLAYER_PROFILES.md).
+- **Leaderboards:** all active signed-in players and staff can compare the eligible current team's latest reviewed testing results by Physicality, Hitting and Throwing. Metric, source, unit and testing period stay separate; normal peer profile/history access remains restricted. See [LEADERBOARDS](docs/LEADERBOARDS.md).
+- **Staff search:** names and PAC IDs suggest matching player profiles while typing in the header or roster search. Ordinary roster tables omit status while retaining stored eligibility.
 - **Information Imports:** Physicality (RENPHO), Hitting (Full Swing CSV), Pitching (Full Swing CSV), and Games / Intrasquad (Full Swing CSV). Live roster matching and explicit review precede sharing. Full Swing currently supports manually mapped session summaries; an actual export is still needed to validate automatic parsing of raw swing/pitch logs.
 - **RENPHO review:** browser-local OCR for the supported portrait report layout, followed by explicit player/date/value/unit review and direct profile saving. Existing mass bars, percentage bars and report history use approved numerical readings.
 - **Shared measurements:** select a reviewed browser backup, inspect supported readings and exclusions, then approve uploading only whitelisted numerical observations and source provenance. Images, OCR text, report IDs and the full backup are not uploaded by this flow.
@@ -45,7 +47,7 @@ On the owner's Mac, **Start PACU.command** starts the local app; keep its Termin
 
 - [SETUP](docs/SETUP.md): environments, migrations, account setup, sharing and deployment.
 - [INFORMATION_IMPORTS](docs/INFORMATION_IMPORTS.md), [GAME_STATS](docs/GAME_STATS.md) and [APPEARANCE](docs/APPEARANCE.md): current upload, source-update and appearance workflows.
-- [PLAYER_PROFILES](docs/PLAYER_PROFILES.md): metric definitions, periods, comparisons and import boundaries.
+- [PLAYER_PROFILES](docs/PLAYER_PROFILES.md) and [LEADERBOARDS](docs/LEADERBOARDS.md): profile tabs, metric definitions, periods, comparisons and read boundaries.
 - [BRANDING](docs/BRANDING.md): official asset sources and presentation rules.
 - [ATHLETE_IDS](docs/ATHLETE_IDS.md): stable PAC IDs, old-import compatibility and reviewed migration.
 - [DATA_MODEL](docs/DATA_MODEL.md): identities, roles, measurements, provenance and database controls.

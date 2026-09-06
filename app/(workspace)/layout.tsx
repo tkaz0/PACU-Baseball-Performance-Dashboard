@@ -2,17 +2,16 @@ import { requireAccess } from "@/lib/auth";
 import { Sidebar } from "@/components/sidebar";
 import { AccessPreviewControl } from "@/components/access-preview-control";
 import { AppearanceControl } from "@/components/appearance-control";
+import { StaffAthleteSearch } from "@/components/staff-athlete-search";
+import { loadStaffAthleteChoices } from "@/lib/staff-athlete-search-server";
 import { logout } from "@/app/auth/actions";
 import { LogOut, Eye } from "lucide-react";
 export const dynamic = "force-dynamic";
 export default async function WorkspaceLayout({ children }: { children: React.ReactNode }) {
-  const { supabase, user, roles, athleteId, actualRoles, preview, previewAthleteName } = await requireAccess();
-  let athletes: { id: string; label: string }[] = [];
-  if (actualRoles.includes("admin") && !preview) {
-    const { data, error } = await supabase.from("athletes").select("id,athlete_code,first_name,preferred_name,last_name,athlete_seasons!inner(season)").eq("athlete_seasons.season", "2026-27").order("last_name").limit(1000);
-    if (error) throw new Error("Unable to load player preview choices.");
-    athletes = (data ?? []).map(a => ({ id: a.id, label: `${a.preferred_name || a.first_name} ${a.last_name}` }));
-  }
+  const access = await requireAccess();
+  const { user, roles, athleteId, actualRoles, preview, previewAthleteName } = access;
+  const searchAthletes = await loadStaffAthleteChoices(access);
+  const athletes = actualRoles.includes("admin") && !preview ? searchAthletes.map(a => ({ id: a.id, label: a.name })) : [];
   return <div className="workspace-shell">
     <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:bg-white focus:p-4">Skip to content</a>
     <Sidebar roles={roles} athleteId={athleteId} isPreview={!!preview} />
@@ -20,6 +19,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
       <header className="workspace-topbar">
         <p><span className="topbar-diamond" aria-hidden="true" />Pacific Baseball<span className="topbar-divider" aria-hidden="true">/</span><span className="text-gray-500">Private workspace</span></p>
         <div className="flex flex-wrap items-center gap-3">
+          {roles.some(role => role === "admin" || role === "coach") && <StaffAthleteSearch athletes={searchAthletes} compact />}
           <AppearanceControl />
           <div className="text-right"><p className="mb-0 max-w-[220px] truncate text-sm">{user.email}</p><p className="mb-0 text-xs capitalize text-gray-500">{preview ? `As: ${preview.role}` : roles.join(" · ")}</p></div>
           {actualRoles.includes("admin") && <AccessPreviewControl preview={preview} athletes={athletes} />}

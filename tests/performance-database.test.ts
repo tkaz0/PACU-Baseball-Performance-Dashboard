@@ -1,7 +1,7 @@
 import { PGlite } from "@electric-sql/pglite";
 import { beforeAll, beforeEach, afterAll, describe, expect, it, vi } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
-import { getPlayerPerformance } from "@/lib/player-performance";
+import { getPlayerPerformance, PLAYER_METRICS, normalizePlayerMetric } from "@/lib/player-performance";
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/auth", () => ({ requireImportAccess: vi.fn() }));
@@ -76,6 +76,27 @@ beforeEach(async () => {
 afterAll(async()=>{await db.close();});
 
 describe("shared performance authorization",()=>{
+  it("keeps new testing metric units aligned through Coach import, database JSON, and player cards", async () => {
+    const catalog = await db.query<{metric_key:string;metric_label:string;unit:string;direction:string;body_metric:boolean}>("select c.metric_key,c.metric_label,c.direction,c.body_metric,u.unit from private.performance_metric_catalog c join private.performance_metric_units u using(metric_key) where c.profile_metric");
+    for (const definition of PLAYER_METRICS) {
+      const rows = catalog.rows.filter(item => item.metric_key === definition.key);
+      expect(rows.map(item => item.unit).sort()).toEqual([...definition.units].sort());
+      for (const saved of rows) {
+        expect(normalizePlayerMetric(saved.metric_label, saved.unit)).toEqual({key:definition.key,unit:saved.unit});
+        expect(saved.direction).toBe(definition.direction);
+        expect(saved.body_metric).toBe(definition.group === "body");
+      }
+    }
+    const newKeys = ["grip_strength","max_bat_speed","avg_bat_speed","smash_factor","max_distance","avg_pitch_velocity","infield_velocity","outfield_velocity"];
+    const added = PLAYER_METRICS.filter(item => newKeys.includes(item.key));
+    const before = await counts();
+    await asUser(users.coach, () => importRows(added.map((metric,index) => row(1,{metric_key:metric.key,unit:metric.units[0],value:metric.key==="smash_factor"?1.3:40},index))));
+    expect((await counts()).n).toBe(before.n+added.length);
+    const {profile} = await asUser(users.playerA, loadPlayerProfile);
+    const cards = Object.values(profile).flat();
+    for (const metric of added) expect(cards.find(item=>item.metric.key===metric.key)?.latest).toMatchObject({value:metric.key==="smash_factor"?1.3:40,unit:metric.units[0]});
+    expect(cards.find(item=>item.metric.key==="bat_speed")?.latest).toBeNull();
+  });
   it("denies anonymous reads, imports, percentile summaries and private catalog access",async()=>{
     await asUser(null,async()=>{
       await expect(db.query("select * from public.performance_measurements")).rejects.toThrow("permission denied");

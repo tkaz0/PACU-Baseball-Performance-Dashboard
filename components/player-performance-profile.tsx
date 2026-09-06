@@ -1,80 +1,68 @@
 import type { ReactNode } from "react";
 import { PacificLogo } from "@/components/pacific-brand";
-import { Activity, ArrowDown, ArrowUp, ChevronDown } from "lucide-react";
+import { ProfileTabs, type ProfileTab } from "@/components/profile-tabs";
+import { ArrowDown, ArrowUp, ChevronDown } from "lucide-react";
 import { athleteName, display, type AthleteSeason, type RosterAthlete } from "@/lib/types";
+import { getPlayerProfileLayout } from "@/lib/player-profile-layout";
 import type { getPlayerPerformance, PlayerMetricCard, PlayerMetricReading } from "@/lib/player-performance";
 
 export type PlayerPerformanceProfileProps = {
-  athlete: RosterAthlete;
-  performance: ReturnType<typeof getPlayerPerformance>;
-  season?: AthleteSeason | null;
-  fictional?: boolean;
-  action?: ReactNode;
+  athlete: RosterAthlete; performance: ReturnType<typeof getPlayerPerformance>; season?: AthleteSeason | null;
+  fictional?: boolean; action?: ReactNode; physicalityDetails?: ReactNode; games?: ReactNode; history?: ReactNode;
 };
-
 function measurementDate(value: string) {
   const date = new Date(`${value.slice(0, 10)}T12:00:00Z`);
   return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(date);
 }
-
 function ReadingValue({ reading }: { reading: PlayerMetricReading }) {
   const value = reading.derived ? `≈${reading.value.toFixed(1)}` : String(reading.value);
-  return <><span className="break-all font-bold tabular-nums">{value}</span><span className="ml-1 text-xs font-medium text-[#65666b]">{reading.unit}</span></>;
+  return <><span className="break-all font-bold tabular-nums">{value}</span><span className="ml-1.5 text-sm font-medium text-[var(--text-secondary)]">{reading.unit}</span></>;
 }
-
 function Percentile({ card }: { card: PlayerMetricCard }) {
   const percentile = card.percentile;
-  const available = card.latest && percentile && Number.isFinite(percentile.value) && percentile.value >= 0 && percentile.value <= 100 && percentile.sampleSize >= 5;
-  const neutral = card.metric.direction === "neutral";
-  if (!available) {
-    return <div className="text-xs leading-5 text-[#74757a]" data-testid="player-percentile-unavailable">
-      {card.cohortSampleSize !== null && card.latest && <span className="mr-1.5 font-semibold text-[#55565c]">Pacific n={card.cohortSampleSize}</span>}
-      {card.percentileStatus === "small_cohort" ? "Need 5 comparable players" : card.latest ? "Team comparison not available" : "Percentile appears after testing"}
-    </div>;
-  }
-  const rounded = Math.round(percentile.value);
-  return <div data-testid="player-percentile" data-metric-key={card.metric.key} data-percentile={percentile.value} data-sample-size={percentile.sampleSize} data-direction={card.metric.direction}>
-    <div className="mb-2 flex items-baseline justify-between gap-3"><span className="text-[11px] font-medium text-[#737479]">Pacific n={percentile.sampleSize}</span><span className={`text-xs font-bold tabular-nums ${neutral ? "text-[#484950]" : "text-pacu-red"}`}>{rounded}<span className="ml-1 font-normal text-[#737479]">percentile</span></span></div>
-    <div role="meter" aria-label={`${card.metric.label} Pacific percentile`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percentile.value} aria-valuetext={`${rounded} percentile among ${percentile.sampleSize} comparable Pacific players${neutral ? "; measured value, not a rating" : ""}`} className="relative h-2.5 rounded-full bg-[#eeeeef]" data-testid="player-percentile-bar">
+  if (!card.latest || !percentile || !Number.isFinite(percentile.value) || percentile.value < 0 || percentile.value > 100 || percentile.sampleSize < 5) return null;
+  const rounded = Math.round(percentile.value), neutral = card.metric.direction === "neutral";
+  return <div className="mt-4" data-testid="player-percentile" data-metric-key={card.metric.key} data-percentile={percentile.value} data-sample-size={percentile.sampleSize} data-direction={card.metric.direction}>
+    <div className="mb-2 flex flex-wrap items-baseline justify-between gap-1 text-[11px] text-[var(--text-secondary)]"><span>Pacific n={percentile.sampleSize}</span><span><strong className="text-[var(--text-primary)]">{rounded}</strong> percentile</span></div>
+    <div role="meter" aria-label={`${card.metric.label} Pacific percentile`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percentile.value} aria-valuetext={`${rounded} percentile among ${percentile.sampleSize} comparable Pacific players${neutral ? "; measured value, not a rating" : ""}`} className="relative h-2.5 overflow-hidden rounded-full bg-[var(--surface-raised)]" data-testid="player-percentile-bar">
       <span className={`absolute inset-y-0 left-0 rounded-full ${neutral ? "bg-[#6d6e75]" : "bg-pacu-red"}`} style={{ width: `${percentile.value}%` }} aria-hidden="true" />
-      <span className="absolute -top-0.5 left-1/2 h-3.5 w-px bg-[#484950]/45" aria-hidden="true" />
-      <span className={`absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white ${neutral ? "bg-[#6d6e75]" : "bg-pacu-red"}`} style={{ left: `${percentile.value}%` }} aria-hidden="true" />
+      <span className="absolute inset-y-0 left-1/2 w-px bg-[var(--text-secondary)] opacity-40" aria-hidden="true" />
     </div>
   </div>;
 }
-
-function MetricRow({ card }: { card: PlayerMetricCard }) {
+function MetricCard({ card }: { card: PlayerMetricCard }) {
   const reading = card.latest;
-  return <li className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-5 gap-y-3 border-t border-[#eeeef0] px-5 py-4 sm:px-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_6rem]" data-testid="player-metric" data-metric-key={card.metric.key} data-value={reading?.value} data-unit={reading?.unit} data-date={reading?.measuredAt}>
-    <div className="min-w-0"><h3 className="m-0 text-sm font-semibold text-[#24252a]">{card.metric.label}</h3>
-      {reading && <p className="mb-0 mt-1 text-[11px] text-[#74757a]">Last Tested: <time dateTime={reading.measuredAt}>{measurementDate(reading.measuredAt)}</time>{reading.derived ? " · Calculated" : ""}</p>}
-    </div>
-    <div className="text-right text-lg md:order-3">{reading ? <ReadingValue reading={reading} /> : <span className="text-sm font-medium text-[#8a8b90]">No data</span>}</div>
-    {reading ? <div className="col-span-2 min-w-0 md:order-2 md:col-span-1"><Percentile card={card} /></div> : <div className="hidden md:order-2 md:block" aria-hidden="true" />}
+  return <li className="min-w-0 rounded-xl border border-[var(--line-subtle)] bg-[var(--surface-panel)] p-4 sm:p-5" data-testid="player-metric" data-metric-key={card.metric.key} data-value={reading?.value} data-unit={reading?.unit} data-date={reading?.measuredAt}>
+    <h3 className="m-0 text-sm font-semibold text-[var(--text-secondary)]">{card.metric.key === "bat_speed" ? "Bat Speed (Unspecified)" : card.metric.label}</h3>
+    <div className="mt-3 text-3xl leading-tight text-[var(--text-primary)]">{reading ? <ReadingValue reading={reading} /> : <span className="text-xl font-medium text-[var(--text-secondary)]">No data</span>}</div>
+    {reading && <p className="mb-0 mt-2 text-[11px] text-[var(--text-secondary)]">Last Tested: <time dateTime={reading.measuredAt}>{measurementDate(reading.measuredAt)}</time>{reading.derived ? " · Calculated" : ""}</p>}
+    <Percentile card={card} />
   </li>;
 }
-
-function MetricGroup({ id, title, description, cards, neutral = false }: { id: string; title: string; description: string; cards: PlayerMetricCard[]; neutral?: boolean }) {
-  const hasPercentile = cards.some(card => card.percentile && card.percentile.sampleSize >= 5);
-  return <section id={id} className="overflow-hidden rounded-lg border border-[#e0e0e3] bg-white" aria-labelledby={`${id}-heading`}>
-    <div className="flex flex-wrap items-start justify-between gap-3 px-5 py-5 sm:px-6"><div><h2 id={`${id}-heading`} className="m-0 text-xl font-bold tracking-tight">{title}</h2><p className="mb-0 mt-1 max-w-2xl text-xs leading-5 text-[#717277]">{description}</p></div><span className="rounded border border-[#e9e9eb] px-2 py-1 text-[10px] font-bold uppercase tracking-[.1em] text-[#686970]">{neutral ? "Measured values" : "Fall 2026"}</span></div>
-    {hasPercentile && <div className="hidden grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_6rem] gap-x-5 border-t border-[#eeeef0] bg-[#fbfbfc] px-6 py-2 text-[10px] font-semibold uppercase tracking-[.08em] text-[#77787e] md:grid"><span>Measurement / test date</span><div className="flex justify-between"><span>0</span><span>Pacific percentile · 50</span><span>100</span></div><span className="text-right">Latest</span></div>}
-    <ul className="m-0 list-none p-0">{cards.map(card => <MetricRow key={card.metric.key} card={card} />)}</ul>
-    {!cards.length && <p className="mx-5 mb-5 text-sm text-[#717277]">No reviewed measurements are available in this group.</p>}
-  </section>;
+function MetricGroup({ id, title, cards }: { id: string; title: string; cards: PlayerMetricCard[] }) {
+  return <section id={id} aria-labelledby={`${id}-heading`} className="min-w-0"><h2 id={`${id}-heading`} className="mb-4 text-lg font-bold">{title}</h2><ul className={`m-0 grid list-none grid-cols-1 gap-3 p-0 min-[360px]:grid-cols-2 ${cards.length === 4 ? "xl:grid-cols-4" : "xl:grid-cols-3"}`}>{cards.map(card => <MetricCard key={card.metric.key} card={card} />)}</ul></section>;
 }
-
-export function PlayerPerformanceProfile({ athlete, performance, season, fictional = false, action }: PlayerPerformanceProfileProps) {
+export function PlayerPerformanceProfile({ athlete, performance, season, fictional = false, action, physicalityDetails, games, history }: PlayerPerformanceProfileProps) {
   const selectedSeason = season ?? [...athlete.athlete_seasons].sort((a, b) => b.season.localeCompare(a.season))[0];
-  const playerType = selectedSeason?.player_type?.toLowerCase().replace(/[\s-]+/g, "_");
-  const showHitting = playerType !== "pitcher";
-  const showPitching = playerType !== "position";
   const position = [selectedSeason?.primary_position, selectedSeason?.secondary_position].filter((value, index, values) => value && values.indexOf(value) === index).join(" / ");
-  const cards = [...performance.body, ...(showHitting ? performance.hitting : []), ...(showPitching ? performance.pitching : [])];
-  const sourcedCards = cards.filter(card => card.latest);
+  const layout = getPlayerProfileLayout(performance, selectedSeason);
+  const cards = Object.values(performance).flat(), sourcedCards = cards.filter(card => card.latest);
   const lastTested = sourcedCards.map(card => card.latest!.measuredAt).sort().at(-1);
-  const bodyFirst = performance.body.some(card => card.latest) && ![...(showHitting ? performance.hitting : []), ...(showPitching ? performance.pitching : [])].some(card => card.latest);
-  const body = <MetricGroup id="body-measurements" title="Body Measurements" description="Your latest body measurements and testing dates. Body percentiles describe measured values, not a rating." cards={performance.body} neutral />;
+  const tabs: ProfileTab[] = [
+    { id: "physicality", label: "Physicality", content: <>
+      <MetricGroup id="body-measurements" title="Physicality" cards={layout.physicality} />
+      {!!layout.additionalBody.length && <MetricGroup id="body-composition" title="Body Composition" cards={layout.additionalBody} />}
+      {physicalityDetails}
+      {!!layout.speedAgility.length && <MetricGroup id="speed-agility" title="Speed & Agility" cards={layout.speedAgility} />}
+    </> },
+    { id: "hitting", label: "Hitting", content: <><MetricGroup id="hitting-performance" title="Hitting" cards={layout.hitting} />{!!layout.otherHitting.length && <MetricGroup id="other-hitting" title="Other Hitting Measurements" cards={layout.otherHitting} />}</> },
+    { id: "throwing", label: "Throwing", content: <>
+      {!!layout.fieldThrowing.length && <MetricGroup id="field-throwing" title="Position Throwing" cards={layout.fieldThrowing} />}
+      {!!layout.pitching.length && <MetricGroup id="pitching-performance" title="Pitching" cards={layout.pitching} />}
+      {!layout.hasThrowingRole && <section className="panel p-5"><h2 className="text-lg font-bold">Throwing</h2><p className="muted mb-0 text-sm">Position-specific throwing tests have not been assigned.</p></section>}
+    </> },
+    ...(games ? [{ id: "games", label: "Games", content: games }] : []),
+  ];
   return <div className="min-w-0 space-y-6" data-testid="player-performance-profile">
     <section className="relative overflow-hidden rounded-lg border-t-4 border-pacu-red bg-[#1c1d20] px-5 py-6 text-white sm:px-8 sm:py-8" aria-label="Player profile">
       <div className="flex flex-wrap items-center justify-between gap-4"><div className="flex min-w-0 items-center gap-3"><PacificLogo className="w-10 shrink-0" decorative /><p className="m-0 text-[10px] font-bold uppercase tracking-[.2em] text-[#e0e0e3]">Pacific Baseball<span className="mx-2 text-[#a4a4aa]" aria-hidden="true">/</span>Performance</p></div><span className="shrink-0 rounded border border-white/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">{fictional ? "Fictional profile" : "Player profile"}</span></div>
@@ -86,13 +74,8 @@ export function PlayerPerformanceProfile({ athlete, performance, season, fiction
       </div>
     </section>
 
-    <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#dfdfe2] pb-4"><nav aria-label="Performance profile sections" className="flex flex-wrap gap-x-5 gap-y-2 text-xs font-bold">{showHitting && <a className="text-[#34353b] no-underline hover:text-pacu-red" href="#hitting-performance">Hitting</a>}{showPitching && <a className="text-[#34353b] no-underline hover:text-pacu-red" href="#pitching-performance">Pitching</a>}<a className="text-[#34353b] no-underline hover:text-pacu-red" href="#body-measurements">Body</a></nav>{action}</div>
-    <div className="flex items-start gap-3"><Activity size={18} className="mt-0.5 shrink-0 text-pacu-red" aria-hidden="true" /><div><h2 className="m-0 text-sm font-bold">Your Performance Snapshot</h2><p className="mb-0 mt-1 text-xs leading-5 text-[#717277]">Exact readings with their test dates. Percentile bars appear when at least 5 comparable Pacific players have data.</p></div></div>
-    {bodyFirst && body}
-    {showHitting && <MetricGroup id="hitting-performance" title="Hitting Performance" description="Fall 2026 hitting and athletic testing. Missing readings stay empty until reviewed data is added." cards={performance.hitting} />}
-    {showPitching && <MetricGroup id="pitching-performance" title="Pitching Performance" description="Fall 2026 pitching measurements. Spin is shown as a measured value; more spin is not automatically better." cards={performance.pitching} />}
-    {!bodyFirst && body}
-
+    <ProfileTabs key={athlete.athlete_code} tabs={tabs} action={action} />
+    {history}
     <details className="group rounded-lg border border-[#e0e0e3] bg-white" data-testid="player-performance-methods"><summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-sm font-semibold sm:px-6">Sources &amp; percentile method<ChevronDown size={16} className="shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" /></summary>
       <div className="space-y-5 border-t border-[#eeeef0] px-5 py-5 text-xs leading-6 text-[#65666d] sm:px-6"><p className="m-0">Pacific percentiles compare the latest comparable reading per player within the same metric, unit, source and testing period. Tied values share a percentile. They describe this team cohort, with no MLB, NCAA or outside-athlete comparison. The mark at 50 is the cohort midpoint.</p>
         <div className="grid gap-3 sm:grid-cols-2"><p className="m-0"><ArrowUp size={13} className="mr-1 inline" aria-hidden="true" />For metrics where higher is better, a larger measured value produces a higher percentile. <ArrowDown size={13} className="mx-1 inline" aria-hidden="true" />For lower-is-better metrics, including timed tests and BB %, a lower measured value produces a higher percentile.</p><p className="m-0">Body composition and spin use neutral bars. Higher percentiles indicate higher measured values in those groups, without a good/bad score. Missing values and cohorts under 5 are not charted.</p></div>
