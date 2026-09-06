@@ -4,6 +4,7 @@ import { ProfileTabs, type ProfileTab } from "@/components/profile-tabs";
 import { ArrowDown, ArrowUp, ChevronDown } from "lucide-react";
 import { athleteName, display, type AthleteSeason, type RosterAthlete } from "@/lib/types";
 import { getPlayerProfileLayout } from "@/lib/player-profile-layout";
+import { formatHeight } from "@/lib/measurement-display";
 import type { getPlayerPerformance, PlayerMetricCard, PlayerMetricReading } from "@/lib/player-performance";
 
 export type PlayerPerformanceProfileProps = {
@@ -15,6 +16,8 @@ function measurementDate(value: string) {
   return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(date);
 }
 function ReadingValue({ reading }: { reading: PlayerMetricReading }) {
+  const height = reading.metricKey === "height" ? formatHeight(reading.value, reading.unit) : null;
+  if (height) return <span className="font-bold tabular-nums" title={`Recorded: ${reading.value} ${reading.unit}`}>{height}</span>;
   const value = reading.derived ? `≈${reading.value.toFixed(1)}` : String(reading.value);
   return <><span className="break-all font-bold tabular-nums">{value}</span><span className="ml-1.5 text-sm font-medium text-[var(--text-secondary)]">{reading.unit}</span></>;
 }
@@ -34,7 +37,8 @@ function MetricCard({ card }: { card: PlayerMetricCard }) {
   const reading = card.latest;
   return <li className="min-w-0 rounded-xl border border-[var(--line-subtle)] bg-[var(--surface-panel)] p-4 sm:p-5" data-testid="player-metric" data-metric-key={card.metric.key} data-value={reading?.value} data-unit={reading?.unit} data-date={reading?.measuredAt}>
     <h3 className="m-0 text-sm font-semibold text-[var(--text-secondary)]">{card.metric.key === "bat_speed" ? "Bat Speed (Unspecified)" : card.metric.label}</h3>
-    <div className="mt-3 text-3xl leading-tight text-[var(--text-primary)]">{reading ? <ReadingValue reading={reading} /> : <span className="text-xl font-medium text-[var(--text-secondary)]">No data</span>}</div>
+    <div className="mt-3 text-3xl leading-tight text-[var(--text-primary)]">{reading ? <ReadingValue reading={reading} /> : <span className="text-2xl font-medium text-[var(--text-secondary)]" aria-label="Not yet tested">—</span>}</div>
+    {!reading && <p className="mb-0 mt-2 text-[11px] text-[var(--text-secondary)]">Not Yet Tested</p>}
     {reading && <p className="mb-0 mt-2 text-[11px] text-[var(--text-secondary)]">Last Tested: <time dateTime={reading.measuredAt}>{measurementDate(reading.measuredAt)}</time>{reading.derived ? " · Calculated" : ""}</p>}
     <Percentile card={card} />
   </li>;
@@ -76,10 +80,10 @@ export function PlayerPerformanceProfile({ athlete, performance, season, fiction
 
     <ProfileTabs key={athlete.athlete_code} tabs={tabs} action={action} />
     {history}
-    <details className="group rounded-lg border border-[#e0e0e3] bg-white" data-testid="player-performance-methods"><summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-sm font-semibold sm:px-6">Sources &amp; percentile method<ChevronDown size={16} className="shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" /></summary>
+    <details className="group rounded-lg border border-[var(--line-subtle)] bg-[var(--surface-panel)]" data-testid="player-performance-methods"><summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-sm font-semibold sm:px-6">Sources &amp; Percentiles<ChevronDown size={16} className="shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" /></summary>
       <div className="space-y-5 border-t border-[#eeeef0] px-5 py-5 text-xs leading-6 text-[#65666d] sm:px-6"><p className="m-0">Pacific percentiles compare the latest comparable reading per player within the same metric, unit, source and testing period. Tied values share a percentile. They describe this team cohort, with no MLB, NCAA or outside-athlete comparison. The mark at 50 is the cohort midpoint.</p>
         <div className="grid gap-3 sm:grid-cols-2"><p className="m-0"><ArrowUp size={13} className="mr-1 inline" aria-hidden="true" />For metrics where higher is better, a larger measured value produces a higher percentile. <ArrowDown size={13} className="mx-1 inline" aria-hidden="true" />For lower-is-better metrics, including timed tests and BB %, a lower measured value produces a higher percentile.</p><p className="m-0">Body composition and spin use neutral bars. Higher percentiles indicate higher measured values in those groups, without a good/bad score. Missing values and cohorts under 5 are not charted.</p></div>
-        <p className="m-0">Baseball performance window: September 1–December 31, 2026. Body comparisons use separate June 1–August 31 and September 1–December 31 testing periods. Each reading carries its recorded test date. Values retain their saved units, and different units are never mixed in a percentile. Calculated values marked ≈ are rounded to one decimal in the snapshot; the full result and formula appear below.</p>
+        <p className="m-0">Baseball performance window: September 1–December 31, 2026. Body comparisons use separate June 1–August 31 and September 1–December 31 testing periods. Each reading carries its recorded test date. Height displays in feet and inches, rounded to one tenth of an inch. Original values and units remain below; different units are never mixed in a percentile. Calculated values marked ≈ are rounded to one decimal in the snapshot; the full result and formula appear below.</p>
         {sourcedCards.length > 0 ? <div className="overflow-x-auto"><table><caption className="sr-only">Sources for the performance snapshot</caption><thead><tr><th>Measurement</th><th>Test date</th><th>Value</th><th>Source / method</th></tr></thead><tbody>{sourcedCards.map(card => {
           const reading = card.latest!;
           return <tr key={card.metric.key}><td className="font-semibold">{card.metric.label}</td><td className="whitespace-nowrap">{reading.measuredAt}</td><td className="whitespace-nowrap">{String(reading.value)} {reading.unit}</td><td className="min-w-52 max-w-sm break-words">{reading.derived && reading.derivation && <p className="mb-1 mt-0">{reading.derivation}</p>}<span>{reading.source}</span>{reading.provenance.map(source => <span className="mt-1 block" key={source.id}>{source.source_file} · {source.source_sheet || "File"} · Row {source.source_row}</span>)}</td></tr>;

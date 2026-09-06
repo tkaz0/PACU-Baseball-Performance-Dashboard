@@ -13,6 +13,8 @@ Open **Information Imports** at `/imports` while signed in as an active Admin or
 
 Each shared import accepts 1–500 reviewed readings within 1 MiB. Inputs retain the actual file hash, source sheet, row and column. Repeat observations are unchanged; conflicting remaps fail atomically. A filename change alone never overwrites the original provenance.
 
+The coach-facing hub shows category and file type first. File limits, format details and templates live under **Report Help** or **CSV Help & Template**; column-header settings and measurement definitions are optional disclosures during review. The required player, date, units, summary confirmation and final approval remain visible at the appropriate steps. Google Sheet status and secondary tools are collapsed below the upload area.
+
 ## RENPHO
 
 1. Drop in a complete supported report. OCR and the original image stay in the browser.

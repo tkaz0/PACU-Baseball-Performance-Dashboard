@@ -257,3 +257,7 @@ The target database needs `202609060001_performance_profiles.sql`, `202609060003
 After applying `202609060002_coach_rollout.sql`, open **Team account preparation** (`/admin/rollout`) as an active administrator outside preview. It lists `2026-27` players with roster/account readiness and stores individually reviewed coach names/emails. The list supports up to 100 coaches; saving the same normalized email updates the name and records an audit event.
 
 **Ready to invite** means roster prerequisites are present; it does not verify an inbox or send an email. **Account connected** means a trusted active Player link exists; it does not prove password setup. A saved coach is only a preparation record. Use the separate Account access flow and explicit recipient approval when invitations are authorized. The owner has said not yet to team emails; keep sending disabled and unsent until explicit approval.
+
+## Coach-ready presentation
+
+The September 2026 presentation update needs no database migration or environment change. Overview uses real roster totals and the last testing date, with direct roster, leaderboard, game and staff import actions. Profile height and height rankings display feet/inches; stored readings remain unchanged. Leaderboards automatically choose coherent available comparison cards without visible filters. Import format help and secondary tools are expandable.

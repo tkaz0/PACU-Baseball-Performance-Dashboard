@@ -42,7 +42,7 @@ describe("player profile tabs and presentation",()=>{
  });
  it("shows actual latest dates, retains older data only in the model history, and keeps source information collapsed",()=>{
   const athlete=fictionalAthlete("position"),performance=model([measurement("Weight",170,"lb","2026-08-09"),measurement("Weight",171,"lb")]);const html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete,performance}));
-  expect(html).toContain("Sep 3, 2026");expect(html).not.toContain("Aug 9, 2026");expect(html).toContain('data-value="171"');expect(performance.body.find(card=>card.metric.key==="weight")?.history).toHaveLength(2);expect(html).toContain("Sources &amp; percentile method");expect(html).not.toMatch(/<details[^>]*\sopen(?:[ =>])/);
+  expect(html).toContain("Sep 3, 2026");expect(html).not.toContain("Aug 9, 2026");expect(html).toContain('data-value="171"');expect(performance.body.find(card=>card.metric.key==="weight")?.history).toHaveLength(2);expect(html).toContain("Sources &amp; Percentiles");expect(html).not.toMatch(/<details[^>]*\sopen(?:[ =>])/);
  });
  it("puts RENPHO content in Physicality and optional game content in its own tab",()=>{
   const html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete:fictionalAthlete("position"),performance:model(),physicalityDetails:createElement("p",null,"Fictional RENPHO slot"),games:createElement("p",null,"Fictional game slot"),history:createElement("details",null,createElement("summary",null,"Fictional history"))}));

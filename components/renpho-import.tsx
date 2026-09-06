@@ -115,27 +115,26 @@ export function RenphoReportForm({ workspace, shared }: { workspace: RenphoWorks
 
   return <div className="space-y-6">
     <section className="panel p-5 sm:p-7">
-      <h2 className="mb-2 flex items-center gap-2 text-lg font-bold"><FileImage size={21} />1. Add a RENPHO report</h2>
-      <p className="muted text-sm">Upload the full-page Body Composition Analysis Report as PNG, JPG, or a one-page PDF. Up to 10 MiB. Reading happens in your browser; the report is never uploaded.</p>
-      <FileDropZone label="RENPHO Report" description="Drop one report here, or choose a file below." accept=".png,.jpg,.jpeg,.pdf,image/png,image/jpeg,application/pdf" disabled={!workspace.ready || !!workspace.error || !!busy} onFile={file => { void chooseFile(file); }} />
+      <h2 className="mb-4 flex items-center gap-2 text-lg font-bold"><FileImage size={21} />1. Add a RENPHO Report</h2>
+      <FileDropZone label="RENPHO Report" description="Drop a full-page PNG, JPG, or one-page PDF here." accept=".png,.jpg,.jpeg,.pdf,image/png,image/jpeg,application/pdf" disabled={!workspace.ready || !!workspace.error || !!busy} onFile={file => { void chooseFile(file); }} />
       {busy && <p role="status" className="mt-4 flex items-center gap-2 text-sm"><LoaderCircle className="animate-spin" size={18} />{busy}</p>}
       {error && <p role="alert" className="notice notice-error mt-4">{error}</p>}
-      {!report && !busy && <p className="muted mb-0 mt-4 text-xs">The first report may take a minute while the reader loads. Use the complete report export, without cropping or camera perspective.</p>}
+      <details className="mt-4 text-sm"><summary className="muted cursor-pointer font-medium">Report Help</summary><div className="mt-3 space-y-3"><p className="muted mb-0 text-sm">Use the full-page Body Composition Analysis Report, up to 10 MiB. Keep the export uncropped and straight.</p><p className="muted mb-0 text-sm">The first report may take a minute to read. The image stays in your browser; only readings you review and approve are saved.</p></div></details>
     </section>
     {report && <>
       <section className="panel p-5 sm:p-7">
-        <h2 className="mb-2 text-lg font-bold">2. Confirm the player</h2>
-        <p className="muted text-sm">An exact saved RENPHO ID can select a player. New IDs need your selection. Permanent athlete codes keep all measurements together.</p>
+        <h2 className="mb-2 text-lg font-bold">2. Confirm the Player</h2>
+        <p className="muted text-sm">Select the player and check the printed test date.</p>
         <fieldset disabled={!!busy} className="grid min-w-0 gap-5 md:grid-cols-2">
           <label>RENPHO report ID<input value={renphoId} maxLength={80} onChange={event => { invalidate(); setRemember(false); const id = event.target.value; setRenphoId(id); try { setAthleteCode(findRenphoAthlete(workspace.roster, id) ?? ""); } catch { setAthleteCode(""); } }} /></label>
           <label>Player for this report<select value={athleteCode} onChange={event => { invalidate(); setAthleteCode(event.target.value); }}><option value="">Choose a player</option>{workspace.roster.map(athlete => <option key={athlete.athlete_code} value={athlete.athlete_code}>{athleteName(athlete)} · {athlete.athlete_code}</option>)}</select></label>
           <label>Report test date<input type="date" value={date} onChange={event => { invalidate(); setDate(event.target.value); }} /></label>
         </fieldset>
-        {identityError ? <p role="alert" className="notice notice-error mt-4">{identityError}</p> : shared ? <p className="muted mb-0 mt-4 text-sm">Choose the player from the team roster for each report. Shared RENPHO ID matching will be connected when the roster IDs are available.</p> : matchingCode ? <p className="notice mt-4">Matched to a saved RENPHO ID. Confirm this is the correct player.</p> : <label className="mt-5 flex items-start gap-3"><input type="checkbox" checked={remember} disabled={!!busy || !renphoId.trim() || !athleteCode} onChange={event => { invalidate(); setRemember(event.target.checked); }} /><span>Remember this report ID for the selected player in this browser.</span></label>}
+        {identityError ? <p role="alert" className="notice notice-error mt-4">{identityError}</p> : !shared && (matchingCode ? <p className="notice mt-4">Matched to a saved RENPHO ID. Confirm this is the correct player.</p> : <label className="mt-5 flex items-start gap-3"><input type="checkbox" checked={remember} disabled={!!busy || !renphoId.trim() || !athleteCode} onChange={event => { invalidate(); setRemember(event.target.checked); }} /><span>Remember this report ID for the selected player in this browser.</span></label>)}
       </section>
       <section className="panel p-5 sm:p-7">
-        <h2 className="mb-2 text-lg font-bold">3. Review the readings</h2>
-        <p className="muted text-sm">Compare each value with the original. Correct any reading errors or uncheck a measurement to leave it out. Reference ranges, device targets, and body classifications are excluded.</p>
+        <h2 className="mb-2 text-lg font-bold">3. Review the Readings</h2>
+        <p className="muted text-sm">Check each value against the original. Correct a reading or uncheck it to leave it out.</p>
         <div className="grid items-start gap-6 xl:grid-cols-[1fr_1.15fr]">
           <details className="rounded-lg border border-gray-200 p-4" open><summary className="cursor-pointer font-semibold">Original report</summary>
             {/* Local object URL; no optimization server receives the user's report. */}
@@ -151,7 +150,7 @@ export function RenphoReportForm({ workspace, shared }: { workspace: RenphoWorks
               <td><input aria-label={`${reading.label} value`} className="min-w-20" inputMode="decimal" value={values[reading.key] ?? ""} disabled={!!busy || excluded.includes(reading.key)} onChange={event => { invalidate(); setValues(current => ({ ...current, [reading.key]: event.target.value })); }} /></td>
               <td className="text-sm">{reading.unit}{reading.unitNeedsConfirmation && <label className="mt-2 flex min-w-40 items-start gap-2 text-xs font-normal"><input type="checkbox" checked={confirmedUnits.includes(reading.key)} disabled={!!busy || excluded.includes(reading.key)} onChange={event => { invalidate(); setConfirmedUnits(current => event.target.checked ? [...current, reading.key] : current.filter(key => key !== reading.key)); }} /><span>Confirm {reading.label} unit is {reading.unit}. The small exponent was unreadable; check the original or leave this reading out.</span></label>}</td>
             </tr>)}</tbody></table></div>
-            <p className="muted mt-3 text-xs">Mass units come from the report. BMI/SMI use kg/m²; visceral fat is a device index and waist-to-hip is a ratio. Values are not converted.</p>
+            <details className="mt-3 text-sm"><summary className="muted cursor-pointer font-medium">About These Readings</summary><p className="muted mb-0 mt-3 text-xs">Units stay as printed. BMI/SMI use kg/m²; visceral fat is a device index and waist-to-hip is a ratio. Reference ranges, device targets, and body classifications are excluded.</p></details>
             <button type="button" className="btn btn-primary mt-3" disabled={!!busy || parserErrors.length > 0 || !athleteCode || !date || !!identityError || !workspace.ready || !!workspace.error} onClick={preview}>Review import</button>
           </div>
         </div>

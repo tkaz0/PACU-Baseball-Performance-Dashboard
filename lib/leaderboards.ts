@@ -12,6 +12,22 @@ export function leaderboardGroup(metric: PlayerMetricDefinition): LeaderboardGro
 }
 export const leaderboardMetrics = (group: LeaderboardGroup) => PLAYER_METRICS.filter(metric => leaderboardGroup(metric) === group);
 export const leaderboardSourceLabel = (source: string) => ({ renpho: "RENPHO", "full swing": "Full Swing", blast: "Blast", rapsodo: "Rapsodo", "player metrics": "Player Metrics" })[source] ?? source;
+export const leaderboardMetricLabel = (metric: PlayerMetricDefinition) => ({ max_exit_velocity: "Max Exit Velocity", avg_exit_velocity: "Average Exit Velocity", bat_speed: "Bat Speed (Unspecified)", k_pct: "Strikeout %", bb_pct: "Walk %" } as Partial<Record<PlayerMetricKey, string>>)[metric.key] ?? metric.label;
+
+/** One honest comparison per metric, without pooling source, unit or testing period. */
+export function visibleLeaderboardComparisons(group: LeaderboardGroup, options: readonly LeaderboardComparison[]): LeaderboardComparison[] {
+  return leaderboardMetrics(group).flatMap(metric => {
+    const candidates = options.filter(option => option.metricKey === metric.key && option.athleteCount > 0 && metric.units.includes(option.unit) && (option.period === "fall_2026" || (metric.group === "body" && option.period === "summer_2026")));
+    candidates.sort((a, b) => Number(b.period === "fall_2026") - Number(a.period === "fall_2026")
+      || b.athleteCount - a.athleteCount
+      || metric.units.indexOf(a.unit) - metric.units.indexOf(b.unit)
+      || (a.source < b.source ? -1 : a.source > b.source ? 1 : 0));
+    return candidates[0] ? [candidates[0]] : [];
+  });
+}
+export function leaderboardTestDate(date: string): string {
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+}
 export function leaderboardComparisonMatches(a: LeaderboardSelection, b: LeaderboardSelection): boolean {
   return a.metricKey === b.metricKey && a.source === b.source && a.unit === b.unit && a.period === b.period;
 }

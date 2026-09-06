@@ -85,3 +85,7 @@ Private players read only their linked profile; coaches/admins can read the team
 ## Account preparation is separate
 
 **Team account preparation** (`/admin/rollout`) displays player readiness and stores reviewed coach names/contact emails. A preparation record is not an Auth user, does not grant a Coach role, and sends no invitation. **Account connected** verifies the trusted link/status, not completed password setup. The owner has said not yet to team emails. Keep sends disabled and unsent until explicit approval through the separate Account access workflow. See [INVITATIONS](INVITATIONS.md).
+
+## Coach presentation
+
+Height cards and height leaderboard results display feet and inches, rounded to one tenth of an inch (for example, 71 in displays as 5′ 11″). The saved reading and unit remain unchanged in sources; calculations, ordering and comparison cohorts still use the original values and units. Missing main metrics display a dash and Not Yet Tested.

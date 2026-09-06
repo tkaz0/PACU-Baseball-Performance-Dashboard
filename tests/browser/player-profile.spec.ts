@@ -73,7 +73,7 @@ test("player snapshot shows exact own readings and team percentiles without peer
   await expect(body.getByTestId("player-percentile")).toHaveAttribute("data-direction", "neutral");
   await profile.getByRole("tab", { name: "Hitting", exact: true }).click();
   const missing = profile.getByTestId("player-metric").filter({ has: page.locator('h3', { hasText: /^Max Bat Speed$/ }) });
-  await expect(missing).toContainText("No data");
+  await expect(missing).toContainText("Not Yet Tested");
   await expect(missing.getByRole("meter")).toHaveCount(0);
   await expect(profile.getByTestId("player-performance-methods")).not.toHaveAttribute("open", "");
 
@@ -99,7 +99,7 @@ test("players can expand their full RENPHO charts, own history and source method
   const history = page.getByRole("table", { name: "Imported performance readings for Avery Northstar", exact: true });
   await expect(history.locator("tbody tr")).toHaveCount(6);
   await expect(history).not.toContainText("fictional-body-1.png");
-  await page.getByText("Sources & percentile method", { exact: true }).click();
+  await page.getByText("Sources & Percentiles", { exact: true }).click();
   const sources = page.getByRole("table", { name: "Sources for the performance snapshot", exact: true });
   await expect(sources).toBeVisible();
   await expect(sources).toContainText("Muscle mass ÷ weight × 100");
