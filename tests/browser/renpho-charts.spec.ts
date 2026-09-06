@@ -63,6 +63,9 @@ async function restoreProfile(page: Page, data: LocalWorkspace) {
   await page.getByRole("button", { name: "Restore backup", exact: true }).click();
   await expect(page.getByText("Backup restored in this browser.", { exact: true })).toBeVisible();
   await page.goto("/preview/athletes/SYN-001");
+  await page.getByRole("tab", { name: "Physicality", exact: true }).click();
+  const reportDetails = page.getByText("Full RENPHO charts & report history", { exact: true });
+  if (await reportDetails.count()) await reportDetails.click();
 }
 
 async function selectReport(charts: Locator, file: string, date: string) {

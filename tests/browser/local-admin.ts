@@ -19,7 +19,7 @@ export const test = base.extend<{ localAdminSession: void }>({
     await page.getByLabel(/^Email Address$/i).fill(email);
     await page.getByLabel("Password", { exact: true }).fill(password);
     await page.getByRole("button", { name: /^Sign In$/i }).click();
-    await expect(page).toHaveURL(/\/overview(?:\?|$)/);
+    await expect(page).toHaveURL(/\/roster(?:\?|$)/);
     const access = await page.request.get("/api/local-workspace/access");
     expect(access.status(), "The local test account must be an active Admin outside View as").toBe(200);
     expect((await access.json()).allowed).toBe(true);

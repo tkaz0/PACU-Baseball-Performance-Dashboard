@@ -13,10 +13,10 @@ function fictionalAthlete(playerType: string | null,primary: string|null="CF",se
 const measurement=(metric:string,value:number,unit:string,date="2026-09-03",code="SYN-001"):Measurement=>({id:`fictional-${code}-${metric}-${date}`,athlete_code:code,measured_at:date,source:"Fictional testing",metric,value,unit,source_file:`fictional-${code}.csv`,source_sheet:"CSV",source_row:2,file_hash:"a".repeat(64)});
 const model=(readings:Measurement[]=[])=>getPlayerPerformance({readings,athleteCode:"SYN-001"});
 describe("player profile tabs and presentation",()=>{
- it("renders three real accessible tabs with Physicality selected and other panels hidden",()=>{
+ it("renders four accessible tabs with Overview selected and no Games tab",()=>{
   const athlete=fictionalAthlete("position"),html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete,performance:model()}));
-  expect((html.match(/role="tab"/g)??[])).toHaveLength(3);expect((html.match(/role="tabpanel"/g)??[])).toHaveLength(3);expect((html.match(/aria-selected="true"/g)??[])).toHaveLength(1);expect((html.match(/hidden=""/g)??[])).toHaveLength(2);
-  for(const label of ["Physicality","Hitting","Throwing"])expect(html).toContain(label);
+  expect((html.match(/role="tab"/g)??[])).toHaveLength(4);expect((html.match(/role="tabpanel"/g)??[])).toHaveLength(4);expect((html.match(/aria-selected="true"/g)??[])).toHaveLength(1);expect((html.match(/hidden=""/g)??[])).toHaveLength(3);
+  for(const label of ["Overview","Physicality","Hitting","Throwing"])expect(html).toContain(label);
   expect(html).not.toContain(athlete.pacific_email);expect(html).not.toContain(athlete.renpho_id);expect(html).not.toContain("Eligibility year");expect(html).toContain("Avery Northstar");expect(html).toContain("Athlete ID");expect(html).toMatch(/Jersey Number<\/dt><dd[^>]*>0<\/dd>/);
   expect(html).not.toContain('role="meter"');expect(html).not.toContain('data-value="0"');expect(html).not.toContain("Pacific n=0");expect(html).not.toContain("Need 5 comparable players");expect(html).not.toContain("Team comparison not available");expect(html).not.toMatch(/<details[^>]*\sopen(?:[ =>])/);
  });
@@ -44,9 +44,22 @@ describe("player profile tabs and presentation",()=>{
   const athlete=fictionalAthlete("position"),performance=model([measurement("Weight",170,"lb","2026-08-09"),measurement("Weight",171,"lb")]);const html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete,performance}));
   expect(html).toContain("Sep 3, 2026");expect(html).not.toContain("Aug 9, 2026");expect(html).toContain('data-value="171"');expect(performance.body.find(card=>card.metric.key==="weight")?.history).toHaveLength(2);expect(html).toContain("Sources &amp; Percentiles");expect(html).not.toMatch(/<details[^>]*\sopen(?:[ =>])/);
  });
- it("puts RENPHO content in Physicality and optional game content in its own tab",()=>{
-  const html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete:fictionalAthlete("position"),performance:model(),physicalityDetails:createElement("p",null,"Fictional RENPHO slot"),games:createElement("p",null,"Fictional game slot"),history:createElement("details",null,createElement("summary",null,"Fictional history"))}));
-  expect((html.match(/role="tab"/g)??[])).toHaveLength(4);const physicality=html.slice(html.indexOf('role="tabpanel"'),html.indexOf('role="tabpanel"',html.indexOf('role="tabpanel"')+1));expect(physicality).toContain("Fictional RENPHO slot");expect(html.slice(html.lastIndexOf('role="tabpanel"'))).toContain("Fictional game slot");
+ it("puts RENPHO content in Physicality and keeps game stats out of the profile",()=>{
+  const html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete:fictionalAthlete("position"),performance:model(),physicalityDetails:createElement("p",null,"Fictional RENPHO slot"),history:createElement("details",null,createElement("summary",null,"Fictional history"))}));
+  const panels=html.split('role="tabpanel"');
+  expect((html.match(/role="tab"/g)??[])).toHaveLength(4);expect(panels[1]).toContain('data-testid="player-overview"');expect(panels[1]).not.toContain("Fictional RENPHO slot");expect(panels[2]).toContain("Fictional RENPHO slot");expect(html).not.toContain('>Games</button>');
+ });
+ it.each([
+  {type:"pitcher",primary:"P",hitting:false},
+  {type:null,primary:"P",hitting:false},
+  {type:"two_way",primary:"P",hitting:true},
+  {type:"position",primary:"CF",hitting:true},
+ ])("shows role-relevant tabs and insights for $type/$primary",({type,primary,hitting})=>{
+  const athlete=fictionalAthlete(type,primary),performance=model([measurement("Max Exit Velocity",80,"mph","2026-09-01"),measurement("Max Exit Velocity",90,"mph","2026-09-03")]);
+  const html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete,performance}));
+  expect(html.includes('>Hitting</button>')).toBe(hitting);expect((html.match(/role="tab"/g)??[])).toHaveLength(hitting?4:3);
+  const overview=html.split('role="tabpanel"')[1];expect(overview.includes("Max Exit Velocity")).toBe(hitting);
+  expect(overview).toContain("Strengths");expect(overview).toContain("Weaknesses");expect(overview).toContain("Biggest Jumps");
  });
  it("shows eligible percentile bars without transmitting another athlete's raw provenance",()=>{
   const readings=Array.from({length:5},(_,i)=>measurement("Weight",170+i,"lb","2026-09-03",`SYN-00${i+1}`));const performance=getPlayerPerformance({readings,athleteCode:"SYN-001",cohortAthleteCodes:readings.map(r=>r.athlete_code)}),html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete:fictionalAthlete("position"),performance}));

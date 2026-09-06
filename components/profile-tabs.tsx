@@ -16,7 +16,7 @@ export function ProfileTabs({ tabs, action }: { tabs: ProfileTab[]; action?: Rea
   return <div className="min-w-0">
     <div className="mb-5 flex flex-wrap items-center justify-between gap-4 border-b border-[var(--line-subtle)]">
       <div role="tablist" aria-label="Player performance" className="flex min-w-0 flex-wrap gap-x-1 gap-y-1 sm:gap-x-4">
-        {tabs.map((tab, index) => <button key={tab.id} ref={button => { buttons.current[index] = button; }} type="button" role="tab" id={`${prefix}-tab-${tab.id}`} aria-controls={`${prefix}-panel-${tab.id}`} aria-selected={selected === index} tabIndex={selected === index ? 0 : -1} onClick={() => setSelectedId(tab.id)} onKeyDown={event => keyDown(event, index)} className={`min-h-12 border-b-[3px] px-3 py-3 text-sm font-bold outline-offset-4 sm:px-4 ${selected === index ? "border-[var(--accent-readable)] text-[var(--accent-readable)]" : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}>{tab.label}</button>)}
+        {tabs.map((tab, index) => <button key={tab.id} ref={button => { buttons.current[index] = button; }} type="button" role="tab" id={`${prefix}-tab-${tab.id}`} aria-controls={`${prefix}-panel-${tab.id}`} aria-selected={selected === index} tabIndex={selected === index ? 0 : -1} onClick={() => setSelectedId(tab.id)} onKeyDown={event => keyDown(event, index)} className={`min-h-12 border-b-[3px] px-2 py-3 text-sm font-bold outline-offset-4 sm:px-4 ${selected === index ? "border-[var(--accent-readable)] text-[var(--accent-readable)]" : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}>{tab.label}</button>)}
       </div>
       {action && <div className="pb-3">{action}</div>}
     </div>

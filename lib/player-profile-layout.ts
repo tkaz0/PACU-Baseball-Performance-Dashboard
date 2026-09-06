@@ -14,6 +14,7 @@ export function getPlayerProfileLayout(performance: PlayerPerformance, season?: 
   const pitches = playerType === "pitcher" || playerType === "two_way" || positions.includes("P");
   const fieldKeys = [...(positions.some(p => infield.has(p)) ? ["infield_velocity"] : []), ...(positions.some(p => outfield.has(p)) ? ["outfield_velocity"] : [])];
   return {
+    showHitting: playerType === "two_way" || !pitches,
     physicality: ordered(all, PHYSICALITY_PRIMARY),
     additionalBody: performance.body.filter(card => !(PHYSICALITY_PRIMARY as readonly string[]).includes(card.metric.key)),
     speedAgility: ordered(all, SPEED_AGILITY),

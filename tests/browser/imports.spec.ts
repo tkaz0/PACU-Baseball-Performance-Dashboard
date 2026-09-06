@@ -120,6 +120,7 @@ test("measurement batches persist, deduplicate source values, and can be removed
   await expect(page.getByRole("button", { name: "Apply reviewed import", exact: true })).toBeDisabled();
   await page.goto("/preview/athletes/SYN-001");
   await expect(page.getByTestId("player-performance-profile")).toBeVisible();
+  await page.getByRole("tab", { name: "Physicality", exact: true }).click();
   await expect(page.getByText("Not Yet Tested", { exact: true }).first()).toBeVisible();
   await expect(page.locator('[data-testid="player-metric"][data-value]')).toHaveCount(0);
   await expect(page.getByRole("table", { name: /Imported performance readings/ })).toHaveCount(0);

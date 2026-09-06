@@ -93,6 +93,7 @@ test("players can expand their full RENPHO charts, own history and source method
   await restoreAndPreviewPlayer(page);
   const charts = page.getByRole("region", { name: "RENPHO charts", exact: true });
   await expect(charts).not.toBeVisible();
+  await page.getByRole("tab", { name: "Physicality", exact: true }).click();
   await page.getByText("Full RENPHO charts & report history", { exact: true }).click();
   await expect(charts).toBeVisible();
   await page.locator("#performance-history > summary").click();
@@ -111,7 +112,11 @@ test("players can expand their full RENPHO charts, own history and source method
 test("profile tabs have keyboard selection and only the chosen panel is visible", async ({ page }) => {
   await restoreAndPreviewPlayer(page);
   const profile=page.getByTestId("player-performance-profile"),physicality=profile.getByRole("tab",{name:"Physicality",exact:true});
-  await expect(physicality).toHaveAttribute("aria-selected","true");
+  const overview=profile.getByRole("tab",{name:"Overview",exact:true});
+  await expect(overview).toHaveAttribute("aria-selected","true");
+  await expect(profile.getByRole("tabpanel",{name:"Overview",exact:true})).toBeVisible();
+  await overview.focus();await page.keyboard.press("ArrowRight");
+  await expect(physicality).toBeFocused();
   await expect(profile.getByRole("tabpanel",{name:"Physicality",exact:true})).toBeVisible();
   await physicality.focus();await page.keyboard.press("ArrowRight");
   await expect(profile.getByRole("tab",{name:"Hitting",exact:true})).toBeFocused();
@@ -120,6 +125,6 @@ test("profile tabs have keyboard selection and only the chosen panel is visible"
   await page.keyboard.press("End");await expect(profile.getByRole("tab",{name:"Throwing",exact:true})).toBeFocused();
   await expect(profile.getByRole("heading",{name:"Outfield Velocity",exact:true})).toBeVisible();
   await expect(profile.getByRole("heading",{name:"Infield Velocity",exact:true})).toHaveCount(0);
-  await page.keyboard.press("Home");await expect(physicality).toBeFocused();
+  await page.keyboard.press("Home");await expect(overview).toBeFocused();
   await page.keyboard.press("ArrowLeft");await expect(profile.getByRole("tab",{name:"Throwing",exact:true})).toBeFocused();
 });

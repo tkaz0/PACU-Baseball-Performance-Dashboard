@@ -198,3 +198,8 @@ Browser workspaces migrate roster identities, local season links and measurement
 Migration 010 adds grip strength, max/average bat speed, smash factor, max distance, infield/outfield velocity and average pitch velocity. Their labels and exact units are shared by the importer, saved database observations, player cards and leaderboards. Generic bat speed stays distinct, raw events are not aggregated, and no existing observation is rewritten. Migration 011 adds the explicitly authorized narrow leaderboard reader without changing ordinary table RLS or import permissions.
 
 The coach presentation update changes no tables, IDs, observations or grants. Feet/inches height formatting is display-only; automatic leaderboard selection still requests one exact metric/source/unit/period partition per stat card. See [LEADERBOARDS](LEADERBOARDS.md) for deterministic display selection.
+
+
+## Profile Overview insights
+
+The profile Overview and workspace landing change require no schema, grant, ID or observation changes. Insights derive only from the existing authorized player metric cards. Strengths and weaknesses use favorable team percentiles with at least five matching measured players; improvements compare the latest reading with the most recent earlier distinct test date for the same athlete, metric, source, unit and period. Neutral body measurements and spin are excluded from performance judgments. Pitcher-only profiles omit hitting cards from both tabs and insights. Game-stat data stays behind its existing separate protected page; profile loads no longer query it. See [PLAYER_PROFILES](PLAYER_PROFILES.md) for thresholds and comparison rules.

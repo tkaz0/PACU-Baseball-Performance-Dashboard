@@ -71,7 +71,7 @@ describe("protected profile route authorization and integration", () => {
     expect(fake.from).toHaveBeenCalledExactlyOnceWith("athletes");
     expect(fake.eq).toHaveBeenCalledExactlyOnceWith("id", ownId.toUpperCase());
     expect(fake.load).toHaveBeenCalledExactlyOnceWith(trusted, athlete);
-    expect(fake.games).toHaveBeenCalledExactlyOnceWith(trusted, ownId);
+    expect(fake.games).not.toHaveBeenCalled();
     expect(html).toContain("Fictional Profile"); expect(html).toContain('data-metric-key="max_exit_velocity"');
     expect(html).toContain('data-value="10"'); expect(html).toContain("Jersey Number");
   });
@@ -81,6 +81,13 @@ describe("protected profile route authorization and integration", () => {
     for (const hidden of ["private-roster@example.com", "private-login@example.com", "Administrative roster details", "Roster email", "Academic class", "graduate", "redshirt", "Permanent athlete code", "/admin/performance", "/imports", "Team roster"]) expect(html).not.toContain(hidden);
     expect(html).toContain("Measurement history");
     expect(html).not.toContain('data-testid="player-percentile"');
+  });
+  it("preserves read-only notices after the compatibility redirect without giving the preview import controls", async () => {
+    fake.access.mockResolvedValueOnce(access(["player"], ownId, true));
+    const html = renderToStaticMarkup(await Profile({ params: Promise.resolve({ id: ownId }), searchParams: Promise.resolve({ preview: "read-only" }) }));
+    expect(html).toContain("Exit preview to add or manage information. No change was saved.");
+    expect(html).not.toContain('href="/imports"');
+    expect(fake.games).not.toHaveBeenCalled();
   });
   it("shows imports to actual staff, hides them in View as, and limits management details to presented admin", async () => {
     fake.access.mockResolvedValueOnce(access(["coach"], null));

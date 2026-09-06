@@ -15,9 +15,23 @@ Shared measurement pages and comparison summaries both retain round-trip floatin
 
 ## Profile tabs
 
-**Physicality** opens first: Weight, Height, Grip Strength and Body Fat % are the main values. Muscle Mass %, recorded speed/agility tests and full RENPHO charts follow below. **Hitting** leads with Max EV, Average EV, Max Bat Speed, Average Bat Speed, Smash Factor and Max Distance. **Throwing** uses explicit primary/secondary positions to show infield or outfield velocity, plus pitching metrics for pitchers and two-way players. An unknown position does not invent a throwing discipline. Gameplay and longer history remain secondary views.
+**Overview** opens first with relative team Strengths, Weaknesses and Biggest Jumps when reviewed tests support them. **Physicality** follows: Weight, Height, Grip Strength and Body Fat % are the main values. Muscle Mass %, recorded speed/agility tests and full RENPHO charts follow below. **Hitting** leads with Max EV, Average EV, Max Bat Speed, Average Bat Speed, Smash Factor and Max Distance; it is hidden for pitcher-only profiles and retained for explicitly two-way players. **Throwing** uses explicit primary/secondary positions to show infield or outfield velocity, plus pitching metrics for pitchers and two-way players. An unknown position does not invent a throwing discipline. Game stats live in their separate team section and are not duplicated in player profile tabs. Longer measurement history remains optional.
 
 The main display emphasizes the measured value, original unit and **Last Tested** date. Repeated import/provenance and unavailable-percentile messages are removed from the main canvas; optional source/method details remain inspectable. Status is hidden from the staff roster table without changing stored status or comparison eligibility. Staff name searches suggest matching current players as they type; Player views receive no staff directory search.
+
+## Overview insight method
+
+The Overview uses only the permitted, role-relevant metric cards already supplied to that profile. It does not fetch other players' observations, invent training advice or turn game-sheet totals into testing measurements.
+
+- **Strengths:** up to three directional metrics at or above the 75th favorable team percentile, highest percentile first.
+- **Weaknesses:** up to three directional metrics at or below the 25th favorable team percentile, lowest percentile first. These describe the player's position among the comparable measured teammates, not an absolute assessment of ability.
+- **Biggest Jumps:** up to three favorable changes from the most recent earlier, distinct testing date for the same athlete, metric, source/protocol, unit and comparison period. They are ordered by relative improvement: favorable change divided by the earlier value, multiplied by 100. Raw before/after values and dates remain available; changes to percentage metrics use percentage points (`pp`). This ordering describes proportional changes and does not imply that unlike tests have equal athletic importance.
+
+Strengths and Weaknesses require an available exact-cohort percentile with at least five comparable athletes, using the existing percentile method below. Height, weight, body fat, muscle mass percentage and fastball spin remain neutral numerical measurements; they never become Strengths, Weaknesses or Biggest Jumps. Directional grip strength, speed/agility, hitting and throwing tests can qualify when included in the profile's role layout. Results in the middle half of the team remain unclassified. The model also returns the number of metrics with valid team comparisons, so the empty state can distinguish insufficient team testing from no qualifying strengths or weaknesses.
+
+Biggest Jumps describe personal change and do not require a team cohort. Higher-is-better metrics must increase; lower-is-better times and walk percentage must decrease. An unchanged or unfavorable latest result is not a jump. The earlier value must be finite and strictly positive; a zero or decline is never skipped in favor of an older favorable comparison. Same-date reimports are not improvements: the existing latest selection and date/import-time/file-hash/observation-ID tie-breaks determine the one reading used for each date. Different testing periods, sources and units never mix, even when values could be converted. Equal insight scores use the canonical metric order, and an insight appears only once per metric.
+
+When these conditions are not met, the corresponding list stays empty. One body-composition report alone cannot establish a player's athletic strengths, weaknesses or progress.
 
 ## Profile metrics
 

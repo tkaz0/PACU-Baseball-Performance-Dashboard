@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { PacificLogo } from "@/components/pacific-brand";
 import { ProfileTabs, type ProfileTab } from "@/components/profile-tabs";
+import { PlayerOverview } from "@/components/player-overview";
 import { ArrowDown, ArrowUp, ChevronDown } from "lucide-react";
 import { athleteName, display, type AthleteSeason, type RosterAthlete } from "@/lib/types";
 import { getPlayerProfileLayout } from "@/lib/player-profile-layout";
@@ -9,7 +10,7 @@ import type { getPlayerPerformance, PlayerMetricCard, PlayerMetricReading } from
 
 export type PlayerPerformanceProfileProps = {
   athlete: RosterAthlete; performance: ReturnType<typeof getPlayerPerformance>; season?: AthleteSeason | null;
-  fictional?: boolean; action?: ReactNode; physicalityDetails?: ReactNode; games?: ReactNode; history?: ReactNode;
+  fictional?: boolean; action?: ReactNode; physicalityDetails?: ReactNode; history?: ReactNode;
 };
 function measurementDate(value: string) {
   const date = new Date(`${value.slice(0, 10)}T12:00:00Z`);
@@ -46,26 +47,27 @@ function MetricCard({ card }: { card: PlayerMetricCard }) {
 function MetricGroup({ id, title, cards }: { id: string; title: string; cards: PlayerMetricCard[] }) {
   return <section id={id} aria-labelledby={`${id}-heading`} className="min-w-0"><h2 id={`${id}-heading`} className="mb-4 text-lg font-bold">{title}</h2><ul className={`m-0 grid list-none grid-cols-1 gap-3 p-0 min-[360px]:grid-cols-2 ${cards.length === 4 ? "xl:grid-cols-4" : "xl:grid-cols-3"}`}>{cards.map(card => <MetricCard key={card.metric.key} card={card} />)}</ul></section>;
 }
-export function PlayerPerformanceProfile({ athlete, performance, season, fictional = false, action, physicalityDetails, games, history }: PlayerPerformanceProfileProps) {
+export function PlayerPerformanceProfile({ athlete, performance, season, fictional = false, action, physicalityDetails, history }: PlayerPerformanceProfileProps) {
   const selectedSeason = season ?? [...athlete.athlete_seasons].sort((a, b) => b.season.localeCompare(a.season))[0];
   const position = [selectedSeason?.primary_position, selectedSeason?.secondary_position].filter((value, index, values) => value && values.indexOf(value) === index).join(" / ");
   const layout = getPlayerProfileLayout(performance, selectedSeason);
-  const cards = Object.values(performance).flat(), sourcedCards = cards.filter(card => card.latest);
+  const cards = [...layout.physicality, ...layout.additionalBody, ...layout.speedAgility, ...(layout.showHitting ? [...layout.hitting, ...layout.otherHitting] : []), ...layout.fieldThrowing, ...layout.pitching];
+  const sourcedCards = cards.filter(card => card.latest);
   const lastTested = sourcedCards.map(card => card.latest!.measuredAt).sort().at(-1);
   const tabs: ProfileTab[] = [
+    { id: "overview", label: "Overview", content: <PlayerOverview cards={cards} /> },
     { id: "physicality", label: "Physicality", content: <>
       <MetricGroup id="body-measurements" title="Physicality" cards={layout.physicality} />
       {!!layout.additionalBody.length && <MetricGroup id="body-composition" title="Body Composition" cards={layout.additionalBody} />}
       {physicalityDetails}
       {!!layout.speedAgility.length && <MetricGroup id="speed-agility" title="Speed & Agility" cards={layout.speedAgility} />}
     </> },
-    { id: "hitting", label: "Hitting", content: <><MetricGroup id="hitting-performance" title="Hitting" cards={layout.hitting} />{!!layout.otherHitting.length && <MetricGroup id="other-hitting" title="Other Hitting Measurements" cards={layout.otherHitting} />}</> },
+    ...(layout.showHitting ? [{ id: "hitting", label: "Hitting", content: <><MetricGroup id="hitting-performance" title="Hitting" cards={layout.hitting} />{!!layout.otherHitting.length && <MetricGroup id="other-hitting" title="Other Hitting Measurements" cards={layout.otherHitting} />}</> }] : []),
     { id: "throwing", label: "Throwing", content: <>
       {!!layout.fieldThrowing.length && <MetricGroup id="field-throwing" title="Position Throwing" cards={layout.fieldThrowing} />}
       {!!layout.pitching.length && <MetricGroup id="pitching-performance" title="Pitching" cards={layout.pitching} />}
       {!layout.hasThrowingRole && <section className="panel p-5"><h2 className="text-lg font-bold">Throwing</h2><p className="muted mb-0 text-sm">Position-specific throwing tests have not been assigned.</p></section>}
     </> },
-    ...(games ? [{ id: "games", label: "Games", content: games }] : []),
   ];
   return <div className="min-w-0 space-y-6" data-testid="player-performance-profile">
     <section className="relative overflow-hidden rounded-lg border-t-4 border-pacu-red bg-[#1c1d20] px-5 py-6 text-white sm:px-8 sm:py-8" aria-label="Player profile">
