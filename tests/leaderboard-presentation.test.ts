@@ -18,11 +18,16 @@ describe("leaderboard presentation and truthful comparisons", () => {
     expect(initialLeaderboardSelection("physicality", options, { metric: "weight", period: "summer_2026" })).toMatchObject({ metricKey: "weight", period: "summer_2026", source: "renpho" });
     expect(initialLeaderboardSelection("physicality", options, { metric: "home_to_first", period: "summer_2026" }).period).toBe("fall_2026");
   });
-  it.each(["weight", "body_fat_pct", "height", "muscle_mass_pct", "avg_fastball_spin"])("does not display competitive places for neutral %s", key => {
-    expect(html(key)).not.toContain('scope="col">Place</th>'); expect(html(key)).toContain("Numerical comparisons");
+  it.each(["weight", "body_fat_pct", "height", "muscle_mass_pct", "avg_fastball_spin"])("shows numerical ranks for %s without changing profile insight semantics", key => {
+    expect(html(key)).toMatch(/scope="col"[^>]*>Rank<\/th>/); expect(html(key)).toContain('aria-label="Rank 1"');
+    expect(html(key)).toContain("Numerical comparisons");
+    expect(PLAYER_METRICS.find(metric => metric.key === key)?.direction).toBe("neutral");
+  });
+  it.each([["height", "Tallest First"], ["muscle_mass_pct", "Highest First"], ["body_fat_pct", "Lowest First"]])("makes the requested %s ordering clear", (key, label) => {
+    expect(html(key)).toContain(label);
   });
   it("preserves precise direct values, human dates and real profile-link limits", () => {
-    const output = html("max_exit_velocity"); expect(output).toContain("0.30000000000000004"); expect(output).toContain("Sep 12, 2026"); expect(output).toContain("#0"); expect(output).not.toContain('href="/athletes/'); expect(output).toContain('scope="col">Place</th>');
+    const output = html("max_exit_velocity"); expect(output).toContain("0.30000000000000004"); expect(output).toContain("Sep 12, 2026"); expect(output).toContain("#0"); expect(output).not.toContain('href="/athletes/'); expect(output).toMatch(/scope="col"[^>]*>Rank<\/th>/);
     expect(html("max_exit_velocity", [{ ...row, profileId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" }])).toContain('href="/athletes/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"');
   });
   it("labels approximate derived display and retains the exact calculation", () => {
@@ -76,7 +81,7 @@ describe("automatic ranking boards", () => {
     const output = renderToStaticMarkup(createElement(LeaderboardResults, { metric: PLAYER_METRICS.find(metric => metric.key === "height")!, rows: [{ ...row, value }], unit }));
     expect(output).toContain("5′ 11″");
     expect(output).toContain(`Recorded: ${value} ${unit}`);
-    expect(output).not.toContain('scope="col">Place</th>');
+    expect(output).toContain('aria-label="Rank 1"');
   });
   it("keeps every measured athlete available after the first ten", () => {
     const rows = Array.from({ length: 12 }, (_, index) => ({ ...row, athleteCode: `SYN-${String(index + 1).padStart(3, "0")}`, name: `Fictional Player ${index + 1}`, rank: index + 1, value: 100 - index }));
@@ -84,5 +89,12 @@ describe("automatic ranking boards", () => {
     expect(output).toContain("Show 2 More");
     expect(output).toContain("Fictional Player 12");
     expect(output.match(/<table>/g)).toHaveLength(2);
+  });
+  it("retains competition ranks and labels ties across the expanded continuation", () => {
+    const rows = Array.from({ length: 12 }, (_, index) => ({ ...row, athleteCode: `SYN-${String(index + 1).padStart(3, "0")}`, name: `Fictional Player ${index + 1}`, rank: index === 10 ? 10 : index + 1, value: index === 10 ? 91 : 100 - index }));
+    const output = html("max_exit_velocity", rows);
+    expect(output.match(/aria-label="Tied for rank 10"/g)).toHaveLength(2);
+    expect(output).not.toContain('aria-label="Rank 11"');
+    expect(output).toContain('aria-label="Rank 12"');
   });
 });

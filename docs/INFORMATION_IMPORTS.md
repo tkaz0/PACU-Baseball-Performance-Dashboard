@@ -20,10 +20,16 @@ The coach-facing hub shows category and file type first. File limits, format det
 ## RENPHO
 
 1. Drop in a complete supported report. OCR and the original image stay in the browser.
-2. Select the real roster player and confirm the printed test date.
+2. The report ID automatically selects its exact roster match. Confirm the player name and printed test date; if no ID is linked yet, select the player explicitly.
 3. Compare every reading and unit with the original, correct or exclude values, then explicitly approve saving.
 
-The reader fetches only numerical observations with the exact uploaded file hash to check repeats, including OCR line-position drift. Shared ID matching is not connected yet: the main uploader requires explicit player selection for each report. Optional remembered IDs in the legacy browser-local workspace remain local. No report ID, report image, raw OCR text, health classification or device target is uploaded by the shared flow.
+The reader fetches only numerical observations with the exact uploaded file hash to check repeats, including OCR line-position drift. It sends the extracted report ID to the private staff lookup and receives only the matching player UUID/PAC ID. The final RENPHO save checks the ID and selected player again in the same transaction as the readings. A known ID cannot save to another player; a missing/unknown ID allows explicit player selection without silently creating a mapping. Images, raw OCR text, health classifications and device targets remain in the browser. IDs are stored separately from performance observations. Optional remembered IDs in the advanced browser workspace remain local.
+
+### Roster ID updates
+
+The owner-authorized daily roster check reads the current **Renpho ID** header wherever it occurs and preserves IDs as text. Valid nonblank IDs tied to exact approved existing roster identities can be added through **Import History & Other Tools → Roster RENPHO IDs** (`/admin/import/renpho`) using a prepared private JSON file with `{ "mappings": [{ "athlete_code": "PAC-0001", "renpho_id": "FICTIONAL-ID" }] }`. The displayed example is fictional. This Admin-only page previews player names and requires review before saving. Actual Coaches and interactive Coach View use the shared matches but cannot manage identity mappings.
+
+Mappings are additive: previous IDs still match, blanks do not delete links, and an ID cannot be transferred between athletes. Duplicate/ambiguous IDs and entries for unapproved new players remain pending. No accounts are provisioned and no invitations are sent. Daily synchronization depends on this Mac, the Drive connection and a valid administrator session; updates are available after a successful check rather than instantly upon editing the Sheet.
 
 ## Full Swing readiness
 

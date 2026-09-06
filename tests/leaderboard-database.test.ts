@@ -102,6 +102,20 @@ describe("comparable latest results and numerical places", () => {
     const data = await asUser(users.unlinked, () => board({ metricKey: "home_to_first", unit: "s" }));
     expect(data.map(row => row.athleteCode)).toEqual([1, 2, 3, 4, 5].map(code)); expect(data.map(row => row.rank)).toEqual([1, 2, 3, 4, 5]);
   });
+  it.each([
+    { metricKey: "height", unit: "in", values: [74, 74, 70], expected: [1, 2, 3] },
+    { metricKey: "muscle_mass_pct", unit: "%", values: [75, 75, 68], expected: [1, 2, 3] },
+    { metricKey: "body_fat_pct", unit: "%", values: [18, 12, 12], expected: [2, 3, 1] },
+  ] as const)("ranks $metricKey with requested order, exact ties and no untested entries", async ({ metricKey, unit, values, expected }) => {
+    await save(values.map((value, index) => row(index + 1, { metric_key: metricKey, unit, value })));
+    const comparison = { ...selection, metricKey, unit };
+    const access = { roles: ["player"], athleteId: athlete(1), supabase: { rpc: async () => ({ data: await board(comparison), error: null }) } } as unknown as Parameters<typeof loadLeaderboard>[0];
+    const data = await asUser(users.player, () => loadLeaderboard(access, comparison));
+    expect(data.map(row => row.athleteCode)).toEqual(expected.map(code));
+    expect(data.map(row => row.rank)).toEqual([1, 1, 3]);
+    expect(data.map(row => row.value)).toEqual(expected.map(index => values[index - 1]));
+    expect((await db.query<{ direction: string }>("select direction from private.performance_metric_catalog where metric_key=$1", [metricKey])).rows[0].direction).toBe("neutral");
+  });
   it("never pools unlike protocols, units or Fall/summer body periods", async () => {
     await save([row(1, { metric_key: "weight", unit: "lb", source: "RENPHO", measured_at: "2026-08-20" }), row(2, { metric_key: "weight", unit: "lb", source: "  renpho  ", measured_at: "2026-09-12" }), row(3, { metric_key: "weight", unit: "kg", source: "RENPHO" }), row(4, { metric_key: "weight", unit: "lb", source: "Other protocol" })].map(r => ({ ...r, source: r.source.trim() })));
     await asUser(users.player, async () => {

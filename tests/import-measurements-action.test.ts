@@ -4,7 +4,7 @@ const fake = vi.hoisted(() => ({ guard: vi.fn(), rpc: vi.fn(), revalidate: vi.fn
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/auth", () => ({ requireImportAccess: fake.guard }));
 vi.mock("next/cache", () => ({ revalidatePath: fake.revalidate }));
-import { saveReviewedMeasurements, loadSharedReportMeasurements } from "@/app/(workspace)/imports/actions";
+import { saveReviewedMeasurements, loadSharedReportMeasurements, matchSharedRenphoPlayer, saveReviewedRenphoMeasurements } from "@/app/(workspace)/imports/actions";
 const fileHash = "a".repeat(64), importId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const measurement = (changes: Partial<Measurement> = {}): Measurement => ({
   id: `observation:${JSON.stringify([fileHash, "Fictional tests", 2, 0])}`, athlete_code: "SYN-001",
@@ -17,6 +17,8 @@ describe("staff information import actions", () => {
     fake.guard.mockRejectedValue(new Error(`REDIRECT:${path}`));
     await expect(saveReviewedMeasurements([measurement()], true)).rejects.toThrow(`REDIRECT:${path}`);
     await expect(loadSharedReportMeasurements(fileHash)).rejects.toThrow(`REDIRECT:${path}`);
+    await expect(matchSharedRenphoPlayer("FICTIONAL-01")).rejects.toThrow(`REDIRECT:${path}`);
+    await expect(saveReviewedRenphoMeasurements([measurement()], true, { athleteCode: "SYN-001", renphoId: "FICTIONAL-01" })).rejects.toThrow(`REDIRECT:${path}`);
     expect(fake.rpc).not.toHaveBeenCalled();
   });
   it("validates the full input then rechecks live staff authorization before saving", async () => {
@@ -48,6 +50,31 @@ describe("staff information import actions", () => {
   it.each([{ data: null, error: { message: "Fictional failure" } }, { data: { import_id: importId, created: 2, unchanged: 0 }, error: null }])("does not claim an uncertain save or retry %#", async result => {
     fake.rpc.mockResolvedValue(result); expect(await saveReviewedMeasurements([measurement()], true)).toHaveProperty("error");
     expect(fake.rpc).toHaveBeenCalledTimes(1); expect(fake.revalidate).not.toHaveBeenCalled();
+  });
+});
+describe("shared RENPHO matching actions", () => {
+  it("returns only the matched code, never the report ID or other player fields", async () => {
+    fake.rpc.mockResolvedValue({ data: { athlete_id: importId, athlete_code: "SYN-001" }, error: null });
+    expect(await matchSharedRenphoPlayer("fictional-01")).toEqual({ athleteCode: "SYN-001" });
+    expect(fake.rpc).toHaveBeenCalledExactlyOnceWith("staff_match_renpho_id", { p_report_id: "FICTIONAL-01" });
+  });
+  it("keeps unknown IDs available for explicit player selection", async () => {
+    fake.rpc.mockResolvedValue({ data: null, error: null });
+    expect(await matchSharedRenphoPlayer("FICTIONAL-UNKNOWN")).toEqual({ athleteCode: null });
+  });
+  it("routes a reviewed report through the atomic ID-checking import", async () => {
+    const row = measurement({ source: "RENPHO", metric: "Weight", unit: "lb", value: 180 });
+    expect(await saveReviewedRenphoMeasurements([row], true, { athleteCode: "SYN-001", renphoId: "fictional-01" })).toEqual({ import_id: importId, created: 1, unchanged: 0 });
+    expect(fake.rpc.mock.calls[0][0]).toBe("staff_import_renpho");
+    expect(fake.rpc.mock.calls[0][1]).toMatchObject({ p_report_id: "FICTIONAL-01", p_athlete_code: "SYN-001" });
+    expect(fake.rpc.mock.calls[0][1].p_rows[0]).not.toHaveProperty("renpho_id");
+  });
+  it("rejects a different player, missing approval, or extra identity evidence before the RPC", async () => {
+    const row = measurement({ source: "RENPHO", metric: "Weight", unit: "lb", value: 180 });
+    expect(await saveReviewedRenphoMeasurements([row], true, { athleteCode: "SYN-002", renphoId: "FICTIONAL-01" })).toHaveProperty("error");
+    expect(await saveReviewedRenphoMeasurements([row], false, { athleteCode: "SYN-001", renphoId: "FICTIONAL-01" })).toHaveProperty("error");
+    expect(await saveReviewedRenphoMeasurements([row], true, { athleteCode: "SYN-001", renphoId: "FICTIONAL-01", raw: "fictional" } as never)).toHaveProperty("error");
+    expect(fake.rpc).not.toHaveBeenCalled();
   });
 });
 describe("precise report dedup reads", () => {

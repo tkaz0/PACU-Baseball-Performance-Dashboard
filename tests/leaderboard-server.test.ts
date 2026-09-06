@@ -31,6 +31,16 @@ describe("strict minimal leaderboard response adapter", () => {
     rpc.mockResolvedValue({ data: [row({ value: 4 }), row({ rank: 1, athleteCode: "SYN-002", value: 4 }), row({ rank: 3, athleteCode: "SYN-003", value: 5 })], error: null });
     expect(await loadLeaderboard(access, { ...selection, metricKey: "home_to_first", unit: "s" })).toHaveLength(3);
   });
+  it.each([
+    { metricKey: "height", unit: "in", values: [74, 72] },
+    { metricKey: "muscle_mass_pct", unit: "%", values: [75, 70] },
+    { metricKey: "body_fat_pct", unit: "%", values: [12, 18] },
+  ] as const)("enforces the requested $metricKey numerical order without changing profile direction", async ({ metricKey, unit, values }) => {
+    rpc.mockResolvedValue({ data: [row({ value: values[0] }), row({ rank: 2, athleteCode: "SYN-002", value: values[1] })], error: null });
+    expect((await loadLeaderboard(access, { ...selection, metricKey, unit })).map(row => row.value)).toEqual(values);
+    rpc.mockResolvedValue({ data: [row({ value: values[1] }), row({ rank: 2, athleteCode: "SYN-002", value: values[0] })], error: null });
+    await expect(loadLeaderboard(access, { ...selection, metricKey, unit })).rejects.toThrow("could not be verified");
+  });
   it.each([{ metricKey: "invented" }, { unit: "unknown" }, { period: "summer_2026" }, { source: "Unnormalized Source" }])("rejects invalid selection %# before RPC", async changes => {
     await expect(loadLeaderboard(access, { ...selection, ...changes } as LeaderboardSelection)).rejects.toThrow("valid leaderboard"); expect(rpc).not.toHaveBeenCalled();
   });

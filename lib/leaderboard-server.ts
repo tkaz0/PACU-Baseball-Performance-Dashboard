@@ -3,7 +3,7 @@ import type { requireAccess } from "@/lib/auth";
 import { canReadPresentedAthlete } from "@/lib/access-preview";
 import { UUID_PATTERN } from "@/lib/types";
 import { PLAYER_METRICS, PLAYER_PERFORMANCE_PERIODS, validatePlayerMetricValue } from "@/lib/player-performance";
-import type { LeaderboardComparison, LeaderboardRow, LeaderboardSelection } from "@/lib/leaderboards";
+import { leaderboardOrder, type LeaderboardComparison, type LeaderboardRow, type LeaderboardSelection } from "@/lib/leaderboards";
 
 type Access = Awaited<ReturnType<typeof requireAccess>>;
 const optionFields = ["athleteCount", "metricKey", "period", "source", "unit"].sort().join(",");
@@ -47,7 +47,7 @@ export async function loadLeaderboard(access: Access, selection: LeaderboardSele
       typeof item.value !== "number" || !validatePlayerMetricValue(metric.key, item.value, selection.unit) || typeof item.derived !== "boolean" || (item.derived && metric.key !== "muscle_mass_pct") ||
       typeof item.measuredAt !== "string" || !/^2026-\d{2}-\d{2}$/.test(item.measuredAt) || !Number.isFinite(Date.parse(item.measuredAt)) || new Date(item.measuredAt).toISOString().slice(0, 10) !== item.measuredAt || item.measuredAt < period.start || item.measuredAt > period.end ||
       item.source !== selection.source || !Number.isSafeInteger(item.rank) || item.rank !== (previous && previous.value === item.value ? previous.rank : index + 1)) return fail();
-    if (previous && (metric.direction === "lower" ? item.value < previous.value : item.value > previous.value)) return fail();
+    if (previous && (leaderboardOrder(metric) === "lower" ? item.value < previous.value : item.value > previous.value)) return fail();
     if (previous && item.value === previous.value && item.athleteCode < previous.athleteCode) return fail();
     seen.add(item.athleteCode); previous = item as LeaderboardRow;
     // SQL sees the real Admin during View as. Do not send peer profile links to Player presentation.

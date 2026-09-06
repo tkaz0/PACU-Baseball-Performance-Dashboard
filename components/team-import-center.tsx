@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Activity, CircleDot, CalendarDays, Swords } from "lucide-react";
 import { RenphoReportForm } from "@/components/renpho-import";
 import { FullSwingImport } from "@/components/full-swing-import";
-import { loadSharedReportMeasurements, saveReviewedMeasurements } from "@/app/(workspace)/imports/actions";
+import { loadSharedReportMeasurements, matchSharedRenphoPlayer, saveReviewedMeasurements, saveReviewedRenphoMeasurements } from "@/app/(workspace)/imports/actions";
 import type { Measurement } from "@/lib/imports/engine";
 import type { RosterAthlete } from "@/lib/types";
 
@@ -21,10 +21,10 @@ export function TeamImportCenter({ roster }: { roster: RosterAthlete[] }) {
   const [gameKind, setGameKind] = useState<"game" | "intrasquad">("intrasquad");
   const [receipt, setReceipt] = useState("");
   const [saving, setSaving] = useState(false);
-  async function save(measurements: Measurement[]): Promise<string> {
+  async function save(measurements: Measurement[], identity?: { athleteCode: string; renphoId: string }): Promise<string> {
     setSaving(true);
     try {
-      const result = await saveReviewedMeasurements(measurements, true);
+      const result = identity ? await saveReviewedRenphoMeasurements(measurements, true, identity) : await saveReviewedMeasurements(measurements, true);
       if ("error" in result) throw new Error(result.error);
       const message = `Saved to player profiles: ${result.created} new readings · ${result.unchanged} already present.`;
       setReceipt(message); return message;
@@ -41,9 +41,10 @@ export function TeamImportCenter({ roster }: { roster: RosterAthlete[] }) {
     </div>
     {!roster.length ? <p className="notice">No players are on the 2026–27 roster yet. An admin can add the roster before measurements are imported.</p> : <>
       {lane === "games" && <div className="panel p-5"><label className="max-w-sm">Session Type<select disabled={saving} value={gameKind} onChange={event => { setGameKind(event.target.value as "game" | "intrasquad"); setReceipt(""); }}><option value="intrasquad">Intrasquad</option><option value="game">Game</option></select></label></div>}
-      {lane === "physicality" ? <RenphoReportForm workspace={{ roster, measurements: [], revision: 0, ready: true, error: null, applyRenphoReport: async measurements => { await save(measurements); } }} shared={{ receipt,
+      {lane === "physicality" ? <RenphoReportForm workspace={{ roster, measurements: [], revision: 0, ready: true, error: null, applyRenphoReport: async (measurements, _batch, _revision, identity) => { await save(measurements, { athleteCode: identity.athleteCode, renphoId: identity.renphoId ?? "" }); } }} shared={{ receipt,
         profileHref: code => `/athletes/${roster.find(athlete => athlete.athlete_code === code)!.id}`,
         loadExisting: async hash => { const result = await loadSharedReportMeasurements(hash); if ("error" in result) throw new Error(result.error); return result.measurements; },
+        matchPlayer: async id => { const result = await matchSharedRenphoPlayer(id); if ("error" in result) throw new Error(result.error); return result.athleteCode; },
       }} /> : <FullSwingImport key={lane === "games" ? gameKind : lane} category={lane === "games" ? gameKind : lane} roster={roster} saveAction={save} />}
     </>}
   </div>;

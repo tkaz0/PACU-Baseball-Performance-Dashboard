@@ -14,6 +14,15 @@ export const leaderboardMetrics = (group: LeaderboardGroup) => PLAYER_METRICS.fi
 export const leaderboardSourceLabel = (source: string) => ({ renpho: "RENPHO", "full swing": "Full Swing", blast: "Blast", rapsodo: "Rapsodo", "player metrics": "Player Metrics" })[source] ?? source;
 export const leaderboardMetricLabel = (metric: PlayerMetricDefinition) => ({ max_exit_velocity: "Max Exit Velocity", avg_exit_velocity: "Average Exit Velocity", bat_speed: "Bat Speed (Unspecified)", k_pct: "Strikeout %", bb_pct: "Walk %" } as Partial<Record<PlayerMetricKey, string>>)[metric.key] ?? metric.label;
 
+/** Owner-selected numerical ordering; profile insight directions remain separate. */
+export function leaderboardOrder(metric: PlayerMetricDefinition): "higher" | "lower" {
+  if (metric.key === "height" || metric.key === "muscle_mass_pct") return "higher";
+  return metric.key === "body_fat_pct" || metric.direction === "lower" ? "lower" : "higher";
+}
+export function leaderboardOrderLabel(metric: PlayerMetricDefinition): string {
+  return metric.key === "height" ? "Tallest First" : leaderboardOrder(metric) === "lower" ? "Lowest First" : "Highest First";
+}
+
 /** One honest comparison per metric, without pooling source, unit or testing period. */
 export function visibleLeaderboardComparisons(group: LeaderboardGroup, options: readonly LeaderboardComparison[]): LeaderboardComparison[] {
   return leaderboardMetrics(group).flatMap(metric => {
