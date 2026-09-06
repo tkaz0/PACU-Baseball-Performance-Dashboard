@@ -90,7 +90,7 @@ describe("shared roster presentation", () => {
     for (const season of [undefined, "2026-27"]) {
       const html = renderToStaticMarkup(createElement(RosterTable, { athletes: [athlete], season }));
       expect(html).not.toContain("Status"); expect(html).not.toContain("redshirt");
-      expect(html).toContain('class="font-semibold">0</td>'); expect(html).toContain("CF");
+      expect(html).toMatch(/<td\b[^>]*>0<\/td>/); expect(html).toContain(">#0</span>"); expect(html).toContain("CF");
       expect(html).toContain(`/athletes/${athlete.id}`);
     }
     expect(athlete).toEqual(original); expect(athlete.athlete_seasons[0].eligibility_year).toBe(2);

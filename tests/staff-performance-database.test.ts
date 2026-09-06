@@ -1,6 +1,9 @@
 import { PGlite } from "@electric-sql/pglite";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
+import { prepareManualTesting, type ManualTestingInput } from "@/lib/manual-testing";
+import { prepareReviewedPerformanceRows } from "@/lib/performance-import";
+import type { TestingAthlete } from "@/lib/testing-checklist";
 const db = new PGlite();
 const admin = "11111111-1111-4111-8111-111111111111", coach = "22222222-2222-4222-8222-222222222222", otherCoach = "33333333-3333-4333-8333-333333333333", player = "44444444-4444-4444-8444-444444444444";
 const athleteId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", fileHash = "a".repeat(64);
@@ -29,6 +32,39 @@ beforeEach(async () => {
   await db.exec("delete from public.performance_measurements;delete from public.performance_imports;delete from public.audit_events where event_type='performance_imported';reset extra_float_digits;update public.app_accounts set is_active=true;");
 });
 afterAll(async () => { await db.close(); });
+describe("manual testing through the existing staff import RPC", () => {
+  const manualAthlete: TestingAthlete = { id: athleteId, athleteCode: "SYN-001", name: "Fictional Player", jerseyNumber: 0,
+    primaryPosition: "CF", secondaryPosition: null, playerType: "position", rosterStatus: "active" };
+  const manualInput = (): ManualTestingInput => ({ submissionId: "55555555-5555-4555-8555-555555555555", athleteCode: "SYN-001", testedOn: "2026-09-12", protocol: "Fictional testing station",
+    rows: [{ metricKey: "height", unit: "ft-in", value: "", feet: "5", inches: "11.5" }, { metricKey: "weight", unit: "lb", value: "180.2" }] });
+  async function reviewed(draft = manualInput()) {
+    return prepareReviewedPerformanceRows((await prepareManualTesting(draft, manualAthlete, "2026-09-19")).measurements);
+  }
+  it.each([["Coach", coach], ["Admin session used by Coach view", admin]])("%s saves reviewed height and weight once, with idempotent retries and atomic conflict rejection", async (_label, actor) => {
+    const rows = await reviewed();
+    expect(await asUser(actor, () => save(rows))).toMatchObject({ created: 2, unchanged: 0 });
+    expect(await asUser(actor, async () => save(await reviewed()))).toMatchObject({ created: 0, unchanged: 2 });
+    const stored = (await db.query<{ metric_key: string; unit: string; value: number; source: string; imported_by: string }>("select metric_key,unit,value,source,imported_by from public.performance_measurements order by metric_key")).rows;
+    expect(stored).toEqual([
+      { metric_key: "height", unit: "in", value: 71.5, source: "Manual testing · Fictional testing station", imported_by: actor },
+      { metric_key: "weight", unit: "lb", value: 180.2, source: "Manual testing · Fictional testing station", imported_by: actor },
+    ]);
+    const conflicting = manualInput();
+    conflicting.rows[1].value = "181";
+    conflicting.rows.push({ metricKey: "max_exit_velocity", unit: "mph", value: "88" });
+    const changed = await reviewed(conflicting);
+    // Try the new observation first so a conflict must roll back a partial insert.
+    await asUser(actor, async () => { await expect(save([changed[2], ...changed.slice(0, 2)])).rejects.toThrow("Source observation already exists"); });
+    expect(await count()).toEqual({ n: 2, receipts: 2, audit: 2 });
+    expect((await db.query<{ value: number }>("select value from public.performance_measurements where metric_key='weight'")).rows[0].value).toBe(180.2);
+  });
+  it("keeps Player and anonymous sessions from saving valid manually prepared rows", async () => {
+    const rows = await reviewed();
+    await asUser(player, async () => { await expect(save(rows)).rejects.toThrow("Active administrator or coach required"); });
+    await asUser(null, async () => { await expect(save(rows)).rejects.toThrow("permission denied"); });
+    expect(await count()).toEqual({ n: 0, receipts: 0, audit: 0 });
+  });
+});
 describe("reviewed staff performance import SQL", () => {
   it("allows Coach create/retry, immutable conflicts and atomic rejection while preserving the exact actor", async () => {
     expect(await asUser(coach, () => save())).toMatchObject({ created: 1, unchanged: 0 });

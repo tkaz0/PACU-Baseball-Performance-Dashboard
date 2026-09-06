@@ -19,6 +19,8 @@ export async function shareMeasurements(form: FormData) {
   try { receipt = await importReviewedPerformance(measurements); }
   catch { redirect("/admin/performance?error=save"); }
   revalidatePath("/overview");
+  revalidatePath("/testing");
+  revalidatePath("/admin/performance");
   revalidatePath("/leaderboards");
   revalidatePath("/athletes", "layout");
   redirect(`/admin/performance?import=${receipt.import_id}`);

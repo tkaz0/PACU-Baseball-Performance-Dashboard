@@ -63,15 +63,16 @@ describe("workspace navigation and preview notices", () => {
     expect(html).toContain(`href="${role === "player" ? `/athletes/${athleteId}` : "/roster"}" class="sidebar-brand-link"`);
     expect(html.includes('href="/roster"')).toBe(role !== "player");
     expect(html.includes('href="/imports"')).toBe(role !== "player");
+    expect(html.includes('href="/testing"')).toBe(role !== "player");
   });
   it("shows Coach imports in Coach view while keeping Admin management absent", () => {
     const html = renderToStaticMarkup(createElement(Sidebar, { roles: ["coach"], athleteId: null, isPreview: true }));
-    expect(html).toContain('href="/imports"'); expect(html).not.toContain('href="/admin/access"');
+    expect(html).toContain('href="/imports"'); expect(html).toContain('href="/testing"'); expect(html).not.toContain('href="/admin/access"');
     expect(html).not.toContain('href="/admin/rollout"');
   });
   it("keeps Player view import navigation absent", () => {
     const html = renderToStaticMarkup(createElement(Sidebar, { roles: ["player"], athleteId, isPreview: true }));
-    expect(html).not.toContain('href="/imports"'); expect(html).not.toContain('href="/admin/access"');
+    expect(html).not.toContain('href="/imports"'); expect(html).not.toContain('href="/testing"'); expect(html).not.toContain('href="/admin/access"');
   });
   it("only labels an actual preview as read-only", () => {
     expect(renderToStaticMarkup(createElement(AccessPreviewNotice, { status: "read-only", isPreview: false }))).toBe("");

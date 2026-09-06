@@ -27,6 +27,8 @@ export async function saveReviewedMeasurements(measurements: unknown, confirmed:
     receipt = await importReviewedPerformance(reviewed);
   } catch { return { error: "The save could not be confirmed. Refresh the profiles before retrying; conflicting observations are never replaced." }; }
   revalidatePath("/imports");
+  revalidatePath("/testing");
+  revalidatePath("/admin/performance");
   revalidatePath("/overview");
   revalidatePath("/leaderboards");
   revalidatePath("/athletes", "layout");

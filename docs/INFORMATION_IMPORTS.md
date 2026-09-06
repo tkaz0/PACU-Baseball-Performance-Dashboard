@@ -2,6 +2,8 @@
 
 Open **Information Imports** at `/imports` while signed in as an active Admin or Coach. This page reads the live 2026–27 roster. Reviewed numerical readings save directly to the shared, private player profiles. Players have no import access. Admin View as Coach includes working performance imports; Player View as remains read-only. Every save is attributed to the real signed-in account.
 
+For a result without a file, open **Testing → Enter Results**. The staff checklist shows which players still need each Fall test. See [TESTING_WORKFLOW](TESTING_WORKFLOW.md).
+
 ## Four upload areas
 
 | Area | Input | Destination |
@@ -39,4 +41,4 @@ The hub links to shared import receipts, the advanced browser importer, and the 
 
 Account invitations remain disabled and unsent pending the owner's review.
 
-The shared metric catalog also accepts reviewed grip strength and separate infield/outfield velocity through the advanced measurement mapping and shared-review path. These are not extracted from RENPHO reports or inferred from Full Swing pitch velocity. Existing active Coaches and an administrator choosing **View as Coach** can import through the same performance tools. Coach view does not grant roster, account or backup management. It uses the existing administrator session rather than creating a second login.
+For grip strength and separate infield/outfield velocity, use **Testing → Enter Results**, or the advanced measurement mapping and shared-review path. These are not extracted from RENPHO reports or inferred from Full Swing pitch velocity. Existing active Coaches and an administrator choosing **View as Coach** can import through the same performance tools. Coach view does not grant roster, account or backup management. It uses the existing administrator session rather than creating a second login.

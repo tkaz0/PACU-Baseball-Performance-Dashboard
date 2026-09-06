@@ -261,3 +261,7 @@ After applying `202609060002_coach_rollout.sql`, open **Team account preparation
 ## Coach-ready presentation
 
 The September 2026 presentation update needs no database migration or environment change. Staff land on Team Roster and linked Players land on their own profile. The former team Overview page is a protected compatibility redirect. Overview is now the first profile tab, followed by Physicality, Hitting (except pitcher-only profiles) and Throwing. Game Stats remains a separate section. Profile insights require comparable measurements and never create results for missing tests. Pitcher-only profiles omit Speed & Agility, including insight and history displays. Body Fat % appears in Body Composition below Weight, Height and Grip Strength. Profile height and height rankings display feet/inches; stored readings remain unchanged. Leaderboards automatically choose coherent available comparison cards without visible filters. Import format help and secondary tools are expandable.
+
+## Manual testing and the Fall checklist
+
+No additional environment setting or migration is needed for **Testing** at `/testing` and **Enter Results** at `/testing/entry`. Both use the existing active staff session and reviewed performance RPC. Admin View as Coach can use them; Players cannot. Start with the current roster, actual test dates and a consistent protocol/device name. See [TESTING_WORKFLOW](TESTING_WORKFLOW.md). Mobile navigation is available through **Menu**; desktop links remain in the sidebar.

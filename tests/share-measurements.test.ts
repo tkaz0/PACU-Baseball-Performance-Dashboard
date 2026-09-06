@@ -47,7 +47,7 @@ describe("shared measurement action authorization and receipt", () => {
       observation_id: measurement().id, athlete_code: "SYN-001", metric_key: "max_exit_velocity", measured_at: "2026-09-12",
       value: 10, unit: "mph", source: "Fictional testing", source_file: "fictional.csv", source_sheet: "Fictional tests", source_row: 2, file_hash: fileHash,
     }] });
-    expect(fake.revalidate.mock.calls).toEqual([["/overview"], ["/leaderboards"], ["/athletes", "layout"]]);
+    expect(fake.revalidate.mock.calls).toEqual([["/overview"], ["/testing"], ["/admin/performance"], ["/leaderboards"], ["/athletes", "layout"]]);
   });
   it("accepts an unchanged-only verified receipt without falsely creating another observation", async () => {
     fake.rpc.mockResolvedValueOnce({ data: { import_id: importId, created: 0, unchanged: 1 }, error: null });
