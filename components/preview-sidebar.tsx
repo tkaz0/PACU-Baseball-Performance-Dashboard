@@ -15,8 +15,8 @@ const links = [
 
 export function PreviewSidebar() {
   const pathname = usePathname();
-  const { view } = useLocalWorkspace();
-  const visibleLinks = view.role === "admin" ? links : view.role === "coach" ? links.slice(0, 2) : [
+  const { view, canImport, canManage } = useLocalWorkspace();
+  const visibleLinks = canManage ? links : view.role === "coach" ? links.slice(0, canImport ? 3 : 2) : [
     { href: "/preview", label: "My Overview", icon: LayoutDashboard },
     ...(view.athleteCode ? [{ href: `/preview/athletes/${view.athleteCode}`, label: "My Profile", icon: UserRound }] : []),
   ];
@@ -37,7 +37,7 @@ export function PreviewSidebar() {
         })}
       </nav>
       <div className="sidebar-bottom mt-auto px-4">
-        <div className="sidebar-storage"><HardDrive size={18} aria-hidden="true" /><div><strong>Admin Import Workspace</strong><span>Imports stay in this browser</span></div></div>
+        <div className="sidebar-storage"><HardDrive size={18} aria-hidden="true" /><div><strong>Staff Import Workspace</strong><span>Imports stay in this browser</span></div></div>
         <p className="mt-6 text-xs leading-relaxed text-gray-400">An independent project.<br />Not an official university application.</p>
       </div>
     </aside>

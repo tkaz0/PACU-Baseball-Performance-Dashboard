@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Measurement } from "@/lib/imports/engine";
 const mock=vi.hoisted(()=>({rows:[] as Record<string,unknown>[],summary:[] as Record<string,unknown>[],rpc:vi.fn(),requireAdmin:vi.fn()}));
 vi.mock('server-only',()=>({}));
-vi.mock('@/lib/auth',()=>({requireAdminMutation:mock.requireAdmin}));
+vi.mock('@/lib/auth',()=>({requireImportAccess:mock.requireAdmin}));
 import { loadAthletePerformance,importReviewedPerformance } from '@/lib/performance-server';
 const own='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',other='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const hash='a'.repeat(64),id=`observation:${JSON.stringify([hash,'Fictional tests',2,0])}`;

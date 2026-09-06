@@ -34,7 +34,7 @@ Shared measurement pages and comparison summaries both retain round-trip floatin
 
 Max/average labels describe approved source summaries; the importer does not calculate them from arbitrary event rows or average precomputed percentages. Strike/K/BB denominators must be verified by the source adapter. Percentage inputs are percentage points: `50` means 50%, while `0.5` means 0.5%; no automatic fraction scaling occurs. Height, weight and elapsed times must be positive; other readings must be finite and nonnegative, and percentages must be 0–100. No athletic or medical reference ceilings are invented.
 
-**Pitching-sheet naming exception:** the existing Pitching Stats `FALL` sheet labels strikes/pitches as **K%**. Its adapter must map that column to `strike_pct`. PACU's profile **K %** means strikeouts/batters faced and must come from verified strikeout and batters-faced counts. A generic header match must not reinterpret the source column. The selected QPA source remains only `2026 - Fall`; direct game-sheet synchronization is separate work.
+**Pitching-sheet naming exception:** the existing Pitching Stats `FALL` sheet labels strikes/pitches as **K%**. The game adapter maps verified strikes/pitches to `strike_pct`. PACU's profile **K %** means strikeouts/batters faced and must come from verified strikeout and batters-faced counts. A generic header match must not reinterpret the source column. The selected QPA source remains only `2026 - Fall`; its cumulative snapshots and recorded pitching events appear in the separate [game-stat workflow](GAME_STATS.md), not as daily physical/testing observations.
 
 ## Percentile bars
 
@@ -54,11 +54,15 @@ Muscle mass percentage may be calculated as `muscle mass / weight × 100` only f
 
 ## From browser review to shared profiles
 
-1. Sign in as an active Admin outside private View as. Review the original supported report locally and approve its athlete, date, values and units. Export a private workspace backup.
-2. As an active Admin outside preview, open **Shared measurements** (`/admin/performance`) and choose the backup. The file is parsed on the device; the UI accepts up to 2 MiB.
+The main **Information Imports** hub at `/imports` accepts supported RENPHO reports and explicitly mapped summary CSVs, uses the live roster, and saves reviewed readings directly to profiles. Admins and Coaches can use it outside private View as. See [INFORMATION_IMPORTS](INFORMATION_IMPORTS.md).
+
+Existing browser backups can still be shared separately:
+
+1. An active Admin outside private View as reviews the original report locally, approves its athlete/date/values/units, and exports a private browser-workspace backup. Backup export remains Admin-only.
+2. As an active Admin or Coach outside preview, open **Shared measurements** (`/admin/performance`) and choose the reviewed backup. The file is parsed on the device; the UI accepts up to 2 MiB.
 3. Inspect exact shared-athlete matches, supported readings and explicitly listed unsupported metrics. Invalid recognized metrics/units/values/provenance block sharing. A reviewed transaction supports 1–500 observations. Both the posted Measurement JSON and normalized database JSON must fit within 1 MiB.
 4. Approve **Share with team**. Only the eleven whitelisted Measurement fields are serialized; images, OCR/report text, unknown backup properties, local report IDs and the full backup are excluded.
-5. The server rechecks active Admin access and input, then imports through the ordinary user's session. SQL matches permanent athlete codes, checks canonical metrics/units and dates, preserves source observation IDs, and saves the batch atomically. Identical repeats are unchanged; conflicting observations reject the whole transaction. A renamed-file retry preserves the original filename and import provenance.
+5. The server rechecks active Admin/Coach access and input, then imports through the ordinary user's session. SQL matches permanent athlete codes, checks canonical metrics/units and dates, preserves source observation IDs, and saves the batch atomically. Identical repeats are unchanged; conflicting observations reject the whole transaction. A renamed-file retry preserves the original filename and import provenance.
 
 Private players read only their linked profile; coaches/admins can read the team. Shared observations are immutable through normal app writes. Clearing a browser workspace does not remove shared data, and restoring a browser backup does not automatically publish it.
 

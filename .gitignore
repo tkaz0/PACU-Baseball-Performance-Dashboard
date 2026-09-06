@@ -25,6 +25,10 @@ dumps/
 !public/templates/master-roster.csv
 !public/templates/local-roster.csv
 !public/templates/measurements.csv
+!public/templates/pacu-hitting-summary.csv
+!public/templates/pacu-pitching-summary.csv
+!public/templates/pacu-game-summary.csv
+!public/templates/pacu-intrasquad-summary.csv
 *.xlsx
 *.xls
 *.pdf

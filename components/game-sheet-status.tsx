@@ -1,0 +1,4 @@
+import Link from "next/link";
+export function GameSheetStatus() {
+  return <section className="panel p-5"><p className="eyebrow text-pacu-red">Fall 2026 Game Sheets</p><h2 className="mt-2 text-xl font-bold">QPA &amp; Pitching</h2><p className="muted text-sm">Daily checks begin September 12. Only QPA’s 2026 - Fall tab and Pitching’s FALL tab are included. New identities or game dates need review before their statistics can sync.</p><p className="muted text-xs">Scheduled checks run through Codex on this Mac and need a valid staff sign-in to save. If access expires, the last saved statistics remain available.</p><div className="flex flex-wrap gap-3"><Link href="/game-stats" className="btn btn-secondary">View Game Stats</Link><Link href="/imports/game-stats" className="btn btn-primary">Review Game Snapshot</Link></div></section>;
+}

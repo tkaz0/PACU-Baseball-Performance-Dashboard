@@ -35,3 +35,8 @@ export function canReadPresentedAthlete(access: Pick<AccessPresentation, "roles"
 export function canMutatePresentedAccess(access: AccessPresentation): boolean {
   return access.preview === null && access.roles.includes("admin");
 }
+
+/** Performance information imports are staff work; a role preview is always read-only. */
+export function canImportPresentedAccess(access: AccessPresentation): boolean {
+  return access.preview === null && access.roles.some(role => role === "admin" || role === "coach");
+}

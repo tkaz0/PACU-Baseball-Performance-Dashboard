@@ -3,7 +3,7 @@ import type { Measurement } from "@/lib/imports/engine";
 
 const fake = vi.hoisted(() => ({ guard: vi.fn(), rpc: vi.fn(), revalidate: vi.fn() }));
 vi.mock("server-only", () => ({}));
-vi.mock("@/lib/auth", () => ({ requireAdminMutation: fake.guard }));
+vi.mock("@/lib/auth", () => ({ requireImportAccess: fake.guard }));
 vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw new Error(`REDIRECT:${path}`); } }));
 vi.mock("next/cache", () => ({ revalidatePath: fake.revalidate }));
 

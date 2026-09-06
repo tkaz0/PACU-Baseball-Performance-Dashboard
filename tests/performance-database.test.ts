@@ -4,7 +4,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { getPlayerPerformance } from "@/lib/player-performance";
 
 vi.mock("server-only", () => ({}));
-vi.mock("@/lib/auth", () => ({ requireAdminMutation: vi.fn() }));
+vi.mock("@/lib/auth", () => ({ requireImportAccess: vi.fn() }));
 import { loadAthletePerformance } from "@/lib/performance-server";
 
 const db = new PGlite();
@@ -94,16 +94,16 @@ describe("shared performance authorization",()=>{
       if(userId===users.playerB) expect(result.rows[0].athlete_id).toBe(athlete(2));
     }
   });
-  it("players, coaches and disabled administrators cannot import or mutate tables directly",async()=>{
-    for(const id of [users.playerA,users.coach,users.disabled]) await asUser(id,async()=>{
-      await expect(importRows([row()])).rejects.toThrow("Active administrator required");
+  it("players and disabled staff cannot import or mutate tables directly",async()=>{
+    for(const id of [users.playerA,users.disabled]) await asUser(id,async()=>{
+      await expect(importRows([row()])).rejects.toThrow("Active administrator or coach required");
       await expect(db.query("update public.performance_measurements set value=99")).rejects.toThrow("permission denied");
       await expect(db.query("delete from public.performance_measurements")).rejects.toThrow("permission denied");
     });
     await db.query("update public.app_accounts set is_active=false where user_id=$1",[users.admin]);
-    await asUser(users.admin,async()=>{await expect(importRows([row()])).rejects.toThrow("Active administrator required");});
+    await asUser(users.admin,async()=>{await expect(importRows([row()])).rejects.toThrow("Active administrator or coach required");});
   });
-  it("requires exact linked athlete for the definer summary and hides import history from players/coaches",async()=>{
+  it("requires exact linked athlete for the definer summary and hides other staff import history from players/coaches",async()=>{
     await asUser(users.admin,()=>importRows([row(1),row(2)]));
     for(const id of [users.playerA,users.coach]) expect((await asUser(id,()=>db.query("select * from public.performance_imports"))).rows).toHaveLength(0);
     await asUser(users.playerA,async()=>{expect(await summary()).toHaveLength(1);await expect(summary(athlete(2))).rejects.toThrow("Athlete access denied");});

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const fake = vi.hoisted(() => ({ access: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ requireAdminWorkspaceAccess: fake.access }));
+vi.mock("@/lib/auth", () => ({ requireAdminWorkspaceAccess: fake.access, requireImportAccess: fake.access }));
 vi.mock("@/app/auth/actions", () => ({ logout: vi.fn() }));
 vi.mock("@/components/local-dashboard", () => ({ LocalOverview: () => null, LocalRoster: () => null, LocalAthleteProfile: () => null }));
 vi.mock("@/components/local-access", () => ({ LocalAccessPage: () => null, LocalViewBanner: () => null, LocalViewBoundary: () => null, LocalViewControl: () => null }));
@@ -23,9 +23,9 @@ const routes = [
   ["profile", () => Profile({ params: Promise.resolve({ id: "SYN-001" }) })],
   ["imports", () => Imports()], ["access", () => Access()],
 ] as const;
-beforeEach(() => { vi.clearAllMocks(); fake.access.mockResolvedValue({ user: { id: "11111111-1111-4111-8111-111111111111" } }); });
+beforeEach(() => { vi.clearAllMocks(); fake.access.mockResolvedValue({ roles: ["admin"], user: { id: "11111111-1111-4111-8111-111111111111" } }); });
 describe("every browser workspace server entry point", () => {
-  it.each(routes)("checks current administrator access before rendering %s", async (_name, run) => {
+  it.each(routes)("checks current authorized access before rendering %s", async (_name, run) => {
     expect(await run()).toBeTruthy();
     expect(fake.access).toHaveBeenCalledOnce();
   });

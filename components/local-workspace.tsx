@@ -6,11 +6,12 @@ import type { RosterAthlete } from "@/lib/types";
 import type { Measurement } from "@/lib/imports/engine";
 import { getPlayerPerformance, type PlayerPerformance } from "@/lib/player-performance";
 import { adminView, canonicalLocalView, LOCAL_VIEW_KEY, parseLocalView, projectLocalView, type LocalView } from "@/lib/local-view";
+import { localWorkspacePermissions, type ImportRole } from "@/lib/local-workspace-permissions";
 import { emptyWorkspace, readWorkspace, validateWorkspace, writeWorkspace, exportLocalRosterCsv, prepareRenphoReport, type ImportBatch, type LocalWorkspace, type RenphoReportIdentity } from "@/lib/local-workspace";
 export type { ImportBatch } from "@/lib/local-workspace";
 
 type WorkspaceContext = {
-  view: LocalView; setView: (view: LocalView) => void; canManage: boolean;
+  view: LocalView; setView: (view: LocalView) => void; canManage: boolean; canImport: boolean; canPreview: boolean; isPreview: boolean; importRole: ImportRole;
   viewChoices: { code: string; name: string }[];
   roster: RosterAthlete[]; measurements: Measurement[]; batches: ImportBatch[];
   getPerformance: (athleteCode: string) => PlayerPerformance;
@@ -24,16 +25,19 @@ type WorkspaceContext = {
 };
 const Context = createContext<WorkspaceContext | null>(null);
 
-export function LocalWorkspaceProvider({ children }: { children: React.ReactNode }) {
+export function LocalWorkspaceProvider({ children, importRole }: { children: React.ReactNode; importRole: ImportRole }) {
   const [state, setState] = useState<LocalWorkspace>(emptyWorkspace);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [view, setViewState] = useState<LocalView>(adminView);
-  const currentView = useRef<LocalView>(adminView());
+  const initialView = (): LocalView => importRole === "admin" ? adminView() : { role: "coach", athleteCode: null };
+  const [view, setViewState] = useState<LocalView>(initialView);
+  const currentView = useRef<LocalView>(initialView());
   const channel = useRef<BroadcastChannel | null>(null);
   useEffect(() => {
     let active = true;
-    try { currentView.current = parseLocalView(sessionStorage.getItem(LOCAL_VIEW_KEY)); setViewState(currentView.current); } catch { /* View switching still works when session storage is unavailable. */ }
+    if (importRole === "admin") {
+      try { currentView.current = parseLocalView(sessionStorage.getItem(LOCAL_VIEW_KEY)); setViewState(currentView.current); } catch { /* View switching still works when session storage is unavailable. */ }
+    }
     const refresh = () => readWorkspace().then(data => {
       if (active) {
         const checked = canonicalLocalView(currentView.current, data.mode === "sample" ? getPreviewRoster() : data.roster);
@@ -45,15 +49,18 @@ export function LocalWorkspaceProvider({ children }: { children: React.ReactNode
     void refresh();
     if (typeof BroadcastChannel !== "undefined") { channel.current = new BroadcastChannel("pacu-workspace-updates"); channel.current.onmessage = () => void refresh(); }
     return () => { active = false; channel.current?.close(); };
-  }, []);
+  }, [importRole]);
   const roster = state.mode === "sample" ? getPreviewRoster() : state.roster;
   const visible = projectLocalView(view, roster, state.measurements);
   const visibleBatchIds = new Set(visible.measurements.map(m => m.batch_id));
   function assertManage() {
-    if (currentView.current.role !== "admin") throw new Error("Exit preview before changing or exporting workspace data.");
+    if (!localWorkspacePermissions(importRole, currentView.current).canManage) throw new Error("Roster and workspace management require an administrator outside preview.");
+  }
+  function assertImport() {
+    if (!localWorkspacePermissions(importRole, currentView.current).canImport) throw new Error("Information imports require an administrator or coach outside preview.");
   }
   async function commit(next: LocalWorkspace, expectedRevision: number) {
-    assertManage();
+    assertImport();
     if (!ready || error) throw new Error("Reload the workspace before saving.");
     if (expectedRevision !== state.revision) throw new Error("Data changed after this preview. Preview the file again before saving.");
     const saved = await writeWorkspace(next, expectedRevision);
@@ -61,9 +68,10 @@ export function LocalWorkspaceProvider({ children }: { children: React.ReactNode
     channel.current?.postMessage({ updated: true });
   }
   const value: WorkspaceContext = {
-    view, canManage: view.role === "admin",
+    view, importRole, ...localWorkspacePermissions(importRole, view),
     viewChoices: roster.map(a => ({ code: a.athlete_code, name: `${a.preferred_name || a.first_name} ${a.last_name}` })).sort((a, b) => a.name.localeCompare(b.name)),
     setView: next => {
+      if (importRole !== "admin") throw new Error("Only administrators can preview another role.");
       const checked = canonicalLocalView(parseLocalView(JSON.stringify(next)), roster);
       currentView.current = checked; setViewState(checked);
       try { sessionStorage.setItem(LOCAL_VIEW_KEY, JSON.stringify(checked)); } catch { /* Optional tab preference; not workspace data. */ }
@@ -83,6 +91,7 @@ export function LocalWorkspaceProvider({ children }: { children: React.ReactNode
     batches: view.role === "admin" ? state.batches : state.batches.filter(b => visibleBatchIds.has(b.id)),
     ready, error, mode: state.mode, revision: state.revision,
     applyRoster: async (candidate, batch, revision) => {
+      assertManage();
       const codes = new Set(candidate.map(a => a.athlete_code));
       if (state.measurements.some(m => !codes.has(m.athlete_code))) throw new Error("This roster would disconnect existing measurements. Keep those athlete codes or remove the measurement batches first.");
       await commit({ ...state, mode: "local", roster: candidate, batches: [...state.batches, batch] }, revision);
@@ -98,7 +107,7 @@ export function LocalWorkspaceProvider({ children }: { children: React.ReactNode
       if (!batch || batch.kind !== "measurements") throw new Error("Only measurement batches can be removed. Roster updates preserve athlete identities.");
       await commit({ ...state, measurements: state.measurements.filter(m => m.batch_id !== id), batches: state.batches.filter(b => b.id !== id) }, state.revision);
     },
-    resetWorkspace: async () => { await commit({ ...emptyWorkspace(), revision: state.revision }, state.revision); },
+    resetWorkspace: async () => { assertManage(); await commit({ ...emptyWorkspace(), revision: state.revision }, state.revision); },
     exportBackup: () => {
       assertManage();
       const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
@@ -114,6 +123,7 @@ export function LocalWorkspaceProvider({ children }: { children: React.ReactNode
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     },
     restoreBackup: async text => {
+      assertManage();
       if (text.length > 30 * 1024 * 1024) throw new Error("Backup is too large (30 MB maximum).");
       let data: unknown;
       try { data = JSON.parse(text); } catch { throw new Error("This file is not a valid JSON backup."); }
@@ -130,6 +140,6 @@ export function useLocalWorkspace() {
 }
 
 export function WorkspaceBanner() {
-  const { mode, ready, error } = useLocalWorkspace();
-  return <div className="bg-pacu-red px-6 py-3 text-sm font-semibold text-white lg:px-10" role="status">{error || (!ready ? "Opening your workspace…" : mode === "sample" ? "Sample roster · Fictional athletes · Administrator workspace" : "Saved in this browser · Export a backup to keep or transfer your data")}</div>;
+  const { mode, ready, error, canManage } = useLocalWorkspace();
+  return <div className="bg-pacu-red px-6 py-3 text-sm font-semibold text-white lg:px-10" role="status">{error || (!ready ? "Opening your workspace…" : mode === "sample" ? "Sample roster · Fictional athletes · Staff import workspace" : canManage ? "Saved in this browser · Export a backup to keep or transfer your data" : "Saved in this browser · Use Information Imports to update shared profiles")}</div>;
 }

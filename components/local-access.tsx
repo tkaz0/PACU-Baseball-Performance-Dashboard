@@ -9,7 +9,7 @@ import { adminView, localViewAllowsPath, type LocalView } from "@/lib/local-view
 import { PageHeading } from "@/components/page-heading";
 
 export function LocalViewControl() {
-  const { view, setView, viewChoices, ready } = useLocalWorkspace();
+  const { view, setView, viewChoices, ready, canPreview } = useLocalWorkspace();
   const [athleteCode, setAthleteCode] = useState("");
   const menu = useRef<HTMLDetailsElement>(null);
   const router = useRouter();
@@ -18,6 +18,7 @@ export function LocalViewControl() {
     if (menu.current) menu.current.open = false;
     router.push(next.role === "player" && next.athleteCode ? `/preview/athletes/${next.athleteCode}` : "/preview");
   }
+  if (!canPreview) return null;
   return <details className="view-menu" ref={menu} onKeyDown={event => { if (event.key === "Escape" && menu.current) { menu.current.open = false; menu.current.querySelector("summary")?.focus(); } }}>
     <summary className="btn btn-secondary"><Eye size={16} aria-hidden="true" />{view.role === "admin" ? "View as" : `As: ${view.role === "coach" ? "Coach" : "Player"}`}</summary>
     <div className="view-menu-panel">
@@ -31,17 +32,17 @@ export function LocalViewControl() {
 }
 
 export function LocalViewBanner() {
-  const { view, setView } = useLocalWorkspace();
+  const { view, setView, isPreview } = useLocalWorkspace();
   const router = useRouter();
-  if (view.role === "admin") return null;
+  if (!isPreview) return null;
   return <div className="access-preview-banner" role="status"><div><Eye size={19} aria-hidden="true" /><span><strong>Viewing as: {view.role === "coach" ? "Coach" : "Player"}</strong><small>Read-only layout preview · Saved in this browser</small></span></div><button className="btn btn-secondary" onClick={() => { setView(adminView()); router.push("/preview"); }}>Exit preview</button></div>;
 }
 
 export function LocalViewBoundary({ children }: { children: React.ReactNode }) {
-  const { view, ready, roster } = useLocalWorkspace();
+  const { view, ready, roster, canImport, isPreview } = useLocalWorkspace();
   const pathname = usePathname();
   if (!ready) return <p role="status">Opening your workspace…</p>;
-  if (!localViewAllowsPath(view, pathname, roster)) return <section className="panel empty-state"><ShieldCheck size={30} aria-hidden="true" /><h1 className="page-title">Not part of this view</h1><p>{view.role === "player" ? "Players see their own profile and performance records." : "Imports and account controls are managed by an administrator."} Exit preview to return to the full workspace.</p><Link className="btn btn-primary" href={view.role === "player" && view.athleteCode ? `/preview/athletes/${view.athleteCode}` : "/preview"}>{view.role === "player" ? "My profile" : "Team overview"}</Link></section>;
+  if (!(canImport && pathname === "/preview/import") && !localViewAllowsPath(view, pathname, roster)) return <section className="panel empty-state"><ShieldCheck size={30} aria-hidden="true" /><h1 className="page-title">Not part of this view</h1><p>{view.role === "player" ? "Players see their own profile and performance records." : "Account and roster controls are managed by an administrator."}{isPreview ? " Exit preview to return to the full workspace." : ""}</p><Link className="btn btn-primary" href={view.role === "player" && view.athleteCode ? `/preview/athletes/${view.athleteCode}` : "/preview"}>{view.role === "player" ? "My profile" : "Team overview"}</Link></section>;
   return <>{children}</>;
 }
 
@@ -50,7 +51,7 @@ export function LocalAccessPage() {
   const router = useRouter();
   const roles = [
     { title: "Admin", icon: ShieldCheck, description: "Run the workspace.", items: ["View every athlete profile", "Review and import team data", "Manage account roles and athlete links", "Preview coach and player views"] },
-    { title: "Coach", icon: UsersRound, description: "Follow the whole team.", items: ["View the team overview and roster", "Open every athlete’s profile", "Review available performance charts", "No imports or account administration"] },
+    { title: "Coach", icon: UsersRound, description: "Follow the whole team.", items: ["View the team overview and roster", "Open every athlete’s profile", "Review available performance charts", "Import reviewed performance information", "No roster or account administration"] },
     { title: "Player", icon: UserRound, description: "Focus on personal progress.", items: ["Open their own linked profile", "Review their own measurements and charts", "See their roster and season details", "No other athletes or admin controls"] },
   ];
   return <>

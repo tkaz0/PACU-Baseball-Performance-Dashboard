@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { LayoutDashboard, LogOut } from "lucide-react";
-import { requireAdminWorkspaceAccess } from "@/lib/auth";
+import { requireImportAccess } from "@/lib/auth";
 import { logout } from "@/app/auth/actions";
 import { PreviewSidebar } from "@/components/preview-sidebar";
 import { LocalWorkspaceProvider, WorkspaceBanner } from "@/components/local-workspace";
@@ -9,10 +9,11 @@ import { AdminWorkspaceBoundary } from "@/components/admin-workspace-boundary";
 
 export const dynamic = "force-dynamic";
 export default async function PreviewLayout({ children }: { children: React.ReactNode }) {
-  const access = await requireAdminWorkspaceAccess();
+  const access = await requireImportAccess();
+  const importRole = access.roles.includes("admin") ? "admin" : "coach";
   return (
-    <AdminWorkspaceBoundary userId={access.user.id}>
-    <LocalWorkspaceProvider>
+    <AdminWorkspaceBoundary userId={access.user.id} importRole={importRole}>
+    <LocalWorkspaceProvider importRole={importRole}>
       <div className="workspace-shell">
       <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:bg-white focus:p-4">Skip to content</a>
       <PreviewSidebar />

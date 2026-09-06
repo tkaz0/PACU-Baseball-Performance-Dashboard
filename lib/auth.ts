@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { hasSupabaseConfig } from "@/lib/env";
 import type { Role } from "@/lib/types";
-import { ACCESS_PREVIEW_COOKIE, canMutatePresentedAccess, resolveAccessPreview } from "@/lib/access-preview";
+import { ACCESS_PREVIEW_COOKIE, canImportPresentedAccess, canMutatePresentedAccess, resolveAccessPreview } from "@/lib/access-preview";
 
 export async function getTrustedAccess() {
   if (!hasSupabaseConfig()) return { access: null, reason: "configuration" as const };
@@ -54,7 +54,7 @@ export async function requireAccess(allowed?: Role[]) {
   return access;
 }
 
-/** Browser-local data and administrative writes share the same live Admin boundary. */
+/** Roster, identity and account management remain administrator-only. */
 export async function requireAdminWorkspaceAccess() {
   const access = await requireAccess();
   if (!canMutatePresentedAccess(access)) redirect(access.preview ? "/overview?preview=read-only" : "/access-denied");
@@ -63,4 +63,10 @@ export async function requireAdminWorkspaceAccess() {
 
 export async function requireAdminMutation() {
   return requireAdminWorkspaceAccess();
+}
+
+export async function requireImportAccess() {
+  const access = await requireAccess();
+  if (!canImportPresentedAccess(access)) redirect(access.preview ? "/overview?preview=read-only" : "/access-denied");
+  return access;
 }

@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import type { Measurement } from "@/lib/imports/engine";
 import type { ImportBatch, StoredMeasurement } from "@/lib/local-workspace";
 import { canReadPresentedAthlete } from "@/lib/access-preview";
-import { requireAccess, requireAdminMutation } from "@/lib/auth";
+import { requireAccess, requireImportAccess } from "@/lib/auth";
 import { UUID_PATTERN, type Athlete } from "@/lib/types";
 import { prepareReviewedPerformanceRows } from "@/lib/performance-import";
 import { validatePlayerMetricValue, PLAYER_METRICS, type PlayerPercentileOverride } from "@/lib/player-performance";
@@ -17,12 +17,12 @@ const dateCell = (value: string) => /^20\d{2}-\d{2}-\d{2}$/.test(value) && Numbe
 
 /** Caller must obtain explicit review approval before invoking this application mutation. */
 export async function importReviewedPerformance(measurements: readonly Measurement[]): Promise<PerformanceImportReceipt> {
-  const {supabase}=await requireAdminMutation();
+  const {supabase}=await requireImportAccess();
   const rows=prepareReviewedPerformanceRows(measurements);
   const {data,error}=await supabase.rpc("admin_import_performance",{p_rows:rows});
   if(error) throw new Error("Shared measurements were not saved. Recheck the reviewed identities, canonical metrics and existing source observations.");
   if(!data || !UUID_PATTERN.test(data.import_id) || !Number.isSafeInteger(data.created) || !Number.isSafeInteger(data.unchanged) || data.created<0 || data.unchanged<0 || data.created+data.unchanged!==rows.length) throw new Error("The import result could not be verified. Refresh shared measurements before retrying.");
-  return data as PerformanceImportReceipt;
+  return { import_id: data.import_id, created: data.created, unchanged: data.unchanged };
 }
 
 type DatabaseMeasurement = {

@@ -1,12 +1,12 @@
 # Import Center
 
-Open **Import Center** from the dashboard sidebar. The first roster import replaces the fictional starter roster in this browser. No password is needed for this browser-local workflow.
+For direct shared profile uploads, open **Information Imports** from the dashboard sidebar; see [INFORMATION_IMPORTS](INFORMATION_IMPORTS.md). This document covers **Advanced Browser Imports** at `/preview/import`, which requires an active Admin or Coach outside private View as. The first Admin roster import replaces the fictional starter roster in that browser. Roster changes, backup restore/export and workspace reset remain Admin-only. A fresh Coach browser should use the shared hub and its live roster for imports.
 
 ## Roster
 
 1. Export the roster sheet as CSV or Excel XLSX and choose **Master roster**.
 2. Select its worksheet and header row. The ten observed roster headings (FirstName through Class), their observed spaced versions and snake_case template fields are recognized. The [local template](../public/templates/local-roster.csv) adds optional `renpho_id` as its 17th field. Other headings require explicit mapping; the protected administrator template remains unchanged.
-3. Enter the season and review every mapped field. New athletes need first and last names. An existing permanent code is the strongest identifier; otherwise a unique roster email can match. New identities receive permanent `LOCAL-` codes. Names and jersey numbers never merge roster identities.
+3. Enter the season and review every mapped field. New athletes need first and last names. An existing permanent code is the strongest identifier; otherwise a unique roster email can match. New identities receive permanent `PAC-` codes. Names and jersey numbers never merge roster identities. Reviewed former `LOCAL-` aliases are retained for compatibility.
 4. Select **Validate and preview**. Fix every rejected row, review field changes, check the approval box, and apply.
 5. Export the roster with its athlete codes. Preserve those codes in future updates, especially for athletes without email. Repeating identical file bytes/sheet/season is blocked; changed files with neither codes nor emails can create new athletes.
 
@@ -45,7 +45,7 @@ Imports use IndexedDB on the dashboard's exact origin. They remain in this brows
 
 Table limits: 2 MiB input, 5,000 records including headers, 100 columns and 30 XLSX sheets. The RENPHO image/PDF workflow has its own 10 MiB, one-page input limit and a 100,000-character/100-candidate parser cap. Workspace limits remain 1,000 local athletes, 20,000 measurement values and 1,000 batches. Workbooks are bounded before parsing; formula evaluation/macros are not executed. XLSX formulas are rejected in selected numeric fields rather than using stale caches. Source strings are rendered as text.
 
-Additional report layouts and automatic vendor presets, direct Google Sheets sync, cloud measurement persistence and team sharing are not implemented. Actual vendor sample exports are needed to verify further specialized importers without inventing schemas.
+Shared numerical measurements and direct reviewed uploads are now implemented separately from this local workspace; see [INFORMATION_IMPORTS](INFORMATION_IMPORTS.md). Fall 2026 Google sheet snapshots are covered by [GAME_STATS](GAME_STATS.md). Additional report layouts and automatic vendor presets still require actual sample exports; no unverified vendor schema is assumed.
 
 ## Dependencies and verification
 

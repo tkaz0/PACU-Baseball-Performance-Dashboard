@@ -1,13 +1,13 @@
 "use server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { requireAdminMutation } from "@/lib/auth";
+import { requireImportAccess } from "@/lib/auth";
 import { importReviewedPerformance } from "@/lib/performance-server";
 import { prepareReviewedPerformanceRows } from "@/lib/performance-import";
 import type { Measurement } from "@/lib/imports/engine";
 
 export async function shareMeasurements(form: FormData) {
-  await requireAdminMutation();
+  await requireImportAccess();
   const fields = form.getAll("measurements"), confirmations = form.getAll("confirm");
   if (fields.length !== 1 || typeof fields[0] !== "string" || new TextEncoder().encode(fields[0]).byteLength > 1048576 || confirmations.length !== 1 || confirmations[0] !== "yes") redirect("/admin/performance?error=review");
   let measurements: Measurement[];

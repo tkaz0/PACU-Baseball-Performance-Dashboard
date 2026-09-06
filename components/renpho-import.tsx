@@ -8,12 +8,23 @@ import { athleteName } from "@/lib/types";
 import { findRenphoAthlete, normalizeRenphoId, type MeasurementPreview } from "@/lib/imports/engine";
 import { previewRenphoMeasurements } from "@/lib/imports/renpho-preview";
 import { readRenphoReport } from "@/lib/imports/renpho-file";
+import { FileDropZone } from "@/components/file-drop-zone";
+import type { Measurement } from "@/lib/imports/engine";
 
 type LoadedReport = Awaited<ReturnType<typeof readRenphoReport>>;
 const message = (error: unknown) => error instanceof Error ? error.message : "The report could not be processed. Try a full-page PNG, JPG, or PDF.";
 
 export function RenphoImport() {
   const workspace = useLocalWorkspace();
+  return <RenphoReportForm workspace={workspace} />;
+}
+
+type RenphoWorkspace = Pick<ReturnType<typeof useLocalWorkspace>, "roster" | "measurements" | "revision" | "ready" | "error" | "applyRenphoReport">;
+export function RenphoReportForm({ workspace, shared }: { workspace: RenphoWorkspace; shared?: {
+  loadExisting: (fileHash: string) => Promise<Measurement[]>;
+  profileHref: (athleteCode: string) => string;
+  receipt: string;
+} }) {
   const [report, setReport] = useState<LoadedReport | null>(null);
   const [athleteCode, setAthleteCode] = useState("");
   const [date, setDate] = useState("");
@@ -27,6 +38,7 @@ export function RenphoImport() {
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [sharedExisting, setSharedExisting] = useState<Measurement[]>([]);
   const controller = useRef<AbortController | null>(null);
   const imageUrl = useRef("");
   useEffect(() => () => { controller.current?.abort(); if (imageUrl.current) URL.revokeObjectURL(imageUrl.current); }, []);
@@ -43,7 +55,7 @@ export function RenphoImport() {
   async function chooseFile(file?: File) {
     controller.current?.abort();
     const current = new AbortController(); controller.current = current;
-    invalidate(); setReport(null); setAthleteCode(""); setDate(""); setRenphoId(""); setRemember(false); setExcluded([]); setConfirmedUnits([]); setValues({});
+    invalidate(); setReport(null); setSharedExisting([]); setAthleteCode(""); setDate(""); setRenphoId(""); setRemember(false); setExcluded([]); setConfirmedUnits([]); setValues({});
     if (imageUrl.current) { URL.revokeObjectURL(imageUrl.current); imageUrl.current = ""; }
     if (!file) { setBusy(""); return; }
     setBusy("Opening report…");
@@ -51,6 +63,12 @@ export function RenphoImport() {
       const loaded = await readRenphoReport(file, progress => { if (!current.signal.aborted) setBusy(progress); }, current.signal);
       if (current.signal.aborted) { URL.revokeObjectURL(loaded.previewUrl); return; }
       imageUrl.current = loaded.previewUrl;
+      if (shared) {
+        setBusy("Checking saved readings…");
+        const existing = await shared.loadExisting(loaded.fileHash);
+        if (current.signal.aborted) return;
+        setSharedExisting(existing);
+      }
       setReport(loaded); setDate(loaded.parsed.reportedDate ?? "");
       const id = loaded.parsed.reportedIdentity?.value ?? "";
       setRenphoId(id); setAthleteCode(findRenphoAthlete(workspace.roster, id) ?? "");
@@ -71,7 +89,7 @@ export function RenphoImport() {
         if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(text) || !Number.isFinite(Number(text))) throw new Error(`Check the number for ${reading.label}.`);
         return { ...reading, value: Number(text), valueText: text };
       });
-      const data = previewRenphoMeasurements({ parsed: report.parsed, candidates, athleteCode, measuredAt: date, roster: workspace.roster, existing: workspace.measurements, fileHash: report.fileHash, fileName: report.fileName, confirmedUnits });
+      const data = previewRenphoMeasurements({ parsed: report.parsed, candidates, athleteCode, measuredAt: date, roster: workspace.roster, existing: shared ? sharedExisting : workspace.measurements, fileHash: report.fileHash, fileName: report.fileName, confirmedUnits });
       setReviewed({ data, revision: workspace.revision });
     } catch (error) { setError(message(error)); }
   }
@@ -85,6 +103,11 @@ export function RenphoImport() {
         source: "RENPHO", importedAt: new Date().toISOString(), created: reviewed.data.counts.create,
         updated: reviewed.data.counts.update, unchanged: reviewed.data.counts.unchanged,
       }, reviewed.revision, { athleteCode, renphoId: normalizeRenphoId(renphoId), remember });
+      if (shared) setSharedExisting(current => {
+        const committed = new Map(current.map(reading => [reading.id, reading]));
+        for (const reading of reviewed.data.candidateMeasurements) committed.set(reading.id, reading);
+        return [...committed.values()];
+      });
       setSaved(true); setReviewed(null); setConfirmed(false);
     } catch (error) { setError(message(error)); }
     finally { setBusy(""); }
@@ -94,7 +117,7 @@ export function RenphoImport() {
     <section className="panel p-5 sm:p-7">
       <h2 className="mb-2 flex items-center gap-2 text-lg font-bold"><FileImage size={21} />1. Add a RENPHO report</h2>
       <p className="muted text-sm">Upload the full-page Body Composition Analysis Report as PNG, JPG, or a one-page PDF. Up to 10 MiB. Reading happens in your browser; the report is never uploaded.</p>
-      <label className="max-w-xl">RENPHO report file<input type="file" accept=".png,.jpg,.jpeg,.pdf,image/png,image/jpeg,application/pdf" disabled={!workspace.ready || !!workspace.error || !!busy} onChange={event => { void chooseFile(event.target.files?.[0]); }} /></label>
+      <FileDropZone label="RENPHO Report" description="Drop one report here, or choose a file below." accept=".png,.jpg,.jpeg,.pdf,image/png,image/jpeg,application/pdf" disabled={!workspace.ready || !!workspace.error || !!busy} onFile={file => { void chooseFile(file); }} />
       {busy && <p role="status" className="mt-4 flex items-center gap-2 text-sm"><LoaderCircle className="animate-spin" size={18} />{busy}</p>}
       {error && <p role="alert" className="notice notice-error mt-4">{error}</p>}
       {!report && !busy && <p className="muted mb-0 mt-4 text-xs">The first report may take a minute while the reader loads. Use the complete report export, without cropping or camera perspective.</p>}
@@ -108,7 +131,7 @@ export function RenphoImport() {
           <label>Player for this report<select value={athleteCode} onChange={event => { invalidate(); setAthleteCode(event.target.value); }}><option value="">Choose a player</option>{workspace.roster.map(athlete => <option key={athlete.athlete_code} value={athlete.athlete_code}>{athleteName(athlete)} · {athlete.athlete_code}</option>)}</select></label>
           <label>Report test date<input type="date" value={date} onChange={event => { invalidate(); setDate(event.target.value); }} /></label>
         </fieldset>
-        {identityError ? <p role="alert" className="notice notice-error mt-4">{identityError}</p> : matchingCode ? <p className="notice mt-4">Matched to a saved RENPHO ID. Confirm this is the correct player.</p> : <label className="mt-5 flex items-start gap-3"><input type="checkbox" checked={remember} disabled={!!busy || !renphoId.trim() || !athleteCode} onChange={event => { invalidate(); setRemember(event.target.checked); }} /><span>Remember this report ID for the selected player in this browser.</span></label>}
+        {identityError ? <p role="alert" className="notice notice-error mt-4">{identityError}</p> : shared ? <p className="muted mb-0 mt-4 text-sm">Choose the player from the team roster for each report. Shared RENPHO ID matching will be connected when the roster IDs are available.</p> : matchingCode ? <p className="notice mt-4">Matched to a saved RENPHO ID. Confirm this is the correct player.</p> : <label className="mt-5 flex items-start gap-3"><input type="checkbox" checked={remember} disabled={!!busy || !renphoId.trim() || !athleteCode} onChange={event => { invalidate(); setRemember(event.target.checked); }} /><span>Remember this report ID for the selected player in this browser.</span></label>}
       </section>
       <section className="panel p-5 sm:p-7">
         <h2 className="mb-2 text-lg font-bold">3. Review the readings</h2>
@@ -140,7 +163,7 @@ export function RenphoImport() {
           <label className="my-5 flex items-start gap-3"><input type="checkbox" checked={confirmed} disabled={!!busy} onChange={event => setConfirmed(event.target.checked)} /><span>I checked the player, test date, units, and selected values against the original report.</span></label>
           <button type="button" className="btn btn-primary" disabled={!canSave} onClick={() => { void save(); }}><Check size={17} />Save RENPHO readings</button>
         </div>}
-        {saved && <div role="status" className="notice notice-success mt-5">Readings saved in this browser. <Link className="font-semibold" href={`/preview/athletes/${encodeURIComponent(athleteCode)}`}>Open player profile →</Link></div>}
+        {saved && <div role="status" className="notice notice-success mt-5">{shared ? shared.receipt : "Readings saved in this browser."} <Link className="font-semibold" href={shared ? shared.profileHref(athleteCode) : `/preview/athletes/${encodeURIComponent(athleteCode)}`}>Open player profile →</Link></div>}
       </section>
     </>}
   </div>;

@@ -102,7 +102,7 @@ function RowPreview({ preview, limit, onShowMore }: {
 
 export function ImportCenter() {
   const workspace = useLocalWorkspace();
-  const [kind, setKind] = useState<ImportKind>("roster");
+  const [kind, setKind] = useState<ImportKind>(workspace.canManage ? "roster" : "measurements");
   const [reportView, setReportView] = useState(false);
   const [file, setFile] = useState<LoadedFile | null>(null);
   const [sheetIndex, setSheetIndex] = useState(0);
@@ -150,7 +150,7 @@ export function ImportCenter() {
   const stale = reviewed !== null && reviewed.revision !== workspace.revision;
   const exportSeasons = [...new Set(workspace.roster.flatMap(athlete => athlete.athlete_seasons.map(item => item.season)))].sort().reverse();
   const nameMatches = reviewed?.kind === "measurements" ? reviewed.data.nameMatches : 0;
-  const canApply = Boolean(workspace.ready && reviewed?.data.canApply && !stale && !busy && applyConfirmed && (!nameMatches || nameConfirmed));
+  const canApply = Boolean(workspace.canImport && (reviewed?.kind !== "roster" || workspace.canManage) && workspace.ready && reviewed?.data.canApply && !stale && !busy && applyConfirmed && (!nameMatches || nameConfirmed));
 
   function invalidate() {
     setReviewed(null); setNameConfirmed(false); setApplyConfirmed(false); setError(null); setSuccess(null);
@@ -178,6 +178,7 @@ export function ImportCenter() {
   }
 
   function generatePreview() {
+    if (!workspace.canImport || (kind === "roster" && !workspace.canManage)) { setError("Your current view cannot perform this import."); return; }
     setError(null); setSuccess(null); setReviewed(null); setNameConfirmed(false); setApplyConfirmed(false); setRowLimit(50);
     if (!table || !file || !sheet) { setError("Choose a readable file, sheet, and header row first."); return; }
     try {
@@ -255,11 +256,12 @@ export function ImportCenter() {
     finally { setBusy(null); }
   }
 
+  if (!workspace.canImport) return <p className="notice">Information imports are unavailable during View as. Exit preview to import.</p>;
   return (
     <div className="space-y-6">
       <div className="panel flex flex-wrap items-center justify-between gap-4 border-l-4 border-l-pacu-red p-5">
-        <div><p className="mb-1 flex items-center gap-2 font-semibold"><HardDrive size={18} />Saved in this browser</p><p className="muted mb-0 text-sm">Your imports stay on this device. Export a backup to transfer them to another browser.</p></div>
-        <button type="button" className="btn btn-secondary" disabled={!workspace.ready || Boolean(busy)} onClick={() => { try { workspace.exportBackup(); } catch (error) { setError(message(error)); } }}><Download size={16} />Export backup</button>
+        <div><p className="mb-1 flex items-center gap-2 font-semibold"><HardDrive size={18} />Saved in this browser</p><p className="muted mb-0 text-sm">Your imports stay on this device. Use the shared Information Imports page to update team profiles.</p></div>
+        {workspace.canManage && <button type="button" className="btn btn-secondary" disabled={!workspace.ready || Boolean(busy)} onClick={() => { try { workspace.exportBackup(); } catch (error) { setError(message(error)); } }}><Download size={16} />Export backup</button>}
       </div>
       {!workspace.ready && <p role="status" className="notice">Opening your browser workspace…</p>}
       {(error || workspace.error) && <p role="alert" className="notice notice-error">{error || workspace.error}</p>}
@@ -267,7 +269,7 @@ export function ImportCenter() {
       {busy && <p role="status" className="muted text-sm">{busy}</p>}
 
       <div className="grid gap-3 sm:grid-cols-3" aria-label="Choose an import format">
-        <button type="button" className={`btn ${!reportView && kind === "roster" ? "btn-primary" : "btn-secondary"}`} onClick={() => { invalidate(); setKind("roster"); setReportView(false); }}>Roster spreadsheet</button>
+        {workspace.canManage && <button type="button" className={`btn ${!reportView && kind === "roster" ? "btn-primary" : "btn-secondary"}`} onClick={() => { invalidate(); setKind("roster"); setReportView(false); }}>Roster spreadsheet</button>}
         <button type="button" className={`btn ${reportView ? "btn-primary" : "btn-secondary"}`} onClick={() => { invalidate(); setReportView(true); }}>RENPHO report</button>
         <button type="button" className={`btn ${!reportView && kind === "measurements" ? "btn-primary" : "btn-secondary"}`} onClick={() => { invalidate(); setKind("measurements"); setReportView(false); }}>Other measurements</button>
       </div>
@@ -278,10 +280,10 @@ export function ImportCenter() {
         <p className="muted mb-6 text-sm">Calculated cells are not imported; export values only or map raw measurements.</p>
         <fieldset disabled={!workspace.ready || Boolean(busy)} className="min-w-0 space-y-5">
           <div className="grid gap-5 md:grid-cols-2">
-            <label>Import type<select value={kind} onChange={event => { invalidate(); setKind(event.target.value as ImportKind); }}><option value="roster">Master roster</option><option value="measurements">Measurements</option></select></label>
+            <label>Import type<select value={kind} onChange={event => { invalidate(); setKind(event.target.value as ImportKind); }}>{workspace.canManage && <option value="roster">Master roster</option>}<option value="measurements">Measurements</option></select></label>
             <label>Spreadsheet file<input type="file" accept=".csv,.tsv,.xlsx,text/csv,text/tab-separated-values,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={event => { void chooseFile(event.target.files?.[0]); }} /></label>
           </div>
-          <div className="flex flex-wrap gap-4 text-sm"><a href="/templates/local-roster.csv" download className="font-semibold text-pacu-red">Download roster template</a><a href="/templates/measurements.csv" download className="font-semibold text-pacu-red">Download measurement template</a></div>
+          <div className="flex flex-wrap gap-4 text-sm">{workspace.canManage && <a href="/templates/local-roster.csv" download className="font-semibold text-pacu-red">Download roster template</a>}<a href="/templates/measurements.csv" download className="font-semibold text-pacu-red">Download measurement template</a></div>
           {file && sheet && <>
             <div className="grid gap-5 md:grid-cols-2">
               <label>Sheet<select value={sheetIndex} onChange={event => changeSelection(file, Number(event.target.value), 0)}>{file.sheets.map((item, index) => <option key={index} value={index}>{item.name}</option>)}</select></label>
@@ -349,14 +351,14 @@ export function ImportCenter() {
         {!workspace.batches.length ? <p className="muted mb-0 text-sm">No imports saved yet.</p> : <div className="table-wrap"><table><thead><tr><th>File / source</th><th>Imported (UTC)</th><th>Created / updated / unchanged</th><th>Action</th></tr></thead><tbody>{[...workspace.batches].reverse().map(batch => <tr key={batch.id}><td><p className="mb-1 break-all font-semibold">{batch.fileName}</p><p className="muted mb-0 text-xs">{batch.source} · {batch.kind}</p></td><td className="whitespace-nowrap text-xs">{batch.importedAt.slice(0, 19).replace("T", " ")}</td><td>{batch.created} / {batch.updated} / {batch.unchanged}</td><td>{batch.kind === "measurements" && (batchToRemove === batch.id ? <div className="min-w-[200px]"><p className="mb-2 text-xs">Remove this batch and its measurements?</p><div className="flex flex-wrap gap-2"><button type="button" className="btn btn-secondary" disabled={Boolean(busy)} onClick={() => { void removeBatch(batch.id); }}>Confirm removal</button><button type="button" className="btn btn-secondary" disabled={Boolean(busy)} onClick={() => setBatchToRemove(null)}>Cancel</button></div></div> : <button type="button" className="btn btn-secondary" disabled={!workspace.ready || Boolean(busy)} onClick={() => setBatchToRemove(batch.id)}><Trash2 size={15} />Remove batch</button>)}</td></tr>)}</tbody></table></div>}
       </section>
 
-      <section className="panel p-5 sm:p-7">
+      {workspace.canManage && <section className="panel p-5 sm:p-7">
         <h2 className="mb-1 text-lg font-bold">Transfer or reset this workspace</h2><p className="muted mb-5 text-sm">Download an export above, then restore that JSON backup in another browser. Keep your backup somewhere you control.</p>
         <div className="mb-7 flex flex-wrap items-end gap-4"><label className="min-w-40">Export season<select value={exportSeasons.includes(exportSeason) ? exportSeason : (exportSeasons[0] ?? "")} onChange={event => setExportSeason(event.target.value)}>{exportSeasons.map(item => <option key={item}>{item}</option>)}</select></label><button type="button" className="btn btn-secondary" disabled={!workspace.ready || Boolean(busy) || !exportSeasons.length} onClick={() => { try { workspace.exportRoster(exportSeasons.includes(exportSeason) ? exportSeason : exportSeasons[0]); } catch (error) { setError(message(error)); } }}><Download size={16} />Export roster with athlete codes</button></div>
         <fieldset disabled={!workspace.ready || Boolean(busy)} className="min-w-0 grid gap-7 lg:grid-cols-2">
           <div className="space-y-4"><label>Restore workspace JSON backup<input type="file" accept=".json,application/json" onChange={event => { setBackupFile(event.target.files?.[0] ?? null); setRestoreConfirmed(false); }} /></label><label className="flex items-start gap-3"><input type="checkbox" checked={restoreConfirmed} onChange={event => setRestoreConfirmed(event.target.checked)} /><span>Replace this browser&apos;s roster, measurements, and import history with this backup.</span></label><button type="button" className="btn btn-secondary" disabled={!backupFile || !restoreConfirmed} onClick={() => { void restoreBackup(); }}><Upload size={16} />Restore backup</button></div>
           <div className="space-y-4 rounded-lg bg-gray-50 p-5"><h3 className="font-semibold">Return to fictional sample data</h3><p className="muted text-sm">Export a backup first if you want to keep your current data.</p><label className="flex items-start gap-3"><input type="checkbox" checked={resetConfirmed} onChange={event => setResetConfirmed(event.target.checked)} /><span>Clear the saved roster, measurements, and import history from this browser.</span></label><button type="button" className="btn btn-secondary" disabled={!resetConfirmed} onClick={() => { void resetWorkspace(); }}><RotateCcw size={16} />Reset browser workspace</button></div>
         </fieldset>
-      </section>
+      </section>}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 const otherAthlete = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 test("anonymous pages redirect to sign-in without revealing athletes", async ({ page }) => {
-  for (const route of ["/overview","/roster",`/athletes/${otherAthlete}`,"/admin/import","/admin/access","/preview","/preview/import","/preview/roster","/preview/access", "/preview/athletes/SYN-001"]) {
+  for (const route of ["/overview","/roster",`/athletes/${otherAthlete}`,"/admin/import","/admin/access","/imports","/imports/game-stats","/game-stats","/settings","/preview","/preview/import","/preview/roster","/preview/access", "/preview/athletes/SYN-001"]) {
     await page.goto(route);
     await expect(page).toHaveURL(/\/login/);
     await expect(page.getByRole("heading",{name:/^Welcome Back$/i})).toBeVisible();

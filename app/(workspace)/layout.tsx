@@ -1,6 +1,7 @@
 import { requireAccess } from "@/lib/auth";
 import { Sidebar } from "@/components/sidebar";
 import { AccessPreviewControl } from "@/components/access-preview-control";
+import { AppearanceControl } from "@/components/appearance-control";
 import { logout } from "@/app/auth/actions";
 import { LogOut, Eye } from "lucide-react";
 export const dynamic = "force-dynamic";
@@ -14,11 +15,12 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
   }
   return <div className="workspace-shell">
     <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:bg-white focus:p-4">Skip to content</a>
-    <Sidebar roles={roles} athleteId={athleteId} />
+    <Sidebar roles={roles} athleteId={athleteId} isPreview={!!preview} />
     <div className="app-body workspace-body">
       <header className="workspace-topbar">
         <p><span className="topbar-diamond" aria-hidden="true" />Pacific Baseball<span className="topbar-divider" aria-hidden="true">/</span><span className="text-gray-500">Private workspace</span></p>
         <div className="flex flex-wrap items-center gap-3">
+          <AppearanceControl />
           <div className="text-right"><p className="mb-0 max-w-[220px] truncate text-sm">{user.email}</p><p className="mb-0 text-xs capitalize text-gray-500">{preview ? `As: ${preview.role}` : roles.join(" · ")}</p></div>
           {actualRoles.includes("admin") && <AccessPreviewControl preview={preview} athletes={athletes} />}
           <form action={logout}><button className="btn btn-secondary" aria-label="Sign out"><LogOut size={16} /><span className="hidden sm:inline">Sign out</span></button></form>

@@ -1,7 +1,7 @@
 import { LocalAthleteProfile } from "@/components/local-dashboard";
-import { requireAdminWorkspaceAccess } from "@/lib/auth";
+import { requireImportAccess } from "@/lib/auth";
 export default async function PreviewProfile({ params }: { params: Promise<{ id: string }> }) {
-  await requireAdminWorkspaceAccess();
+  await requireImportAccess();
   const { id } = await params;
   return <LocalAthleteProfile id={id} />;
 }
