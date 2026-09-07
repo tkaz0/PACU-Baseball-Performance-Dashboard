@@ -11,5 +11,6 @@ export default async function RenphoIdsPage() {
   return <>
     <PageHeading section="Administration" title="Roster RENPHO IDs" description="Connect report IDs to the right players."><Link href="/imports" className="btn btn-secondary">Back to Imports</Link></PageHeading>
     <RenphoMappingImport roster={data.map(row => ({ code: row.athlete_code as string, name: athleteName(row as RosterAthlete) }))} />
+    <p className="mt-5 text-sm"><Link href="/admin/import/renpho/corrections" className="underline">Correct a Report Assignment</Link></p>
   </>;
 }

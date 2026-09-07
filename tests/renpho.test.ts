@@ -6,7 +6,7 @@ const text = (...lines: string[]) => parseRenphoText([{ page: 1, lines }]);
 function regions(): RenphoRegions {
   return {
     title: "Body Composition Analysis Report",
-    header: "ID: FICTIONAL-EXAMPLE Gender: Example Age: 0 Height: 0 Test Date: February 29, 2024 at 12:01:02 AM",
+    header: "ID: FICTIONAL-EXAMPLE Gender: Example Age: 0 Test Date: February 29, 2024 at 12:01:02 AM",
     compositionHeader: "Measurement(lb)",
     compositionRows: ["Weight", "Body Fat Mass", "Bone Mass", "Protein Mass", "Body Water Mass", "Muscle Mass", "Skeletal\nMuscle Mass"]
       .map((label, index) => ({ label, measurement: String(index), line: index + 1 })),

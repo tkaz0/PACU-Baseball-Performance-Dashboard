@@ -169,7 +169,7 @@ export function RenphoReportForm({ workspace, shared }: { workspace: RenphoWorks
             <img src={report.previewUrl} alt="Your uploaded RENPHO report for comparison" className="mt-4 h-auto w-full" />
           </details>
           <div className="min-w-0">
-            {report.parsed.issues.filter(issue => issue.code === "mass_unit_ocr" || issue.code === "smi_unit_ocr").map((issue, index) => <p className="notice mb-4 text-sm" key={index}>{issue.message}</p>)}
+            {report.parsed.issues.filter(issue => ["mass_unit_ocr", "smi_unit_ocr", "height_unreadable", "height_ambiguous"].includes(issue.code)).map((issue, index) => <p className="notice mb-4 text-sm" key={index}>{issue.message}</p>)}
             {parserErrors.length > 0 && <div role="alert" className="notice notice-error mb-4">
               <p className="font-semibold">Some report details could not be read.</p>
               <ul className="list-disc space-y-2 pl-5">{parserErrors.map((issue, index) => <li key={index}>{issue.metric && <strong>{issue.metric}: </strong>}{issue.message}</li>)}</ul>

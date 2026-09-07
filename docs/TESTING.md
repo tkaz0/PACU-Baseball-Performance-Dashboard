@@ -142,10 +142,12 @@ For a second local checkout, start it on an unused port and set `TEST_APP_URL=ht
 
 `tests/renpho-preview.test.ts` exercises the adapter into the existing measurement engine: fixed metric columns and page/source lines, excluded/reordered selections preserving observation IDs, repeats/renamed files becoming unchanged, OCR line drift reconciliation without rewriting existing provenance, athlete/date/unit/value remap conflicts, reviewed numeric edits, immutable provenance, unknown-athlete denial, parser-error blocking and aggregate capacity across pages. The local-workspace/engine tests additionally cover unique normalized RENPHO IDs, backup validation and the atomic measurement/remembered-ID save.
 
+`tests/renpho-height.test.ts` covers explicit header feet/inches conversion, printed review evidence, optional absence, unreadable/ambiguous omission without blocking other readings, unchanged existing field positions, and height-only backfill/retry through canonical shared-import and profile preparation. The leaderboard database suite verifies that RENPHO header heights appear in the normal signed-in comparison with tallest-first ranks and no report provenance exposed. All test values and identities are fictional.
+
 Run the focused pure checks with:
 
 ```sh
-pnpm exec vitest run tests/renpho.test.ts tests/renpho-preview.test.ts
+pnpm exec vitest run tests/renpho.test.ts tests/renpho-preview.test.ts tests/renpho-height.test.ts
 ```
 
 The focused checks passed during implementation. They do not by themselves exercise browser OCR or establish exact extraction from an actual image. For each additional report layout/version, privately compare its browser-extracted candidates with the source and verify supported labels, exact numerical agreement, units, printed report ID/date and excluded regions. Keep actual values/IDs out of terminal output, screenshots, traces, fixtures and receipts; record aggregate pass/fail results only. Synthetic one-page PDF, oversized-input and multi-page rejection checks remain separate from actual-image verification.

@@ -17,7 +17,7 @@ export type RenphoReading = {
   unit: string; page: number; line: number; rawLabel: string; sourceText: string;
   unitEvidence: "explicit" | "composition-header" | "layout-label" | "dimensionless-index" | "ocr-unit-correction";
   unitNeedsConfirmation?: true;
-  region?: "composition" | "assessment" | "indicators";
+  region?: "composition" | "assessment" | "indicators" | "header";
 };
 export type RenphoIssue = {
   severity: "error" | "review"; code: string; message: string;
@@ -61,6 +61,7 @@ const METRICS: readonly MetricDefinition[] = [
   { key: "whr", label: "Waist-to-Hip Ratio", aliases: ["Waist-to-Hip Ratio (WHR)", "WHR (Waist-to-Hip Ratio)", "Waist-to-Hip Ratio", "Waist-Hip Ratio", "WHR"], units: ["ratio"] },
   { key: "bone_mass_percentage", label: "Bone Mass Percentage", aliases: ["Bone Mass"], units: PERCENT_UNITS },
   { key: "muscle_mass_percentage", label: "Muscle Mass Percentage", aliases: ["Muscle Mass"], units: PERCENT_UNITS },
+  { key: "height", label: "Height", aliases: ["Height"], units: ["in", "cm"] },
 ];
 
 const normalize = (value: string) => value.replace(/[\u2010-\u2014\u2212]/g, "-").replace(/[\u00a0\t ]+/g, " ").trim();
@@ -164,6 +165,26 @@ function reportedTestDate(header: string): string | null {
   return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
+/** The header prints feet and inches; retain that evidence while saving total inches. */
+function reportedHeight(header: string, page: number): { reading: RenphoReading | null; issue: RenphoIssue | null } {
+  const labels = [...header.matchAll(/\bHeight\s*[:：]/gi)];
+  if (!labels.length) return { reading: null, issue: null }; // Earlier reports/text may omit height entirely.
+  const issue: RenphoIssue = { severity: "review", code: "height_unreadable", page, line: 3001, metric: "Height",
+    message: "Height was not read clearly in feet and inches, so it was left out. Compare the header with the original report and add height separately if needed." };
+  if (labels.length !== 1) return { reading: null, issue: { ...issue, code: "height_ambiguous" } };
+  const label = labels[0];
+  const suffix = header.slice((label.index ?? 0) + label[0].length);
+  const boundary = suffix.search(/\||\bTest\s+Date\s*[:：]/i);
+  const printedValue = (boundary < 0 ? suffix : suffix.slice(0, boundary)).trim();
+  // Never infer missing marks, correct digits, accept a range, or use another header number.
+  const parts = /^([1-9])\s*['’′]\s*(\d{1,2}(?:\.\d+)?)\s*["”″]\s*(?:inch)?$/i.exec(printedValue);
+  if (!parts || Number(parts[2]) >= 12) return { reading: null, issue };
+  const value = Number(parts[1]) * 12 + Number(parts[2]);
+  const metricColumn = METRICS.findIndex(metric => metric.key === "height");
+  return { issue: null, reading: { key: "height", metric: "Height", metricColumn, label: "Height", value, valueText: String(value), unit: "in",
+    page, line: 3001, rawLabel: label[0].replace(/\s*[:：]$/, ""), sourceText: `${label[0]} ${printedValue}`, unitEvidence: "explicit", region: "header" } };
+}
+
 /**
  * Only pass geometry-isolated regions from the supported portrait report. In particular,
  * composition measurements must exclude the neighboring optimal-range/evaluation columns.
@@ -253,10 +274,15 @@ export function parseRenphoRegions(regions: RenphoRegions, page = 1): RenphoPars
     const source = issue.line ? prepared[issue.line - 1] : undefined;
     issues.push({ ...issue, ...(source ? { line: source.line } : {}) });
   }
-  const candidateReadings = parsed.candidateReadings.map(reading => {
+  const candidateReadings: RenphoReading[] = parsed.candidateReadings.map(reading => {
     const source = prepared[reading.line - 1];
     return { ...reading, sourceText: source.sourceText, rawLabel: source.rawLabel, line: source.line, region: source.region, unitEvidence: source.unitEvidence, ...(source.unitNeedsConfirmation ? { unitNeedsConfirmation: true as const } : {}) };
   });
+  if (recognizedLayout) {
+    const height = reportedHeight(header, page);
+    if (height.reading) candidateReadings.push(height.reading);
+    if (height.issue) issues.push(height.issue);
+  }
   issues.unshift({ severity: "review", code: "ocr_review", message: "Compare every candidate and its unit with the original report. Confirm the athlete and test date; OCR and layout recognition do not verify measurement accuracy." });
   return { parserVersion: RENPHO_PARSER_VERSION, candidateReadings, reportedDate, reportedIdentity, issues,
     requiresReview: true, formatVerified: recognizedLayout, recognizedLayout };

@@ -124,6 +124,17 @@ describe("comparable latest results and numerical places", () => {
       expect((await board({ metricKey: "weight", unit: "lb", source: "renpho", period: "summer_2026" })).map(row => row.athleteCode)).toEqual([code(1)]);
     });
   });
+  it("includes reviewed RENPHO header heights in the signed-in leaderboard without exposing report evidence", async () => {
+    const source = { metric_key: "height", unit: "in", source: "RENPHO", source_sheet: "RENPHO report · Page 1", source_row: 3001 };
+    await save([row(1, { ...source, value: 54 }, 21), row(2, { ...source, value: 55 }, 21)]);
+    await asUser(users.player, async () => {
+      expect(await options()).toEqual([{ metricKey: "height", unit: "in", source: "renpho", period: "fall_2026", athleteCount: 2 }]);
+      const result = await board({ metricKey: "height", unit: "in", source: "renpho" });
+      expect(result.map(item => [item.athleteCode, item.value, item.rank, item.measuredAt])).toEqual([[code(2), 55, 1, "2026-09-12"], [code(1), 54, 2, "2026-09-12"]]);
+      expect(result.every(item => item.derived === false)).toBe(true);
+      expect(JSON.stringify(result)).not.toMatch(/fictional-private-report|observation:|file_hash|source_row|source_sheet/);
+    });
+  });
   it("preserves precise direct and truthful derived values with no five-athlete minimum", async () => {
     const body = { source: "RENPHO", source_sheet: "RENPHO report · Page 1", unit: "lb", measured_at: "2026-08-20" };
     await save([row(1, { ...body, metric_key: "weight", value: 179.10000000000002 }, 0), row(1, { ...body, metric_key: "muscle_mass", value: 132.80000000000004 }, 1), row(2, { value: 0.30000000000000004 })]);
