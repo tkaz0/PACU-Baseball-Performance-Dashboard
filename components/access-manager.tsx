@@ -12,8 +12,8 @@ type AccessManagerProps = {
   configureAction: (form: FormData) => Promise<void>;
 };
 const roleOptions: { role: Role; label: string; description: string }[] = [
-  { role: "admin", label: "Admin", description: "Manage account access and roster imports; view the full roster and athlete profiles." },
-  { role: "coach", label: "Coach", description: "View the full roster and athlete profiles." },
+  { role: "admin", label: "Admin", description: "Manage accounts and the roster, import performance data, enter testing results, and view all player profiles." },
+  { role: "coach", label: "Coach", description: "View the roster and all player profiles, import performance data, and enter testing results." },
   { role: "player", label: "Player", description: "View the athlete profile explicitly linked to this account." },
 ];
 const roleText = (roles: Role[]) => roleOptions.filter(item => roles.includes(item.role)).map(item => item.label).join(" + ") || "No roles";

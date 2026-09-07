@@ -24,7 +24,7 @@ export function PreviewSidebar() {
 
   return (
     <aside className="sidebar baseball-sidebar">
-      <Link href="/preview" className="sidebar-brand-link" aria-label="Pacific Baseball Performance home"><PacificBrand compact /></Link>
+      <Link href="/" className="sidebar-brand-link" aria-label="Pacific Baseball Performance home" title="Back to home"><PacificBrand compact /></Link>
       <div className="sidebar-rule" />
       <p className="eyebrow hidden px-4 text-gray-500 min-[901px]:block">The clubhouse</p>
       <WorkspaceNavigation links={visibleLinks.map(link => ({ ...link, current: pathname === link.href || (link.href === "/preview/roster" && pathname.startsWith("/preview/athletes/")) }))} />

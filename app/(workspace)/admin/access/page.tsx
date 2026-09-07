@@ -30,7 +30,7 @@ export default async function AccessPage({ searchParams }: { searchParams: Promi
   const invitationNotices: Record<string, string> = {
     sent: "Invitation sent and access configured. The recipient can open the email and choose their own password.",
     input: "Enter a valid email, choose Coach or Player, select the exact player profile when needed, and approve the invitation.",
-    setup: "Email invitations are not enabled yet. Sender verification and server setup must be completed first.",
+    setup: "Email invitations are not enabled for this dashboard. No invitation was sent.",
     athlete: "No invitation was sent. That player profile is unavailable or already linked to an account. Refresh and review the selection.",
     existing: "This email already has an Auth account. No invitation was sent or access changed. Review its configured access and use Forgot password if needed.",
     unavailable: "The account directory could not be verified. No invitation was sent. Try again after the service is available.",

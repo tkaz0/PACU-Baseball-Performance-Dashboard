@@ -17,8 +17,19 @@ describe("player profile tabs and presentation",()=>{
   const athlete=fictionalAthlete("position"),html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete,performance:model()}));
   expect((html.match(/role="tab"/g)??[])).toHaveLength(4);expect((html.match(/role="tabpanel"/g)??[])).toHaveLength(4);expect((html.match(/aria-selected="true"/g)??[])).toHaveLength(1);expect((html.match(/hidden=""/g)??[])).toHaveLength(3);
   for(const label of ["Overview","Physicality","Hitting","Throwing"])expect(html).toContain(label);
-  expect(html).not.toContain(athlete.pacific_email);expect(html).not.toContain(athlete.renpho_id);expect(html).not.toContain("Eligibility year");expect(html).toContain("Avery Northstar");expect(html).toContain("Athlete ID");expect(html).toMatch(/Jersey Number<\/dt><dd[^>]*>0<\/dd>/);
-  expect(html).not.toContain('role="meter"');expect(html).not.toContain('data-value="0"');expect(html).not.toContain("Pacific n=0");expect(html).not.toContain("Need 5 comparable players");expect(html).not.toContain("Team comparison not available");expect(html).not.toMatch(/<details[^>]*\sopen(?:[ =>])/);
+  expect(html).not.toContain(athlete.pacific_email);expect(html).not.toContain(athlete.renpho_id);expect(html).not.toContain("Eligibility year");expect(html).toContain("Avery Northstar");expect(html).toContain("PAC ID");expect(html).toMatch(/Jersey Number<\/dt><dd[^>]*>0<\/dd>/);
+ expect(html).not.toContain('role="meter"');expect(html).not.toContain('data-value="0"');expect(html).not.toContain("Pacific n=0");expect(html).not.toContain("Need 5 comparable players");expect(html).not.toContain("Team comparison not available");expect(html).not.toMatch(/<details[^>]*\sopen(?:[ =>])/);
+  expect(html).not.toContain("Available Metrics");
+ });
+ it("summarizes only available snapshot metrics and points body-only profiles to Physicality",()=>{
+  const performance=model([measurement("Weight",172,"lb","2026-09-02"),measurement("Height",70,"in","2026-09-03")]);
+  const html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete:fictionalAthlete("position"),performance}));
+  const overview=html.split('role="tabpanel"')[1];
+  expect(overview).toContain("Your body measurements are ready in Physicality");
+  expect(overview).toMatch(/Available Metrics<\/dt><dd[^>]*>2<\/dd>/);
+  expect(overview).toContain('dateTime="2026-09-03"');
+  expect(overview).not.toContain('dateTime="2026-09-02"');
+  expect(overview).not.toContain('role="meter"');
  });
  it.each([
   {type:"position",primary:"SS",secondary:null,field:["infield_velocity"],pitch:false},

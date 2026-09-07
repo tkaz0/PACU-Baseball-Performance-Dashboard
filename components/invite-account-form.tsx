@@ -21,7 +21,7 @@ export function InviteAccountForm({ enabled, athletes, inviteAction }: InviteAcc
       </div>
     </div>
     {enabled ? <form action={inviteAction}><InviteFields athletes={athletes} /></form> :
-      <p className="notice mb-0" role="status">Email invitations are being set up. Sending will be available here once the email service is ready.</p>}
+      <p className="notice mb-0" role="status">Email invitations are not enabled for this dashboard.</p>}
   </section>;
 }
 
@@ -54,7 +54,7 @@ function InviteFields({ athletes }: { athletes: InviteAthlete[] }) {
             <option value="coach">Coach</option>
           </select>
         </label>
-        <p id="invite-role-help" className="muted -mt-3 text-xs">{role === "player" ? "Players can view only the profile you link to their account." : "Coaches can view the full roster and athlete profiles."}</p>
+        <p id="invite-role-help" className="muted -mt-3 text-xs">{role === "player" ? "Players can view only the profile you link to their account." : "Coaches can view the roster and all player profiles, import performance data, and enter testing results."}</p>
 
         {role === "player" ? <>
           <label htmlFor="invite-athlete">Player profile
@@ -72,7 +72,7 @@ function InviteFields({ athletes }: { athletes: InviteAthlete[] }) {
         <h3 className="mb-4 mt-0 text-sm font-bold">Review invitation</h3>
         <dl className="m-0 space-y-4 text-sm">
           <div><dt className="muted text-xs">Send to</dt><dd className="m-0 break-all font-semibold">{recipient || "Enter their sign-in email"}</dd></div>
-          <div><dt className="muted text-xs">Access</dt><dd className="m-0 font-semibold">{role === "player" ? "Player · Own linked profile" : "Coach · Full roster and profiles"}</dd></div>
+          <div><dt className="muted text-xs">Access</dt><dd className="m-0 font-semibold">{role === "player" ? "Player · Own linked profile" : "Coach · Roster, profiles, imports, and testing"}</dd></div>
           <div><dt className="muted text-xs">Player profile</dt><dd className="m-0 break-words font-semibold">{role === "coach" ? "No player link" : athlete ? `${athlete.code} · ${athlete.name}` : "Choose a player before sending"}</dd></div>
         </dl>
         <p className="muted mb-0 mt-5 border-t border-gray-200 pt-4 text-xs">The recipient follows the email link and creates a private password. You manage their access from this page.</p>

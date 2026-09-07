@@ -18,7 +18,7 @@ export function StaffAthleteSearch({ athletes, defaultQuery = "", name, compact 
   useEffect(() => {
     if (expanded && active >= 0) document.getElementById(`${id}-option-${active}`)?.scrollIntoView({ block: "nearest" });
   }, [active, expanded, id]);
-  return <div className={`relative min-w-0 ${compact ? "w-full sm:w-56" : "min-w-[180px] flex-1"}`} onBlur={event => {
+  return <div className={`relative min-w-0 ${compact ? "staff-player-search-compact w-full sm:w-56" : "min-w-[180px] flex-1"}`} onBlur={event => {
     if (!event.currentTarget.contains(event.relatedTarget)) { setOpen(false); setActive(-1); }
   }}>
     <label htmlFor={id} className={compact ? "sr-only" : "block"}>{compact ? "Find a player" : "Search athletes"}</label>
@@ -27,7 +27,7 @@ export function StaffAthleteSearch({ athletes, defaultQuery = "", name, compact 
       <input id={id} name={name} value={query} role="combobox" aria-autocomplete="list" aria-expanded={expanded}
         aria-controls={expanded ? `${id}-listbox` : undefined} aria-activedescendant={expanded && active >= 0 ? optionId(active) : undefined}
         aria-describedby={`${id}-help`} autoComplete="off" spellCheck={false} maxLength={100}
-        placeholder={compact ? "Find a player…" : "Name or Athlete ID"} className={`!pl-9 ${compact ? "!min-h-10 !py-2 text-sm" : ""}`}
+        placeholder={compact ? "Find a player…" : "Name or PAC ID"} className={`!pl-9 ${compact ? "!min-h-10 !py-2 text-sm" : ""}`}
         onFocus={() => setOpen(true)} onChange={event => { setQuery(event.target.value); setOpen(true); setActive(-1); }}
         onKeyDown={event => {
           if (event.nativeEvent.isComposing) return;

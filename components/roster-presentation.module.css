@@ -1,0 +1,36 @@
+.header { display: flex; align-items: center; justify-content: space-between; gap: 28px; padding: 32px; margin-bottom: 24px; border: 1px solid #303033; border-top: 4px solid #990000; border-radius: 12px; background: #171719; color: #fff; }
+.identity { display: flex; align-items: center; gap: 26px; min-width: 0; }
+.identity .logo { width: 58px; flex: 0 0 58px; }
+.eyebrow { margin: 0 0 12px; font-size: 10px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase; color: #d5b1b3; }
+.eyebrow span { color: #a7a7af; }
+.header h1 { margin: 0 0 10px; font-size: clamp(30px, 3.1vw, 42px); font-weight: 800; line-height: 1.1; letter-spacing: -.035em; }
+.description { margin: 0; color: #b9b9c2; font-size: 13px; line-height: 1.65; }
+.summary { flex-shrink: 0; display: flex; align-items: center; gap: 26px; padding-left: 26px; border-left: 1px solid #39393d; }
+.summary p { margin: 0; }
+.summary strong { display: block; font-size: 34px; line-height: 1; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.summary span { display: block; margin-top: 7px; color: #b9b9c2; font-size: 11px; }
+.summary a { color: #fff; background: #252527; border-color: #4b4b50; font-size: 12px; }
+.summary a:hover { background: #333336; }
+.toolbar { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 14px; padding: 20px 22px; margin-bottom: 16px; }
+.season { width: 150px; }
+.count { margin: 0 0 12px; color: var(--text-secondary); font-size: 12px; white-space: nowrap; }
+.count strong { color: var(--text-primary); font-weight: 700; }
+@media (max-width: 1200px) {
+  .summary { flex-direction: column; gap: 14px; align-items: flex-start; }
+  .summary p { display: flex; align-items: baseline; gap: 9px; }
+  .summary strong { font-size: 28px; }
+}
+@media (max-width: 650px) {
+  .header { align-items: flex-start; flex-direction: column; gap: 22px; padding: 24px; }
+  .identity { gap: 16px; }
+  .identity .logo { width: 38px; flex-basis: 38px; }
+  .eyebrow { font-size: 9px; line-height: 1.7; }
+  .description { font-size: 12px; }
+  .summary { width: 100%; flex-direction: row; align-items: center; justify-content: space-between; border-left: 0; border-top: 1px solid #39393d; padding: 16px 0 0; }
+  .summary strong { font-size: 24px; }
+  .summary span { margin-top: 0; }
+  .toolbar { padding: 18px; gap: 12px; }
+  .toolbar > div { flex-basis: 100%; }
+  .season { flex: 1; min-width: 120px; }
+  .count { flex-basis: 100%; margin: 2px 0 0; }
+}

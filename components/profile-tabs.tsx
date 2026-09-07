@@ -14,12 +14,12 @@ export function ProfileTabs({ tabs, action }: { tabs: ProfileTab[]; action?: Rea
     event.preventDefault(); setSelectedId(tabs[next].id); buttons.current[next]?.focus();
   }
   return <div className="min-w-0">
-    <div className="mb-5 flex flex-wrap items-center justify-between gap-4 border-b border-[var(--line-subtle)]">
-      <div role="tablist" aria-label="Player performance" className="flex min-w-0 flex-wrap gap-x-1 gap-y-1 sm:gap-x-4">
-        {tabs.map((tab, index) => <button key={tab.id} ref={button => { buttons.current[index] = button; }} type="button" role="tab" id={`${prefix}-tab-${tab.id}`} aria-controls={`${prefix}-panel-${tab.id}`} aria-selected={selected === index} tabIndex={selected === index ? 0 : -1} onClick={() => setSelectedId(tab.id)} onKeyDown={event => keyDown(event, index)} className={`min-h-12 border-b-[3px] px-2 py-3 text-sm font-bold outline-offset-4 sm:px-4 ${selected === index ? "border-[var(--accent-readable)] text-[var(--accent-readable)]" : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]"}`}>{tab.label}</button>)}
+    <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
+      <div role="tablist" aria-label="Player performance" className="flex w-full min-w-0 gap-1 rounded-lg border border-[var(--line-subtle)] bg-[var(--surface-panel)] p-1 sm:w-auto">
+        {tabs.map((tab, index) => <button key={tab.id} ref={button => { buttons.current[index] = button; }} type="button" role="tab" id={`${prefix}-tab-${tab.id}`} aria-controls={`${prefix}-panel-${tab.id}`} aria-selected={selected === index} tabIndex={selected === index ? 0 : -1} onClick={() => setSelectedId(tab.id)} onKeyDown={event => keyDown(event, index)} className={`min-h-11 min-w-0 flex-1 rounded-md px-2.5 py-2.5 text-xs font-bold outline-offset-4 transition-colors sm:flex-none sm:px-5 sm:text-sm ${selected === index ? "bg-pacu-red text-white" : "text-[var(--text-secondary)] hover:bg-[var(--surface-raised)] hover:text-[var(--text-primary)]"}`}>{tab.label}</button>)}
       </div>
-      {action && <div className="pb-3">{action}</div>}
+      {action && <div className="ml-auto">{action}</div>}
     </div>
-    {tabs.map((tab, index) => <div key={tab.id} role="tabpanel" id={`${prefix}-panel-${tab.id}`} aria-labelledby={`${prefix}-tab-${tab.id}`} hidden={selected !== index} tabIndex={0} className="min-w-0 space-y-6 outline-offset-4">{tab.content}</div>)}
+    {tabs.map((tab, index) => <div key={tab.id} role="tabpanel" id={`${prefix}-panel-${tab.id}`} aria-labelledby={`${prefix}-tab-${tab.id}`} hidden={selected !== index} tabIndex={0} className="min-w-0 space-y-7 outline-offset-4 sm:space-y-8">{tab.content}</div>)}
   </div>;
 }

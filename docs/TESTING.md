@@ -267,3 +267,11 @@ Correction action tests cover guard denials before reads/writes, literal confirm
 `tests/renpho-percentage-retry.test.ts` covers recognized-layout and explicit-percentage gates, two agreeing native-pixel readings, unchanged digit sequences, preserved source positions and other fields, and rejection of stale, ambiguous, out-of-range or disagreeing results. No decimal location or numeric digit is supplied by the importer. The reader shows a review notice after an accepted reread.
 
 A standalone local Chrome harness exercised the actual reader against three privately verified source images. All 51 expected values and units matched their originals; the affected image used the native-pixel retry, and the other two did not. This check uploaded no reports, wrote no production measurements, and left no application fixture routes or build artifacts.
+
+### Coaching walkthrough presentation polish
+
+The presentation release passed lint, TypeScript, **1,406 tests across 73 files**, and the production build. Installed-Chrome checks against a local production server passed **11 tests**, with **29 credential-dependent tests skipped** because separate local Supabase test accounts were unavailable. Existing home-navigation expectations now cover the canonical `/` logo link; protected role-based home resolution remains unchanged.
+
+A separate fictional visual fixture exercised **24 desktop/mobile Light/Dark states** across roster, profiles, leaderboards, Testing, Game Stats and Settings, with no horizontal overflow, browser errors, external requests or writes. Additional roster snapshots covered the final search/season toolbar. Keyboard checks covered mobile Menu/Escape, player search selection and profile tabs. Import Center was separately reviewed at 390px and 1440px in Light/Dark, including mobile Hitting. Temporary fixtures live outside the application source and are excluded from deployment. No real roster or measurement data was included in visual artifacts.
+
+Changes preserve measurement values, dates, ranking rules, authorization and import save behavior. Account-role copy now explicitly describes Coach import access; invitation sending remains disabled.

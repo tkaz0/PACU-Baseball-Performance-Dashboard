@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
+import styles from "./import-presentation.module.css";
 import { Activity, CircleDot, CalendarDays, Swords } from "lucide-react";
 import { RenphoReportForm } from "@/components/renpho-import";
 import { FullSwingImport } from "@/components/full-swing-import";
@@ -17,6 +18,7 @@ const lanes = [
 type Lane = (typeof lanes)[number]["key"];
 
 export function TeamImportCenter({ roster }: { roster: RosterAthlete[] }) {
+  const sessionId = useId();
   const [lane, setLane] = useState<Lane>("physicality");
   const [gameKind, setGameKind] = useState<"game" | "intrasquad">("intrasquad");
   const [receipt, setReceipt] = useState("");
@@ -31,16 +33,15 @@ export function TeamImportCenter({ roster }: { roster: RosterAthlete[] }) {
     } finally { setSaving(false); }
   }
   return <div className="space-y-6">
-    <div className="grid gap-3 min-[360px]:grid-cols-2 xl:grid-cols-4" role="group" aria-label="Import category">
+    <div className={styles.lanes} role="group" aria-label="Import category">
       {lanes.map(item => <button key={item.key} type="button" disabled={saving} aria-pressed={lane === item.key} onClick={() => { setLane(item.key); setReceipt(""); }}
-        className={`panel min-w-0 p-5 text-left transition-colors ${lane === item.key ? "border-[var(--accent-readable)] ring-1 ring-[var(--accent-readable)]" : "hover:border-[var(--accent-readable)]"}`}>
-        <item.icon size={22} className="mb-4 text-[var(--accent-readable)]" aria-hidden="true" />
-        <span className="block text-base font-bold">{item.label}</span>
-        <span className="muted mt-1 block text-sm">{item.source}</span>
+        className={styles.lane}>
+        <span className={styles.laneIcon}><item.icon size={19} aria-hidden="true" /></span>
+        <span><span className={styles.laneName}>{item.label}</span><span className={styles.laneSource}>{item.source}</span></span>
       </button>)}
     </div>
     {!roster.length ? <p className="notice">No players are on the 2026–27 roster yet. An admin can add the roster before measurements are imported.</p> : <>
-      {lane === "games" && <div className="panel p-5"><label className="max-w-sm">Session Type<select disabled={saving} value={gameKind} onChange={event => { setGameKind(event.target.value as "game" | "intrasquad"); setReceipt(""); }}><option value="intrasquad">Intrasquad</option><option value="game">Game</option></select></label></div>}
+      {lane === "games" && <div className={styles.session}><label htmlFor={sessionId} className={styles.sessionLabel}>Session Type</label><select id={sessionId} disabled={saving} value={gameKind} onChange={event => { setGameKind(event.target.value as "game" | "intrasquad"); setReceipt(""); }}><option value="intrasquad">Intrasquad</option><option value="game">Game</option></select></div>}
       {lane === "physicality" ? <RenphoReportForm workspace={{ roster, measurements: [], revision: 0, ready: true, error: null, applyRenphoReport: async (measurements, _batch, _revision, identity) => { await save(measurements, { athleteCode: identity.athleteCode, renphoId: identity.renphoId ?? "" }); } }} shared={{ receipt,
         profileHref: code => `/athletes/${roster.find(athlete => athlete.athlete_code === code)!.id}`,
         loadExisting: async hash => { const result = await loadSharedReportMeasurements(hash); if ("error" in result) throw new Error(result.error); return result.measurements; },

@@ -2,7 +2,8 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { Check, Plus, Trash2 } from "lucide-react";
+import { Check, LoaderCircle, Plus, Trash2 } from "lucide-react";
+import styles from "./import-presentation.module.css";
 import { FileDropZone } from "@/components/file-drop-zone";
 import { readImportFile } from "@/lib/imports/files";
 import { selectTable, type DateFormat, type Measurement, type MeasurementMapping, type MeasurementPreview } from "@/lib/imports/engine";
@@ -76,17 +77,17 @@ export function FullSwingImport({ category, roster, saveAction }: { category: Fu
     finally { setBusy(false); }
   }
   return <div className="space-y-6">
-    <section className="panel p-5 sm:p-7">
-      <h2 className="mb-2 text-lg font-bold">1. Add {FULL_SWING_LABELS[category]} Data</h2>
-      <p className="muted text-sm">One player’s session summary per row.</p>
+    <section className={`panel p-5 sm:p-7 ${styles.uploadPanel}`}>
+      <h2 className={styles.stepTitle}><span className={styles.stepNumber}>1.</span>{" "}Add {FULL_SWING_LABELS[category]} Data</h2>
+      <p className={styles.sectionLead}>One player’s session summary per row.</p>
       <FileDropZone label={`Full Swing CSV · ${FULL_SWING_LABELS[category]}`} description="Drop a CSV here, or choose a file." accept=".csv,text/csv" disabled={busy || !roster.length} onFile={next => { void chooseFile(next); }} />
-      <details className="mt-4 text-sm"><summary className="muted cursor-pointer font-medium">CSV Help &amp; Template</summary><div className="mt-3 space-y-3"><p className="muted mb-0 text-sm">Use session summaries, up to 2 MiB and 500 readings. Individual swing and pitch exports are not supported yet.</p><p className="muted mb-0 text-sm"><a className="font-semibold underline" href={`/templates/pacu-${category}-summary.csv`} download>Download the PACU summary template</a>. This blank template is provided by PACU; it is not a Full Swing export format.</p></div></details>
-      {busy && <p role="status" className="mt-4 text-sm">{file ? "Saving reviewed readings…" : "Reading CSV…"}</p>}
+      <details className={styles.help}><summary>CSV Requirements &amp; Template</summary><div className="mt-3 space-y-3"><p className="muted mb-0 text-sm">Use session summaries, up to 2 MiB and 500 readings. Individual swing and pitch exports are not supported yet.</p><p className="muted mb-0 text-sm"><a className="font-semibold underline" href={`/templates/pacu-${category}-summary.csv`} download>Download the PACU summary template</a>. This blank template is provided by PACU; it is not a Full Swing export format.</p></div></details>
+      {busy && <p role="status" className={styles.progress}><LoaderCircle className="animate-spin" size={18} aria-hidden="true" />{file ? "Saving reviewed readings…" : "Reading CSV…"}</p>}
     </section>
     {file && <fieldset disabled={busy} className="min-w-0 space-y-6">
       <section className="panel p-5 sm:p-7">
-        <h2 className="mb-2 text-lg font-bold">2. Match Players and Columns</h2>
-        <p className="muted break-words text-sm">{file.fileName}</p>
+        <h2 className={styles.stepTitle}><span className={styles.stepNumber}>2.</span>{" "}Match Players and Columns</h2>
+        <p className={`${styles.sectionLead} break-words`}>{file.fileName}</p>
         <details className="mb-5 rounded-lg border border-[var(--line-subtle)] p-4"><summary className="cursor-pointer text-sm font-semibold">File Layout</summary><label className="mt-4 max-w-xs">Header row<select value={headerRow} onChange={event => { invalidate(); setHeaderRow(Number(event.target.value)); setIdentityColumn(-1); setDateColumn(-1); setOverrides({}); setMetrics([{ id: nextId.current++, column: -1, key: "", unit: "" }]); }}>{file.sheets[0].matrix.slice(0, 20).map((_, index) => <option value={index} key={index}>Row {index + 1}</option>)}</select></label></details>
         {tableError && <p role="alert" className="notice notice-error">{tableError}</p>}
         {table && <>
@@ -97,11 +98,11 @@ export function FullSwingImport({ category, roster, saveAction }: { category: Fu
             <label>Test or game date<select value={dateMode} onChange={event => { invalidate(); setDateMode(event.target.value as "fixed" | "column"); }}><option value="fixed">One date for this file</option><option value="column">Read dates from a column</option></select></label>
             {dateMode === "fixed" ? <label>Date<input type="date" min="2026-09-01" max="2026-12-31" value={date} onChange={event => { invalidate(); setDate(event.target.value); }} /></label> : <><ColumnSelect label="Date column" headers={table.headers} value={dateColumn} onChange={value => { invalidate(); setDateColumn(value); }} /><label>Date format<select value={dateFormat} onChange={event => { invalidate(); setDateFormat(event.target.value as DateFormat); }}><option value="ISO">YYYY-MM-DD</option><option value="MDY">MM/DD/YYYY</option><option value="DMY">DD/MM/YYYY</option></select></label></>}
           </div>
-          {!!identities.length && <details className="mt-5 rounded-lg border border-gray-200 p-4"><summary className="cursor-pointer font-semibold">Match Export Names to the Roster</summary><p className="muted mt-3 text-sm">Exact unique matches are suggested during review. Select a player here when an export uses a different name or ID.</p><div className="grid max-h-96 gap-4 overflow-y-auto md:grid-cols-2">{identities.map(identity => <label key={identity} className="break-words">{identity}<select value={overrides[identity] ?? ""} onChange={event => { invalidate(); setOverrides(current => { const next = { ...current }; if (event.target.value) next[identity] = event.target.value; else delete next[identity]; return next; }); }}><option value="">Use an exact unique match</option>{roster.map(athlete => <option key={athlete.id} value={athlete.athlete_code}>{athleteName(athlete)} · {athlete.athlete_code}</option>)}</select></label>)}</div></details>}
+          {!!identities.length && <details className="mt-5 rounded-lg border border-[var(--line-subtle)] p-4"><summary className="cursor-pointer font-semibold">Match Export Names to the Roster</summary><p className="muted mt-3 text-sm">Exact unique matches are suggested during review. Select a player here when an export uses a different name or ID.</p><div className="grid max-h-96 gap-4 overflow-y-auto md:grid-cols-2">{identities.map(identity => <label key={identity} className="break-words">{identity}<select value={overrides[identity] ?? ""} onChange={event => { invalidate(); setOverrides(current => { const next = { ...current }; if (event.target.value) next[identity] = event.target.value; else delete next[identity]; return next; }); }}><option value="">Use an exact unique match</option>{roster.map(athlete => <option key={athlete.id} value={athlete.athlete_code}>{athleteName(athlete)} · {athlete.athlete_code}</option>)}</select></label>)}</div></details>}
           <h3 className="mb-2 mt-7 font-bold">Measurements</h3>
           <p className="muted text-sm">Match each column to a measurement and its original unit.</p>
           <details className="mb-4 text-sm"><summary className="muted cursor-pointer font-medium">Measurement Help</summary><p className="muted mb-0 mt-3">Percentages use 0–100. Keep maximum and average readings separate. {definitions.some(item => item.key === "avg_fastball_spin") && "Average fastball spin must include only fastballs. "}Use values already calculated in the source file.</p></details>
-          <div className="space-y-4">{metrics.map((metric, index) => <div key={metric.id} className="grid items-end gap-3 rounded-lg border border-gray-200 p-4 md:grid-cols-[1fr_1fr_120px_44px]">
+          <div className="space-y-4">{metrics.map((metric, index) => <div key={metric.id} className="grid items-end gap-3 rounded-lg border border-[var(--line-subtle)] p-4 md:grid-cols-[1fr_1fr_120px_44px]">
             <ColumnSelect label={`Data column ${index + 1}`} headers={table.headers} value={metric.column} onChange={value => { invalidate(); setMetrics(current => current.map(item => item.id === metric.id ? { ...item, column: value } : item)); }} />
             <label>Measurement<select value={metric.key} onChange={event => { invalidate(); setMetrics(current => current.map(item => item.id === metric.id ? { ...item, key: event.target.value, unit: "" } : item)); }}><option value="">Choose a measurement…</option>{definitions.map(item => <option key={item.key} value={item.key}>{item.label}</option>)}</select></label>
             <label>Unit<select value={metric.unit} onChange={event => { invalidate(); setMetrics(current => current.map(item => item.id === metric.id ? { ...item, unit: event.target.value } : item)); }}><option value="">Choose…</option>{(definitions.find(item => item.key === metric.key)?.units ?? []).map(unit => <option key={unit} value={unit}>{unit}</option>)}</select></label>
@@ -113,8 +114,8 @@ export function FullSwingImport({ category, roster, saveAction }: { category: Fu
         </>}
       </section>
       {reviewed && <section className="panel p-5 sm:p-7">
-        <h2 className="mb-2 text-lg font-bold">3. Review and Save</h2>
-        <p className="muted text-sm">{reviewed.candidateMeasurements.length} readings · Full Swing · {FULL_SWING_LABELS[category]} · Fall 2026</p>
+        <h2 className={styles.stepTitle}><span className={styles.stepNumber}>3.</span>{" "}Review and Save</h2>
+        <p className={styles.sectionLead}>{reviewed.candidateMeasurements.length} readings · Full Swing · {FULL_SWING_LABELS[category]} · Fall 2026</p>
         {!!reviewed.issues.length && <div role="alert" className="notice notice-error"><p className="font-semibold">Fix these rows before saving.</p><ul className="mb-0 list-disc pl-5">{reviewed.issues.slice(0, 30).map((issue, index) => <li key={index}>Row {issue.row}: {issue.message}</li>)}</ul>{reviewed.issues.length > 30 && <p>{reviewed.issues.length - 30} additional issues remain.</p>}</div>}
         <div className="table-wrap"><table><caption className="sr-only">All reviewed readings</caption><thead><tr><th>Player</th><th>Date</th><th>Measurement</th><th>Value</th><th>Source Row</th></tr></thead><tbody>{reviewed.candidateMeasurements.map(row => <tr key={row.id}><td>{athleteName(roster.find(athlete => athlete.athlete_code === row.athlete_code)!)}<span className="muted block text-xs">{row.athlete_code}</span></td><td className="whitespace-nowrap">{row.measured_at}</td><td>{row.metric}</td><td className="whitespace-nowrap">{row.value} {row.unit}</td><td>{row.source_row}</td></tr>)}</tbody></table></div>
         <label className="my-5 flex items-start gap-3"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} /><span>I checked every player match, date, measurement, and unit. Save these readings to the team’s private profiles.</span></label>

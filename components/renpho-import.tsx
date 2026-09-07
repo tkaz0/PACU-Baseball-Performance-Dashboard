@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Check, FileImage, LoaderCircle } from "lucide-react";
+import { Check, LoaderCircle } from "lucide-react";
+import styles from "./import-presentation.module.css";
 import { useLocalWorkspace } from "@/components/local-workspace";
 import { athleteName } from "@/lib/types";
 import { findRenphoAthlete, normalizeRenphoId, type MeasurementPreview } from "@/lib/imports/engine";
@@ -140,17 +141,17 @@ export function RenphoReportForm({ workspace, shared }: { workspace: RenphoWorks
   }
 
   return <div className="space-y-6">
-    <section className="panel p-5 sm:p-7">
-      <h2 className="mb-4 flex items-center gap-2 text-lg font-bold"><FileImage size={21} />1. Add a RENPHO Report</h2>
-      <FileDropZone label="RENPHO Report" description="Drop a full-page PNG, JPG, or one-page PDF here." accept=".png,.jpg,.jpeg,.pdf,image/png,image/jpeg,application/pdf" disabled={!workspace.ready || !!workspace.error || !!busy} onFile={file => { void chooseFile(file); }} />
-      {busy && <p role="status" className="mt-4 flex items-center gap-2 text-sm"><LoaderCircle className="animate-spin" size={18} />{busy}</p>}
+    <section className={`panel p-5 sm:p-7 ${styles.uploadPanel}`}>
+      <h2 className={styles.stepTitle}><span className={styles.stepNumber}>1.</span>{" "}Add a RENPHO Report</h2>
+      <FileDropZone label="RENPHO Report" description="Drop one full-page PNG, JPG, or single-page PDF here." accept=".png,.jpg,.jpeg,.pdf,image/png,image/jpeg,application/pdf" disabled={!workspace.ready || !!workspace.error || !!busy} onFile={file => { void chooseFile(file); }} />
+      {busy && <p role="status" className={styles.progress}><LoaderCircle className="animate-spin" size={18} />{busy}</p>}
       {error && <p role="alert" className="notice notice-error mt-4">{error}</p>}
-      <details className="mt-4 text-sm"><summary className="muted cursor-pointer font-medium">Report Help</summary><div className="mt-3 space-y-3"><p className="muted mb-0 text-sm">Use the full-page Body Composition Analysis Report, up to 10 MiB. Keep the export uncropped and straight.</p><p className="muted mb-0 text-sm">The first report may take a minute to read. The image stays in your browser; only readings you review and approve are saved.</p></div></details>
+      <details className={styles.help}><summary>Report Requirements</summary><div className="mt-3 space-y-3"><p className="muted mb-0 text-sm">Use the full-page Body Composition Analysis Report, up to 10 MiB. Keep the export uncropped and straight.</p><p className="muted mb-0 text-sm">The first report may take a minute to read. The image stays in your browser; only readings you review and approve are saved.</p></div></details>
     </section>
     {report && <>
       <section className="panel p-5 sm:p-7">
-        <h2 className="mb-2 text-lg font-bold">2. Confirm the Player</h2>
-        <p className="muted text-sm">{shared ? "The report ID selects the player. Check the name and printed test date." : "Select the player and check the printed test date."}</p>
+        <h2 className={styles.stepTitle}><span className={styles.stepNumber}>2.</span>{" "}Confirm the Player</h2>
+        <p className={styles.sectionLead}>{shared ? "The report ID selects the player. Check the name and printed test date." : "Select the player and check the printed test date."}</p>
         <fieldset disabled={!!busy} className="grid min-w-0 gap-5 md:grid-cols-2">
           <label>RENPHO report ID<input value={renphoId} maxLength={80} onBlur={() => { if (shared && matchPending) void matchSharedPlayer(renphoId); }} onChange={event => { invalidate(); setRemember(false); const id = event.target.value; setRenphoId(id); if (shared) { matchRequest.current++; setSharedMatch(null); setMatchError(""); setMatching(false); setAthleteCode(""); } else { try { setAthleteCode(findRenphoAthlete(workspace.roster, id) ?? ""); } catch { setAthleteCode(""); } } }} /></label>
           <label>Player for this report<select value={athleteCode} disabled={matching || (shared && (!!matchingCode || matchPending))} onChange={event => { invalidate(); setAthleteCode(event.target.value); }}><option value="">Choose a player</option>{workspace.roster.map(athlete => <option key={athlete.athlete_code} value={athlete.athlete_code}>{athleteName(athlete)} · {athlete.athlete_code}</option>)}</select></label>
@@ -160,10 +161,10 @@ export function RenphoReportForm({ workspace, shared }: { workspace: RenphoWorks
         {identityError ? <p role="alert" className="notice notice-error mt-4">{identityError}</p> : !shared && (matchingCode ? <p className="notice mt-4">Matched to a saved RENPHO ID. Confirm this is the correct player.</p> : <label className="mt-5 flex items-start gap-3"><input type="checkbox" checked={remember} disabled={!!busy || !renphoId.trim() || !athleteCode} onChange={event => { invalidate(); setRemember(event.target.checked); }} /><span>Remember this report ID for the selected player in this browser.</span></label>)}
       </section>
       <section className="panel p-5 sm:p-7">
-        <h2 className="mb-2 text-lg font-bold">3. Review the Readings</h2>
-        <p className="muted text-sm">Check each value against the original. Correct a reading or uncheck it to leave it out.</p>
+        <h2 className={styles.stepTitle}><span className={styles.stepNumber}>3.</span>{" "}Review the Readings</h2>
+        <p className={styles.sectionLead}>Check each value against the original. Correct a reading or uncheck it to leave it out.</p>
         <div className="grid items-start gap-6 xl:grid-cols-[1fr_1.15fr]">
-          <details className="rounded-lg border border-gray-200 p-4" open><summary className="cursor-pointer font-semibold">Original report</summary>
+          <details className={styles.sourceReport} open><summary>Original Report</summary>
             {/* Local object URL; no optimization server receives the user's report. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={report.previewUrl} alt="Your uploaded RENPHO report for comparison" className="mt-4 h-auto w-full" />
@@ -185,7 +186,7 @@ export function RenphoReportForm({ workspace, shared }: { workspace: RenphoWorks
             <button type="button" className="btn btn-primary mt-3" disabled={!!busy || matching || matchPending || parserErrors.length > 0 || !athleteCode || !date || !!identityError || !workspace.ready || !!workspace.error} onClick={preview}>Review import</button>
           </div>
         </div>
-        {reviewed && <div className="mt-6 border-t border-gray-200 pt-6">
+        {reviewed && <div className={styles.saveReview}>
           <p role="status" className="font-semibold">{reviewed.data.candidateMeasurements.length} new readings ready</p>
           {reviewed.data.issues.map((issue, index) => <p role="alert" key={index} className="notice notice-error">{issue.message}</p>)}
           {!reviewed.data.candidateMeasurements.length && reviewed.data.canApply && <p className="notice">These readings are already imported. Nothing new will be saved.</p>}

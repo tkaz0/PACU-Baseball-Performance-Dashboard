@@ -31,8 +31,8 @@ export function LeaderboardResults({ rows, metric, unit, source }: { rows: Leade
   const rankCounts = new Map<number, number>();
   for (const row of rows) rankCounts.set(row.rank, (rankCounts.get(row.rank) ?? 0) + 1);
   const tiedRanks = new Set([...rankCounts].filter(([, count]) => count > 1).map(([rank]) => rank));
-  return <section className="panel min-w-0 self-start overflow-hidden">
-    <div className="border-b border-[var(--line-subtle)] p-5">
+  return <section className="panel leaderboard-card min-w-0 self-start overflow-hidden">
+    <div className="leaderboard-card-heading border-b border-[var(--line-subtle)] p-5">
       <div className="flex items-start justify-between gap-3"><h2 className="mb-0 text-base font-bold">{leaderboardMetricLabel(metric)}</h2><span className="muted shrink-0 rounded-full bg-[var(--surface-raised)] px-2.5 py-1 text-[11px] font-semibold">{rows.length} {rows.length === 1 ? "Athlete" : "Athletes"}</span></div>
       {rows.length > 0 && <><p className="muted mb-0 mt-2 text-xs">{source ? `${leaderboardSourceLabel(source)} · ` : ""}Last Tested {leaderboardTestDate(latestDate)}</p><p className="muted mb-0 mt-1 text-[11px]" title={neutral ? "Numerical comparisons, not a health or performance rating." : "Latest comparable result per athlete; equal values share a rank."}>{leaderboardOrderLabel(metric)}</p></>}
     </div>

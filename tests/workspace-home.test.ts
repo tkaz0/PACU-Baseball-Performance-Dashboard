@@ -60,7 +60,7 @@ describe("workspace navigation and preview notices", () => {
     const html = renderToStaticMarkup(createElement(Sidebar, { roles: [role], athleteId }));
     expect(html).not.toContain('href="/overview"'); expect(html).not.toContain(">Overview<");
     expect(html).toContain('href="/game-stats"'); expect(html).toContain('href="/leaderboards"');
-    expect(html).toContain(`href="${role === "player" ? `/athletes/${athleteId}` : "/roster"}" class="sidebar-brand-link"`);
+    expect(html).toContain('href="/" class="sidebar-brand-link"');
     expect(html.includes('href="/roster"')).toBe(role !== "player");
     expect(html.includes('href="/imports"')).toBe(role !== "player");
     expect(html.includes('href="/testing"')).toBe(role !== "player");

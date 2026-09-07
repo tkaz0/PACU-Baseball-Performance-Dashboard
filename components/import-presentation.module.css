@@ -1,0 +1,37 @@
+.lanes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.lane { position: relative; display: flex; flex-direction: column; gap: 15px; min-width: 0; padding: 21px; text-align: left; border: 1px solid var(--line-subtle); border-radius: 12px; background: var(--surface-panel); color: var(--text-primary); transition: border-color 160ms, background 160ms; }
+.lane:not(:disabled):hover { border-color: var(--accent-readable); background: color-mix(in srgb, var(--accent-readable) 4%, var(--surface-panel)); }
+.lane[aria-pressed="true"] { border-color: var(--accent-readable); background: color-mix(in srgb, var(--accent-readable) 7%, var(--surface-panel)); box-shadow: inset 0 3px 0 var(--accent-readable); }
+.lane:focus-visible, .chooseFile:focus-visible { outline: 2px solid var(--accent-readable); outline-offset: 4px; }
+.laneIcon { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 9px; color: var(--accent-readable); background: color-mix(in srgb, var(--accent-readable) 8%, var(--surface-panel)); }
+.laneName { display: block; font-size: 15px; font-weight: 750; line-height: 1.35; }
+.laneSource { display: block; margin-top: 4px; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+.uploadPanel { overflow: hidden; }
+.stepTitle { display: flex; align-items: center; gap: 11px; margin: 0 0 19px; color: var(--text-primary); font-size: 18px; font-weight: 700; line-height: 1.35; }
+.stepNumber { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 29px; height: 29px; border: 1px solid var(--line-subtle); border-radius: 8px; color: var(--accent-readable); font-size: 12px; font-weight: 750; font-variant-numeric: tabular-nums; }
+.sectionLead { margin: -5px 0 20px; color: var(--text-secondary); font-size: 13px; line-height: 1.6; }
+.dropZone { position: relative; display: flex; flex-direction: column; align-items: center; padding: 32px 20px 27px; border: 1px dashed var(--line-subtle); border-radius: 10px; background: color-mix(in srgb, var(--surface-raised) 55%, var(--surface-panel)); text-align: center; transition: background 160ms, border-color 160ms; }
+.dropZone[data-dragging="true"] { border-color: var(--accent-readable); background: color-mix(in srgb, var(--accent-readable) 9%, var(--surface-panel)); }
+.dropZone[data-disabled="true"] { opacity: .62; }
+.dropIcon { display: flex; align-items: center; justify-content: center; width: 49px; height: 49px; margin-bottom: 15px; border-radius: 13px; color: var(--accent-readable); background: var(--surface-panel); border: 1px solid var(--line-subtle); }
+.dropTitle { margin: 0; color: var(--text-primary); font-size: 16px; font-weight: 700; line-height: 1.4; }
+.dropDescription { max-width: 380px; margin: 7px 0 18px; color: var(--text-secondary); font-size: 13px; line-height: 1.6; }
+.fileInput { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.chooseFile { min-height: 39px; padding: 9px 18px; font-size: 12px; }
+.selectedFile { max-width: 100%; margin: 14px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.progress { display: flex; align-items: center; gap: 9px; margin: 16px 0 0; padding: 12px 14px; border-radius: 8px; background: var(--surface-raised); color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+.progress svg { flex-shrink: 0; color: var(--accent-readable); }
+.help { margin-top: 17px; font-size: 12px; }
+.help > summary { width: fit-content; cursor: pointer; color: var(--text-secondary); font-weight: 600; }
+.session { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 17px 21px; border: 1px solid var(--line-subtle); border-radius: 10px; background: var(--surface-panel); }
+.sessionLabel { margin: 0; color: var(--text-primary); font-size: 13px; font-weight: 650; }
+.session > select { width: 180px; max-width: 100%; margin: 0; }
+.sourceReport { border: 1px solid var(--line-subtle); border-radius: 10px; padding: 16px; background: var(--surface-raised); }
+.sourceReport > summary { cursor: pointer; color: var(--text-primary); font-size: 13px; font-weight: 650; }
+.sourceReport img { margin-top: 15px; border-radius: 4px; }
+.saveReview { margin-top: 26px; padding-top: 24px; border-top: 1px solid var(--line-subtle); }
+.otherTools { margin-top: 20px; padding: 18px 21px; border: 1px solid var(--line-subtle); border-radius: 10px; color: var(--text-secondary); }
+.otherTools > summary { cursor: pointer; font-size: 12px; font-weight: 650; }
+@media (max-width: 1000px) { .lanes { grid-template-columns: repeat(2, minmax(0, 1fr)); } .lane { padding: 17px; gap: 12px; } }
+@media (max-width: 420px) { .lane { padding: 15px 12px; } .laneName { font-size: 13px; } .laneSource { font-size: 11px; } .dropZone { padding: 26px 15px; } .stepTitle { font-size: 16px; gap: 9px; } .session { align-items: stretch; flex-direction: column; gap: 10px; } .session > select { width: 100%; } }
+@media (prefers-reduced-motion: reduce) { .lane, .dropZone { transition: none; } }
