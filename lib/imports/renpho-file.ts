@@ -1,6 +1,7 @@
 import type { PDFDocumentLoadingTask, PDFWorker, RenderTask } from "pdfjs-dist";
 import type { Worker as OcrWorker } from "tesseract.js";
 import { parseRenphoRegions, type RenphoParsedReport, type RenphoRegions } from "./renpho";
+import { applyRenphoSmiUnitRetry, findRenphoSmiUnitRetry } from "./renpho-unit-retry";
 
 export type RenphoReportFile = { fileName: string; fileHash: string; parsed: RenphoParsedReport; previewUrl: string };
 
@@ -318,6 +319,44 @@ export async function readRenphoReport(file: File, onProgress?: (message: string
       } finally { header.width = 0; header.height = 0; }
     }
     let parsed = parseRenphoRegions(regions);
+    let unitReread = false;
+    // Tiny SMI type can lose letters as well as its raised exponent when the
+    // full page is downsampled. Read only that printed unit again at native
+    // resolution. The numeric token is never re-read or changed by this retry.
+    const retry = findRenphoSmiUnitRetry(regions, parsed);
+    if (retry) {
+      const matches = words.filter(word => word.text === retry.unit && word.x >= .645 * canvas.width && word.x < .97 * canvas.width && word.y >= .811 * canvas.height && word.y < .955 * canvas.height);
+      if (matches.length === 1) {
+        const word = matches[0], source = bitmap ?? canvas;
+        const sx = source.width / canvas.width, sy = source.height / canvas.height;
+        const left = Math.max(0, Math.floor((word.bounds.x0 - 3) * sx));
+        const top = Math.max(0, Math.floor((word.bounds.y0 - 12) * sy));
+        const width = Math.min(source.width - left, Math.ceil((word.bounds.x1 - word.bounds.x0 + 7) * sx));
+        const height = Math.min(source.height - top, Math.ceil((word.bounds.y1 - word.bounds.y0 + 18) * sy));
+        if (width > 0 && height > 0 && width <= 512 && height <= 512 && width / height <= 4) {
+          const crop = document.createElement("canvas");
+          crop.width = Math.ceil(width / height * 240) + 40; crop.height = 280;
+          try {
+            const context = crop.getContext("2d");
+            if (context) {
+              context.fillStyle = "white"; context.fillRect(0, 0, crop.width, crop.height);
+              context.imageSmoothingEnabled = true; context.imageSmoothingQuality = "high";
+              context.drawImage(source, left, top, width, height, 20, 20, crop.width - 40, 240);
+              progress("Taking a closer look at the printed SMI unit…");
+              await cancellable(worker.setParameters({ tessedit_pageseg_mode: tesseract.PSM.SINGLE_LINE, tessedit_char_whitelist: "" }), activeSignal);
+              const reading = await cancellable(worker.recognize(crop, { rotateAuto: false }, { text: true, blocks: false }), activeSignal);
+              const recovered = applyRenphoSmiUnitRetry(regions, retry, reading.data.text);
+              if (recovered) {
+                regions.indicators = recovered.indicators;
+                word.text = reading.data.text.trim();
+                parsed = parseRenphoRegions(regions);
+                unitReread = true;
+              }
+            }
+          } finally { crop.width = 0; crop.height = 0; }
+        }
+      }
+    }
     // A superscript is read from its own pixels, never supplied from the metric name.
     // The strict parser remains the fallback when the glyph is absent or ambiguous.
     if (parsed.recognizedLayout && /^SMI\s+[+-]?(?:\d+(?:\.\d*)?|\.\d+)\s+kg\/m\s*$/im.test(regions.indicators)) {
@@ -338,6 +377,11 @@ export async function readRenphoReport(file: File, onProgress?: (message: string
           } finally { glyph.width = 0; glyph.height = 0; }
         }
       }
+    }
+    if (unitReread) {
+      const smi = parsed.candidateReadings.find(reading => reading.key === "smi");
+      if (smi) smi.unitEvidence = "ocr-unit-correction";
+      parsed.issues.push({ severity: "review", code: "smi_unit_ocr", metric: "Skeletal Muscle Index", message: "The small SMI unit was read again from an enlarged view. Check its unit against the original report before saving." });
     }
     checkAbort(activeSignal);
     progress("Preparing values for your review…");

@@ -247,3 +247,9 @@ Focused `renpho-identity-database` and `renpho-identity-server` checks passed **
 PGlite uses one connection. Database uniqueness and account-before-roster advisory lock structure are checked, but these are not a claim of independent concurrent Supabase-session testing. The application still needs its complete integrated checks and hosted migration verification before this upgrade is declared deployed.
 
 The focused leaderboard checks passed **78 tests**, including visible competition ranking numbers, taller height/higher Muscle Mass % first, lower Body Fat % first, ties and missing-data behavior, and retained metric/source/unit/period isolation. The SQL leaderboard upgrade leaves the body metric catalog neutral for profile percentiles and insights. See [LEADERBOARDS](LEADERBOARDS.md).
+
+### SMI unit OCR retry
+
+`tests/renpho-unit-retry.test.ts` covers the recognized-layout/single-error retry gate, exact unit rereads, preserved numeric text and source locations, rejection of stale or ambiguous input, and explicit confirmation when the exponent remains unreadable. A private browser check reproduced an unsupported SMI unit on an additional owner-supplied portrait PNG. The native-resolution unit retry recovered all 16 readings with zero parser errors; the earlier supplied report still produced 16 readings without using the retry. No source image, identifier or numerical reading was added to fixtures, source or logs. These checks exercise extraction/review; they do not save measurements to production.
+
+Release checks passed lint, TypeScript, 1,269 tests across 64 files, and the production build. The installed-Chrome browser suite passed 11 checks with 29 requiring separately configured local Supabase accounts skipped. The private actual-image extraction checks above were run separately and did not require a dashboard authorization bypass.

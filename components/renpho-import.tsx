@@ -169,8 +169,12 @@ export function RenphoReportForm({ workspace, shared }: { workspace: RenphoWorks
             <img src={report.previewUrl} alt="Your uploaded RENPHO report for comparison" className="mt-4 h-auto w-full" />
           </details>
           <div className="min-w-0">
-            {report.parsed.issues.filter(issue => issue.code === "mass_unit_ocr").map((issue, index) => <p className="notice mb-4 text-sm" key={index}>{issue.message}</p>)}
-            {parserErrors.length > 0 && <div role="alert" className="notice notice-error mb-4"><p className="font-semibold">The reader needs a clearer or supported report before saving.</p><ul className="list-disc space-y-2 pl-5">{parserErrors.map((issue, index) => <li key={index}>{issue.message}</li>)}</ul><p className="mb-0 mt-3">You can also use Other measurements with a CSV or XLSX export.</p></div>}
+            {report.parsed.issues.filter(issue => issue.code === "mass_unit_ocr" || issue.code === "smi_unit_ocr").map((issue, index) => <p className="notice mb-4 text-sm" key={index}>{issue.message}</p>)}
+            {parserErrors.length > 0 && <div role="alert" className="notice notice-error mb-4">
+              <p className="font-semibold">Some report details could not be read.</p>
+              <ul className="list-disc space-y-2 pl-5">{parserErrors.map((issue, index) => <li key={index}>{issue.metric && <strong>{issue.metric}: </strong>}{issue.message}</li>)}</ul>
+              <p className="mb-0 mt-3">Check the details above against the original, then upload a fresh full-page PNG, JPG, or PDF export.</p>
+            </div>}
             <div className="table-wrap"><table><caption className="sr-only">Readings extracted from your RENPHO report</caption><thead><tr><th>Use</th><th>Measurement</th><th>Value</th><th>Unit</th></tr></thead><tbody>{report.parsed.candidateReadings.map(reading => <tr key={reading.key}>
               <td><input type="checkbox" aria-label={`Include ${reading.label}`} checked={!excluded.includes(reading.key)} disabled={!!busy} onChange={event => { invalidate(); setExcluded(current => event.target.checked ? current.filter(key => key !== reading.key) : [...current, reading.key]); }} /></td>
               <th scope="row" className="min-w-32">{reading.label}<details className="mt-1 text-xs font-normal text-gray-500"><summary className="cursor-pointer">Read from report</summary><p className="mb-0 mt-2">{reading.sourceText}</p></details></th>
