@@ -2,6 +2,7 @@ import type { PDFDocumentLoadingTask, PDFWorker, RenderTask } from "pdfjs-dist";
 import type { Worker as OcrWorker } from "tesseract.js";
 import { parseRenphoRegions, type RenphoParsedReport, type RenphoRegions } from "./renpho";
 import { applyRenphoSmiUnitRetry, findRenphoSmiUnitRetry } from "./renpho-unit-retry";
+import { applyRenphoPercentageRetry, findRenphoPercentageRetries } from "./renpho-percentage-retry";
 
 export type RenphoReportFile = { fileName: string; fileHash: string; parsed: RenphoParsedReport; previewUrl: string };
 
@@ -319,6 +320,53 @@ export async function readRenphoReport(file: File, onProgress?: (message: string
       } finally { header.width = 0; header.height = 0; }
     }
     let parsed = parseRenphoRegions(regions);
+    const percentageRereads: string[] = [];
+    // Native image pixels can retain a decimal lost by the full-page downsample.
+    // Require separate labelled-line and value-only reads; never guess its position.
+    if (bitmap) for (const retry of findRenphoPercentageRetries(regions, parsed)) {
+      const vertical: readonly [number, number] = retry.region === "assessment" ? [.353, .477] : [.811, .955];
+      const labelWords = words.filter(word => (retry.key === "subcutaneous_fat" ? /^Subcutaneous$/i : /^Body$/i).test(word.text)
+        && word.x >= .645 * canvas.width && word.x < .97 * canvas.width && word.y >= vertical[0] * canvas.height && word.y < vertical[1] * canvas.height);
+      const possibleLines = labelWords.map(anchor => words.filter(word => Math.abs(word.y - anchor.y) < anchor.height * .6
+        && word.x >= .645 * canvas.width && word.x < .97 * canvas.width).sort((a, b) => a.x - b.x))
+        .filter(line => line.map(word => word.text).join(" ") === retry.sourceText.trim());
+      if (possibleLines.length !== 1) continue;
+      const line = possibleLines[0];
+      const numberWords = line.filter(word => word.text.includes(retry.valueText));
+      if (numberWords.length !== 1) continue;
+      const firstValue = numberWords[0];
+      const valueWords = line.filter(word => word.bounds.x0 >= firstValue.bounds.x0);
+      const readings: string[] = [];
+      for (const selected of [line, valueWords]) {
+        const sx = bitmap.width / canvas.width, sy = bitmap.height / canvas.height;
+        const left = Math.max(0, Math.floor((Math.min(...selected.map(word => word.bounds.x0)) - 6) * sx));
+        const top = Math.max(0, Math.floor((Math.min(...selected.map(word => word.bounds.y0)) - 6) * sy));
+        const right = Math.min(bitmap.width, Math.ceil((Math.max(...selected.map(word => word.bounds.x1)) + 6) * sx));
+        const bottom = Math.min(bitmap.height, Math.ceil((Math.max(...selected.map(word => word.bounds.y1)) + 6) * sy));
+        const width = right - left, height = bottom - top;
+        if (width <= 0 || height <= 0 || width > 2000 || height > 256) break;
+        const crop = document.createElement("canvas"); crop.width = width + 40; crop.height = height + 40;
+        try {
+          const context = crop.getContext("2d");
+          if (!context) break;
+          context.fillStyle = "white"; context.fillRect(0, 0, crop.width, crop.height);
+          context.drawImage(bitmap, left, top, width, height, 20, 20, width, height);
+          progress("Checking a small percentage against the original pixels…");
+          await cancellable(worker.setParameters({ tessedit_pageseg_mode: tesseract.PSM.SINGLE_LINE, tessedit_char_whitelist: "" }), activeSignal);
+          const reading = await cancellable(worker.recognize(crop, { rotateAuto: false }, { text: true, blocks: false }), activeSignal);
+          readings.push(reading.data.text);
+        } finally { crop.width = 0; crop.height = 0; }
+      }
+      if (readings.length !== 2) continue;
+      const recovered = applyRenphoPercentageRetry(regions, retry, readings[0], readings[1]);
+      if (recovered) {
+        regions[retry.region] = recovered[retry.region];
+        parsed = parseRenphoRegions(regions);
+        const corrected = parsed.candidateReadings.find(reading => reading.key === retry.key);
+        if (corrected) firstValue.text = firstValue.text.replace(retry.valueText, corrected.valueText);
+        percentageRereads.push(retry.key);
+      }
+    }
     let unitReread = false;
     // Tiny SMI type can lose letters as well as its raised exponent when the
     // full page is downsampled. Read only that printed unit again at native
@@ -383,6 +431,8 @@ export async function readRenphoReport(file: File, onProgress?: (message: string
       if (smi) smi.unitEvidence = "ocr-unit-correction";
       parsed.issues.push({ severity: "review", code: "smi_unit_ocr", metric: "Skeletal Muscle Index", message: "The small SMI unit was read again from an enlarged view. Check its unit against the original report before saving." });
     }
+    if (percentageRereads.length) parsed.issues.push({ severity: "review", code: "percentage_ocr_reread",
+      message: "A small percentage was read again from the original image pixels. Two separate reads agreed; compare the percentage with the original before saving." });
     checkAbort(activeSignal);
     progress("Preparing values for your review…");
     const preview = await cancellable(new Promise<Blob>((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new ReportReadError("The report preview could not be created.")), "image/png")), activeSignal);
