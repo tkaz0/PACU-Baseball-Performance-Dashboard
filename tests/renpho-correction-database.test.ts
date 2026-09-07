@@ -60,6 +60,104 @@ beforeEach(async () => {
 });
 afterAll(async () => { await db.close(); });
 
+function reassignment(ids: string[] = ["FICTIONAL-001", "FICTIONAL-HISTORICAL"]) {
+  return { requestId, report: { fileHash: hashA, fromAthleteCode: "SYN-001", toAthleteCode: "SYN-002", renphoIds: ids } };
+}
+async function reassignmentPreview(input: unknown = reassignment()) {
+  return (await db.query<{ data: { fingerprint: string; report: Record<string, unknown> } }>("select public.admin_preview_renpho_report_reassignment($1::jsonb) data", [JSON.stringify(input)])).rows[0].data;
+}
+async function reassign(fingerprint: string, input: unknown = reassignment(), reviewed: unknown = true) {
+  return (await db.query<{ data: { requestId: string; measurementsMoved: number; aliasesMoved: number } }>("select public.admin_apply_renpho_report_reassignment($1::jsonb,$2,$3::boolean) data", [JSON.stringify(input), fingerprint, reviewed])).rows[0].data;
+}
+
+describe("reviewed single-report reassignment", () => {
+  it("moves exactly one report and two explicitly reviewed aliases without changing identities, values or other reports", async () => {
+    await asUser(admin, () => db.query("select public.admin_upsert_renpho_ids($1::jsonb,true)", [JSON.stringify([{ athlete_code: "SYN-001", renpho_id: "FICTIONAL-UNSELECTED" }])]));
+    const before = await snapshot(); const review = await asUser(admin, () => reassignmentPreview());
+    expect(review.report).toEqual({ ...reassignment().report, measurementCount: 1, measuredAt: "2026-09-12", sourceFile: "fictional-report.png" });
+    expect(await snapshot()).toEqual(before);
+    expect(await asUser(admin, () => reassign(review.fingerprint))).toEqual({ requestId, measurementsMoved: 1, aliasesMoved: 2 });
+    const after = await snapshot();
+    expect(after.measurements).toEqual(before.measurements.map(row => ({ ...row, athlete_id: row.file_hash === hashA ? second : row.athlete_id })));
+    expect(after.aliases).toEqual(before.aliases.map(row => ({ ...row, athlete_id: ["FICTIONAL-001", "FICTIONAL-HISTORICAL"].includes(row.renpho_id as string) ? second : row.athlete_id })));
+    expect(after.accounts).toEqual(before.accounts); expect(after.links).toEqual(before.links);
+    expect((await db.query<{ details: unknown }>("select details from public.audit_events where event_type='renpho_report_reassigned'")).rows).toEqual([{ details: { reports: 1, measurementsMoved: 1, aliasesMoved: 2 } }]);
+  });
+  it("allows no alias changes and retries without moving the report again", async () => {
+    const input = reassignment([]), before = await snapshot(); const review = await asUser(admin, () => reassignmentPreview(input));
+    const receipt = await asUser(admin, () => reassign(review.fingerprint, input)); expect(receipt.aliasesMoved).toBe(0);
+    const after = await snapshot(); expect(after.aliases).toEqual(before.aliases);
+    expect(await asUser(admin, () => reassign(review.fingerprint, input))).toEqual(receipt); expect(await snapshot()).toEqual(after);
+    await asUser(admin, async () => { await expect(reassignmentPreview(input)).rejects.toThrow("already submitted"); await expect(reassign("f".repeat(64), input)).rejects.toThrow("different review"); await expect(apply(review.fingerprint)).rejects.toThrow("different review"); });
+  });
+  it("rejects anonymous, nonadmin, inactive accounts and unreviewed saves", async () => {
+    const review = await asUser(admin, () => reassignmentPreview());
+    for (const actor of [null, coach, player]) await asUser(actor, async () => { await expect(reassignmentPreview()).rejects.toThrow(); await expect(reassign(review.fingerprint)).rejects.toThrow(); });
+    await db.query("update public.app_accounts set is_active=false where user_id=$1", [admin]);
+    await asUser(admin, async () => { await expect(reassignmentPreview()).rejects.toThrow("Active administrator"); await expect(reassign(review.fingerprint)).rejects.toThrow("Active administrator"); });
+    await db.query("update public.app_accounts set is_active=true where user_id=$1", [admin]);
+    await asUser(admin, async () => { await expect(reassign(review.fingerprint, reassignment(), false)).rejects.toThrow("Review"); });
+    expect((await snapshot()).corrections).toHaveLength(0);
+  });
+  it("rejects invalid, duplicate or unowned alias selections and malformed inputs", async () => {
+    const invalid = [null, {}, { ...reassignment(), extra: true }, { ...reassignment(), requestId: "invalid" },
+      { ...reassignment(), report: { ...reassignment().report, toAthleteCode: "SYN-001" } },
+      { ...reassignment(), report: { ...reassignment().report, toAthleteCode: "SYN-999" } },
+      { ...reassignment(), report: { ...reassignment().report, image: "Fictional image" } },
+      reassignment(["FICTIONAL-001", "fictional-001"]), reassignment(["FICTIONAL-002"]), reassignment(["UNKNOWN"]), reassignment(["A", "B", "C"]), reassignment([""]),
+    ];
+    const before = await snapshot();
+    await asUser(admin, async () => { for (const value of invalid) { await expect(reassignmentPreview(value)).rejects.toThrow(); await expect(reassign("f".repeat(64), value)).rejects.toThrow(); } });
+    expect(await snapshot()).toEqual(before);
+  });
+  it("rejects changed observations and alias ownership since review", async () => {
+    const review = await asUser(admin, () => reassignmentPreview());
+    await db.query("update public.performance_measurements set value=value+1 where file_hash=$1", [hashA]);
+    const changed = await snapshot();
+    await asUser(admin, async () => { await expect(reassign(review.fingerprint)).rejects.toThrow("changed since review"); });
+    expect(await snapshot()).toEqual(changed);
+    const secondReview = await asUser(admin, () => reassignmentPreview());
+    await db.query("update private.renpho_identity_aliases set athlete_id=$1 where renpho_id='FICTIONAL-001'", [second]);
+    await asUser(admin, async () => { await expect(reassign(secondReview.fingerprint)).rejects.toThrow("report ID"); });
+    expect((await snapshot()).corrections).toHaveLength(0);
+  });
+  it("requires whole canonical report ownership and one date", async () => {
+    await db.query("update public.performance_measurements set source='Fictional other' where file_hash=$1", [hashA]);
+    await asUser(admin, async () => { await expect(reassignmentPreview()).rejects.toThrow("ownership or source"); });
+    await db.query("update public.performance_measurements set source='RENPHO' where file_hash=$1", [hashA]);
+    await asUser(admin, () => db.query("select public.admin_import_performance($1::jsonb)", [JSON.stringify([measurement(hashA, "SYN-001", { observation_id: `observation:${JSON.stringify([hashA, page, 3, 1])}`, source_row: 3, measured_at: "2026-09-13", metric_key: "body_fat_pct", value: 15, unit: "%" })])]));
+    await asUser(admin, async () => { await expect(reassignmentPreview()).rejects.toThrow("one test date"); });
+  });
+  it("rolls back observations, aliases and private receipt on audit failure", async () => {
+    const review = await asUser(admin, () => reassignmentPreview()); const before = await snapshot();
+    await db.exec("create function public.fictional_fail_reassignment_audit() returns trigger language plpgsql as $$begin raise exception 'Fictional audit failure';end$$;create trigger fictional_reassignment_audit before insert on public.audit_events for each row execute function public.fictional_fail_reassignment_audit();");
+    try { await asUser(admin, async () => { await expect(reassign(review.fingerprint)).rejects.toThrow("Fictional audit failure"); }); }
+    finally { await db.exec("drop trigger fictional_reassignment_audit on public.audit_events;drop function public.fictional_fail_reassignment_audit()" ); }
+    expect(await snapshot()).toEqual(before);
+  });
+  it("supports corrected-owner original report retries and missing height backfill", async () => {
+    const review = await asUser(admin, () => reassignmentPreview()); await asUser(admin, () => reassign(review.fingerprint));
+    const before = await snapshot();
+    const rows = [measurement(hashA, "SYN-002"), measurement(hashA, "SYN-002", { observation_id: `observation:${JSON.stringify([hashA, page, 3001, 21])}`, source_row: 3001, metric_key: "height", value: 72, unit: "in" })];
+    const save = () => db.query<{ data: { created: number; unchanged: number } }>("select public.staff_import_renpho('FICTIONAL-001','SYN-002',$1::jsonb) data", [JSON.stringify(rows)]);
+    expect((await asUser(coach, save)).rows[0].data).toMatchObject({ created: 1, unchanged: 1 });
+    expect((await asUser(coach, save)).rows[0].data).toMatchObject({ created: 0, unchanged: 2 });
+    expect((await snapshot()).measurements.filter(row => row.metric_key !== "height")).toEqual(before.measurements);
+  });
+  it("keeps helpers private, search paths pinned and shared locks ordered", async () => {
+    for (const signature of ["private.preview_renpho_report_reassignment(jsonb)", "private.apply_renpho_report_reassignment(jsonb,text,boolean)"]) {
+      const entry = (await db.query<{ definition: string; prosecdef: boolean; proconfig: string[]; anonymous: boolean }>("select pg_get_functiondef(oid) definition,prosecdef,proconfig,has_function_privilege('anon',oid,'EXECUTE') anonymous from pg_catalog.pg_proc where oid=$1::regprocedure", [signature])).rows[0];
+      expect(entry.prosecdef).toBe(true); expect(entry.proconfig).toContain('search_path=""'); expect(entry.anonymous).toBe(false);
+      expect(entry.definition.indexOf("pg_advisory_xact_lock(72104001)")).toBeLessThan(entry.definition.indexOf("pg_advisory_xact_lock(72104002)"));
+      expect(entry.definition.indexOf("pg_advisory_xact_lock(72104002)")).toBeLessThan(entry.definition.indexOf("private.has_role('admin')"));
+    }
+    await asUser(admin, async () => {
+      await expect(db.query("select private.normalized_renpho_reassignment($1::jsonb)", [JSON.stringify(reassignment())])).rejects.toThrow("permission denied");
+      await expect(db.query("select private.renpho_reassignment_snapshot($1::jsonb)", [JSON.stringify(reassignment())])).rejects.toThrow("permission denied");
+    });
+  });
+});
+
 describe("reviewed reciprocal RENPHO corrections", () => {
   it("previews minimal metadata then swaps only ownership with private retry receipt and count-only audit", async () => {
     const before = await snapshot();

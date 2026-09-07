@@ -51,9 +51,9 @@ function measurement(value: unknown): ReportMetadata {
   return value as ReportMetadata;
 }
 
-function athlete(value: unknown, allowedIds: ReadonlySet<string>): AthleteMetadata {
+function athlete(value: unknown, allowedIds?: ReadonlySet<string>): AthleteMetadata {
   if (!object(value) || !exactFields(value, ATHLETE_FIELDS)
-    || typeof value.id !== "string" || !allowedIds.has(value.id)
+    || typeof value.id !== "string" || !UUID_PATTERN.test(value.id) || (allowedIds !== undefined && !allowedIds.has(value.id))
     || typeof value.athlete_code !== "string" || !/^[A-Z0-9][A-Z0-9_-]{2,39}$/.test(value.athlete_code)
     || !text(value.first_name, 100) || !text(value.last_name, 100)
     || !(value.preferred_name === null || text(value.preferred_name, 100))) return fail();
@@ -97,4 +97,16 @@ export async function loadRenphoReportCatalog(): Promise<RenphoReportCatalogItem
     }
   }
   return [...reports.values()].sort((a, b) => b.measuredAt.localeCompare(a.measuredAt) || a.athleteName.localeCompare(b.athleteName, "en") || a.fileHash.localeCompare(b.fileHash));
+}
+
+export type RenphoCorrectionPlayer = { athleteCode: string; athleteName: string };
+
+/** Include players without a saved report as correction destinations. */
+export async function loadRenphoCorrectionRoster(): Promise<RenphoCorrectionPlayer[]> {
+  const { supabase } = await requireAdminMutation();
+  const rows = await readPages((from, to) => supabase.from("athletes")
+    .select(ATHLETE_FIELDS, { count: "exact" }).order("id", { ascending: true }).range(from, to), value => athlete(value), MAX_ATHLETES);
+  if (new Set(rows.map(row => row.id)).size !== rows.length || new Set(rows.map(row => row.athlete_code)).size !== rows.length) return fail();
+  return rows.map(row => ({ athleteCode: row.athlete_code, athleteName: `${row.preferred_name || row.first_name} ${row.last_name}` }))
+    .sort((a, b) => a.athleteName.localeCompare(b.athleteName, "en") || a.athleteCode.localeCompare(b.athleteCode));
 }

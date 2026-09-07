@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({ requireAdminMutation: vi.fn(), from: vi.fn() }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/auth", () => ({ requireAdminMutation: mocks.requireAdminMutation }));
-import { loadRenphoReportCatalog } from "@/lib/renpho-report-catalog-server";
+import { loadRenphoReportCatalog, loadRenphoCorrectionRoster } from "@/lib/renpho-report-catalog-server";
 
 type Page = { data: unknown; error: unknown; count: number | null };
 const ownerA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", ownerB = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
@@ -111,5 +111,29 @@ describe("protected RENPHO report metadata catalog", () => {
   it("rejects report groups beyond the supported correction batch size", async () => {
     responses.performance_measurements = [page(Array.from({ length: 500 }, (_, i) => row(i)), 501), page([row(500)], 501)];
     await expect(loadRenphoReportCatalog()).rejects.toThrow("could not be verified");
+  });
+});
+
+describe("single report correction destination roster", () => {
+  it("includes players without measurements using only minimal Admin roster metadata", async () => {
+    responses.athletes = [page([person(), person(ownerB, "SYN-002")])];
+    expect(await loadRenphoCorrectionRoster()).toEqual([
+      { athleteCode: "SYN-001", athleteName: "Fictional Player" }, { athleteCode: "SYN-002", athleteName: "Fictional Player" },
+    ]);
+    expect(mocks.requireAdminMutation).toHaveBeenCalledExactlyOnceWith();
+    expect(mocks.from).toHaveBeenCalledExactlyOnceWith("athletes");
+    expect(queries[0].select).toHaveBeenCalledWith("id,athlete_code,first_name,preferred_name,last_name", { count: "exact" });
+  });
+  it("fails before loading roster when Admin access is denied", async () => {
+    mocks.requireAdminMutation.mockRejectedValueOnce(new Error("Preview denied"));
+    await expect(loadRenphoCorrectionRoster()).rejects.toThrow("Preview denied");
+    expect(mocks.from).not.toHaveBeenCalled();
+  });
+  it.each([
+    [{ ...person(), id: "invalid" }], [person(), person()], [person(), person(ownerB)],
+    [{ ...person(), email: "fictional@example.com" }],
+  ].map(data => ({ data })))("rejects malformed, duplicated, or expanded destination data", async ({ data }) => {
+    responses.athletes = [page(data)];
+    await expect(loadRenphoCorrectionRoster()).rejects.toThrow("could not be verified");
   });
 });
