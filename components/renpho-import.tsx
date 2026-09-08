@@ -7,7 +7,7 @@ import styles from "./import-presentation.module.css";
 import { useLocalWorkspace } from "@/components/local-workspace";
 import { athleteName } from "@/lib/types";
 import { findRenphoAthlete, normalizeRenphoId, type MeasurementPreview } from "@/lib/imports/engine";
-import { previewRenphoMeasurements } from "@/lib/imports/renpho-preview";
+import { previewRenphoMeasurements, renphoReviewIssues } from "@/lib/imports/renpho-preview";
 import { readRenphoReport } from "@/lib/imports/renpho-file";
 import { FileDropZone } from "@/components/file-drop-zone";
 import type { Measurement } from "@/lib/imports/engine";
@@ -57,7 +57,9 @@ export function RenphoReportForm({ workspace, shared }: { workspace: RenphoWorks
   const matchPending = !!shared && !!renphoId.trim() && sharedMatch?.id !== normalizeRenphoId(renphoId);
   if (matchingCode && athleteCode && matchingCode !== athleteCode) identityError = "This RENPHO ID is already linked to another player. Check the player and ID before saving.";
   const stale = !!reviewed && reviewed.revision !== workspace.revision;
-  const parserErrors = report?.parsed.issues.filter(issue => issue.severity === "error") ?? [];
+  const reportIssues = report ? renphoReviewIssues(report.parsed, report.parsed.candidateReadings.filter(reading => !excluded.includes(reading.key))) : { blocking: [], omitted: [] };
+  const parserErrors = reportIssues.blocking;
+  const omittedMetrics = [...new Set(reportIssues.omitted.map(issue => issue.metric!))];
   const canSave = !!reviewed && reviewed.data.canApply && reviewed.data.candidateMeasurements.length > 0 && confirmed && !stale && !identityError && !busy && !matching && !matchPending && workspace.ready && !workspace.error;
 
   async function matchSharedPlayer(id: string) {
@@ -171,10 +173,11 @@ export function RenphoReportForm({ workspace, shared }: { workspace: RenphoWorks
           </details>
           <div className="min-w-0">
             {report.parsed.issues.filter(issue => ["mass_unit_ocr", "smi_unit_ocr", "percentage_ocr_reread", "height_unreadable", "height_ambiguous"].includes(issue.code)).map((issue, index) => <p className="notice mb-4 text-sm" key={index}>{issue.message}</p>)}
+            {omittedMetrics.length > 0 && <p role="status" className="notice mb-4 text-sm"><strong>Left out: {omittedMetrics.join(", ")}.</strong>{" "}These readings could not be read clearly. You can still review and save the selected readings below.</p>}
             {parserErrors.length > 0 && <div role="alert" className="notice notice-error mb-4">
               <p className="font-semibold">Some report details could not be read.</p>
               <ul className="list-disc space-y-2 pl-5">{parserErrors.map((issue, index) => <li key={index}>{issue.metric && <strong>{issue.metric}: </strong>}{issue.message}</li>)}</ul>
-              <p className="mb-0 mt-3">Check the details above against the original, then upload a fresh full-page PNG, JPG, or PDF export.</p>
+              <p className="mb-0 mt-3">{report.parsed.recognizedLayout ? "Uncheck an affected reading to leave it out. If the error remains, upload a fresh full-page report." : "Upload a fresh full-page PNG, JPG, or PDF so the report layout, ID, date and units can be checked."}</p>
             </div>}
             <div className="table-wrap"><table><caption className="sr-only">Readings extracted from your RENPHO report</caption><thead><tr><th>Use</th><th>Measurement</th><th>Value</th><th>Unit</th></tr></thead><tbody>{report.parsed.candidateReadings.map(reading => <tr key={reading.key}>
               <td><input type="checkbox" aria-label={`Include ${reading.label}`} checked={!excluded.includes(reading.key)} disabled={!!busy} onChange={event => { invalidate(); setExcluded(current => event.target.checked ? current.filter(key => key !== reading.key) : [...current, reading.key]); }} /></td>
@@ -188,6 +191,7 @@ export function RenphoReportForm({ workspace, shared }: { workspace: RenphoWorks
         </div>
         {reviewed && <div className={styles.saveReview}>
           <p role="status" className="font-semibold">{reviewed.data.candidateMeasurements.length} new readings ready</p>
+          {omittedMetrics.length > 0 && <p className="muted text-sm">Not included: {omittedMetrics.join(", ")}.</p>}
           {reviewed.data.issues.map((issue, index) => <p role="alert" key={index} className="notice notice-error">{issue.message}</p>)}
           {!reviewed.data.candidateMeasurements.length && reviewed.data.canApply && <p className="notice">These readings are already imported. Nothing new will be saved.</p>}
           {stale && <p role="alert" className="notice">Your workspace changed. Review the import again before saving.</p>}

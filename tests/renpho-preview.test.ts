@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { parseRenphoText, type RenphoParsedReport } from "@/lib/imports/renpho";
-import { previewRenphoMeasurements, type RenphoMeasurementPreviewInput } from "@/lib/imports/renpho-preview";
+import { parseRenphoText, parseRenphoRegions, type RenphoParsedReport } from "@/lib/imports/renpho";
+import { previewRenphoMeasurements, renphoReviewIssues, type RenphoMeasurementPreviewInput } from "@/lib/imports/renpho-preview";
 import type { RosterAthlete } from "@/lib/types";
 
 // Fictional parser output and athlete; no actual report data.
@@ -121,6 +121,43 @@ describe("RENPHO measurement preview integration", () => {
     expect(result.candidateMeasurements).toHaveLength(1);
     expect(result.canApply).toBe(false);
     expect(result.counts.reject).toBeGreaterThan(0);
+  });
+
+  it.each(["Visceral Fat unclear", "Fat-Free Mass 10 zz", "Visceral Fat 1\nVisceral Fat 2"])("saves other reviewed readings when an isolated reading is omitted: %s", indicators => {
+    const parsed = parseRenphoRegions({
+      title: "Body Composition Analysis Report", header: "ID: FICTIONAL-PARTIAL | Test Date: Oct 2, 2026 at 1:02:03PM",
+      compositionHeader: "Measurement(lb)",
+      compositionRows: ["Weight", "Body Fat Mass", "Bone Mass", "Protein Mass", "Body Water Mass", "Muscle Mass", "Skeletal Muscle Mass"].map((label, index) => ({ label, measurement: String(index + 1), line: index + 1 })),
+      assessment: "BMI 20", indicators,
+    });
+    expect(parsed.recognizedLayout).toBe(true);
+    const review = renphoReviewIssues(parsed, parsed.candidateReadings);
+    expect(review.omitted.length).toBeGreaterThan(0); expect(review.blocking).toEqual([]);
+    const result = previewRenphoMeasurements(input(parsed));
+    expect(result.canApply).toBe(true); expect(result.candidateMeasurements).toHaveLength(8);
+    expect(result.candidateMeasurements.some(row => ["Visceral Fat", "Fat-Free Mass"].includes(row.metric))).toBe(false);
+    const retry = previewRenphoMeasurements({ ...input(parsed), existing: result.candidateMeasurements });
+    expect(retry.canApply).toBe(true); expect(retry.candidateMeasurements).toEqual([]);
+    // A later clear read adds only the missing metric, retaining existing provenance.
+    const repaired = parseRenphoText([{ page: 1, lines: ["Fat-Free Mass 10 lb"] }]);
+    repaired.candidateReadings[0].line = 2001;
+    const complete = { ...parsed, issues: [], candidateReadings: [...parsed.candidateReadings, ...repaired.candidateReadings] };
+    const backfill = previewRenphoMeasurements({ ...input(complete), existing: result.candidateMeasurements });
+    expect(backfill.canApply).toBe(true); expect(backfill.candidateMeasurements).toHaveLength(1);
+    expect(backfill.candidateMeasurements[0].metric).toBe("Fat-Free Mass");
+  });
+  it("keeps a metric-specific error blocking while that metric is selected, and permits explicit exclusion", () => {
+    const parsed = fixture(); parsed.recognizedLayout = true;
+    parsed.issues.push({ severity: "error", code: "unsupported_unit", metric: "Weight", message: "Check the printed unit." });
+    expect(previewRenphoMeasurements(input(parsed)).canApply).toBe(false);
+    const candidates = parsed.candidateReadings.filter(row => row.metric !== "Weight");
+    expect(previewRenphoMeasurements({ ...input(parsed), candidates }).canApply).toBe(true);
+  });
+  it.each(["layout_title", "report_id", "report_date", "composition_unit", "composition_labels", "no_candidates", "unknown_error"])("never dismisses report-level or unknown failure %s", code => {
+    const parsed = fixture(); parsed.recognizedLayout = true;
+    parsed.issues.push({ severity: "error", code, metric: "Unselected", message: "Report cannot be verified." });
+    expect(previewRenphoMeasurements(input(parsed)).canApply).toBe(false);
+    expect(renphoReviewIssues(parsed, parsed.candidateReadings).omitted).toEqual([]);
   });
   it("enforces aggregate workspace capacity across separate pages", () => {
     const source = input(); const existing = Array.from({ length: 19998 }, (_, index) => ({

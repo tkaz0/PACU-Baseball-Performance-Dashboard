@@ -13,6 +13,20 @@ const IDENTITY_COLUMN = MAX_TABLE_COLUMNS - 1;
 const provenanceKey = (reading: RenphoReading) => JSON.stringify([reading.key, reading.page, reading.line, reading.metricColumn]);
 const IMMUTABLE_FIELDS = ["key", "metric", "metricColumn", "label", "unit", "page", "line", "rawLabel", "sourceText", "unitEvidence", "unitNeedsConfirmation", "region"] as const;
 
+const OMITTABLE_READING_ERRORS = new Set([
+  "composition_reading", "range_or_inequality", "ambiguous_number", "unrecognized_reading",
+  "conflicting_units", "missing_unit", "unsupported_unit", "duplicate_metric",
+]);
+
+/** Only isolated, unselected metric failures may be omitted from a recognized report. */
+export function renphoReviewIssues(parsed: RenphoParsedReport, candidates: RenphoReading[]) {
+  const selectedMetrics = new Set(candidates.map(reading => reading.metric));
+  const errors = parsed.issues.filter(issue => issue.severity === "error");
+  const omitted = errors.filter(issue => parsed.recognizedLayout && !!issue.metric
+    && OMITTABLE_READING_ERRORS.has(issue.code) && !selectedMetrics.has(issue.metric));
+  return { omitted, blocking: errors.filter(issue => !omitted.includes(issue)) };
+}
+
 // OCR line grouping may change between runtimes. Reconcile only this adapter's exact
 // file/page/fixed-column provenance, never a metric name or a different report file.
 function reportObservationKey(measurement: Measurement): string | null {
@@ -93,8 +107,9 @@ export function previewRenphoMeasurements(input: RenphoMeasurementPreviewInput):
     result.candidateMeasurements.push(...preview.candidateMeasurements.filter(measurement => preview.rows.find(row => row.row === measurement.source_row)?.status !== "reject"));
     result.rows.push(...preview.rows); result.issues.push(...preview.rows.flatMap(row => row.issues));
   }
-  // A bad source region or ambiguous report cannot be made applicable by excluding its issue.
-  for (const issue of parsed.issues.filter(issue => issue.severity === "error")) {
+  // Layout/identity/unit anchors and selected-metric errors still block the batch.
+  // An unreadable omitted metric must not prevent saving unrelated reviewed readings.
+  for (const issue of renphoReviewIssues(parsed, candidates).blocking) {
     const importIssue = { row: issue.line ?? 1, field: issue.metric ?? "Report", message: issue.message };
     const row: ImportRowResult = { row: importIssue.row, status: "reject", athlete_code: athleteCode, matchMethod: "none", requiresNameReview: false, changes: [], issues: [importIssue] };
     result.rows.push(row); result.issues.push(importIssue);

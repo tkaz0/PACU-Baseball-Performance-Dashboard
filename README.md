@@ -60,3 +60,5 @@ On the owner's Mac, **Start PACU.command** starts the local app; keep its Termin
 - [IMPORTS](docs/IMPORTS.md) and [RENPHO_CHARTS](docs/RENPHO_CHARTS.md): local file review and report charts.
 - [TESTING](docs/TESTING.md), [VERIFICATION](docs/VERIFICATION.md), [HOSTED-SETUP](docs/HOSTED-SETUP.md): repeatable checks and historical receipts.
 - [AGENTS](AGENTS.md): development boundaries and private-data handling.
+
+RENPHO partial review: an isolated unreadable or ambiguous metric in the recognized portrait layout is left out without blocking other selected, reviewed readings. The review names omitted metrics; selected metric errors and report layout/ID/date/unit-anchor errors still block saving. Existing observation identities remain unchanged, allowing later missing-field backfill without duplicates. No OCR value or unit is guessed. `tests/renpho-preview.test.ts` covers omission, explicit exclusion, strict report blockers and partial-save retries.
