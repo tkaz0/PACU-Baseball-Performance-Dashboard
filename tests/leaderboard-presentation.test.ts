@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { leaderboardGroup, initialLeaderboardSelection, visibleLeaderboardComparisons, type LeaderboardComparison, type LeaderboardRow } from "@/lib/leaderboards";
+import { LEADERBOARD_METRICS, leaderboardMetrics, leaderboardGroup, initialLeaderboardSelection, visibleLeaderboardComparisons, type LeaderboardComparison, type LeaderboardRow } from "@/lib/leaderboards";
 import { PLAYER_METRICS } from "@/lib/player-performance";
 import { LeaderboardResults } from "@/components/leaderboard-results";
 import { LeaderboardBoard } from "@/components/leaderboard-board";
@@ -83,18 +83,33 @@ describe("automatic ranking boards", () => {
     expect(output).toContain(`Recorded: ${value} ${unit}`);
     expect(output).toContain('aria-label="Rank 1"');
   });
-  it("keeps every measured athlete available after the first ten", () => {
+  it("keeps every measured athlete available after the first five", () => {
     const rows = Array.from({ length: 12 }, (_, index) => ({ ...row, athleteCode: `SYN-${String(index + 1).padStart(3, "0")}`, name: `Fictional Player ${index + 1}`, rank: index + 1, value: 100 - index }));
     const output = html("max_exit_velocity", rows);
-    expect(output).toContain("Show 2 More");
+    expect(output).toContain("Show 7 More");
     expect(output).toContain("Fictional Player 12");
     expect(output.match(/<table>/g)).toHaveLength(2);
   });
   it("retains competition ranks and labels ties across the expanded continuation", () => {
-    const rows = Array.from({ length: 12 }, (_, index) => ({ ...row, athleteCode: `SYN-${String(index + 1).padStart(3, "0")}`, name: `Fictional Player ${index + 1}`, rank: index === 10 ? 10 : index + 1, value: index === 10 ? 91 : 100 - index }));
+    const rows = Array.from({ length: 12 }, (_, index) => ({ ...row, athleteCode: `SYN-${String(index + 1).padStart(3, "0")}`, name: `Fictional Player ${index + 1}`, rank: index === 5 ? 5 : index + 1, value: index === 5 ? 96 : 100 - index }));
     const output = html("max_exit_velocity", rows);
-    expect(output.match(/aria-label="Tied for rank 10"/g)).toHaveLength(2);
-    expect(output).not.toContain('aria-label="Rank 11"');
+    expect(output.match(/aria-label="Tied for rank 5"/g)).toHaveLength(2);
+    expect(output).not.toContain('aria-label="Rank 6"');
     expect(output).toContain('aria-label="Rank 12"');
+  });
+});
+
+describe("total muscle mass ranking", () => {
+  it("replaces the percentage board with measured total mass and preserves unit cohorts", () => {
+    const options: LeaderboardComparison[] = [
+      {metricKey:"muscle_mass_pct", source:"renpho", unit:"%", period:"fall_2026", athleteCount:20},
+      {metricKey:"muscle_mass", source:"renpho", unit:"lb", period:"fall_2026", athleteCount:10},
+      {metricKey:"muscle_mass", source:"renpho", unit:"kg", period:"fall_2026", athleteCount:2},
+    ];
+    expect(visibleLeaderboardComparisons("physicality",options)).toEqual([options[1]]);
+    expect(leaderboardMetrics("physicality").map(m=>m.key)).toContain("muscle_mass");
+    expect(leaderboardMetrics("physicality").map(m=>m.key)).not.toContain("muscle_mass_pct");
+    const output=renderToStaticMarkup(createElement(LeaderboardResults,{metric:LEADERBOARD_METRICS.find(m=>m.key==="muscle_mass")!,rows:[{...row,value:100,derived:false}],unit:"lb",source:"renpho",period:"fall_2026"}));
+    expect(output).toContain("Muscle Mass");expect(output).toContain("Highest First");expect(output).toContain("Fall 2026");expect(output).toContain(">lb<");expect(output).not.toContain("≈");
   });
 });

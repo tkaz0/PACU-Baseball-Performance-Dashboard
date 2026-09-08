@@ -1,25 +1,35 @@
 import { PLAYER_METRICS, type PlayerMetricDefinition, type PlayerMetricKey, type PlayerPerformancePeriod } from "@/lib/player-performance";
 
+export type LeaderboardMetricKey = PlayerMetricKey | "muscle_mass";
+export type LeaderboardMetricDefinition = Omit<PlayerMetricDefinition, "key"> & { key: LeaderboardMetricKey };
+export const LEADERBOARD_METRICS: readonly LeaderboardMetricDefinition[] = [
+  ...PLAYER_METRICS,
+  { key: "muscle_mass", label: "Muscle Mass", group: "body", units: ["lb", "kg"], direction: "neutral" },
+];
+
 export const LEADERBOARD_GROUPS = ["physicality", "hitting", "throwing"] as const;
 export type LeaderboardGroup = (typeof LEADERBOARD_GROUPS)[number];
-export type LeaderboardComparison = { metricKey: PlayerMetricKey; source: string; unit: string; period: PlayerPerformancePeriod; athleteCount: number };
+export type LeaderboardComparison = { metricKey: LeaderboardMetricKey; source: string; unit: string; period: PlayerPerformancePeriod; athleteCount: number };
 export type LeaderboardSelection = Omit<LeaderboardComparison, "athleteCount">;
 export type LeaderboardRow = { rank: number; athleteCode: string; name: string; jerseyNumber: number | null; position: string | null; profileId: string | null; value: number; measuredAt: string; source: string; derived: boolean };
 export const leaderboardGroupLabels: Record<LeaderboardGroup, string> = { physicality: "Physicality", hitting: "Hitting", throwing: "Throwing" };
-const physicality = new Set(["height", "weight", "grip_strength", "body_fat_pct", "muscle_mass_pct", "home_to_first", "home_to_second", "steal_break", "boxer_t"]);
-export function leaderboardGroup(metric: PlayerMetricDefinition): LeaderboardGroup {
+const physicality = new Set(["height", "weight", "grip_strength", "body_fat_pct", "muscle_mass_pct", "muscle_mass", "home_to_first", "home_to_second", "steal_break", "boxer_t"]);
+export function leaderboardGroup(metric: LeaderboardMetricDefinition): LeaderboardGroup {
   return physicality.has(metric.key) ? "physicality" : metric.group === "hitting" ? "hitting" : "throwing";
 }
-export const leaderboardMetrics = (group: LeaderboardGroup) => PLAYER_METRICS.filter(metric => leaderboardGroup(metric) === group);
+export const leaderboardMetrics = (group: LeaderboardGroup) => LEADERBOARD_METRICS.filter(metric => metric.key !== "muscle_mass_pct" && leaderboardGroup(metric) === group).sort((a, b) => {
+  const order = ["height", "weight", "muscle_mass", "body_fat_pct", "grip_strength"];
+  return (order.indexOf(a.key) < 0 ? 99 : order.indexOf(a.key)) - (order.indexOf(b.key) < 0 ? 99 : order.indexOf(b.key));
+});
 export const leaderboardSourceLabel = (source: string) => ({ renpho: "RENPHO", "full swing": "Full Swing", blast: "Blast", rapsodo: "Rapsodo", "player metrics": "Player Metrics" })[source] ?? source;
-export const leaderboardMetricLabel = (metric: PlayerMetricDefinition) => ({ max_exit_velocity: "Max Exit Velocity", avg_exit_velocity: "Average Exit Velocity", bat_speed: "Bat Speed (Unspecified)", k_pct: "Strikeout %", bb_pct: "Walk %" } as Partial<Record<PlayerMetricKey, string>>)[metric.key] ?? metric.label;
+export const leaderboardMetricLabel = (metric: LeaderboardMetricDefinition) => ({ max_exit_velocity: "Max Exit Velocity", avg_exit_velocity: "Average Exit Velocity", bat_speed: "Bat Speed (Unspecified)", k_pct: "Strikeout %", bb_pct: "Walk %" } as Partial<Record<LeaderboardMetricKey, string>>)[metric.key] ?? metric.label;
 
 /** Owner-selected numerical ordering; profile insight directions remain separate. */
-export function leaderboardOrder(metric: PlayerMetricDefinition): "higher" | "lower" {
+export function leaderboardOrder(metric: LeaderboardMetricDefinition): "higher" | "lower" {
   if (metric.key === "height" || metric.key === "muscle_mass_pct") return "higher";
   return metric.key === "body_fat_pct" || metric.direction === "lower" ? "lower" : "higher";
 }
-export function leaderboardOrderLabel(metric: PlayerMetricDefinition): string {
+export function leaderboardOrderLabel(metric: LeaderboardMetricDefinition): string {
   return metric.key === "height" ? "Tallest First" : leaderboardOrder(metric) === "lower" ? "Lowest First" : "Highest First";
 }
 

@@ -1,0 +1,28 @@
+.card { min-width: 0; align-self: start; overflow: hidden; border-radius: 12px; }
+.heading { padding: 20px 20px 17px; border-bottom: 1px solid var(--line-subtle); }
+.eyebrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--text-secondary); font-size: 10px; font-weight: 700; letter-spacing: .045em; text-transform: uppercase; }
+.eyebrow span:last-child { flex-shrink: 0; font-weight: 500; letter-spacing: 0; text-transform: none; }
+.heading h2 { margin: 12px 0 6px; font-size: 22px; line-height: 1.15; font-weight: 750; letter-spacing: -.045em; }
+.heading p { margin: 0; color: var(--text-secondary); font-size: 10px; line-height: 1.6; }
+.tableWrap { width: 100%; overflow-x: auto; }
+.tableWrap table { width: 100%; border-collapse: collapse; }
+.tableWrap thead th { padding: 9px 12px; background: var(--surface-raised); color: var(--text-secondary); font-size: 9px; font-weight: 650; letter-spacing: .09em; text-transform: uppercase; }
+.tableWrap thead th:first-child { width: 50px; text-align: center; }
+.tableWrap thead th:last-child { text-align: right; padding-right: 20px; }
+.tableWrap tbody td, .tableWrap tbody th { padding: 14px 12px; border-bottom: 1px solid var(--line-subtle); vertical-align: middle; }
+.tableWrap tbody tr:last-child > * { border-bottom: 0; }
+.tableWrap tbody td:first-child { padding-left: 14px; padding-right: 0; text-align: center; }
+.card .tableWrap table tbody th { text-align: left; font-weight: 400; text-transform: none; letter-spacing: normal; white-space: normal; background: transparent; }
+.leading { background: color-mix(in srgb, var(--accent-readable) 4%, var(--surface-panel)); }
+.rank { display: inline-flex; justify-content: center; align-items: center; width: 26px; height: 28px; font-size: 14px; font-weight: 700; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.first { border-radius: 6px; background: #990000; color: #fff; }
+.player { display: block; color: var(--text-primary); font-size: 13px; font-weight: 650; line-height: 1.35; overflow-wrap: anywhere; }
+.playerMeta { display: block; margin-top: 5px; font-size: 10px; color: var(--text-secondary); line-height: 1.4; }
+.date { display: inline; }
+.date::before { content: ' · '; }
+.tableWrap tbody .result { padding-right: 20px; text-align: right; font-size: 19px; font-weight: 750; letter-spacing: -.045em; font-variant-numeric: tabular-nums; min-width: 85px; }
+.unit { display: inline-block; margin-left: 3px; color: var(--text-secondary); font-size: 10px; font-weight: 500; letter-spacing: 0; }
+.more { border-top: 1px solid var(--line-subtle); }
+.more summary { padding: 13px 20px; color: var(--accent-readable); font-size: 11px; font-weight: 700; cursor: pointer; text-align: center; }
+.more summary:hover { background: var(--surface-raised); }
+@media (max-width: 480px) { .heading { padding: 18px 16px 14px; } .heading h2 { font-size: 21px; } .tableWrap tbody .result { padding-right: 16px; } }

@@ -2,8 +2,8 @@ import "server-only";
 import type { requireAccess } from "@/lib/auth";
 import { canReadPresentedAthlete } from "@/lib/access-preview";
 import { UUID_PATTERN } from "@/lib/types";
-import { PLAYER_METRICS, PLAYER_PERFORMANCE_PERIODS, validatePlayerMetricValue } from "@/lib/player-performance";
-import { leaderboardOrder, type LeaderboardComparison, type LeaderboardRow, type LeaderboardSelection } from "@/lib/leaderboards";
+import { PLAYER_PERFORMANCE_PERIODS, validatePlayerMetricValue } from "@/lib/player-performance";
+import { LEADERBOARD_METRICS, leaderboardOrder, type LeaderboardComparison, type LeaderboardRow, type LeaderboardSelection } from "@/lib/leaderboards";
 
 type Access = Awaited<ReturnType<typeof requireAccess>>;
 const optionFields = ["athleteCount", "metricKey", "period", "source", "unit"].sort().join(",");
@@ -14,7 +14,7 @@ function permitted(access: Access) {
   if (!access.roles.some(role => role === "admin" || role === "coach" || role === "player")) throw new Error("Leaderboard access denied.");
 }
 function definition(selection: LeaderboardSelection) {
-  const metric = PLAYER_METRICS.find(metric => metric.key === selection.metricKey);
+  const metric = LEADERBOARD_METRICS.find(metric => metric.key === selection.metricKey);
   if (!metric || !metric.units.includes(selection.unit) || !canonicalSource(selection.source) ||
     !Object.hasOwn(PLAYER_PERFORMANCE_PERIODS, selection.period) || (selection.period === "summer_2026" && metric.group !== "body")) throw new Error("Choose a valid leaderboard comparison.");
   return metric;
@@ -44,7 +44,7 @@ export async function loadLeaderboard(access: Access, selection: LeaderboardSele
       typeof item.name !== "string" || !item.name.trim() || item.name.length > 201 || /[\u0000-\u001f\u007f]/.test(item.name) ||
       (item.jerseyNumber !== null && (!Number.isSafeInteger(item.jerseyNumber) || item.jerseyNumber < 0 || item.jerseyNumber > 99)) ||
       (item.position !== null && !positions.has(item.position)) || (item.profileId !== null && (typeof item.profileId !== "string" || !UUID_PATTERN.test(item.profileId))) ||
-      typeof item.value !== "number" || !validatePlayerMetricValue(metric.key, item.value, selection.unit) || typeof item.derived !== "boolean" || (item.derived && metric.key !== "muscle_mass_pct") ||
+      typeof item.value !== "number" || !(metric.key === "muscle_mass" ? Number.isFinite(item.value) && item.value >= 0 : validatePlayerMetricValue(metric.key, item.value, selection.unit)) || typeof item.derived !== "boolean" || (item.derived && metric.key !== "muscle_mass_pct") ||
       typeof item.measuredAt !== "string" || !/^2026-\d{2}-\d{2}$/.test(item.measuredAt) || !Number.isFinite(Date.parse(item.measuredAt)) || new Date(item.measuredAt).toISOString().slice(0, 10) !== item.measuredAt || item.measuredAt < period.start || item.measuredAt > period.end ||
       item.source !== selection.source || !Number.isSafeInteger(item.rank) || item.rank !== (previous && previous.value === item.value ? previous.rank : index + 1)) return fail();
     if (previous && (leaderboardOrder(metric) === "lower" ? item.value < previous.value : item.value > previous.value)) return fail();

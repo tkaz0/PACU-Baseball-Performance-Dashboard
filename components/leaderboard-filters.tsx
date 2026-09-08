@@ -1,14 +1,14 @@
 "use client";
 import { useState } from "react";
-import { PLAYER_METRICS, PLAYER_PERFORMANCE_PERIODS } from "@/lib/player-performance";
-import { leaderboardMetrics, leaderboardSourceLabel, type LeaderboardComparison, type LeaderboardGroup, type LeaderboardSelection } from "@/lib/leaderboards";
+import { PLAYER_PERFORMANCE_PERIODS } from "@/lib/player-performance";
+import { LEADERBOARD_METRICS, leaderboardMetrics, leaderboardSourceLabel, type LeaderboardComparison, type LeaderboardGroup, type LeaderboardSelection } from "@/lib/leaderboards";
 export function LeaderboardFilters({ group, comparisons, selection }: { group: LeaderboardGroup; comparisons: LeaderboardComparison[]; selection: LeaderboardSelection }) {
   const [draft, setDraft] = useState(selection);
-  const metric = PLAYER_METRICS.find(metric => metric.key === draft.metricKey)!;
+  const metric = LEADERBOARD_METRICS.find(metric => metric.key === draft.metricKey)!;
   const candidates = comparisons.filter(option => option.metricKey === draft.metricKey && option.period === draft.period);
   const sources = [...new Set(candidates.filter(option => option.unit === draft.unit).map(option => option.source))];
   function change(changes: Partial<LeaderboardSelection>) {
-    const next = { ...draft, ...changes }, definition = PLAYER_METRICS.find(metric => metric.key === next.metricKey)!;
+    const next = { ...draft, ...changes }, definition = LEADERBOARD_METRICS.find(metric => metric.key === next.metricKey)!;
     if (definition.group !== "body") next.period = "fall_2026";
     const available = comparisons.filter(option => option.metricKey === next.metricKey && option.period === next.period);
     if (!definition.units.includes(next.unit)) next.unit = available[0]?.unit ?? definition.units[0];

@@ -160,3 +160,20 @@ describe("comparable latest results and numerical places", () => {
     await asUser(users.player, async () => { await expect(db.query("update public.performance_measurements set value=1")).rejects.toThrow("permission denied"); });
   });
 });
+
+
+describe("total muscle mass projection", () => {
+  it("ranks recorded total mass highest first with ties, separate units, and ordinary Player-own table access", async () => {
+    await save([row(1,{metric_key:"muscle_mass",unit:"lb",value:80,source:"RENPHO"}),row(2,{metric_key:"muscle_mass",unit:"lb",value:100,source:"RENPHO"}),row(3,{metric_key:"muscle_mass",unit:"lb",value:100,source:"RENPHO"}),row(4,{metric_key:"muscle_mass",unit:"kg",value:90,source:"RENPHO"}),row(6,{metric_key:"muscle_mass",unit:"lb",value:999,source:"RENPHO"})]);
+    await asUser(users.player,async()=>{
+      const total={metricKey:"muscle_mass" as const,source:"renpho",unit:"lb",period:"fall_2026" as const};
+      const data=await board(total);
+      expect(data.map(r=>[r.athleteCode,r.value,r.rank,r.derived])).toEqual([[code(2),100,1,false],[code(3),100,1,false],[code(1),80,3,false]]);
+      expect((await options()).filter(o=>o.metricKey==="muscle_mass").map(o=>[o.unit,o.athleteCount])).toEqual([["kg",1],["lb",3]]);
+      const access={roles:["player"],athleteId:athlete(1),supabase:{rpc:async()=>({data,error:null})}} as unknown as Parameters<typeof loadLeaderboard>[0];
+      expect(await loadLeaderboard(access,total)).toHaveLength(3);
+      expect((await db.query("select distinct athlete_id from public.performance_measurements")).rows).toEqual([{athlete_id:athlete(1)}]);
+    });
+    expect((await db.query("select profile_metric from private.performance_metric_catalog where metric_key='muscle_mass'")).rows[0]).toEqual({profile_metric:false});
+  });
+});

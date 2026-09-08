@@ -669,7 +669,8 @@ button.panel[aria-pressed="true"] { border-color: var(--accent-readable); box-sh
 .leaderboard-navigation a { flex: 1; min-width: 0; padding: 12px; border-radius: 6px; color: var(--text-secondary); font-size: 13px; font-weight: 700; text-align: center; text-decoration: none; }
 .leaderboard-navigation a:hover { background: var(--surface-raised); color: var(--text-primary); }
 .leaderboard-navigation a[aria-current="page"] { color: #fff; background: #990000; }
-.leaderboard-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); align-items: start; gap: 24px; }
+.leaderboard-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); align-items: start; gap: 20px; }
+@media (min-width: 1600px) { .leaderboard-grid { grid-template-columns: repeat(3, minmax(0,1fr)); } }
 .workspace-shell .leaderboard-card { border-top: 3px solid #990000; }
 .leaderboard-card-heading h2 { font-size: 18px; letter-spacing: -.025em; }
 .leaderboard-card tbody a { color: inherit; text-decoration: none; }
