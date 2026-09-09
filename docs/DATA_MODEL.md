@@ -245,3 +245,5 @@ Recorded-weight corrections use `admin_correct_recorded_weight` and a private `w
 Migration 202609080003 enables profile_metric on the existing muscle_mass catalog entry. The existing summary function then returns exact-source/unit/period total-mass cohorts. Legacy percentage calculations remain backward compatible.
 
 Coaching Analytics is a read-only view over eligible 2026–27 roster attributes and saved numerical measurements. It adds no persisted correlations or derived athlete records; source/unit/date partitions and pairing rules are documented in [ANALYTICS](ANALYTICS.md).
+
+Physicality Score v1 is available on the signed-in Physicality leaderboard and hosted profile Overview/Physicality tabs. It derives from existing authorized comparisons without a migration. See [PHYSICALITY_SCORE.md](PHYSICALITY_SCORE.md) for formula, completeness requirements and limits.

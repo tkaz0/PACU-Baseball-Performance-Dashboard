@@ -70,3 +70,5 @@ The leaderboard uses total recorded Muscle Mass (lb/kg) instead of Muscle Mass %
 Profiles include blue-to-red Pacific percentile markers and an Overview comparison summary. Administrators can review and correct a recorded weight from its player profile while retaining the original test date and provenance.
 
 Player Body Composition and Overview now use recorded total Muscle Mass, consistent with team leaderboards.
+
+Physicality Score v1 is available on the signed-in Physicality leaderboard and hosted profile Overview/Physicality tabs. It derives from existing authorized comparisons without a migration. See [docs/PHYSICALITY_SCORE.md](docs/PHYSICALITY_SCORE.md) for formula, completeness requirements and limits.

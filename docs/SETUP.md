@@ -293,3 +293,5 @@ Apply `202609080002_reviewed_weight_correction.sql` to enable reviewed recorded-
 After deploying the total-muscle profile catalog, apply 202609080003_profile_total_muscle_mass.sql to enable total-mass profile percentile summaries. This changes no recorded measurements or permissions.
 
 Analytics at `/analytics` needs no additional migration or key. It reads existing roster and numerical measurement tables using the active staff session. Player View is denied. See [ANALYTICS](ANALYTICS.md).
+
+Physicality Score v1 is available on the signed-in Physicality leaderboard and hosted profile Overview/Physicality tabs. It derives from existing authorized comparisons without a migration. See [PHYSICALITY_SCORE.md](PHYSICALITY_SCORE.md) for formula, completeness requirements and limits.

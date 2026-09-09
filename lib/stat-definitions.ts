@@ -1,7 +1,9 @@
+import { PHYSICALITY_METHOD } from "@/lib/physicality-composite";
 import { PLAYER_METRICS, normalizePlayerMetric } from "@/lib/player-performance";
 
 // Short descriptions of recorded measures, not targets or medical interpretations.
 export const STAT_DEFINITIONS: Readonly<Record<string, string>> = {
+  physicality_score: PHYSICALITY_METHOD,
   height: "Recorded standing height. Displayed in feet and inches; comparisons keep the original measurement units separate.",
   weight: "Total recorded body weight on the test date. A higher percentile means a higher measured weight, not a better score.",
   grip_strength: "Force measured during a grip-strength test. Compare results taken with the same device, hand, and testing protocol.",
