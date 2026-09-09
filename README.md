@@ -2,7 +2,7 @@
 
 Pacific Baseball's independent performance workspace provides private player profiles, team access for coaches, and administrator controls. It is a personal project by **Trevor Kazahaya**, not an official university application.
 
-The home route opens Team Roster for staff, the linked profile for Players, and the Pacific Baseball sign-in page for visitors. The former team Overview route redirects to that same authorized destination. Every dashboard requires login. [Information Imports](https://pacubaseballperformance.com/imports) gives active Admins and Coaches four labeled upload areas that save reviewed readings directly to private profiles. The advanced browser workspace remains local until readings are explicitly shared. Admin **View as Coach** includes the same performance import tools; reviewed saves use the signed-in administrator account. Player View as remains read-only.
+The home route opens Team Roster for staff, the linked profile for Players, and the Pacific Baseball sign-in page for visitors. The former team Overview route redirects to that same authorized destination. Every dashboard requires login. [Information Imports](https://pacubaseballperformance.com/imports) gives active Admins and Coaches labeled upload areas, including Blast Motion session summaries that save reviewed readings directly to private profiles. The advanced browser workspace remains local until readings are explicitly shared. Admin **View as Coach** includes the same performance import tools; reviewed saves use the signed-in administrator account. Player View as remains read-only.
 
 Built with Next.js 16, React 19, TypeScript, Tailwind 4, Supabase Auth/PostgreSQL and Vercel. Consult [HOSTED-SETUP](docs/HOSTED-SETUP.md) for completed environment receipts.
 
@@ -14,6 +14,8 @@ Built with Next.js 16, React 19, TypeScript, Tailwind 4, Supabase Auth/PostgreSQ
 4. Review the protected roster, add approved readings at **Information Imports**, choose **Light / Dark / System** in Settings, and prepare players/coaches at **Team account preparation**.
 
 ## Available workflows
+
+- **Coaching Analytics:** compare two saved testing measures with a scatterplot, best-fit line, Pearson r, class/position filters and color groups. Admin/Coach only; see [ANALYTICS](docs/ANALYTICS.md).
 
 - **Admin:** roster and measurement imports, account configuration, coach preparation, and **View as Coach** with working performance imports and read-only **View as Player** with explicit athlete selection and **Exit preview**.
 - **Coach:** team roster, shared profiles and performance imports. **Player:** the explicitly linked profile plus the owner-authorized team leaderboard. Live account status and PostgreSQL RLS enforce access.

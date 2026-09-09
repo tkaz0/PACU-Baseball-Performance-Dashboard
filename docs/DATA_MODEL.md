@@ -243,3 +243,5 @@ The leaderboard uses total recorded Muscle Mass (lb/kg) instead of Muscle Mass %
 Recorded-weight corrections use `admin_correct_recorded_weight` and a private `weight_corrections` receipt/original-observation ledger. Active Admin authorization, account-then-roster locks, exact observation/athlete/current-value checks and immutable request replay protect each correction. Only `performance_measurements.value` changes; original provenance and table RLS remain intact.
 
 Migration 202609080003 enables profile_metric on the existing muscle_mass catalog entry. The existing summary function then returns exact-source/unit/period total-mass cohorts. Legacy percentage calculations remain backward compatible.
+
+Coaching Analytics is a read-only view over eligible 2026–27 roster attributes and saved numerical measurements. It adds no persisted correlations or derived athlete records; source/unit/date partitions and pairing rules are documented in [ANALYTICS](ANALYTICS.md).

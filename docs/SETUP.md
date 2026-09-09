@@ -291,3 +291,5 @@ The leaderboard uses total recorded Muscle Mass (lb/kg) instead of Muscle Mass %
 Apply `202609080002_reviewed_weight_correction.sql` to enable reviewed recorded-weight corrections. It creates no accounts and changes no existing readings during installation. The app uses the active administrator session; no new server credential is needed.
 
 After deploying the total-muscle profile catalog, apply 202609080003_profile_total_muscle_mass.sql to enable total-mass profile percentile summaries. This changes no recorded measurements or permissions.
+
+Analytics at `/analytics` needs no additional migration or key. It reads existing roster and numerical measurement tables using the active staff session. Player View is denied. See [ANALYTICS](ANALYTICS.md).
