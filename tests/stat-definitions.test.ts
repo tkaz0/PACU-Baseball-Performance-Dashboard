@@ -11,3 +11,5 @@ it("distinguishes strikeouts, strikes, total muscle mass and skeletal muscle",()
   expect(statDefinition("muscle_mass")).toContain("separate from skeletal muscle");
   expect(statDefinition("Unconfirmed Team Field")).toContain("has not been confirmed");
 });
+
+it("resolves original report labels to the same definitions",()=>{expect(statDefinition("Body Fat Percentage")).toBe(statDefinition("body_fat_pct"));expect(statDefinition("Max Exit Velocity")).toBe(statDefinition("max_exit_velocity"));});

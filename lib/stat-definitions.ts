@@ -1,4 +1,4 @@
-import { PLAYER_METRICS } from "@/lib/player-performance";
+import { PLAYER_METRICS, normalizePlayerMetric } from "@/lib/player-performance";
 
 // Short descriptions of recorded measures, not targets or medical interpretations.
 export const STAT_DEFINITIONS: Readonly<Record<string, string>> = {
@@ -58,6 +58,7 @@ export const STAT_DEFINITIONS: Readonly<Record<string, string>> = {
 };
 
 export function statDefinition(metric: string): string {
-  const definition = PLAYER_METRICS.find(item => item.key === metric || item.label.toLowerCase() === metric.toLowerCase());
+  const definition = PLAYER_METRICS.find(item => item.key === metric || item.label.toLowerCase() === metric.toLowerCase())
+    ?? PLAYER_METRICS.find(item => item.units.some(unit => normalizePlayerMetric(metric, unit)?.key === item.key));
   return STAT_DEFINITIONS[definition?.key ?? metric.toLowerCase()] ?? "This is a recorded field from the source report or team sheet. Its scoring rules follow that source; a team-specific definition has not been confirmed yet.";
 }
