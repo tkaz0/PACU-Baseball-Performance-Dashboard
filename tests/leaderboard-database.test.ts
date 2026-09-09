@@ -174,6 +174,6 @@ describe("total muscle mass projection", () => {
       expect(await loadLeaderboard(access,total)).toHaveLength(3);
       expect((await db.query("select distinct athlete_id from public.performance_measurements")).rows).toEqual([{athlete_id:athlete(1)}]);
     });
-    expect((await db.query("select profile_metric from private.performance_metric_catalog where metric_key='muscle_mass'")).rows[0]).toEqual({profile_metric:false});
+    expect((await db.query("select profile_metric from private.performance_metric_catalog where metric_key='muscle_mass'")).rows[0]).toEqual({profile_metric:true});
   });
 });

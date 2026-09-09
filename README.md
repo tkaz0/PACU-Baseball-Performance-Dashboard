@@ -66,3 +66,5 @@ RENPHO partial review: an isolated unreadable or ambiguous metric in the recogni
 The leaderboard uses total recorded Muscle Mass (lb/kg) instead of Muscle Mass %. Compact cards show five ranked players initially with the complete remaining ranking expandable. Migration `202609080001_leaderboard_muscle_mass.sql` adds total mass only to the existing minimal signed-in leaderboard projection; profile metrics, measurement values, table RLS and account permissions are unchanged. Deploy the compatible app before enabling the migration so older strict response validators do not encounter the new metric. Source/unit/period cohorts remain separate.
 
 Profiles include blue-to-red Pacific percentile markers and an Overview comparison summary. Administrators can review and correct a recorded weight from its player profile while retaining the original test date and provenance.
+
+Player Body Composition and Overview now use recorded total Muscle Mass, consistent with team leaderboards.

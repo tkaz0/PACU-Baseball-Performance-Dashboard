@@ -4,7 +4,7 @@ import { getRenphoChartReadings, getRenphoReports } from "@/lib/renpho-charts";
 
 export type PlayerMetricGroup = "body" | "hitting" | "pitching" | "throwing";
 export type PlayerMetricDirection = "neutral" | "higher" | "lower";
-export type PlayerMetricKey = "height" | "weight" | "grip_strength" | "body_fat_pct" | "muscle_mass_pct"
+export type PlayerMetricKey = "height" | "weight" | "grip_strength" | "body_fat_pct" | "muscle_mass_pct" | "muscle_mass"
   | "max_exit_velocity" | "avg_exit_velocity" | "bat_speed" | "home_to_first" | "home_to_second" | "steal_break" | "boxer_t"
   | "max_bat_speed" | "avg_bat_speed" | "smash_factor" | "max_distance"
   | "infield_velocity" | "outfield_velocity"
@@ -19,6 +19,7 @@ export const PLAYER_METRICS: readonly PlayerMetricDefinition[] = [
   { key: "weight", label: "Weight", group: "body", units: ["lb", "kg", "st"], direction: "neutral" },
   { key: "grip_strength", label: "Grip Strength", group: "body", units: ["lb", "kg", "N"], direction: "higher" },
   { key: "body_fat_pct", label: "Body Fat %", group: "body", units: ["%"], direction: "neutral" },
+  { key: "muscle_mass", label: "Muscle Mass", group: "body", units: ["lb", "kg"], direction: "neutral" },
   { key: "muscle_mass_pct", label: "Muscle Mass %", group: "body", units: ["%"], direction: "neutral" },
   { key: "max_exit_velocity", label: "Max EV", group: "hitting", units: ["mph", "km/h", "m/s"], direction: "higher" },
   { key: "avg_exit_velocity", label: "Average EV", group: "hitting", units: ["mph", "km/h", "m/s"], direction: "higher" },
@@ -78,6 +79,7 @@ const extraAliases: Record<PlayerMetricKey, readonly string[]> = {
   height: ["Body height"], weight: ["Body weight"],
   grip_strength: ["Grip Force"],
   body_fat_pct: ["Body Fat Percentage", "Body Fat Percent"],
+  muscle_mass: [],
   muscle_mass_pct: ["Muscle Mass Percentage", "Muscle Mass Percent"],
   max_exit_velocity: ["Maximum Exit Velocity", "Max Exit Velocity", "Max Exit Velo", "Maximum EV"],
   avg_exit_velocity: ["Average Exit Velocity", "Avg Exit Velocity", "Avg EV", "Average Exit Velo"],
@@ -107,7 +109,7 @@ const unitAliases = new Map([
 /** Explicit label/unit aliases only. Generic velocity/spin and unitless values stay unresolved. */
 export function normalizePlayerMetric(metric: string, unit: string): { key: PlayerMetricKey; unit: string } | null {
   const normalizedUnit = unitAliases.get(unit.trim().toLowerCase());
-  const key = aliases.get(labelKey(metric)) ?? (labelKey(metric) === "musclemass" && normalizedUnit === "%" ? "muscle_mass_pct" : undefined);
+  const key = labelKey(metric) === "musclemass" && normalizedUnit === "%" ? "muscle_mass_pct" : aliases.get(labelKey(metric));
   return key && normalizedUnit && definitions.get(key)?.units.includes(normalizedUnit) ? { key, unit: normalizedUnit } : null;
 }
 

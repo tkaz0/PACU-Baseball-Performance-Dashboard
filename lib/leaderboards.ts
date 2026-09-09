@@ -1,11 +1,8 @@
 import { PLAYER_METRICS, type PlayerMetricDefinition, type PlayerMetricKey, type PlayerPerformancePeriod } from "@/lib/player-performance";
 
-export type LeaderboardMetricKey = PlayerMetricKey | "muscle_mass";
+export type LeaderboardMetricKey = PlayerMetricKey;
 export type LeaderboardMetricDefinition = Omit<PlayerMetricDefinition, "key"> & { key: LeaderboardMetricKey };
-export const LEADERBOARD_METRICS: readonly LeaderboardMetricDefinition[] = [
-  ...PLAYER_METRICS,
-  { key: "muscle_mass", label: "Muscle Mass", group: "body", units: ["lb", "kg"], direction: "neutral" },
-];
+export const LEADERBOARD_METRICS: readonly LeaderboardMetricDefinition[] = PLAYER_METRICS;
 
 export const LEADERBOARD_GROUPS = ["physicality", "hitting", "throwing"] as const;
 export type LeaderboardGroup = (typeof LEADERBOARD_GROUPS)[number];

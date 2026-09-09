@@ -64,7 +64,7 @@ describe("player Overview relative team insights", () => {
   });
 
   it("does not rate body composition, size or spin even at an extreme numerical percentile", () => {
-    for (const key of ["height", "weight", "body_fat_pct", "muscle_mass_pct", "avg_fastball_spin"] as const) {
+    for (const key of ["height", "weight", "body_fat_pct", "muscle_mass", "muscle_mass_pct", "avg_fastball_spin"] as const) {
       const card = compared(key, [90, 70, 75, 80, 85]);
       card.history.unshift({ ...card.latest!, id: "fictional-older-neutral", value: 50, measuredAt: "2026-09-12" });
       expect(getPlayerInsights([card])).toEqual({ strengths: [], weaknesses: [], biggestJumps: [], comparableMetricCount: 0 });

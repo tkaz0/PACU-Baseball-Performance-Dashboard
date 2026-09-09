@@ -289,3 +289,5 @@ RENPHO partial review: an isolated unreadable or ambiguous metric in the recogni
 The leaderboard uses total recorded Muscle Mass (lb/kg) instead of Muscle Mass %. Compact cards show five ranked players initially with the complete remaining ranking expandable. Migration `202609080001_leaderboard_muscle_mass.sql` adds total mass only to the existing minimal signed-in leaderboard projection; profile metrics, measurement values, table RLS and account permissions are unchanged. Deploy the compatible app before enabling the migration so older strict response validators do not encounter the new metric. Source/unit/period cohorts remain separate.
 
 Apply `202609080002_reviewed_weight_correction.sql` to enable reviewed recorded-weight corrections. It creates no accounts and changes no existing readings during installation. The app uses the active administrator session; no new server credential is needed.
+
+After deploying the total-muscle profile catalog, apply 202609080003_profile_total_muscle_mass.sql to enable total-mass profile percentile summaries. This changes no recorded measurements or permissions.

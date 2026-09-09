@@ -31,11 +31,11 @@ const cohort = (count = 5) => Array.from({ length: count }, (_, i) => athlete(i 
 
 describe("canonical player metric catalog", () => {
   it("defines exactly the requested ordered groups and directions", () => {
-    expect(PLAYER_METRICS.filter(metric => metric.group === "body").map(metric => metric.key)).toEqual(["height", "weight", "grip_strength", "body_fat_pct", "muscle_mass_pct"]);
+    expect(PLAYER_METRICS.filter(metric => metric.group === "body").map(metric => metric.key)).toEqual(["height", "weight", "grip_strength", "body_fat_pct", "muscle_mass", "muscle_mass_pct"]);
     expect(PLAYER_METRICS.filter(metric => metric.group === "hitting")).toHaveLength(11);
     expect(PLAYER_METRICS.filter(metric => metric.group === "pitching")).toHaveLength(6);
-    expect(new Set(PLAYER_METRICS.map(metric => metric.key)).size).toBe(24);
-    expect(PLAYER_METRICS.filter(metric => metric.direction === "neutral").map(metric => metric.key)).toEqual(["height", "weight", "body_fat_pct", "muscle_mass_pct", "avg_fastball_spin"]);
+    expect(new Set(PLAYER_METRICS.map(metric => metric.key)).size).toBe(25);
+    expect(PLAYER_METRICS.filter(metric => metric.direction === "neutral").map(metric => metric.key)).toEqual(["height", "weight", "body_fat_pct", "muscle_mass", "muscle_mass_pct", "avg_fastball_spin"]);
     expect(PLAYER_METRICS.find(metric => metric.key === "bb_pct")?.direction).toBe("lower");
   });
   it.each([
@@ -50,7 +50,7 @@ describe("canonical player metric catalog", () => {
   });
   it("resolves canonical keys, rejects generic/unknown labels and never equates skeletal muscle with muscle mass", () => {
     for (const metric of PLAYER_METRICS) expect(normalizePlayerMetric(metric.key, metric.units[0])).toEqual({ key: metric.key, unit: metric.units[0] });
-    for (const [label, unit] of [["Exit Velocity", "mph"], ["Spin Rate", "rpm"], ["Skeletal Muscle Percentage", "%"], ["Muscle Mass", "lb"], ["Max EV", ""], ["Weight", "mph"], ["constructor", "%"], ["__proto__", "%"], ["K", "count"]]) expect(normalizePlayerMetric(label, unit)).toBeNull();
+    for (const [label, unit] of [["Exit Velocity", "mph"], ["Spin Rate", "rpm"], ["Skeletal Muscle Percentage", "%"],  ["Max EV", ""], ["Weight", "mph"], ["constructor", "%"], ["__proto__", "%"], ["K", "count"]]) expect(normalizePlayerMetric(label, unit)).toBeNull();
   });
   it("uses finite mathematical bounds and retains meaningful zero values", () => {
     for (const value of [Number.NaN, Infinity, -Infinity, -1]) expect(validatePlayerMetricValue("max_exit_velocity", value, "mph")).toBe(false);

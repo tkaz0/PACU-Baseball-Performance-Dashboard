@@ -48,7 +48,7 @@ describe("player profile tabs and presentation",()=>{
   const performance=model([measurement("Home to First",4.2,"s"),measurement("Bat Speed",72,"mph"),measurement("Body Fat Percentage",18,"%")]),layout=getPlayerProfileLayout(performance,fictionalAthlete("position").athlete_seasons[0]);
   expect(layout.physicality.map(c=>c.metric.key)).toEqual(["weight","height","grip_strength"]);expect(layout.hitting.map(c=>c.metric.key)).toEqual(["max_exit_velocity","avg_exit_velocity","max_bat_speed","avg_bat_speed","smash_factor","max_distance"]);
   const speed=layout.speedAgility.find(c=>c.metric.key==="home_to_first")!;expect(speed).toBe(performance.hitting.find(c=>c.metric.key==="home_to_first"));expect(speed.latest).toMatchObject({measuredAt:"2026-09-03",period:"fall_2026",unit:"s",value:4.2});
-  expect(layout.additionalBody.map(c=>c.metric.key)).toEqual(["body_fat_pct","muscle_mass_pct"]);
+  expect(layout.additionalBody.map(c=>c.metric.key)).toEqual(["body_fat_pct","muscle_mass"]);
   expect(layout.otherHitting.map(c=>c.metric.key)).toEqual(["bat_speed"]);expect(layout.hitting.find(c=>c.metric.key==="max_bat_speed")?.latest).toBeNull();expect(layout.hitting.find(c=>c.metric.key==="avg_bat_speed")?.latest).toBeNull();
   const html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete:fictionalAthlete("position"),performance}));expect(html).toContain("Bat Speed (Unspecified)");expect(html).toContain('data-value="72"');
   const physicality=html.split('id="body-measurements"')[1].split('id="body-composition"');expect(physicality[0]).not.toContain('data-metric-key="body_fat_pct"');expect(physicality[1]).toContain('data-metric-key="body_fat_pct" data-value="18" data-unit="%"');
@@ -79,4 +79,16 @@ describe("player profile tabs and presentation",()=>{
   const readings=Array.from({length:5},(_,i)=>measurement("Weight",170+i,"lb","2026-09-03",`SYN-00${i+1}`));const performance=getPlayerPerformance({readings,athleteCode:"SYN-001",cohortAthleteCodes:readings.map(r=>r.athlete_code)}),html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete:fictionalAthlete("position"),performance}));
   expect(html).toContain('role="meter"');expect(html).toContain('data-percentile="0"');expect(html).toContain("Pacific n=5");expect(html).toContain('data-direction="neutral"');expect(html).not.toContain("fictional-SYN-002.csv");
  });
+});
+
+it("shows recorded total muscle in Body Composition and Overview instead of a percentage", () => {
+ const codes=Array.from({length:5},(_,i)=>`SYN-${String(i+1).padStart(3,"0")}`);
+ const readings=codes.map((code,i)=>measurement("Muscle Mass",120+i*10,"lb","2026-09-03",code));
+ readings.push(measurement("Muscle Mass Percentage",75,"%"));
+ const performance=getPlayerPerformance({readings,athleteCode:codes[0],cohortAthleteCodes:codes});
+ const html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete:fictionalAthlete("position"),performance}));
+ expect(html).toContain('data-metric-key="muscle_mass" data-value="120" data-unit="lb"');
+ expect(html).not.toContain('data-metric-key="muscle_mass_pct"');expect(html).not.toContain("Muscle Mass %");
+ const overview=html.split('role="tabpanel"')[1];expect(overview).toContain("120 lb");expect(overview).toContain('aria-label="Muscle Mass Pacific percentile"');expect(overview).toContain('aria-valuenow="0"');
+ expect(getPlayerProfileLayout(model([measurement("Muscle Mass Percentage",75,"%")]),fictionalAthlete("position").athlete_seasons[0]).additionalBody.find(c=>c.metric.key==="muscle_mass")?.latest).toBeNull();
 });

@@ -288,3 +288,20 @@ describe("fixed cohort percentiles",()=>{
     expect(result.find(m=>m.metricKey==="muscle_mass_pct" && m.source==="Other protocol")).toMatchObject({observedValue:60});
   });
 });
+
+describe("recorded total-muscle profile comparisons",()=>{
+ it("loads the exact direct mass and neutral percentile without weight, separating units, periods and sources",async()=>{
+  await asUser(users.admin,()=>importRows([140,120,130,150,160].map((value,i)=>row(i+1,{metric_key:"muscle_mass",unit:"lb",value,source:"RENPHO"}))));
+  await asUser(users.admin,()=>importRows([
+   row(2,{metric_key:"muscle_mass",unit:"kg",value:70,source:"RENPHO"},1),
+   row(2,{metric_key:"muscle_mass",unit:"lb",value:999,source:"Different protocol"},2),
+   row(2,{metric_key:"muscle_mass",unit:"lb",value:999,source:"RENPHO",measured_at:"2026-08-20"},3),
+  ]));
+  const {loaded,profile}=await asUser(users.playerA,loadPlayerProfile);
+  const card=profile.body.find(c=>c.metric.key==="muscle_mass")!;
+  expect(card.latest).toMatchObject({value:140,unit:"lb",derived:false,source:"RENPHO",measuredAt:"2026-09-12"});
+  expect(card.percentile).toEqual({value:50,sampleSize:5,unit:"lb",period:"fall_2026",direction:"neutral"});
+  expect(loaded.measurements).toHaveLength(1);
+  expect(loaded.percentileOverrides.find(c=>c.metricKey==="muscle_mass")).toMatchObject({observedValue:140,sampleSize:5,value:50});
+ });
+});
