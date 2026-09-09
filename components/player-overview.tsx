@@ -1,3 +1,6 @@
+import { PercentileBar, PercentileLegend } from "@/components/percentile-bar";
+import { formatHeight } from "@/lib/measurement-display";
+import styles from "./percentile-bar.module.css";
 import { ArrowUpRight, Crosshair, TrendingUp, ChevronDown } from "lucide-react";
 import type { PlayerMetricCard } from "@/lib/player-performance";
 import { getPlayerInsights, type PlayerRelativeInsight } from "@/lib/player-insights";
@@ -7,7 +10,7 @@ function RelativeResults({ items }: { items: PlayerRelativeInsight[] }) {
   return <ul className="m-0 list-none space-y-5 p-0">{items.map(item => <li className="border-t border-[var(--line-subtle)] pt-4 first:border-0 first:pt-0" key={item.metric.key}>
     <div className="flex items-baseline justify-between gap-3"><h3 className="m-0 min-w-0 text-sm font-bold">{leaderboardMetricLabel(item.metric)}</h3><span className="shrink-0 text-xl font-bold tabular-nums">{Math.round(item.percentile.value)}<span className="muted ml-1 text-[10px] font-medium">PCTL</span></span></div>
     <p className="mb-3 mt-1 text-xs leading-5 text-[var(--text-secondary)]"><span className="break-all font-semibold text-[var(--text-primary)]">{String(item.latest.value)} {item.latest.unit === "ratio" ? "" : item.latest.unit}</span> · <time dateTime={item.latest.measuredAt}>{leaderboardTestDate(item.latest.measuredAt)}</time></p>
-    <div className="h-1.5 overflow-hidden rounded-full bg-[var(--surface-raised)]" aria-hidden="true"><div className="h-full rounded-full bg-[var(--accent-readable)]" style={{ width: `${item.percentile.value}%` }} /></div>
+    <PercentileBar value={item.percentile.value} sampleSize={item.percentile.sampleSize} label={item.metric.label} />
     <p className="mb-0 mt-2 text-[11px] text-[var(--text-secondary)]">{item.percentile.sampleSize} comparable players</p>
   </li>)}</ul>;
 }
@@ -20,10 +23,19 @@ function compactNumber(value: number): string {
 export function PlayerOverview({ cards }: { cards: readonly PlayerMetricCard[] }) {
   const insights = getPlayerInsights(cards);
   const availableCards = cards.filter(card => card.latest);
+  const comparisonCards = availableCards.filter(card => card.percentile && card.percentile.sampleSize >= 5 && Number.isFinite(card.percentile.value) && card.percentile.value >= 0 && card.percentile.value <= 100);
   const lastTested = availableCards.map(card => card.latest!.measuredAt).sort().at(-1);
   const bodyResultsOnly = availableCards.length > 0 && availableCards.every(card => card.metric.group === "body");
   return <section aria-label="Player overview" className="space-y-5" data-testid="player-overview">
-    <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4"><div className="max-w-xl"><h2 className="m-0 text-xl font-bold tracking-tight">Performance Snapshot</h2><p className="mb-0 mt-1.5 text-sm leading-6 text-[var(--text-secondary)]">{bodyResultsOnly ? "Your body measurements are ready in Physicality. Performance highlights will build as testing continues." : "Strengths, areas to improve, and progress from your latest testing."}</p></div>{lastTested && <dl className="m-0 flex gap-6 rounded-lg bg-[var(--surface-raised)] px-4 py-3 text-xs"><div><dt className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Available Metrics</dt><dd className="m-0 mt-1 font-bold tabular-nums">{availableCards.length}</dd></div><div><dt className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Last Tested</dt><dd className="m-0 mt-1 font-semibold"><time dateTime={lastTested}>{leaderboardTestDate(lastTested)}</time></dd></div></dl>}</div>
+    <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4"><div className="max-w-xl"><h2 className="m-0 text-xl font-bold tracking-tight">Performance Snapshot</h2><p className="mb-0 mt-1.5 text-sm leading-6 text-[var(--text-secondary)]">{bodyResultsOnly ? comparisonCards.length ? "Your latest measurements and Pacific team comparisons. Performance highlights will build as testing continues." : "Your body measurements are ready in Physicality. Performance highlights will build as testing continues." : "Strengths, areas to improve, and progress from your latest testing."}</p></div>{lastTested && <dl className="m-0 flex gap-6 rounded-lg bg-[var(--surface-raised)] px-4 py-3 text-xs"><div><dt className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Available Metrics</dt><dd className="m-0 mt-1 font-bold tabular-nums">{availableCards.length}</dd></div><div><dt className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Last Tested</dt><dd className="m-0 mt-1 font-semibold"><time dateTime={lastTested}>{leaderboardTestDate(lastTested)}</time></dd></div></dl>}</div>
+    {comparisonCards.length > 0 && <section aria-label="Pacific percentiles" className="rounded-lg border border-[var(--line-subtle)] bg-[var(--surface-panel)] p-5 sm:p-6">
+      <h2 className="mb-2 mt-0 text-lg font-bold">Pacific Percentiles</h2><PercentileLegend />
+      <ul className={styles.rows}>{comparisonCards.map(card => {
+        const reading = card.latest!, percentile = card.percentile!;
+        const value = card.metric.key === "height" ? formatHeight(reading.value, reading.unit) : null;
+        return <li className={styles.row} key={card.metric.key}><div><h3>{leaderboardMetricLabel(card.metric)}</h3><span className="font-bold tabular-nums">{value ?? `${reading.derived ? `≈${reading.value.toFixed(1)}` : String(reading.value)} ${reading.unit === "ratio" ? "" : reading.unit}`}</span><p className={styles.meta}>Last Tested: <time dateTime={reading.measuredAt}>{leaderboardTestDate(reading.measuredAt)}</time> · {reading.source}</p></div><div><PercentileBar value={percentile.value} sampleSize={percentile.sampleSize} label={card.metric.label} descriptive={card.metric.direction === "neutral"} /><p className={styles.meta}>{percentile.sampleSize} comparable Pacific players{card.metric.direction === "neutral" ? " · Measured value, not a rating" : ""}</p></div></li>;
+      })}</ul>
+    </section>}
     <div className="grid items-stretch gap-4 xl:grid-cols-3">
       {[
         { title: "Strengths", icon: TrendingUp, items: insights.strengths, note: "Top quarter of team results", empty: "No results are in the top quarter right now." },
@@ -47,7 +59,7 @@ export function PlayerOverview({ cards }: { cards: readonly PlayerMetricCard[] }
       <div className="mt-3 max-w-3xl space-y-2 leading-relaxed">
         <p>Strengths are at or above the 75th Pacific percentile; weaknesses are at or below the 25th. Each comparison uses the same test, source, unit and testing period, with at least five comparable players. Up to three results appear in each section.</p>
         <p>Biggest jumps compare the latest result with the previous testing date for the same measurement, source, unit and period. Gains are ordered by relative percentage improvement; higher or lower values count as improvement according to the test. A percentage improvement is relative to the previous value, not a percentage-point change. Displayed improvement percentages are rounded to one decimal.</p>
-        <p>Height, weight, body composition and fastball spin stay descriptive in their own tabs. They are not labeled strengths, weaknesses or improvements. These highlights summarize recorded testing results.</p>
+        <p>Height, weight, body composition and fastball spin stay descriptive throughout the profile. They are not labeled strengths, weaknesses or improvements. These highlights summarize recorded testing results.</p>
       </div>
     </details>
   </section>;

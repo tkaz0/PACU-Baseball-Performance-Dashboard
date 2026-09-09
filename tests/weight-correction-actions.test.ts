@@ -1,0 +1,11 @@
+import { beforeEach, expect, it, vi } from "vitest";
+const fake = vi.hoisted(() => ({ access: vi.fn(), rpc: vi.fn(), revalidate: vi.fn() }));
+vi.mock("@/lib/auth", () => ({ requireAdminMutation: fake.access }));
+vi.mock("next/cache", () => ({ revalidatePath: fake.revalidate }));
+import { correctWeight } from "@/app/(workspace)/admin/correct-weight/actions";
+const input = { requestId: "11111111-1111-4111-8111-111111111111", athleteId: "22222222-2222-4222-8222-222222222222", observationId: "fictional-observation", expectedValue: 160, value: 165 };
+beforeEach(() => { vi.resetAllMocks(); fake.access.mockResolvedValue({ supabase: { rpc: fake.rpc } }); fake.rpc.mockResolvedValue({ data: { requestId: input.requestId, corrected: 1 }, error: null }); });
+it("checks trusted Admin mutation access before validating or writing", async () => { fake.access.mockRejectedValue(new Error("READ_ONLY")); await expect(correctWeight(input, true)).rejects.toThrow("READ_ONLY"); expect(fake.rpc).not.toHaveBeenCalled(); });
+it("sends only reviewed fields through the ordinary session and revalidates derived views", async () => { expect(await correctWeight({ ...input, extra: "ignored" } as typeof input, true)).toEqual({ receipt: { requestId: input.requestId, corrected: 1 } }); expect(fake.rpc).toHaveBeenCalledExactlyOnceWith("admin_correct_recorded_weight", { p_request: input, p_reviewed: true }); expect(fake.revalidate).toHaveBeenCalledWith(`/athletes/${input.athleteId}`); expect(fake.revalidate).toHaveBeenCalledWith("/leaderboards"); });
+it("rejects nonfinite, unchanged and unreviewed values before RPC", async () => { for (const value of [NaN, Infinity, 0, -1, 160]) expect(await correctWeight({ ...input, value }, true)).toHaveProperty("error"); expect(await correctWeight(input, false)).toHaveProperty("error"); expect(fake.rpc).not.toHaveBeenCalled(); });
+it("does not claim completion for an uncertain or mismatched receipt", async () => { for (const response of [{ data: null, error: {} }, { data: { requestId: "wrong", corrected: 1 }, error: null }]) { fake.rpc.mockResolvedValue(response); expect(await correctWeight(input, true)).toHaveProperty("error"); } expect(fake.revalidate).not.toHaveBeenCalled(); });

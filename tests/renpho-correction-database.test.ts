@@ -47,7 +47,7 @@ beforeAll(async () => {
   await db.query("insert into public.account_athletes(user_id,athlete_id) values($1,$2)", [player, first]);
 });
 beforeEach(async () => {
-  await db.exec("delete from private.renpho_report_corrections;delete from private.renpho_identity_aliases;delete from public.performance_measurements;delete from public.performance_imports;delete from public.audit_events;update public.app_accounts set is_active=true;");
+  await db.exec("delete from private.weight_corrections;delete from private.renpho_report_corrections;delete from private.renpho_identity_aliases;delete from public.performance_measurements;delete from public.performance_imports;delete from public.audit_events;update public.app_accounts set is_active=true;");
   await asUser(admin, async () => {
     await db.query("select public.admin_upsert_renpho_ids($1::jsonb,true)", [JSON.stringify([
       { athlete_code: "SYN-001", renpho_id: "FICTIONAL-001" }, { athlete_code: "SYN-002", renpho_id: "FICTIONAL-002" }, { athlete_code: "SYN-001", renpho_id: "FICTIONAL-HISTORICAL" },
@@ -296,5 +296,48 @@ describe("reviewed reciprocal RENPHO corrections", () => {
     }
     // One PGlite connection verifies the lock structure and retry behavior, not
     // a concurrent authenticated Supabase deployment.
+  });
+});
+
+
+describe("reviewed recorded-weight corrections", () => {
+  const weightRequest = () => ({ requestId, athleteId: first, observationId: measurement(hashA, "SYN-001").observation_id, expectedValue: 160, value: 165 });
+  async function correct(input: unknown = weightRequest(), reviewed = true) {
+    return (await db.query<{data:unknown}>("select public.admin_correct_recorded_weight($1::jsonb,$2) data", [JSON.stringify(input), reviewed])).rows[0].data;
+  }
+  it("changes exactly one value, preserves provenance, and audits the original reading", async () => {
+    const before = await snapshot();
+    const original = (await db.query<{row:unknown}>("select to_jsonb(m) row from public.performance_measurements m where file_hash=$1", [hashA])).rows[0].row;
+    expect(await asUser(admin, () => correct())).toEqual({ requestId, corrected: 1 });
+    const after = await snapshot();
+    expect(after.measurements).toEqual(before.measurements.map(row => ({...row, value: row.file_hash === hashA ? 165 : row.value})));
+    expect(after.aliases).toEqual(before.aliases); expect(after.accounts).toEqual(before.accounts); expect(after.links).toEqual(before.links);
+    const audit = (await db.query<{original_observation:unknown}>("select original_observation from private.weight_corrections")).rows;
+    expect(audit).toEqual([{original_observation:original}]);
+    expect(await asUser(admin, () => correct())).toEqual({ requestId, corrected: 1 });
+    expect((await db.query("select * from private.weight_corrections")).rows).toHaveLength(1);
+    await asUser(admin, () => expect(correct({...weightRequest(), value: 166})).rejects.toThrow("already used"));
+  });
+  it("rejects stale values, incorrect owners, invalid values, and extra fields atomically", async () => {
+    const before = await snapshot();
+    for (const changes of [{expectedValue:159}, {athleteId:second}, {value:0}, {value:-2}, {value:160}, {value:null}, {extra:true}]) {
+      await asUser(admin, () => expect(correct({...weightRequest(), ...changes})).rejects.toThrow());
+    }
+    expect(await snapshot()).toEqual(before);
+  });
+  it("requires an active administrator and explicit review without granting table writes", async () => {
+    for (const actor of [null, coach, player]) await asUser(actor, () => expect(correct()).rejects.toThrow());
+    await asUser(admin, () => expect(correct(weightRequest(), false)).rejects.toThrow());
+    await db.query("update public.app_accounts set is_active=false where user_id=$1",[admin]);
+    await asUser(admin, () => expect(correct()).rejects.toThrow("Active administrator"));
+    await db.query("update public.app_accounts set is_active=true where user_id=$1",[admin]);
+    await asUser(admin, async () => {
+      await expect(db.exec("update public.performance_measurements set value=1")).rejects.toThrow();
+      await expect(db.exec("select * from private.weight_corrections")).rejects.toThrow();
+    });
+  });
+  it("does not edit another metric even with its exact current value", async () => {
+    await db.query("update public.performance_measurements set metric_key='muscle_mass',metric='Muscle Mass' where file_hash=$1", [hashA]);
+    await asUser(admin, () => expect(correct()).rejects.toThrow("recorded weight changed"));
   });
 });

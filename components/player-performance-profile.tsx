@@ -1,3 +1,4 @@
+import { PercentileBar } from "@/components/percentile-bar";
 import type { ReactNode } from "react";
 import { PacificLogo } from "@/components/pacific-brand";
 import { ProfileTabs, type ProfileTab } from "@/components/profile-tabs";
@@ -28,10 +29,7 @@ function Percentile({ card }: { card: PlayerMetricCard }) {
   const rounded = Math.round(percentile.value), neutral = card.metric.direction === "neutral";
   return <div className="mt-4 border-t border-[var(--line-subtle)] pt-4" data-testid="player-percentile" data-metric-key={card.metric.key} data-percentile={percentile.value} data-sample-size={percentile.sampleSize} data-direction={card.metric.direction}>
     <div className="mb-2 flex flex-wrap items-baseline justify-between gap-1 text-[11px] text-[var(--text-secondary)]"><span>Pacific n={percentile.sampleSize}</span><span><strong className="text-[var(--text-primary)]">{rounded}</strong> percentile</span></div>
-    <div role="meter" aria-label={`${card.metric.label} Pacific percentile`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percentile.value} aria-valuetext={`${rounded} percentile among ${percentile.sampleSize} comparable Pacific players${neutral ? "; measured value, not a rating" : ""}`} className="relative h-2.5 overflow-hidden rounded-full bg-[var(--surface-raised)]" data-testid="player-percentile-bar">
-      <span className={`absolute inset-y-0 left-0 rounded-full ${neutral ? "bg-[var(--text-secondary)]" : "bg-[var(--accent-readable)]"}`} style={{ width: `${percentile.value}%` }} aria-hidden="true" />
-      <span className="absolute inset-y-0 left-1/2 w-px bg-[var(--text-secondary)] opacity-40" aria-hidden="true" />
-    </div>
+    <PercentileBar value={percentile.value} sampleSize={percentile.sampleSize} label={card.metric.label} descriptive={neutral} testId="player-percentile-bar" />
   </div>;
 }
 function MetricCard({ card }: { card: PlayerMetricCard }) {
@@ -84,7 +82,7 @@ export function PlayerPerformanceProfile({ athlete, performance, season, fiction
     {history}
     <details className="group rounded-lg border border-[var(--line-subtle)] bg-[var(--surface-panel)]" data-testid="player-performance-methods"><summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-sm font-semibold sm:px-6">Sources &amp; Percentiles<ChevronDown size={16} className="shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" /></summary>
       <div className="space-y-5 border-t border-[var(--line-subtle)] px-5 py-5 text-xs leading-6 text-[var(--text-secondary)] sm:px-6"><p className="m-0">Pacific percentiles compare the latest comparable reading per player within the same metric, unit, source and testing period. Tied values share a percentile. They describe this team cohort, with no MLB, NCAA or outside-athlete comparison. The mark at 50 is the cohort midpoint.</p>
-        <div className="grid gap-3 sm:grid-cols-2"><p className="m-0"><ArrowUp size={13} className="mr-1 inline" aria-hidden="true" />For metrics where higher is better, a larger measured value produces a higher percentile. <ArrowDown size={13} className="mx-1 inline" aria-hidden="true" />For lower-is-better metrics, including timed tests and BB %, a lower measured value produces a higher percentile.</p><p className="m-0">Body composition and spin use neutral bars. Higher percentiles indicate higher measured values in those groups, without a good/bad score. Missing values and cohorts under 5 are not charted.</p></div>
+        <div className="grid gap-3 sm:grid-cols-2"><p className="m-0"><ArrowUp size={13} className="mr-1 inline" aria-hidden="true" />For metrics where higher is better, a larger measured value produces a higher percentile. <ArrowDown size={13} className="mx-1 inline" aria-hidden="true" />For lower-is-better metrics, including timed tests and BB %, a lower measured value produces a higher percentile.</p><p className="m-0">Blue indicates a lower percentile; red indicates a higher percentile. For height, weight, body composition and spin, this means a higher measured value, without a good/bad score. Missing values and cohorts under 5 are not charted.</p></div>
         <p className="m-0">Baseball performance window: September 1–December 31, 2026. Body comparisons use separate June 1–August 31 and September 1–December 31 testing periods. Each reading carries its recorded test date. Height displays in feet and inches, rounded to one tenth of an inch. Original values and units remain below; different units are never mixed in a percentile. Calculated values marked ≈ are rounded to one decimal in the snapshot; the full result and formula appear below.</p>
         {sourcedCards.length > 0 ? <div className="overflow-x-auto"><table><caption className="sr-only">Sources for the performance snapshot</caption><thead><tr><th>Measurement</th><th>Test date</th><th>Value</th><th>Source / method</th></tr></thead><tbody>{sourcedCards.map(card => {
           const reading = card.latest!;

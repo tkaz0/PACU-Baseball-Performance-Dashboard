@@ -103,3 +103,9 @@ Private players read only their linked profile; coaches/admins can read the team
 ## Coach presentation
 
 Height cards and height leaderboard results display feet and inches, rounded to one tenth of an inch (for example, 71 in displays as 5′ 11″). The saved reading and unit remain unchanged in sources; calculations, ordering and comparison cohorts still use the original values and units. Missing main metrics display a dash and Not Yet Tested.
+
+## Percentile presentation and corrections
+
+Percentile bars use a blue-to-red scale, a numbered marker and a midpoint tick at 50. Blue means lower percentile and red means higher percentile, not a universal good/bad rating. The Overview shows the same verified, role-filtered comparisons and actual measurements/test dates. Missing and sub-five cohorts remain uncharted. Body and spin measurements remain descriptive and excluded from strengths, weaknesses and jumps.
+
+Administrators outside View as can choose **Correct Recorded Weight** below a profile. Select the original reading, enter the replacement in its existing unit, review the player/date/value, and save. The database preserves the original observation privately and changes only its value; derived displays recompute. A retried save uses the same request and cannot apply twice. A stale reading is rejected. Reimporting an uncorrected source remains conflict-rejecting.
