@@ -12,7 +12,7 @@ export default async function RenphoCorrectionsPage() {
     <RenphoReportReassignment reports={reports} players={players} />
     <details className="panel mt-6 p-5">
       <summary className="cursor-pointer font-semibold">Saved reports · {reports.length}</summary>
-      <div className="table-wrap mt-4"><table aria-label="Saved RENPHO report metadata"><thead><tr><th>Player</th><th>PAC ID</th><th>Test Date</th><th>File</th><th>Readings</th><th>Height</th><th>File Reference</th></tr></thead><tbody>{reports.map(report => <tr key={report.fileHash}><th scope="row">{report.athleteName}</th><td>{report.athleteCode}</td><td>{report.measuredAt}</td><td>{report.sourceFile}</td><td>{report.measurementCount}</td><td>{report.hasHeight ? "Saved" : "Reopen original report to add"}</td><td className="break-all text-xs">{report.fileHash}</td></tr>)}</tbody></table></div>
+      <div className="table-wrap mt-4"><table aria-label="Saved RENPHO report metadata"><thead><tr><th>Player</th><th>PAC ID</th><th>Test Date</th><th>File</th><th>Readings</th><th>Height</th><th>File Reference</th></tr></thead><tbody>{reports.map(report => <tr key={report.fileHash}><th scope="row"><Link href={`/players/${report.athleteCode}`} prefetch={false} className="underline underline-offset-2">{report.athleteName}</Link></th><td>{report.athleteCode}</td><td>{report.measuredAt}</td><td>{report.sourceFile}</td><td>{report.measurementCount}</td><td>{report.hasHeight ? "Saved" : "Reopen original report to add"}</td><td className="break-all text-xs">{report.fileHash}</td></tr>)}</tbody></table></div>
     </details>
   </>;
 }

@@ -1,3 +1,4 @@
+import { StatInfo } from "@/components/stat-info";
 import { PercentileBar, PercentileLegend } from "@/components/percentile-bar";
 import { formatHeight } from "@/lib/measurement-display";
 import styles from "./percentile-bar.module.css";
@@ -8,7 +9,7 @@ import { leaderboardMetricLabel, leaderboardTestDate } from "@/lib/leaderboards"
 
 function RelativeResults({ items }: { items: PlayerRelativeInsight[] }) {
   return <ul className="m-0 list-none space-y-5 p-0">{items.map(item => <li className="border-t border-[var(--line-subtle)] pt-4 first:border-0 first:pt-0" key={item.metric.key}>
-    <div className="flex items-baseline justify-between gap-3"><h3 className="m-0 min-w-0 text-sm font-bold">{leaderboardMetricLabel(item.metric)}</h3><span className="shrink-0 text-xl font-bold tabular-nums">{Math.round(item.percentile.value)}<span className="muted ml-1 text-[10px] font-medium">PCTL</span></span></div>
+    <div className="flex items-baseline justify-between gap-3"><h3 className="m-0 min-w-0 text-sm font-bold">{leaderboardMetricLabel(item.metric)}<StatInfo metric={item.metric.key} label={leaderboardMetricLabel(item.metric)} /></h3><span className="shrink-0 text-xl font-bold tabular-nums">{Math.round(item.percentile.value)}<span className="muted ml-1 text-[10px] font-medium">PCTL</span></span></div>
     <p className="mb-3 mt-1 text-xs leading-5 text-[var(--text-secondary)]"><span className="break-all font-semibold text-[var(--text-primary)]">{String(item.latest.value)} {item.latest.unit === "ratio" ? "" : item.latest.unit}</span> · <time dateTime={item.latest.measuredAt}>{leaderboardTestDate(item.latest.measuredAt)}</time></p>
     <PercentileBar value={item.percentile.value} sampleSize={item.percentile.sampleSize} label={item.metric.label} />
     <p className="mb-0 mt-2 text-[11px] text-[var(--text-secondary)]">{item.percentile.sampleSize} comparable players</p>
@@ -33,7 +34,7 @@ export function PlayerOverview({ cards }: { cards: readonly PlayerMetricCard[] }
       <ul className={styles.rows}>{comparisonCards.map(card => {
         const reading = card.latest!, percentile = card.percentile!;
         const value = card.metric.key === "height" ? formatHeight(reading.value, reading.unit) : null;
-        return <li className={styles.row} key={card.metric.key}><div><h3>{leaderboardMetricLabel(card.metric)}</h3><span className="font-bold tabular-nums">{value ?? `${reading.derived ? `≈${reading.value.toFixed(1)}` : String(reading.value)} ${reading.unit === "ratio" ? "" : reading.unit}`}</span><p className={styles.meta}>Last Tested: <time dateTime={reading.measuredAt}>{leaderboardTestDate(reading.measuredAt)}</time> · {reading.source}</p></div><div><PercentileBar value={percentile.value} sampleSize={percentile.sampleSize} label={card.metric.label} descriptive={card.metric.direction === "neutral"} /><p className={styles.meta}>{percentile.sampleSize} comparable Pacific players{card.metric.direction === "neutral" ? " · Measured value, not a rating" : ""}</p></div></li>;
+        return <li className={styles.row} key={card.metric.key}><div><h3>{leaderboardMetricLabel(card.metric)}<StatInfo metric={card.metric.key} label={leaderboardMetricLabel(card.metric)} /></h3><span className="font-bold tabular-nums">{value ?? `${reading.derived ? `≈${reading.value.toFixed(1)}` : String(reading.value)} ${reading.unit === "ratio" ? "" : reading.unit}`}</span><p className={styles.meta}>Last Tested: <time dateTime={reading.measuredAt}>{leaderboardTestDate(reading.measuredAt)}</time> · {reading.source}</p></div><div><PercentileBar value={percentile.value} sampleSize={percentile.sampleSize} label={card.metric.label} descriptive={card.metric.direction === "neutral"} /><p className={styles.meta}>{percentile.sampleSize} comparable Pacific players{card.metric.direction === "neutral" ? " · Measured value, not a rating" : ""}</p></div></li>;
       })}</ul>
     </section>}
     <div className="grid items-stretch gap-4 xl:grid-cols-3">
@@ -47,7 +48,7 @@ export function PlayerOverview({ cards }: { cards: readonly PlayerMetricCard[] }
       <section className="h-full rounded-lg border border-[var(--line-subtle)] bg-[var(--surface-panel)] p-5 sm:p-6" aria-label="Biggest jumps">
         <div className="mb-5 flex items-center gap-3"><span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-raised)] text-[var(--accent-readable)]"><ArrowUpRight size={18} aria-hidden="true" /></span><div><h2 className="m-0 text-base font-bold">Biggest Jumps</h2><p className="mb-0 mt-1 text-[11px] text-[var(--text-secondary)]">Progress since your previous test</p></div></div>
         {insights.biggestJumps.length ? <ul className="m-0 list-none space-y-5 p-0">{insights.biggestJumps.map(item => <li className="border-t border-[var(--line-subtle)] pt-4 first:border-0 first:pt-0" key={item.metric.key}>
-          <h3 className="m-0 text-sm font-bold">{leaderboardMetricLabel(item.metric)}</h3>
+          <h3 className="m-0 text-sm font-bold">{leaderboardMetricLabel(item.metric)}<StatInfo metric={item.metric.key} label={leaderboardMetricLabel(item.metric)} /></h3>
           <p className="mb-1 mt-2 text-xl font-bold tabular-nums text-[var(--accent-readable)]" title={`Relative improvement: ${item.relativeImprovementPercent}%`}>{compactNumber(item.relativeImprovementPercent)}% <span className="text-xs font-semibold">improvement</span></p>
           <p className="mb-1 mt-0 break-words text-sm font-semibold tabular-nums" title={`Exact change: ${item.change} ${item.changeUnit === "pp" ? "percentage points" : item.changeUnit}`}>{String(item.previous.value)} → {String(item.latest.value)} {item.latest.unit === "ratio" ? "" : item.latest.unit}</p>
           <p className="muted mb-0 text-[11px]"><time dateTime={item.previous.measuredAt}>{leaderboardTestDate(item.previous.measuredAt)}</time> → <time dateTime={item.latest.measuredAt}>{leaderboardTestDate(item.latest.measuredAt)}</time></p>

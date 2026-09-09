@@ -8,6 +8,8 @@ import { FileDropZone } from "@/components/file-drop-zone";
 import { readImportFile } from "@/lib/imports/files";
 import { selectTable, type DateFormat, type Measurement, type MeasurementMapping, type MeasurementPreview } from "@/lib/imports/engine";
 import { FULL_SWING_LABELS, fullSwingMetrics, previewFullSwingSummary, type FullSwingCategory } from "@/lib/imports/full-swing";
+import { BLAST_MOTION_METRICS, previewBlastMotionSummary } from "@/lib/imports/blast-motion";
+import { StatInfo } from "@/components/stat-info";
 import { athleteName, type RosterAthlete } from "@/lib/types";
 
 type MetricMap = { id: number; column: number; key: string; unit: string };
@@ -19,7 +21,7 @@ function ColumnSelect({ label, headers, value, onChange }: { label: string; head
   return <label>{label}<select value={value} onChange={event => onChange(Number(event.target.value))}><option value={-1}>Choose a column…</option>{headers.map((header, index) => <option key={index} value={index}>{index + 1}. {header}</option>)}</select></label>;
 }
 
-export function FullSwingImport({ category, roster, saveAction }: { category: FullSwingCategory; roster: RosterAthlete[]; saveAction: SaveImportAction }) {
+export function FullSwingImport({ category, roster, saveAction, vendor = "Full Swing" }: { vendor?: "Full Swing" | "Blast Motion"; category: FullSwingCategory; roster: RosterAthlete[]; saveAction: SaveImportAction }) {
   const [file, setFile] = useState<FileData | null>(null);
   const [headerRow, setHeaderRow] = useState(0);
   const [identityKind, setIdentityKind] = useState<MeasurementMapping["identityKind"]>("name");
@@ -38,7 +40,8 @@ export function FullSwingImport({ category, roster, saveAction }: { category: Fu
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [receipt, setReceipt] = useState("");
-  const definitions = fullSwingMetrics(category);
+  const blast = vendor === "Blast Motion";
+  const definitions = blast ? BLAST_MOTION_METRICS : fullSwingMetrics(category);
   let table: ReturnType<typeof selectTable> | null = null;
   let tableError = "";
   if (file) { try { table = selectTable(file.sheets[0].matrix, headerRow); } catch (error) { tableError = errorText(error); } }
@@ -51,7 +54,7 @@ export function FullSwingImport({ category, roster, saveAction }: { category: Fu
     if (!next) return;
     setBusy(true);
     try {
-      if (!next.name.toLowerCase().endsWith(".csv")) throw new Error("Choose a Full Swing CSV or a reviewed PACU summary CSV.");
+      if (!next.name.toLowerCase().endsWith(".csv")) throw new Error(`Choose a ${vendor} CSV or a reviewed PACU summary CSV.`);
       const loaded = await readImportFile(next);
       if (version === request.current) setFile(loaded);
     } catch (error) { if (version === request.current) setError(errorText(error)); }
@@ -66,7 +69,8 @@ export function FullSwingImport({ category, roster, saveAction }: { category: Fu
         ...(dateMode === "fixed" ? { fixedDate: date } : { dateColumn }), dateFormat: dateMode === "fixed" ? "ISO" : dateFormat,
         source: "", metrics: metrics.map(metric => ({ column: metric.column, label: definitions.find(item => item.key === metric.key)?.label ?? "", unit: metric.unit })),
       };
-      setReviewed(previewFullSwingSummary({ table, mapping, roster, file: { fileName: file.fileName, fileHash: file.fileHash, sheetName: file.sheets[0].name }, category, summaryConfirmed }));
+      const input = { table, mapping, roster, file: { fileName: file.fileName, fileHash: file.fileHash, sheetName: file.sheets[0].name }, category, summaryConfirmed };
+      setReviewed(blast ? previewBlastMotionSummary(input) : previewFullSwingSummary(input));
     } catch (error) { setError(errorText(error)); }
   }
   async function save() {
@@ -80,8 +84,9 @@ export function FullSwingImport({ category, roster, saveAction }: { category: Fu
     <section className={`panel p-5 sm:p-7 ${styles.uploadPanel}`}>
       <h2 className={styles.stepTitle}><span className={styles.stepNumber}>1.</span>{" "}Add {FULL_SWING_LABELS[category]} Data</h2>
       <p className={styles.sectionLead}>One player’s session summary per row.</p>
-      <FileDropZone label={`Full Swing CSV · ${FULL_SWING_LABELS[category]}`} description="Drop a CSV here, or choose a file." accept=".csv,text/csv" disabled={busy || !roster.length} onFile={next => { void chooseFile(next); }} />
-      <details className={styles.help}><summary>CSV Requirements &amp; Template</summary><div className="mt-3 space-y-3"><p className="muted mb-0 text-sm">Use session summaries, up to 2 MiB and 500 readings. Individual swing and pitch exports are not supported yet.</p><p className="muted mb-0 text-sm"><a className="font-semibold underline" href={`/templates/pacu-${category}-summary.csv`} download>Download the PACU summary template</a>. This blank template is provided by PACU; it is not a Full Swing export format.</p></div></details>
+      <FileDropZone label={`${vendor} CSV · ${FULL_SWING_LABELS[category]}`} description="Drop a CSV here, or choose a file." accept=".csv,text/csv" disabled={busy || !roster.length} onFile={next => { void chooseFile(next); }} />
+      <details className={styles.help}><summary>CSV Requirements &amp; Template</summary><div className="mt-3 space-y-3"><p className="muted mb-0 text-sm">Use session summaries, up to 2 MiB and 500 readings. Individual swing and pitch exports are not supported yet.</p><p className="muted mb-0 text-sm"><a className="font-semibold underline" href={blast ? "/templates/pacu-blast-motion-summary.csv" : `/templates/pacu-${category}-summary.csv`} download>Download the PACU summary template</a>. This blank template is provided by PACU; it is not a {vendor} export format.</p></div></details>
+      {blast && <p className="muted mt-3 mb-0 text-sm">Import maximum and average bat speed from session summaries. Your first Blast export will help us verify the format; individual-swing CSVs are not supported yet.</p>}
       {busy && <p role="status" className={styles.progress}><LoaderCircle className="animate-spin" size={18} aria-hidden="true" />{file ? "Saving reviewed readings…" : "Reading CSV…"}</p>}
     </section>
     {file && <fieldset disabled={busy} className="min-w-0 space-y-6">
@@ -115,9 +120,9 @@ export function FullSwingImport({ category, roster, saveAction }: { category: Fu
       </section>
       {reviewed && <section className="panel p-5 sm:p-7">
         <h2 className={styles.stepTitle}><span className={styles.stepNumber}>3.</span>{" "}Review and Save</h2>
-        <p className={styles.sectionLead}>{reviewed.candidateMeasurements.length} readings · Full Swing · {FULL_SWING_LABELS[category]} · Fall 2026</p>
+        <p className={styles.sectionLead}>{reviewed.candidateMeasurements.length} readings · {vendor} · {FULL_SWING_LABELS[category]} · Fall 2026</p>
         {!!reviewed.issues.length && <div role="alert" className="notice notice-error"><p className="font-semibold">Fix these rows before saving.</p><ul className="mb-0 list-disc pl-5">{reviewed.issues.slice(0, 30).map((issue, index) => <li key={index}>Row {issue.row}: {issue.message}</li>)}</ul>{reviewed.issues.length > 30 && <p>{reviewed.issues.length - 30} additional issues remain.</p>}</div>}
-        <div className="table-wrap"><table><caption className="sr-only">All reviewed readings</caption><thead><tr><th>Player</th><th>Date</th><th>Measurement</th><th>Value</th><th>Source Row</th></tr></thead><tbody>{reviewed.candidateMeasurements.map(row => <tr key={row.id}><td>{athleteName(roster.find(athlete => athlete.athlete_code === row.athlete_code)!)}<span className="muted block text-xs">{row.athlete_code}</span></td><td className="whitespace-nowrap">{row.measured_at}</td><td>{row.metric}</td><td className="whitespace-nowrap">{row.value} {row.unit}</td><td>{row.source_row}</td></tr>)}</tbody></table></div>
+        <div className="table-wrap"><table><caption className="sr-only">All reviewed readings</caption><thead><tr><th>Player</th><th>Date</th><th>Measurement</th><th>Value</th><th>Source Row</th></tr></thead><tbody>{reviewed.candidateMeasurements.map(row => <tr key={row.id}><td><Link className="font-semibold underline underline-offset-2" prefetch={false} href={`/athletes/${roster.find(athlete => athlete.athlete_code === row.athlete_code)!.id}`}>{athleteName(roster.find(athlete => athlete.athlete_code === row.athlete_code)!)}</Link><span className="muted block text-xs">{row.athlete_code}</span></td><td className="whitespace-nowrap">{row.measured_at}</td><td>{row.metric}<StatInfo metric={row.metric} /></td><td className="whitespace-nowrap">{row.value} {row.unit}</td><td>{row.source_row}</td></tr>)}</tbody></table></div>
         <label className="my-5 flex items-start gap-3"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} /><span>I checked every player match, date, measurement, and unit. Save these readings to the team’s private profiles.</span></label>
         <button type="button" className="btn btn-primary" disabled={!reviewed.canApply || !reviewed.candidateMeasurements.length || !confirmed} onClick={() => { void save(); }}><Check size={17} />Save to Player Profiles</button>
       </section>}

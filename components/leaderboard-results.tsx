@@ -1,3 +1,4 @@
+import { StatInfo } from "@/components/stat-info";
 import Link from "next/link";
 import { leaderboardMetricLabel, leaderboardOrderLabel, leaderboardSourceLabel, leaderboardTestDate, type LeaderboardMetricDefinition, type LeaderboardRow } from "@/lib/leaderboards";
 import type { PlayerPerformancePeriod } from "@/lib/player-performance";
@@ -34,7 +35,7 @@ export function LeaderboardResults({ rows, metric, unit, source, period }: { row
   return <section className={`panel leaderboard-card ${styles.card}`}>
     <header className={styles.heading}>
       <div className={styles.eyebrow}><span>{source ? leaderboardSourceLabel(source) : "Team Testing"}{period ? ` · ${period === "fall_2026" ? "Fall 2026" : "Jun–Aug 2026"}` : ""}</span><span>{rows.length} {rows.length === 1 ? "Player" : "Players"}</span></div>
-      <h2>{leaderboardMetricLabel(metric)}</h2>
+      <h2>{leaderboardMetricLabel(metric)}<StatInfo metric={metric.key} label={leaderboardMetricLabel(metric)} /></h2>
       <p title={metric.direction === "neutral" ? "Numerical comparisons, not a health or performance rating." : "Latest comparable result per athlete; equal values share a rank."}>{leaderboardOrderLabel(metric)}{rows.length > 0 && <span> · Last Tested {leaderboardTestDate(latestDate)}</span>}</p>
     </header>
     {rows.length ? <><RankingTable rows={rows.slice(0, 5)} metric={metric} unit={unit} tiedRanks={tiedRanks} />{rows.length > 5 && <details className={styles.more}><summary>Show {rows.length - 5} More</summary><RankingTable rows={rows.slice(5)} metric={metric} unit={unit} tiedRanks={tiedRanks} continued /></details>}</>

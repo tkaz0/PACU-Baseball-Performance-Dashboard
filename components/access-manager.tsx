@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import { ShieldCheck, UserRound, UsersRound } from "lucide-react";
@@ -57,7 +58,7 @@ export function AccessManager({ accounts, athletes, currentUserId, configureActi
               {athlete && <span className="mt-1 block text-xs font-semibold text-gray-600">{athlete.code}</span>}
               <span className="mt-3 block break-all font-mono text-xs text-gray-600">{account.userId}</span>
               <span className="mt-3 flex flex-wrap items-center justify-between gap-2"><span className="text-xs font-semibold">{roleText(account.roles)}</span><span className="text-xs font-semibold text-pacu-red">{own ? "Your account · Protected" : "Edit access →"}</span></span>
-            </button></li>;
+            </button>{athlete && <Link href={`/athletes/${athlete.id}`} prefetch={false} className="mt-2 inline-block text-sm font-semibold underline underline-offset-2">{athlete.name} · Player Profile</Link>}</li>;
           })}
         </ul>
         {visible.length === 0 && <p className="muted py-4 text-sm">{accounts.length ? "No accounts match these filters." : "No configured accounts were returned."}</p>}

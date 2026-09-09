@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { reviewSingleReportCorrection, saveSingleReportCorrection } from "@/app/(workspace)/admin/import/renpho/corrections/single-actions";
 import type { RenphoCorrectionPlayer, RenphoReportCatalogItem } from "@/lib/renpho-report-catalog-server";
@@ -63,7 +64,7 @@ export function RenphoReportReassignment({ reports, players }: { reports: Renpho
       {error && <p role="alert" className="notice notice-error">{error}</p>}
       {!review && <button type="button" className="btn btn-secondary" disabled={!valid || locked} onClick={() => { void prepare(); }}>{busy ? "Checking Report…" : "Review Report Move"}</button>}
       {review && <>
-        <div className="table-wrap"><table aria-label="Single report correction review"><thead><tr><th>Report</th><th>Current Player</th><th>Correct Player</th><th>Readings</th><th>IDs to Move</th></tr></thead><tbody><tr><th scope="row">{review.preview.report.sourceFile}<span className="muted block text-xs">{review.preview.report.measuredAt}</span></th><td>{playerName(review.preview.report.fromAthleteCode)} ({review.preview.report.fromAthleteCode})</td><td>{playerName(review.preview.report.toAthleteCode)} ({review.preview.report.toAthleteCode})</td><td>{review.preview.report.measurementCount}</td><td>{review.preview.report.renphoIds.length ? review.preview.report.renphoIds.join(", ") : "Unchanged"}</td></tr></tbody></table></div>
+        <div className="table-wrap"><table aria-label="Single report correction review"><thead><tr><th>Report</th><th>Current Player</th><th>Correct Player</th><th>Readings</th><th>IDs to Move</th></tr></thead><tbody><tr><th scope="row">{review.preview.report.sourceFile}<span className="muted block text-xs">{review.preview.report.measuredAt}</span></th><td><Link prefetch={false} className="underline underline-offset-2" href={`/players/${review.preview.report.fromAthleteCode}`}>{playerName(review.preview.report.fromAthleteCode)}</Link> ({review.preview.report.fromAthleteCode})</td><td><Link prefetch={false} className="underline underline-offset-2" href={`/players/${review.preview.report.toAthleteCode}`}>{playerName(review.preview.report.toAthleteCode)}</Link> ({review.preview.report.toAthleteCode})</td><td>{review.preview.report.measurementCount}</td><td>{review.preview.report.renphoIds.length ? review.preview.report.renphoIds.join(", ") : "Unchanged"}</td></tr></tbody></table></div>
         <label className="flex items-start gap-3"><input type="checkbox" checked={confirmed} disabled={locked} onChange={event => setConfirmed(event.target.checked)} /><span>I checked the original report, correct player, and any selected IDs.</span></label>
         {!receipt && <button type="button" className="btn btn-primary" disabled={!confirmed || busy} onClick={() => { void save(); }}>{busy ? "Moving Report…" : attempted ? "Retry Same Report Move" : "Save Report Move"}</button>}
       </>}

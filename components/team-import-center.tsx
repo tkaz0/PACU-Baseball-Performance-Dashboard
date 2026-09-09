@@ -12,6 +12,7 @@ import type { RosterAthlete } from "@/lib/types";
 const lanes = [
   { key: "physicality", label: "Physicality", source: "RENPHO Reports", icon: Activity },
   { key: "hitting", label: "Hitting", source: "Full Swing CSV", icon: Swords },
+  { key: "blast", label: "Blast Motion", source: "Hitting CSV", icon: Swords },
   { key: "pitching", label: "Pitching", source: "Full Swing CSV", icon: CircleDot },
   { key: "games", label: "Games / Intrasquad", source: "Full Swing CSV", icon: CalendarDays },
 ] as const;
@@ -46,7 +47,7 @@ export function TeamImportCenter({ roster }: { roster: RosterAthlete[] }) {
         profileHref: code => `/athletes/${roster.find(athlete => athlete.athlete_code === code)!.id}`,
         loadExisting: async hash => { const result = await loadSharedReportMeasurements(hash); if ("error" in result) throw new Error(result.error); return result.measurements; },
         matchPlayer: async id => { const result = await matchSharedRenphoPlayer(id); if ("error" in result) throw new Error(result.error); return result.athleteCode; },
-      }} /> : <FullSwingImport key={lane === "games" ? gameKind : lane} category={lane === "games" ? gameKind : lane} roster={roster} saveAction={save} />}
+      }} /> : <FullSwingImport key={lane === "games" ? gameKind : lane} vendor={lane === "blast" ? "Blast Motion" : "Full Swing"} category={lane === "games" ? gameKind : lane === "blast" ? "hitting" : lane} roster={roster} saveAction={save} />}
     </>}
   </div>;
 }

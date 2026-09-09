@@ -287,3 +287,9 @@ Leaderboard release checks: lint, strict TypeScript, all 1,419 tests in 73 files
 Percentile presentation tests verify exact numeric meter positions, blue/red endpoints, readable badge contrast across the full scale and omission of invalid/small cohorts. Weight-correction PGlite coverage checks authorization, stale/invalid requests, exact single-value changes, private original snapshots and idempotent retries. PGlite does not replace live Supabase Auth/API verification.
 
 Total-muscle profile tests cover direct mass versus percentage/skeletal mass, display replacement, exact lb/kg/source/period cohorts, and neutral percentile/insight semantics.
+
+## Blast summary importer, profile links, and stat help
+
+The September 9 update passed lint, TypeScript, 1,444 tests across 77 files and the production build. Six additional focused permanent-code route tests passed after that run, covering sign-in, own-player links, staff links, peer denial and Player View restrictions. Browser checks against the local production build passed 11 tests; 29 authenticated/local-Supabase tests remain skipped because their separate fixtures are not provisioned. Chrome was used because the bundled Playwright Chromium executable was absent.
+
+The actual StatInfo component was rendered with fictional content and checked in Chrome at 390px and 1280px: keyboard opening, Escape, focus return, close button and horizontal-overflow checks. No real player records were used in that visual fixture. Blast tests use synthetic session summaries; validation against the first actual vendor export is still pending.

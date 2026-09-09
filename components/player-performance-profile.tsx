@@ -1,3 +1,4 @@
+import { StatInfo } from "@/components/stat-info";
 import { PercentileBar } from "@/components/percentile-bar";
 import type { ReactNode } from "react";
 import { PacificLogo } from "@/components/pacific-brand";
@@ -35,7 +36,7 @@ function Percentile({ card }: { card: PlayerMetricCard }) {
 function MetricCard({ card }: { card: PlayerMetricCard }) {
   const reading = card.latest;
   return <li className={`flex min-w-0 flex-col rounded-lg border border-[var(--line-subtle)] p-4 sm:p-5 ${reading ? "bg-[var(--surface-panel)]" : "border-dashed bg-[var(--surface-page)]"}`} data-testid="player-metric" data-metric-key={card.metric.key} data-value={reading?.value} data-unit={reading?.unit} data-date={reading?.measuredAt}>
-    <h3 className="m-0 min-h-10 text-sm font-semibold leading-5 text-[var(--text-secondary)]">{card.metric.key === "bat_speed" ? "Bat Speed (Unspecified)" : card.metric.label}</h3>
+    <h3 className="m-0 min-h-10 text-sm font-semibold leading-5 text-[var(--text-secondary)]">{card.metric.key === "bat_speed" ? "Bat Speed (Unspecified)" : card.metric.label}<StatInfo metric={card.metric.key} label={card.metric.label} /></h3>
     <div className="mt-2 text-3xl leading-tight tracking-tight text-[var(--text-primary)] sm:text-4xl">{reading ? <ReadingValue reading={reading} /> : <span className="font-medium text-[var(--text-secondary)]" aria-label="Not yet tested">—</span>}</div>
     {!reading && <p className="mb-0 mt-3 text-[11px] text-[var(--text-secondary)]">Not Yet Tested</p>}
     {reading && <p className="mb-0 mt-3 text-[11px] leading-5 text-[var(--text-secondary)]">Last Tested: <time dateTime={reading.measuredAt}>{measurementDate(reading.measuredAt)}</time>{reading.derived ? " · Calculated" : ""}</p>}
@@ -86,7 +87,7 @@ export function PlayerPerformanceProfile({ athlete, performance, season, fiction
         <p className="m-0">Baseball performance window: September 1–December 31, 2026. Body comparisons use separate June 1–August 31 and September 1–December 31 testing periods. Each reading carries its recorded test date. Height displays in feet and inches, rounded to one tenth of an inch. Original values and units remain below; different units are never mixed in a percentile. Calculated values marked ≈ are rounded to one decimal in the snapshot; the full result and formula appear below.</p>
         {sourcedCards.length > 0 ? <div className="overflow-x-auto"><table><caption className="sr-only">Sources for the performance snapshot</caption><thead><tr><th>Measurement</th><th>Test date</th><th>Value</th><th>Source / method</th></tr></thead><tbody>{sourcedCards.map(card => {
           const reading = card.latest!;
-          return <tr key={card.metric.key}><td className="font-semibold">{card.metric.label}</td><td className="whitespace-nowrap">{reading.measuredAt}</td><td className="whitespace-nowrap">{String(reading.value)} {reading.unit}</td><td className="min-w-52 max-w-sm break-words">{reading.derived && reading.derivation && <p className="mb-1 mt-0">{reading.derivation}</p>}<span>{reading.source}</span>{reading.provenance.map(source => <span className="mt-1 block" key={source.id}>{source.source_file} · {source.source_sheet || "File"} · Row {source.source_row}</span>)}</td></tr>;
+          return <tr key={card.metric.key}><td className="font-semibold">{card.metric.label}<StatInfo metric={card.metric.key} label={card.metric.label} /></td><td className="whitespace-nowrap">{reading.measuredAt}</td><td className="whitespace-nowrap">{String(reading.value)} {reading.unit}</td><td className="min-w-52 max-w-sm break-words">{reading.derived && reading.derivation && <p className="mb-1 mt-0">{reading.derivation}</p>}<span>{reading.source}</span>{reading.provenance.map(source => <span className="mt-1 block" key={source.id}>{source.source_file} · {source.source_sheet || "File"} · Row {source.source_row}</span>)}</td></tr>;
         })}</tbody></table></div> : <p className="m-0">Source details appear with the first reviewed measurements.</p>}
       </div>
     </details>

@@ -1,0 +1,12 @@
+import { beforeEach, expect, it, vi } from "vitest";
+const fake=vi.hoisted(()=>({access:vi.fn(),from:vi.fn(),select:vi.fn(),eq:vi.fn(),single:vi.fn()}));
+vi.mock("@/lib/auth",()=>({requireAccess:fake.access}));
+vi.mock("next/navigation",()=>({notFound:()=>{throw Error("NOT_FOUND")},redirect:(href:string)=>{throw Error(`REDIRECT:${href}`)}}));
+import PlayerCodePage from "@/app/(workspace)/players/[code]/page";
+const own="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",other="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+beforeEach(()=>{vi.resetAllMocks();const chain={select:fake.select,eq:fake.eq,maybeSingle:fake.single};fake.from.mockReturnValue(chain);fake.select.mockReturnValue(chain);fake.eq.mockReturnValue(chain);fake.single.mockResolvedValue({data:{id:own},error:null});fake.access.mockResolvedValue({roles:["player"],athleteId:own,supabase:{from:fake.from}});});
+it("resolves an authorized permanent code with the ordinary client",async()=>{await expect(PlayerCodePage({params:Promise.resolve({code:"PAC-0001"})})).rejects.toThrow(`REDIRECT:/athletes/${own}`);expect(fake.select).toHaveBeenCalledWith("id");expect(fake.eq).toHaveBeenCalledWith("athlete_code","PAC-0001");});
+it("requires sign-in before the lookup",async()=>{fake.access.mockRejectedValue(Error("SIGN_IN"));await expect(PlayerCodePage({params:Promise.resolve({code:"PAC-0001"})})).rejects.toThrow("SIGN_IN");expect(fake.from).not.toHaveBeenCalled();});
+it("blocks peer profiles even if the mocked data client returns one",async()=>{fake.single.mockResolvedValue({data:{id:other},error:null});await expect(PlayerCodePage({params:Promise.resolve({code:"PAC-0002"})})).rejects.toThrow("NOT_FOUND");});
+it("does not use actual admin privileges during Player View",async()=>{fake.access.mockResolvedValue({actualRoles:["admin"],roles:["player"],athleteId:other,supabase:{from:fake.from}});await expect(PlayerCodePage({params:Promise.resolve({code:"PAC-0001"})})).rejects.toThrow("NOT_FOUND");});
+it.each(["admin","coach"])("permits %s profile navigation",async role=>{fake.access.mockResolvedValue({roles:[role],athleteId:null,supabase:{from:fake.from}});await expect(PlayerCodePage({params:Promise.resolve({code:"PAC-0001"})})).rejects.toThrow(`REDIRECT:/athletes/${own}`);});

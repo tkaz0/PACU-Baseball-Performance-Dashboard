@@ -14,5 +14,5 @@ export default async function CorrectWeightPage({ searchParams }: { searchParams
   if (!data) notFound();
   const player = data as RosterAthlete, performance = await loadAthletePerformance(access, player);
   const readings = performance.measurements.filter(row => normalizePlayerMetric(row.metric, row.unit)?.key === "weight" && ["lb", "kg"].includes(row.unit)).sort((a, b) => b.measured_at.localeCompare(a.measured_at)).map(row => ({ id: row.id, value: row.value, unit: row.unit, date: row.measured_at, source: row.source, file: row.source_file }));
-  return <><Link className="text-link" href={`/athletes/${id}`}>Back to profile</Link><h1 className="mt-5 text-2xl font-bold">Correct Recorded Weight</h1><p className="mb-6 font-semibold">{athleteName(player)} · {player.athlete_code}</p><WeightCorrection athleteId={id} readings={readings} /></>;
+  return <><Link className="text-link" href={`/athletes/${id}`}>Back to profile</Link><h1 className="mt-5 text-2xl font-bold">Correct Recorded Weight</h1><p className="mb-6 font-semibold"><Link href={`/athletes/${id}`} className="underline underline-offset-2">{athleteName(player)}</Link> · {player.athlete_code}</p><WeightCorrection athleteId={id} readings={readings} /></>;
 }

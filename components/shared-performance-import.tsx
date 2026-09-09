@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { migrateWorkspaceAthleteCodes, validateWorkspace } from "@/lib/local-workspace";
@@ -45,7 +46,7 @@ function ImportFields({ athletes }: { athletes: AthleteChoice[] }) {
       <p className="font-semibold" role="status">{review.rows.length} readings ready for review · {new Set(review.rows.map(row => row.athlete_code)).size} players</p>
       {review.excluded.length > 0 && <details className="mb-5"><summary className="cursor-pointer text-sm font-semibold">{review.excluded.length} unsupported measurements will stay in your browser</summary><ul className="mt-3 list-disc pl-5 text-sm">{review.excluded.map(row => <li key={row.index}>{row.metric} ({row.unit}): {row.reason}</li>)}</ul></details>}
       {review.errors.length > 0 && <div role="alert" className="notice notice-error mb-5"><p className="font-semibold">Resolve these items before sharing:</p><ul className="list-disc pl-5">{review.errors.slice(0,20).map((item,index) => <li key={index}>{item.index === null ? "Batch" : `Reading ${item.index + 1}`}: {item.message}</li>)}</ul></div>}
-      {review.rows.length > 0 && <div className="table-wrap mb-5"><table aria-label="Shared measurement review"><thead><tr><th>Player</th><th>Measurement</th><th>Value</th><th>Test date</th><th>Source</th></tr></thead><tbody>{review.rows.map((row,index) => <tr key={row.observation_id}><td>{names.get(row.athlete_code) ?? "Profile not found"}</td><td>{review.candidateMeasurements[index]?.metric}</td><td>{row.value} {row.unit}</td><td>{row.measured_at}</td><td>{row.source}</td></tr>)}</tbody></table></div>}
+      {review.rows.length > 0 && <div className="table-wrap mb-5"><table aria-label="Shared measurement review"><thead><tr><th>Player</th><th>Measurement</th><th>Value</th><th>Test date</th><th>Source</th></tr></thead><tbody>{review.rows.map((row,index) => <tr key={row.observation_id}><td><Link prefetch={false} className="underline underline-offset-2" href={`/players/${row.athlete_code}`}>{names.get(row.athlete_code) ?? "Profile not found"}</Link></td><td>{review.candidateMeasurements[index]?.metric}</td><td>{row.value} {row.unit}</td><td>{row.measured_at}</td><td>{row.source}</td></tr>)}</tbody></table></div>}
       {review.canApply && <div className="space-y-4">
         <input type="hidden" name="measurements" value={JSON.stringify(review.candidateMeasurements)} />
         <label className="flex items-start gap-3 text-sm"><input className="mt-1 !w-auto" type="checkbox" name="confirm" value="yes" required checked={approved} onChange={event => setApproved(event.target.checked)} /><span>I reviewed each player, date, value and unit and approve sharing these measurements with coaches and the linked player.</span></label>

@@ -1,5 +1,7 @@
 "use client";
 
+import { StatInfo } from "@/components/stat-info";
+
 import { useState } from "react";
 import { BarChart3 } from "lucide-react";
 import type { Measurement } from "@/lib/imports/engine";
@@ -25,7 +27,7 @@ function Scale({ maximum, unit }: { maximum: number; unit: string }) {
 
 function ReadingBars({ readings, maximum }: { readings: Measurement[]; maximum: number }) {
   return <ul className="renpho-bar-list">{readings.map(reading => <li key={reading.id} data-testid="renpho-bar" data-metric={reading.metric} data-value={reading.value} data-unit={reading.unit}>
-    <div className="renpho-bar-label"><span>{reading.metric}</span><strong>{String(reading.value)} <small>{reading.unit}</small></strong></div>
+    <div className="renpho-bar-label"><span>{reading.metric}<StatInfo metric={reading.metric} /></span><strong>{String(reading.value)} <small>{reading.unit}</small></strong></div>
     <div className="renpho-bar-track" aria-hidden="true"><span style={{ width: `${reading.value / maximum * 100}%` }} /></div>
   </li>)}</ul>;
 }
@@ -72,7 +74,7 @@ export function RenphoCharts({ readings, batches, athleteCode }: { readings: Mea
           {percentageReadings.length ? <figure aria-label="Reported percentages" data-axis-min="0" data-axis-max="100"><Scale maximum={100} unit="%" /><ReadingBars readings={percentageReadings} maximum={100} /></figure> : <p className="renpho-chart-empty">No percentage measurements available to chart for this report.</p>}
           <p className="renpho-chart-note">Individual report percentages; they are not parts of a single total.</p>
         </div>
-        {otherReadings.length > 0 && <div className="renpho-chart-panel"><h4>Other report measurements</h4><p className="renpho-chart-caption">{report.reference.measured_at} · Values shown in their own units.</p><dl className="renpho-indicator-grid">{otherReadings.map(reading => <div key={reading.id}><dt>{reading.metric}</dt><dd>{String(reading.value)} <span>{reading.unit}</span></dd></div>)}</dl></div>}
+        {otherReadings.length > 0 && <div className="renpho-chart-panel"><h4>Other report measurements</h4><p className="renpho-chart-caption">{report.reference.measured_at} · Values shown in their own units.</p><dl className="renpho-indicator-grid">{otherReadings.map(reading => <div key={reading.id}><dt>{reading.metric}<StatInfo metric={reading.metric} /></dt><dd>{String(reading.value)} <span>{reading.unit}</span></dd></div>)}</dl></div>}
       </div>
     </div>
 
