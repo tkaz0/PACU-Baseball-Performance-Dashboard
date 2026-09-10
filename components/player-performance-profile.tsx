@@ -1,3 +1,4 @@
+import { RenphoBodyScore } from "@/components/renpho-body-score";
 import { StatInfo } from "@/components/stat-info";
 import { PercentileBar } from "@/components/percentile-bar";
 import type { ReactNode } from "react";
@@ -12,7 +13,7 @@ import type { getPlayerPerformance, PlayerMetricCard, PlayerMetricReading } from
 
 export type PlayerPerformanceProfileProps = {
   athlete: RosterAthlete; performance: ReturnType<typeof getPlayerPerformance>; season?: AthleteSeason | null;
-  fictional?: boolean; action?: ReactNode; physicalityDetails?: ReactNode; history?: ReactNode; physicalityScore?: ReactNode;
+  fictional?: boolean; action?: ReactNode; physicalityDetails?: ReactNode; history?: ReactNode;
 };
 function measurementDate(value: string) {
   const date = new Date(`${value.slice(0, 10)}T12:00:00Z`);
@@ -46,17 +47,18 @@ function MetricCard({ card }: { card: PlayerMetricCard }) {
 function MetricGroup({ id, title, cards }: { id: string; title: string; cards: PlayerMetricCard[] }) {
   return <section id={id} aria-labelledby={`${id}-heading`} className="min-w-0"><div className="mb-4 flex items-center gap-3"><h2 id={`${id}-heading`} className="m-0 shrink-0 text-lg font-bold tracking-tight">{title}</h2><span className="h-px flex-1 bg-[var(--line-subtle)]" aria-hidden="true" /></div><ul className={`m-0 grid list-none grid-cols-1 gap-3 p-0 min-[360px]:grid-cols-2 sm:gap-4 ${cards.length === 3 ? "min-[360px]:[&>li:last-child]:col-span-2 xl:[&>li:last-child]:col-span-1" : ""} ${cards.length === 2 ? "xl:grid-cols-2" : cards.length === 4 ? "xl:grid-cols-4" : "xl:grid-cols-3"}`}>{cards.map(card => <MetricCard key={card.metric.key} card={card} />)}</ul></section>;
 }
-export function PlayerPerformanceProfile({ athlete, performance, season, fictional = false, action, physicalityDetails, history, physicalityScore }: PlayerPerformanceProfileProps) {
+export function PlayerPerformanceProfile({ athlete, performance, season, fictional = false, action, physicalityDetails, history }: PlayerPerformanceProfileProps) {
+  const bodyScore = performance.body.find(card => card.metric.key === "body_score")?.latest ?? null;
   const selectedSeason = season ?? [...athlete.athlete_seasons].sort((a, b) => b.season.localeCompare(a.season))[0];
   const position = [selectedSeason?.primary_position, selectedSeason?.secondary_position].filter((value, index, values) => value && values.indexOf(value) === index).join(" / ");
   const layout = getPlayerProfileLayout(performance, selectedSeason);
   const cards = [...layout.physicality, ...layout.additionalBody, ...layout.speedAgility, ...(layout.showHitting ? [...layout.hitting, ...layout.otherHitting] : []), ...layout.fieldThrowing, ...layout.pitching];
-  const sourcedCards = cards.filter(card => card.latest);
+  const sourcedCards = [...cards, ...performance.body.filter(card => card.metric.key === "body_score")].filter(card => card.latest);
   const lastTested = sourcedCards.map(card => card.latest!.measuredAt).sort().at(-1);
   const tabs: ProfileTab[] = [
-    { id: "overview", label: "Overview", content: <>{physicalityScore}<PlayerOverview cards={cards} /></> },
+    { id: "overview", label: "Overview", content: <><RenphoBodyScore reading={bodyScore} /><PlayerOverview cards={cards} /></> },
     { id: "physicality", label: "Physicality", content: <>
-      {physicalityScore}
+      <RenphoBodyScore reading={bodyScore} />
       <MetricGroup id="body-measurements" title="Physicality" cards={layout.physicality} />
       {!!layout.additionalBody.length && <MetricGroup id="body-composition" title="Body Composition" cards={layout.additionalBody} />}
       {physicalityDetails}

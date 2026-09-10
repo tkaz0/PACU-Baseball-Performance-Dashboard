@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PLAYER_METRICS, getPlayerPerformance } from "@/lib/player-performance";
-import { getTestingChecklist, isTestingEligible, pacificTestingDate, TESTING_CATEGORIES, testingMetrics, type TestingAthlete, type TestingObservation } from "@/lib/testing-checklist";
+import { getTestingChecklist, isTestingEligible, pacificTestingDate, TESTING_CATEGORIES, testingMetric, testingMetrics, type TestingAthlete, type TestingObservation } from "@/lib/testing-checklist";
 
 const athlete = (changes: Partial<TestingAthlete> = {}): TestingAthlete => ({ id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", athleteCode: "SYN-001", name: "Fictional Player", jerseyNumber: 0,
   primaryPosition: "OF", secondaryPosition: null, playerType: "position", rosterStatus: "active", ...changes });
@@ -11,7 +11,9 @@ const checklist = (observations: TestingObservation[], metricKey = "max_exit_vel
 describe("testing categories and eligibility", () => {
   it("offers each canonical measurement once, keeping generic/max/average bat speed distinct", () => {
     const keys = TESTING_CATEGORIES.flatMap(category => testingMetrics(category.key).map(metric => metric.key));
-    expect(new Set(keys).size).toBe(PLAYER_METRICS.length); expect([...keys].sort()).toEqual(PLAYER_METRICS.map(metric => metric.key).sort());
+    const manualMetrics = PLAYER_METRICS.filter(metric => metric.key !== "body_score");
+    expect(new Set(keys).size).toBe(manualMetrics.length); expect([...keys].sort()).toEqual(manualMetrics.map(metric => metric.key).sort());
+    expect(testingMetric("body_score")).toBeNull();
     expect(testingMetrics("physicality").some(metric => metric.key === "home_to_first")).toBe(true);
     expect(testingMetrics("hitting").filter(metric => metric.key.includes("bat_speed"))).toHaveLength(3);
   });

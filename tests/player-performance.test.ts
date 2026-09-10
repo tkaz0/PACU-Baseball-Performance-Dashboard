@@ -31,11 +31,11 @@ const cohort = (count = 5) => Array.from({ length: count }, (_, i) => athlete(i 
 
 describe("canonical player metric catalog", () => {
   it("defines exactly the requested ordered groups and directions", () => {
-    expect(PLAYER_METRICS.filter(metric => metric.group === "body").map(metric => metric.key)).toEqual(["height", "weight", "grip_strength", "body_fat_pct", "muscle_mass", "muscle_mass_pct"]);
+    expect(PLAYER_METRICS.filter(metric => metric.group === "body").map(metric => metric.key)).toEqual(["body_score", "height", "weight", "grip_strength", "body_fat_pct", "muscle_mass", "muscle_mass_pct"]);
     expect(PLAYER_METRICS.filter(metric => metric.group === "hitting")).toHaveLength(11);
     expect(PLAYER_METRICS.filter(metric => metric.group === "pitching")).toHaveLength(6);
-    expect(new Set(PLAYER_METRICS.map(metric => metric.key)).size).toBe(25);
-    expect(PLAYER_METRICS.filter(metric => metric.direction === "neutral").map(metric => metric.key)).toEqual(["height", "weight", "body_fat_pct", "muscle_mass", "muscle_mass_pct", "avg_fastball_spin"]);
+    expect(new Set(PLAYER_METRICS.map(metric => metric.key)).size).toBe(26);
+    expect(PLAYER_METRICS.filter(metric => metric.direction === "neutral").map(metric => metric.key)).toEqual(["body_score", "height", "weight", "body_fat_pct", "muscle_mass", "muscle_mass_pct", "avg_fastball_spin"]);
     expect(PLAYER_METRICS.find(metric => metric.key === "bb_pct")?.direction).toBe("lower");
   });
   it.each([

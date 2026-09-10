@@ -1,5 +1,3 @@
-import { loadPhysicalityComposite } from "@/lib/physicality-composite-server";
-import { PhysicalityScoreCard } from "@/components/physicality-score";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, ChevronDown } from "lucide-react";
@@ -28,7 +26,7 @@ export default async function Profile({ params, searchParams }: { params: Promis
   const season = seasons.find(item => item.season === "2026-27") ?? seasons[0];
   const staff = roles.includes("admin") || roles.includes("coach");
   const admin = roles.includes("admin");
-  const [shared, composite] = await Promise.all([loadAthletePerformance(access,athlete), loadPhysicalityComposite(access)]);
+  const shared = await loadAthletePerformance(access,athlete);
   const performance = getPlayerPerformance({ readings:shared.measurements, batches:shared.batches, athleteCode:athlete.athlete_code, cohortAthleteCodes:[], percentileOverrides:shared.percentileOverrides });
   const readings = shared.measurements.filter(reading => {
     if (!profileMeasurementVisible(reading, season)) return false;
@@ -42,7 +40,6 @@ export default async function Profile({ params, searchParams }: { params: Promis
     {staff && <Link href="/roster" className="profile-back"><ArrowLeft size={15} />Team roster</Link>}
     <PlayerPerformanceProfile athlete={athlete} performance={performance} season={season}
       action={canImportPresentedAccess(access) ? <Link href="/imports" className="text-link">Import Information <ArrowRight size={15} /></Link> : undefined}
-      physicalityScore={<PhysicalityScoreCard score={composite.rows.find(row => row.athleteCode === athlete.athlete_code)} sampleSize={composite.sampleSize} source={composite.source} />}
       physicalityDetails={getRenphoReports(readings,shared.batches,athlete.athlete_code).length > 0 ? <details className="group rounded-lg border border-[var(--line-subtle)] bg-[var(--surface-panel)]"><summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-sm font-semibold sm:px-6">Full RENPHO charts &amp; report history<ChevronDown size={16} className="shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" /></summary><div className="border-t border-[var(--line-subtle)] px-5 py-5 sm:px-6"><RenphoCharts readings={readings} batches={shared.batches} athleteCode={athlete.athlete_code} /></div></details> : undefined}
       history={readings.length > 0 ? <details className="group rounded-lg border border-[var(--line-subtle)] bg-[var(--surface-panel)]"><summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-sm font-semibold sm:px-6">Measurement history · {readings.length} readings<ChevronDown size={16} className="shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" /></summary><div className="table-wrap border-t border-[var(--line-subtle)]"><table aria-label="Shared measurement history"><thead><tr><th>Test date</th><th>Measurement</th><th>Value</th><th>Source</th></tr></thead><tbody>{readings.map(reading => <tr key={reading.id}><td className="whitespace-nowrap">{reading.measured_at}</td><td>{reading.metric}</td><td className="whitespace-nowrap tabular-nums">{reading.value} {reading.unit}</td><td>{reading.source}</td></tr>)}</tbody></table></div></details> : undefined} />
     {admin && !access.preview && <p className="mt-6 text-sm"><Link className="text-link" href={`/admin/correct-weight?athlete=${id}`}>Correct Recorded Weight</Link></p>}

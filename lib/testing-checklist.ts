@@ -21,7 +21,7 @@ export type TestingChecklist = {
   recordedCount: number; needsTestingCount: number; totalCount: number;
 };
 
-const definitions = new Map(PLAYER_METRICS.map(metric => [metric.key, metric]));
+const definitions = new Map(PLAYER_METRICS.filter(metric => metric.key !== "body_score").map(metric => [metric.key, metric]));
 const infield = new Set(["1B", "2B", "3B", "SS", "IF"]), outfield = new Set(["LF", "CF", "RF", "OF"]);
 export function testingMetrics(category: TestingCategory): PlayerMetricDefinition[] {
   return (TESTING_CATEGORIES.find(item => item.key === category)?.metricKeys ?? []).map(key => definitions.get(key)!);

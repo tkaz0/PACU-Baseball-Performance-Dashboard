@@ -102,6 +102,7 @@ function extractRegions(words: OcrWord[], canvas: HTMLCanvasElement): RenphoRegi
       measurement: text([.187, top, .333, ROW_EDGES[index + 1]]),
       line: index + 1,
     })),
+    bodyScore: text([.645, .108, .97, .174]),
     assessment: text([.645, .353, .97, .477]),
     indicators: text([.645, .811, .97, .955]),
   };

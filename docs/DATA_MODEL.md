@@ -246,4 +246,4 @@ Migration 202609080003 enables profile_metric on the existing muscle_mass catalo
 
 Coaching Analytics is a read-only view over eligible 2026–27 roster attributes and saved numerical measurements. It adds no persisted correlations or derived athlete records; source/unit/date partitions and pairing rules are documented in [ANALYTICS](ANALYTICS.md).
 
-Physicality Score v1 is available on the signed-in Physicality leaderboard and hosted profile Overview/Physicality tabs. It derives from existing authorized comparisons without a migration. See [PHYSICALITY_SCORE.md](PHYSICALITY_SCORE.md) for formula, completeness requirements and limits.
+- RENPHO Body Score uses only the printed top-right report score, with no custom composite. See `RENPHO_BODY_SCORE.md`.

@@ -4,7 +4,7 @@ import { getRenphoChartReadings, getRenphoReports } from "@/lib/renpho-charts";
 
 export type PlayerMetricGroup = "body" | "hitting" | "pitching" | "throwing";
 export type PlayerMetricDirection = "neutral" | "higher" | "lower";
-export type PlayerMetricKey = "height" | "weight" | "grip_strength" | "body_fat_pct" | "muscle_mass_pct" | "muscle_mass"
+export type PlayerMetricKey = "body_score" | "height" | "weight" | "grip_strength" | "body_fat_pct" | "muscle_mass_pct" | "muscle_mass"
   | "max_exit_velocity" | "avg_exit_velocity" | "bat_speed" | "home_to_first" | "home_to_second" | "steal_break" | "boxer_t"
   | "max_bat_speed" | "avg_bat_speed" | "smash_factor" | "max_distance"
   | "infield_velocity" | "outfield_velocity"
@@ -15,6 +15,7 @@ export type PlayerMetricDefinition = {
 };
 
 export const PLAYER_METRICS: readonly PlayerMetricDefinition[] = [
+  { key: "body_score", label: "RENPHO Body Score", group: "body", units: ["points"], direction: "neutral" },
   { key: "height", label: "Height", group: "body", units: ["in", "cm"], direction: "neutral" },
   { key: "weight", label: "Weight", group: "body", units: ["lb", "kg", "st"], direction: "neutral" },
   { key: "grip_strength", label: "Grip Strength", group: "body", units: ["lb", "kg", "N"], direction: "higher" },
@@ -76,6 +77,7 @@ const sourceKey = (value: string) => value.trim().toLowerCase().replace(/\s+/g, 
 const aliases = new Map<string, PlayerMetricKey>();
 for (const metric of PLAYER_METRICS) for (const label of [metric.key, metric.label]) aliases.set(labelKey(label), metric.key);
 const extraAliases: Record<PlayerMetricKey, readonly string[]> = {
+  body_score: ["Body Score"],
   height: ["Body height"], weight: ["Body weight"],
   grip_strength: ["Grip Force"],
   body_fat_pct: ["Body Fat Percentage", "Body Fat Percent"],
@@ -99,6 +101,7 @@ const extraAliases: Record<PlayerMetricKey, readonly string[]> = {
 };
 for (const [key, labels] of Object.entries(extraAliases)) for (const label of labels) aliases.set(labelKey(label), key as PlayerMetricKey);
 const unitAliases = new Map([
+  ["points", "points"], ["point", "points"],
   ["in", "in"], ["inch", "in"], ["inches", "in"], ["cm", "cm"],
   ["lb", "lb"], ["lbs", "lb"], ["kg", "kg"], ["st", "st"],
   ["%", "%"], ["percent", "%"], ["mph", "mph"], ["km/h", "km/h"], ["m/s", "m/s"],

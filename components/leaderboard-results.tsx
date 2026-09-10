@@ -6,6 +6,7 @@ import { formatHeight } from "@/lib/measurement-display";
 import styles from "./leaderboard.module.css";
 
 function ResultValue({ row, metric, unit }: { row: LeaderboardRow; metric: LeaderboardMetricDefinition; unit: string }) {
+  if (metric.key === "body_score") return <><span>{row.value}</span><span className={styles.unit}>/100</span></>;
   const height = metric.key === "height" ? formatHeight(row.value, unit) : null;
   if (height) return <span className="whitespace-nowrap" title={`Recorded: ${String(row.value)} ${unit}`}>{height}</span>;
   return <>{row.derived

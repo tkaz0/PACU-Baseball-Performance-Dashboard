@@ -8,6 +8,7 @@ import { useLocalWorkspace } from "@/components/local-workspace";
 import { athleteName } from "@/lib/types";
 import { findRenphoAthlete, normalizeRenphoId, type MeasurementPreview } from "@/lib/imports/engine";
 import { previewRenphoMeasurements, renphoReviewIssues } from "@/lib/imports/renpho-preview";
+import { withReviewedRenphoBodyScore } from "@/lib/imports/renpho";
 import { readRenphoReport } from "@/lib/imports/renpho-file";
 import { FileDropZone } from "@/components/file-drop-zone";
 import type { Measurement } from "@/lib/imports/engine";
@@ -32,6 +33,7 @@ export function RenphoReportForm({ workspace, shared }: { workspace: RenphoWorks
   const [date, setDate] = useState("");
   const [renphoId, setRenphoId] = useState("");
   const [remember, setRemember] = useState(false);
+  const [manualBodyScore, setManualBodyScore] = useState("");
   const [values, setValues] = useState<Record<string, string>>({});
   const [excluded, setExcluded] = useState<string[]>([]);
   const [confirmedUnits, setConfirmedUnits] = useState<string[]>([]);
@@ -80,7 +82,7 @@ export function RenphoReportForm({ workspace, shared }: { workspace: RenphoWorks
   async function chooseFile(file?: File) {
     controller.current?.abort();
     const current = new AbortController(); controller.current = current;
-    invalidate(); setReport(null); setSharedExisting([]); setAthleteCode(""); setDate(""); setRenphoId(""); setRemember(false); setExcluded([]); setConfirmedUnits([]); setValues({});
+    invalidate(); setManualBodyScore(""); setReport(null); setSharedExisting([]); setAthleteCode(""); setDate(""); setRenphoId(""); setRemember(false); setExcluded([]); setConfirmedUnits([]); setValues({});
     matchRequest.current++; setSharedMatch(null); setMatchError(""); setMatching(false);
     if (imageUrl.current) { URL.revokeObjectURL(imageUrl.current); imageUrl.current = ""; }
     if (!file) { setBusy(""); return; }
@@ -113,12 +115,13 @@ export function RenphoReportForm({ workspace, shared }: { workspace: RenphoWorks
       if (matching || matchPending) throw new Error("Check the RENPHO ID to finish matching this report.");
       if (!athleteCode || !date) throw new Error("Choose the player and test date first.");
       if (remember && !renphoId.trim()) throw new Error("Enter the report ID before remembering its player.");
-      const candidates = report.parsed.candidateReadings.filter(reading => !excluded.includes(reading.key)).map(reading => {
-        const text = values[reading.key]?.trim() ?? "";
+      const parsed = withReviewedRenphoBodyScore(report.parsed, manualBodyScore);
+      const candidates = parsed.candidateReadings.filter(reading => !excluded.includes(reading.key)).map(reading => {
+        const text = reading.unitEvidence === "manual-report" ? reading.valueText : values[reading.key]?.trim() ?? "";
         if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(text) || !Number.isFinite(Number(text))) throw new Error(`Check the number for ${reading.label}.`);
         return { ...reading, value: Number(text), valueText: text };
       });
-      const data = previewRenphoMeasurements({ parsed: report.parsed, candidates, athleteCode, measuredAt: date, roster: workspace.roster, existing: shared ? sharedExisting : workspace.measurements, fileHash: report.fileHash, fileName: report.fileName, confirmedUnits });
+      const data = previewRenphoMeasurements({ parsed, candidates, athleteCode, measuredAt: date, roster: workspace.roster, existing: shared ? sharedExisting : workspace.measurements, fileHash: report.fileHash, fileName: report.fileName, confirmedUnits });
       setReviewed({ data, revision: workspace.revision });
     } catch (error) { setError(message(error)); }
   }
@@ -172,7 +175,7 @@ export function RenphoReportForm({ workspace, shared }: { workspace: RenphoWorks
             <img src={report.previewUrl} alt="Your uploaded RENPHO report for comparison" className="mt-4 h-auto w-full" />
           </details>
           <div className="min-w-0">
-            {report.parsed.issues.filter(issue => ["mass_unit_ocr", "smi_unit_ocr", "percentage_ocr_reread", "height_unreadable", "height_ambiguous"].includes(issue.code)).map((issue, index) => <p className="notice mb-4 text-sm" key={index}>{issue.message}</p>)}
+            {report.parsed.issues.filter(issue => ["mass_unit_ocr", "smi_unit_ocr", "percentage_ocr_reread", "height_unreadable", "height_ambiguous", "body_score_unreadable"].includes(issue.code)).map((issue, index) => <p className="notice mb-4 text-sm" key={index}>{issue.message}</p>)}
             {omittedMetrics.length > 0 && <p role="status" className="notice mb-4 text-sm"><strong>Left out: {omittedMetrics.join(", ")}.</strong>{" "}These readings could not be read clearly. You can still review and save the selected readings below.</p>}
             {parserErrors.length > 0 && <div role="alert" className="notice notice-error mb-4">
               <p className="font-semibold">Some report details could not be read.</p>
@@ -185,6 +188,7 @@ export function RenphoReportForm({ workspace, shared }: { workspace: RenphoWorks
               <td><input aria-label={`${reading.label} value`} className="min-w-20" inputMode="decimal" value={values[reading.key] ?? ""} disabled={!!busy || excluded.includes(reading.key)} onChange={event => { invalidate(); setValues(current => ({ ...current, [reading.key]: event.target.value })); }} /></td>
               <td className="text-sm">{reading.unit}{reading.unitNeedsConfirmation && <label className="mt-2 flex min-w-40 items-start gap-2 text-xs font-normal"><input type="checkbox" checked={confirmedUnits.includes(reading.key)} disabled={!!busy || excluded.includes(reading.key)} onChange={event => { invalidate(); setConfirmedUnits(current => event.target.checked ? [...current, reading.key] : current.filter(key => key !== reading.key)); }} /><span>Confirm {reading.label} unit is {reading.unit}. The small exponent was unreadable; check the original or leave this reading out.</span></label>}</td>
             </tr>)}</tbody></table></div>
+            {report.parsed.recognizedLayout && !report.parsed.candidateReadings.some(reading => reading.key === "body_score") && <label className="mt-4 block text-sm">Body Score — Top Right of Report <span className="muted">(optional)</span><input inputMode="decimal" placeholder="Enter the printed score" value={manualBodyScore} disabled={!!busy} onChange={event => { invalidate(); setManualBodyScore(event.target.value); }} /><span className="muted text-xs">Points on the report’s /100 scale. Leave blank to save the other readings.</span></label>}
             <details className="mt-3 text-sm"><summary className="muted cursor-pointer font-medium">About These Readings</summary><p className="muted mb-0 mt-3 text-xs">Units stay as printed. BMI/SMI use kg/m²; visceral fat is a device index and waist-to-hip is a ratio. Reference ranges, device targets, and body classifications are excluded.</p></details>
             <button type="button" className="btn btn-primary mt-3" disabled={!!busy || matching || matchPending || parserErrors.length > 0 || !athleteCode || !date || !!identityError || !workspace.ready || !!workspace.error} onClick={preview}>Review import</button>
           </div>

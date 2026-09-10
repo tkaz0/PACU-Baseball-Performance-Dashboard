@@ -294,4 +294,4 @@ After deploying the total-muscle profile catalog, apply 202609080003_profile_tot
 
 Analytics at `/analytics` needs no additional migration or key. It reads existing roster and numerical measurement tables using the active staff session. Player View is denied. See [ANALYTICS](ANALYTICS.md).
 
-Physicality Score v1 is available on the signed-in Physicality leaderboard and hosted profile Overview/Physicality tabs. It derives from existing authorized comparisons without a migration. See [PHYSICALITY_SCORE.md](PHYSICALITY_SCORE.md) for formula, completeness requirements and limits.
+- RENPHO Body Score uses only the printed top-right report score, with no custom composite. See `RENPHO_BODY_SCORE.md`.

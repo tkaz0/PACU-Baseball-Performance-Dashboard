@@ -24,7 +24,7 @@ export function getPlayerProfileLayout(performance: PlayerPerformance, season?: 
   return {
     showHitting: positionTesting,
     physicality: ordered(all, PHYSICALITY_PRIMARY),
-    additionalBody: performance.body.filter(card => card.metric.key !== "muscle_mass_pct" && !(PHYSICALITY_PRIMARY as readonly string[]).includes(card.metric.key)),
+    additionalBody: performance.body.filter(card => card.metric.key !== "body_score" && card.metric.key !== "muscle_mass_pct" && !(PHYSICALITY_PRIMARY as readonly string[]).includes(card.metric.key)),
     speedAgility: positionTesting ? ordered(all, SPEED_AGILITY) : [],
     hitting: ordered(all, HITTING_PRIMARY),
     // Existing generic bat speed is not relabeled as a max or average.

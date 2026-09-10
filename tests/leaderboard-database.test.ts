@@ -124,6 +124,15 @@ describe("comparable latest results and numerical places", () => {
       expect((await board({ metricKey: "weight", unit: "lb", source: "renpho", period: "summer_2026" })).map(row => row.athleteCode)).toEqual([code(1)]);
     });
   });
+  it("shows the exact printed Body Score, including values above 100, without deriving a score", async () => {
+    const source = { metric_key: "body_score", unit: "points", source: "RENPHO", source_sheet: "RENPHO report · Page 1", source_row: 4001 };
+    await save([row(1, { ...source, value: 84 }, 22), row(2, { ...source, value: 103 }, 22)]);
+    for (const user of [users.player, users.coach]) await asUser(user, async () => {
+      expect(await options()).toEqual([{ metricKey: "body_score", unit: "points", source: "renpho", period: "fall_2026", athleteCount: 2 }]);
+      const result = await board({ metricKey: "body_score", unit: "points", source: "renpho" });
+      expect(result.map(item => [item.value, item.rank, item.derived])).toEqual([[103, 1, false], [84, 2, false]]);
+    });
+  });
   it("includes reviewed RENPHO header heights in the signed-in leaderboard without exposing report evidence", async () => {
     const source = { metric_key: "height", unit: "in", source: "RENPHO", source_sheet: "RENPHO report · Page 1", source_row: 3001 };
     await save([row(1, { ...source, value: 54 }, 21), row(2, { ...source, value: 55 }, 21)]);
@@ -151,7 +160,7 @@ describe("comparable latest results and numerical places", () => {
     await save([row(1, { ...body, metric_key: "weight", value: 150 }, 0), row(1, { ...body, metric_key: "muscle_mass", value: 100 }, 1), row(1, { ...body, metric_key: "weight", unit: "kg", value: 70 }, 2)]);
     expect(await asUser(users.player, () => board({ metricKey: "muscle_mass_pct", unit: "%", source: "renpho", period: "summer_2026" }))).toEqual([]);
   });
-  it.each([{ metricKey: "body_score" }, { source: "Fictional protocol" }, { source: "" }, { unit: "unknown" }, { period: "summer_2026" }, { period: "invented" }])("rejects invalid or incomparable selectors %#", async changes => {
+  it.each([{ metricKey: "invented_score" }, { source: "Fictional protocol" }, { source: "" }, { unit: "unknown" }, { period: "summer_2026" }, { period: "invented" }])("rejects invalid or incomparable selectors %#", async changes => {
     await asUser(users.player, async () => { await expect(board(changes as Partial<LeaderboardSelection>)).rejects.toThrow("Choose one valid leaderboard"); });
   });
   it("keeps definer wrappers pinned and read-only without direct table grants", async () => {
