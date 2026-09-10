@@ -14,7 +14,7 @@ const physicality = new Set(["skeletal_muscle_mass", "body_score", "height", "we
 export function leaderboardGroup(metric: LeaderboardMetricDefinition): LeaderboardGroup {
   return physicality.has(metric.key) ? "physicality" : metric.group === "hitting" ? "hitting" : "throwing";
 }
-export const leaderboardMetrics = (group: LeaderboardGroup) => LEADERBOARD_METRICS.filter(metric => metric.key !== "muscle_mass_pct" && leaderboardGroup(metric) === group).sort((a, b) => {
+export const leaderboardMetrics = (group: LeaderboardGroup) => LEADERBOARD_METRICS.filter(metric => metric.key !== "skeletal_muscle_mass" && metric.key !== "muscle_mass_pct" && leaderboardGroup(metric) === group).sort((a, b) => {
   const order = ["body_score", "height", "weight", "muscle_mass", "skeletal_muscle_mass", "body_fat_pct", "grip_strength"];
   return (order.indexOf(a.key) < 0 ? 99 : order.indexOf(a.key)) - (order.indexOf(b.key) < 0 ? 99 : order.indexOf(b.key));
 });

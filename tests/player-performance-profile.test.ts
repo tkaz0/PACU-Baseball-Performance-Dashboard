@@ -48,7 +48,7 @@ describe("player profile tabs and presentation",()=>{
   const performance=model([measurement("Home to First",4.2,"s"),measurement("Bat Speed",72,"mph"),measurement("Body Fat Percentage",18,"%")]),layout=getPlayerProfileLayout(performance,fictionalAthlete("position").athlete_seasons[0]);
   expect(layout.physicality.map(c=>c.metric.key)).toEqual(["weight","height","grip_strength"]);expect(layout.hitting.map(c=>c.metric.key)).toEqual(["max_exit_velocity","avg_exit_velocity","max_bat_speed","avg_bat_speed","smash_factor","max_distance"]);
   const speed=layout.speedAgility.find(c=>c.metric.key==="home_to_first")!;expect(speed).toBe(performance.hitting.find(c=>c.metric.key==="home_to_first"));expect(speed.latest).toMatchObject({measuredAt:"2026-09-03",period:"fall_2026",unit:"s",value:4.2});
-  expect(layout.additionalBody.map(c=>c.metric.key)).toEqual(["body_fat_pct","muscle_mass","skeletal_muscle_mass"]);
+  expect(layout.additionalBody.map(c=>c.metric.key)).toEqual(["body_fat_pct","muscle_mass"]);
   expect(layout.otherHitting.map(c=>c.metric.key)).toEqual(["bat_speed"]);expect(layout.hitting.find(c=>c.metric.key==="max_bat_speed")?.latest).toBeNull();expect(layout.hitting.find(c=>c.metric.key==="avg_bat_speed")?.latest).toBeNull();
   const html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete:fictionalAthlete("position"),performance}));expect(html).toContain("Bat Speed (Unspecified)");expect(html).toContain('data-value="72"');
   const physicality=html.split('id="body-measurements"')[1].split('id="body-composition"');expect(physicality[0]).not.toContain('data-metric-key="body_fat_pct"');expect(physicality[1]).toContain('data-metric-key="body_fat_pct" data-value="18" data-unit="%"');

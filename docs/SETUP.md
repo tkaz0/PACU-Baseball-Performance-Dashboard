@@ -296,4 +296,4 @@ Analytics at `/analytics` needs no additional migration or key. It reads existin
 
 - RENPHO Body Score uses only the printed top-right report score, with no custom composite. See `RENPHO_BODY_SCORE.md`.
 
-See [RENPHO skeletal muscle and muscle balance](RENPHO_MUSCLE_BALANCE.md) for the main skeletal-mass measurement, private segment readings, 10% review flag, and migration 202609100001. Deploy the compatible app before enabling the catalog migration.
+See [RENPHO skeletal muscle and muscle balance](RENPHO_MUSCLE_BALANCE.md) for retained skeletal-mass report data, private segment readings, the 10% review flag, and migration 202609100001. Skeletal mass is hidden from main profile cards, leaderboards and Testing choices. Deploy the compatible app before enabling the catalog migration.

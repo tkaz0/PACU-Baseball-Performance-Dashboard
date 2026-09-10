@@ -2,7 +2,7 @@ import { PLAYER_METRICS, PLAYER_PERFORMANCE_PERIODS, validatePlayerMetricValue, 
 
 export type TestingCategory = "physicality" | "hitting" | "throwing";
 export const TESTING_CATEGORIES: readonly { key: TestingCategory; label: string; metricKeys: readonly PlayerMetricKey[] }[] = [
-  { key: "physicality", label: "Physicality", metricKeys: ["weight", "height", "grip_strength", "body_fat_pct", "muscle_mass", "skeletal_muscle_mass", "muscle_mass_pct", "home_to_first", "home_to_second", "steal_break", "boxer_t"] },
+  { key: "physicality", label: "Physicality", metricKeys: ["weight", "height", "grip_strength", "body_fat_pct", "muscle_mass", "muscle_mass_pct", "home_to_first", "home_to_second", "steal_break", "boxer_t"] },
   { key: "hitting", label: "Hitting", metricKeys: ["max_exit_velocity", "avg_exit_velocity", "max_bat_speed", "avg_bat_speed", "smash_factor", "max_distance", "bat_speed"] },
   { key: "throwing", label: "Throwing", metricKeys: ["infield_velocity", "outfield_velocity", "max_pitch_velocity", "avg_pitch_velocity", "avg_fastball_spin", "strike_pct", "k_pct", "bb_pct"] },
 ];
@@ -21,7 +21,7 @@ export type TestingChecklist = {
   recordedCount: number; needsTestingCount: number; totalCount: number;
 };
 
-const definitions = new Map(PLAYER_METRICS.filter(metric => metric.key !== "body_score").map(metric => [metric.key, metric]));
+const definitions = new Map(PLAYER_METRICS.filter(metric => metric.key !== "body_score" && metric.key !== "skeletal_muscle_mass").map(metric => [metric.key, metric]));
 const infield = new Set(["1B", "2B", "3B", "SS", "IF"]), outfield = new Set(["LF", "CF", "RF", "OF"]);
 export function testingMetrics(category: TestingCategory): PlayerMetricDefinition[] {
   return (TESTING_CATEGORIES.find(item => item.key === category)?.metricKeys ?? []).map(key => definitions.get(key)!);

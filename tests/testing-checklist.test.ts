@@ -11,7 +11,7 @@ const checklist = (observations: TestingObservation[], metricKey = "max_exit_vel
 describe("testing categories and eligibility", () => {
   it("offers each canonical measurement once, keeping generic/max/average bat speed distinct", () => {
     const keys = TESTING_CATEGORIES.flatMap(category => testingMetrics(category.key).map(metric => metric.key));
-    const manualMetrics = PLAYER_METRICS.filter(metric => metric.key !== "body_score");
+    const manualMetrics = PLAYER_METRICS.filter(metric => metric.key !== "body_score" && metric.key !== "skeletal_muscle_mass");
     expect(new Set(keys).size).toBe(manualMetrics.length); expect([...keys].sort()).toEqual(manualMetrics.map(metric => metric.key).sort());
     expect(testingMetric("body_score")).toBeNull();
     expect(testingMetrics("physicality").some(metric => metric.key === "home_to_first")).toBe(true);

@@ -48,10 +48,11 @@ describe('RENPHO muscle balance',()=>{
   expect(getRenphoMuscleBalance({...report,readings:[...report.readings,{...duplicate,id:'duplicate'}]}).pairs[0].difference).toBeNull();
   expect(getRenphoMuscleBalance({...report,readings:report.readings.filter(r=>r.metric!=='Left Arm Muscle Mass')}).pairs[0].difference).toBeNull();
  });
- it('promotes skeletal mass separately from total muscle mass in profiles and leaderboards',()=>{
+ it('retains recorded skeletal mass in history while hiding its main cards and leaderboard',()=>{
   const performance=getPlayerPerformance({readings:preview().candidateMeasurements,athleteCode:'SYN-001'});
-  expect(getPlayerProfileLayout(performance).additionalBody.find(c=>c.metric.key==='skeletal_muscle_mass')?.latest?.value).toBe(7);
+  expect(performance.body.find(c=>c.metric.key==='skeletal_muscle_mass')?.latest?.value).toBe(7);
+  expect(getPlayerProfileLayout(performance).additionalBody.some(c=>c.metric.key==='skeletal_muscle_mass')).toBe(false);
   expect(getPlayerProfileLayout(performance).additionalBody.find(c=>c.metric.key==='muscle_mass')?.latest?.value).toBe(6);
-  expect(leaderboardMetrics('physicality').some(m=>m.key==='skeletal_muscle_mass')).toBe(true);
+  expect(leaderboardMetrics('physicality').some(m=>m.key==='skeletal_muscle_mass')).toBe(false);
  });
 });

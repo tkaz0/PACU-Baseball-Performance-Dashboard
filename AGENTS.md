@@ -59,4 +59,4 @@ The owner now requests total recorded Muscle Mass on player profiles too. The sh
 
 - RENPHO Body Score uses only the printed top-right report score, with no custom composite. See `docs/RENPHO_BODY_SCORE.md`.
 
-- Skeletal Muscle Mass is a main Body Composition/profile and Physicality leaderboard metric. Muscle Balance stores only the five printed segment masses, with an owner-selected >=10% left/right review flag (larger side denominator), not a clinical cutoff. Keep segment comparisons within one report/player/unit; no missing-value substitution, diagnosis or injury prediction. See docs/RENPHO_MUSCLE_BALANCE.md.
+- The owner subsequently removed Skeletal Muscle Mass from main profile cards, leaderboards and Testing choices; retain its original report data. Muscle Balance stores only the five printed segment masses, with an owner-selected >=10% left/right review flag (larger side denominator), not a clinical cutoff. Keep segment comparisons within one report/player/unit; no missing-value substitution, diagnosis or injury prediction. See docs/RENPHO_MUSCLE_BALANCE.md.

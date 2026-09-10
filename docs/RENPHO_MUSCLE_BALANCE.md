@@ -1,6 +1,6 @@
 # Skeletal muscle and muscle balance
 
-Skeletal Muscle Mass is a main Body Composition card and Physicality leaderboard metric, in recorded lb/kg. Existing saved skeletal mass appears automatically; it is never relabeled total muscle mass, percentage, or a strength measure. Neutral percentile semantics and exact source/unit/period comparison remain unchanged.
+The owner subsequently removed Skeletal Muscle Mass from main profile cards, leaderboards and Testing choices. Recorded lb/kg values remain in the full report/history and Analytics; it is never relabeled total muscle mass, percentage, or a strength measure. Neutral percentile semantics and exact source/unit/period comparison remain unchanged.
 
 A compact Muscle Balance section appears below Body Composition on private player profiles. It uses only the latest RENPHO report for that athlete. Arms and legs are separate paired zero-based bars with exact labels/values and a common scale within each pair. Trunk is a separate reading. Older readings are not silently substituted when the latest report lacks segments. No blank, invalid, duplicate, cross-player, cross-report or cross-unit values are compared.
 
