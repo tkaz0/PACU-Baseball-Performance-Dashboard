@@ -295,3 +295,5 @@ After deploying the total-muscle profile catalog, apply 202609080003_profile_tot
 Analytics at `/analytics` needs no additional migration or key. It reads existing roster and numerical measurement tables using the active staff session. Player View is denied. See [ANALYTICS](ANALYTICS.md).
 
 - RENPHO Body Score uses only the printed top-right report score, with no custom composite. See `RENPHO_BODY_SCORE.md`.
+
+See [RENPHO skeletal muscle and muscle balance](RENPHO_MUSCLE_BALANCE.md) for the main skeletal-mass measurement, private segment readings, 10% review flag, and migration 202609100001. Deploy the compatible app before enabling the catalog migration.

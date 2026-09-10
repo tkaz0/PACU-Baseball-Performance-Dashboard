@@ -186,3 +186,20 @@ describe("total muscle mass projection", () => {
     expect((await db.query("select profile_metric from private.performance_metric_catalog where metric_key='muscle_mass'")).rows[0]).toEqual({profile_metric:true});
   });
 });
+
+
+describe("skeletal mass and private segmental measurements", () => {
+  it("accepts coach imports, shares skeletal mass rankings, and keeps segmental data out of peer boards", async () => {
+    await asUser(users.coach, () => db.query("select public.admin_import_performance($1::jsonb)", [JSON.stringify([
+      row(1,{metric_key:"skeletal_muscle_mass",unit:"lb",value:85},7),
+      row(1,{metric_key:"left_arm_muscle_mass",unit:"lb",value:10,source_row:5001},23),
+      row(2,{metric_key:"left_arm_muscle_mass",unit:"lb",value:11,source_row:5001},23),
+    ])]));
+    await asUser(users.player, async () => {
+      expect((await options()).map(option=>option.metricKey)).toEqual(["skeletal_muscle_mass"]);
+      expect((await board({metricKey:"skeletal_muscle_mass",unit:"lb"}))[0].value).toBe(85);
+      const visible=await db.query("select athlete_id from public.performance_measurements where metric_key='left_arm_muscle_mass'");
+      expect(visible.rows).toEqual([{athlete_id:athlete(1)}]);
+    });
+  });
+});

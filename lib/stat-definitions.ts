@@ -1,12 +1,15 @@
+import { RENPHO_SEGMENTS } from "@/lib/renpho-segments";
 import { PLAYER_METRICS, normalizePlayerMetric } from "@/lib/player-performance";
 
 // Short descriptions of recorded measures, not targets or medical interpretations.
 export const STAT_DEFINITIONS: Readonly<Record<string, string>> = {
+  ...Object.fromEntries(RENPHO_SEGMENTS.map(segment => [segment.label.toLowerCase(), "Estimated muscle mass for this body part from RENPHO’s Muscle Balance section. The mass is separate from the percentage compared with the device’s standard and is not a strength measurement."])),
   body_score: "The Body Score printed in the top-right corner of the RENPHO report, on its /100 scale. This is the device’s recorded score; PACU does not calculate or combine measurements to produce it. Some reports may exceed 100. It is not a team percentile.",
   height: "Recorded standing height. Displayed in feet and inches; comparisons keep the original measurement units separate.",
   weight: "Total recorded body weight on the test date. A higher percentile means a higher measured weight, not a better score.",
   grip_strength: "Force measured during a grip-strength test. Compare results taken with the same device, hand, and testing protocol.",
   body_fat_pct: "The report’s estimated fat mass as a percentage of body weight. This is a body-composition measurement, not a performance rating.",
+  skeletal_muscle_mass: "The device’s estimated skeletal muscle mass, in pounds or kilograms. This is separate from total muscle mass and is not a strength test.",
   muscle_mass: "Total muscle mass reported by the device, in pounds or kilograms. It is separate from skeletal muscle mass and muscle mass percentage.",
   muscle_mass_pct: "Reported muscle mass as a percentage of body weight. Calculated readings use muscle mass and weight from the same report.",
   max_exit_velocity: "The highest recorded speed of a batted ball leaving the bat in the reviewed session.",

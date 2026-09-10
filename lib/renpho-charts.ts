@@ -1,3 +1,4 @@
+import { RENPHO_SEGMENTS } from "@/lib/renpho-segments";
 import type { Measurement } from "@/lib/imports/engine";
 import type { ImportBatch } from "@/lib/local-workspace";
 
@@ -21,6 +22,8 @@ export const RENPHO_PERCENT_METRICS = [
 const REPORT_PAGE = /^RENPHO report · Page [1-9][0-9]*$/;
 const REPORT_HASH = /^[a-f0-9]{64}$/;
 const ALLOWED_UNITS: ReadonlyMap<string, readonly string[]> = new Map<string, readonly string[]>([
+  ...RENPHO_SEGMENTS.map(segment => [segment.label, ["lb", "kg"]] as const),
+  ["Height", ["in", "cm"]], ["RENPHO Body Score", ["points"]],
   ...RENPHO_MASS_METRICS.map(metric => [metric, metric === "Weight" ? ["kg", "lb", "st"] : ["kg", "lb"]] as const),
   ...RENPHO_PERCENT_METRICS.map(metric => [metric, ["%"]] as const),
   ["BMI", ["kg/m²"]], ["BMR", ["kcal", "kcal/day"]],

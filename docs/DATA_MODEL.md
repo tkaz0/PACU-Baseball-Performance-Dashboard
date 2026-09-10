@@ -247,3 +247,5 @@ Migration 202609080003 enables profile_metric on the existing muscle_mass catalo
 Coaching Analytics is a read-only view over eligible 2026–27 roster attributes and saved numerical measurements. It adds no persisted correlations or derived athlete records; source/unit/date partitions and pairing rules are documented in [ANALYTICS](ANALYTICS.md).
 
 - RENPHO Body Score uses only the printed top-right report score, with no custom composite. See `RENPHO_BODY_SCORE.md`.
+
+See [RENPHO skeletal muscle and muscle balance](RENPHO_MUSCLE_BALANCE.md) for the main skeletal-mass measurement, private segment readings, 10% review flag, and migration 202609100001. Deploy the compatible app before enabling the catalog migration.

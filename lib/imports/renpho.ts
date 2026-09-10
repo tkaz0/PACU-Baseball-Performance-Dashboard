@@ -1,3 +1,4 @@
+import { RENPHO_SEGMENTS, type RenphoSegmentKey } from "@/lib/renpho-segments";
 /**
  * Conservative candidates from explicit labelled text, not a verified RENPHO PDF layout.
  * Official label sources (reviewed 2026-09-04):
@@ -17,7 +18,7 @@ export type RenphoReading = {
   unit: string; page: number; line: number; rawLabel: string; sourceText: string;
   unitEvidence: "manual-report" | "explicit" | "composition-header" | "layout-label" | "dimensionless-index" | "ocr-unit-correction";
   unitNeedsConfirmation?: true;
-  region?: "composition" | "assessment" | "indicators" | "header" | "score";
+  region?: "composition" | "assessment" | "indicators" | "header" | "score" | "muscle-balance";
 };
 export type RenphoIssue = {
   severity: "error" | "review"; code: string; message: string;
@@ -33,6 +34,7 @@ export type RenphoRegions = {
   title: string; header: string; compositionHeader: string;
   compositionRows: { label: string; measurement: string; line: number }[];
   assessment: string; indicators: string; bodyScore?: string;
+  muscleBalanceTitle?: string; muscleBalance?: Partial<Record<RenphoSegmentKey, string>>;
 };
 
 type MetricDefinition = { key: string; label: string; aliases: readonly string[]; units: readonly string[] };
@@ -63,6 +65,7 @@ const METRICS: readonly MetricDefinition[] = [
   { key: "muscle_mass_percentage", label: "Muscle Mass Percentage", aliases: ["Muscle Mass"], units: PERCENT_UNITS },
   { key: "height", label: "Height", aliases: ["Height"], units: ["in", "cm"] },
   { key: "body_score", label: "RENPHO Body Score", aliases: ["RENPHO Body Score", "Body Score"], units: ["points"] },
+  ...RENPHO_SEGMENTS.map(segment => ({ key: segment.key, label: segment.label, aliases: [segment.label], units: MASS_UNITS })),
 ];
 
 const normalize = (value: string) => value.replace(/[\u2010-\u2014\u2212]/g, "-").replace(/[\u00a0\t ]+/g, " ").trim();
@@ -193,7 +196,7 @@ function reportedHeight(header: string, page: number): { reading: RenphoReading 
  */
 export function parseRenphoRegions(regions: RenphoRegions, page = 1): RenphoParsedReport {
   if (!Number.isInteger(page) || page < 1 || page > MAX_RENPHO_PAGES) throw new Error("Report page numbers must be between 1 and 20.");
-  const inputText = [regions.bodyScore ?? "", regions.title, regions.header, regions.compositionHeader, regions.assessment, regions.indicators,
+  const inputText = [regions.muscleBalanceTitle ?? "", ...Object.values(regions.muscleBalance ?? {}), regions.bodyScore ?? "", regions.title, regions.header, regions.compositionHeader, regions.assessment, regions.indicators,
     ...regions.compositionRows.flatMap(row => [row.label, row.measurement])];
   if (inputText.reduce((total, value) => total + value.length + 1, 0) > MAX_RENPHO_TEXT_CHARACTERS) throw new Error("The report text exceeds the 100,000-character limit.");
   if (regions.compositionRows.length > MAX_RENPHO_READINGS) throw new Error("The report contains more than 100 composition rows.");
@@ -286,6 +289,24 @@ export function parseRenphoRegions(regions: RenphoRegions, page = 1): RenphoPars
       if (match) candidateReadings.push({ key: "body_score", metric: "RENPHO Body Score", metricColumn: 22, label: "RENPHO Body Score", value: Number(match[1]), valueText: match[1], unit: "points", page, line: 4001, rawLabel: "Body Score", sourceText: regions.bodyScore, unitEvidence: "explicit", region: "score" });
       else issues.push({severity: "review", code: "body_score_unreadable", page, line: 4001, metric: "RENPHO Body Score", message: "The top-right Body Score was not read clearly with its /100 scale. It was left out; other selected measurements can still be saved."});
     }
+    if (/^Muscle\s+Balance$/i.test(normalize(regions.muscleBalanceTitle ?? ""))) {
+      for (const segment of RENPHO_SEGMENTS) {
+        const source = regions.muscleBalance?.[segment.key] ?? "";
+        const lines = source.split(/\r?\n/).map(normalize).filter(Boolean);
+        // Isolated per-limb crop: first row is the printed side label; second is
+        // actual mass. Never read subsequent reference percentages/standard masses.
+        const originalMass = lines[1]?.replace(/[•·◆♦▪●]/g, " ").trim();
+        const first = originalMass?.replace(/\s+(?:Ib|1b)\b/g, " lb");
+        const match = first && /^(?:(?:Standard|High|Low)\s+)?(\d+(?:\.\d+)?)\s*(lb|kg)(?:\s+(?:Standard|High|Low))?$/i.exec(first);
+        if (lines[0]?.toLowerCase() === segment.regionLabel.toLowerCase() && match && Number(match[1]) > 0) {
+          if (originalMass !== first) issues.push({severity:"review",code:"segment_mass_unit_ocr",page,metric:segment.label,message:`The ${segment.regionLabel} lb unit was read as Ib or 1b. Compare the proposed unit with the original report; the numeric value was not changed.`});
+          candidateReadings.push({ key: segment.key, metric: segment.label, label: segment.label, metricColumn: segment.column,
+            value: Number(match[1]), valueText: match[1], unit: match[2].toLowerCase(), page, line: 5001 + segment.column - 23,
+            rawLabel: lines[0], sourceText: source, unitEvidence: originalMass === first ? "explicit" : "ocr-unit-correction", region: "muscle-balance" });
+        } else issues.push({ severity: "review", code: "muscle_balance_unreadable", page, metric: segment.label,
+          message: `${segment.label} was left out because its label, mass or unit was unclear. Other readings can still be saved.` });
+      }
+    }
     const height = reportedHeight(header, page);
     if (height.reading) candidateReadings.push(height.reading);
     if (height.issue) issues.push(height.issue);
@@ -303,4 +324,21 @@ export function withReviewedRenphoBodyScore(parsed: RenphoParsedReport, entered:
   if (!/^(?:0|[1-9]\d{0,2})(?:\.\d+)?$/.test(text)) throw new Error("Enter the Body Score printed at the top right, using one nonnegative number.");
   const reading: RenphoReading = { key: "body_score", metric: "RENPHO Body Score", metricColumn: 22, label: "RENPHO Body Score", value: Number(text), valueText: text, unit: "points", page: 1, line: 4001, rawLabel: "Body Score", sourceText: "Manually transcribed from the top-right Body Score in the original report.", unitEvidence: "manual-report", region: "score" };
   return { ...parsed, candidateReadings: [...parsed.candidateReadings, reading] };
+}
+
+/** Optional explicit transcription of missing segment readings from the original. */
+export function withReviewedRenphoMuscleBalance(parsed: RenphoParsedReport, entered: Partial<Record<RenphoSegmentKey, string>>, unit: string): RenphoParsedReport {
+  if (!Object.values(entered).some(value => value?.trim())) return parsed;
+  if (!parsed.recognizedLayout || parsed.candidateReadings.some(reading => reading.page !== 1) || !["lb", "kg"].includes(unit)) throw new Error("Review the original muscle-balance section and its printed unit.");
+  const added: RenphoReading[] = [];
+  for (const segment of RENPHO_SEGMENTS) {
+    const text = entered[segment.key]?.trim();
+    if (!text) continue;
+    if (parsed.candidateReadings.some(reading => reading.key === segment.key)) throw new Error(`Review the existing ${segment.label} reading.`);
+    if (!/^(?:0|[1-9]\d{0,2})(?:\.\d+)?$/.test(text) || Number(text) <= 0) throw new Error(`Enter the positive mass printed for ${segment.regionLabel}.`);
+    added.push({ key: segment.key, metric: segment.label, label: segment.label, metricColumn: segment.column,
+      value: Number(text), valueText: text, unit, page: 1, line: 5001 + segment.column - 23, rawLabel: segment.regionLabel,
+      sourceText: "Manually transcribed from Muscle Balance in the original report.", unitEvidence: "manual-report", region: "muscle-balance" });
+  }
+  return { ...parsed, candidateReadings: [...parsed.candidateReadings, ...added] };
 }

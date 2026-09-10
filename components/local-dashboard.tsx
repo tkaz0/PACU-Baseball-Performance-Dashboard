@@ -1,4 +1,5 @@
 "use client";
+import { RenphoMuscleBalance } from "@/components/renpho-muscle-balance";
 
 import Link from "next/link";
 import { useState } from "react";
@@ -122,7 +123,7 @@ export function LocalAthleteProfile({ id }: { id: string }) {
     {view.role !== "player" && <Link href="/preview/roster" className="profile-back"><ArrowLeft size={15} />Master roster</Link>}
     <PlayerPerformanceProfile athlete={athlete} performance={getPerformance(athlete.athlete_code)} season={selectedSeason} fictional={mode === "sample"}
       action={canImport ? <Link href="/preview/import" className="text-link">Import Information <ArrowRight size={15} /></Link> : undefined}
-      physicalityDetails={physicalityDetails} history={history} />
+      muscleBalance={<RenphoMuscleBalance report={getRenphoReports(readings,batches,athlete.athlete_code)[0]} />} physicalityDetails={physicalityDetails} history={history} />
 
     {canManage && <details className="panel mt-6">
       <summary className="cursor-pointer px-5 py-5 text-sm font-bold sm:px-6">Account and roster details <span className="ml-2 text-xs font-normal text-gray-500">Admin</span></summary>

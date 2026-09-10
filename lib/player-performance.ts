@@ -4,7 +4,7 @@ import { getRenphoChartReadings, getRenphoReports } from "@/lib/renpho-charts";
 
 export type PlayerMetricGroup = "body" | "hitting" | "pitching" | "throwing";
 export type PlayerMetricDirection = "neutral" | "higher" | "lower";
-export type PlayerMetricKey = "body_score" | "height" | "weight" | "grip_strength" | "body_fat_pct" | "muscle_mass_pct" | "muscle_mass"
+export type PlayerMetricKey = "skeletal_muscle_mass" | "body_score" | "height" | "weight" | "grip_strength" | "body_fat_pct" | "muscle_mass_pct" | "muscle_mass"
   | "max_exit_velocity" | "avg_exit_velocity" | "bat_speed" | "home_to_first" | "home_to_second" | "steal_break" | "boxer_t"
   | "max_bat_speed" | "avg_bat_speed" | "smash_factor" | "max_distance"
   | "infield_velocity" | "outfield_velocity"
@@ -21,6 +21,7 @@ export const PLAYER_METRICS: readonly PlayerMetricDefinition[] = [
   { key: "grip_strength", label: "Grip Strength", group: "body", units: ["lb", "kg", "N"], direction: "higher" },
   { key: "body_fat_pct", label: "Body Fat %", group: "body", units: ["%"], direction: "neutral" },
   { key: "muscle_mass", label: "Muscle Mass", group: "body", units: ["lb", "kg"], direction: "neutral" },
+  { key: "skeletal_muscle_mass", label: "Skeletal Muscle Mass", group: "body", units: ["lb", "kg"], direction: "neutral" },
   { key: "muscle_mass_pct", label: "Muscle Mass %", group: "body", units: ["%"], direction: "neutral" },
   { key: "max_exit_velocity", label: "Max EV", group: "hitting", units: ["mph", "km/h", "m/s"], direction: "higher" },
   { key: "avg_exit_velocity", label: "Average EV", group: "hitting", units: ["mph", "km/h", "m/s"], direction: "higher" },
@@ -82,6 +83,7 @@ const extraAliases: Record<PlayerMetricKey, readonly string[]> = {
   grip_strength: ["Grip Force"],
   body_fat_pct: ["Body Fat Percentage", "Body Fat Percent"],
   muscle_mass: [],
+  skeletal_muscle_mass: [],
   muscle_mass_pct: ["Muscle Mass Percentage", "Muscle Mass Percent"],
   max_exit_velocity: ["Maximum Exit Velocity", "Max Exit Velocity", "Max Exit Velo", "Maximum EV"],
   avg_exit_velocity: ["Average Exit Velocity", "Avg Exit Velocity", "Avg EV", "Average Exit Velo"],

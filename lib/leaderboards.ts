@@ -10,12 +10,12 @@ export type LeaderboardComparison = { metricKey: LeaderboardMetricKey; source: s
 export type LeaderboardSelection = Omit<LeaderboardComparison, "athleteCount">;
 export type LeaderboardRow = { rank: number; athleteCode: string; name: string; jerseyNumber: number | null; position: string | null; profileId: string | null; value: number; measuredAt: string; source: string; derived: boolean };
 export const leaderboardGroupLabels: Record<LeaderboardGroup, string> = { physicality: "Physicality", hitting: "Hitting", throwing: "Throwing" };
-const physicality = new Set(["body_score", "height", "weight", "grip_strength", "body_fat_pct", "muscle_mass_pct", "muscle_mass", "home_to_first", "home_to_second", "steal_break", "boxer_t"]);
+const physicality = new Set(["skeletal_muscle_mass", "body_score", "height", "weight", "grip_strength", "body_fat_pct", "muscle_mass_pct", "muscle_mass", "home_to_first", "home_to_second", "steal_break", "boxer_t"]);
 export function leaderboardGroup(metric: LeaderboardMetricDefinition): LeaderboardGroup {
   return physicality.has(metric.key) ? "physicality" : metric.group === "hitting" ? "hitting" : "throwing";
 }
 export const leaderboardMetrics = (group: LeaderboardGroup) => LEADERBOARD_METRICS.filter(metric => metric.key !== "muscle_mass_pct" && leaderboardGroup(metric) === group).sort((a, b) => {
-  const order = ["body_score", "height", "weight", "muscle_mass", "body_fat_pct", "grip_strength"];
+  const order = ["body_score", "height", "weight", "muscle_mass", "skeletal_muscle_mass", "body_fat_pct", "grip_strength"];
   return (order.indexOf(a.key) < 0 ? 99 : order.indexOf(a.key)) - (order.indexOf(b.key) < 0 ? 99 : order.indexOf(b.key));
 });
 export const leaderboardSourceLabel = (source: string) => ({ renpho: "RENPHO", "full swing": "Full Swing", blast: "Blast", rapsodo: "Rapsodo", "player metrics": "Player Metrics" })[source] ?? source;

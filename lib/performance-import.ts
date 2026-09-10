@@ -1,3 +1,4 @@
+import { RENPHO_SEGMENTS } from "@/lib/renpho-segments";
 import type { Measurement } from "@/lib/imports/engine";
 import { normalizePlayerMetric, validatePlayerMetricValue, PLAYER_METRICS } from "@/lib/player-performance";
 
@@ -6,8 +7,9 @@ export type ReviewedPerformanceRow = {
   value: number; unit: string; source: string; source_file: string; source_sheet: string;
   source_row: number; file_hash: string;
 };
-type ExtraMetric = { key: string; units: readonly string[] };
+type ExtraMetric = { key: string; positiveOnly?: boolean; units: readonly string[] };
 const extraMetrics: ReadonlyMap<string, ExtraMetric> = new Map<string, ExtraMetric>([
+  ...RENPHO_SEGMENTS.map(segment => [segment.label.toLowerCase(), { key: segment.key, positiveOnly: true, units: ["lb", "kg"] }] as const),
   ...[
     ["Body Fat Mass", "body_fat_mass"], ["Bone Mass", "bone_mass"], ["Protein Mass", "protein_mass"],
     ["Body Water Mass", "body_water_mass"], ["Muscle Mass", "muscle_mass"], ["Skeletal Muscle Mass", "skeletal_muscle_mass"],
@@ -44,7 +46,7 @@ export function prepareReviewedPerformanceRows(measurements: readonly Measuremen
     const extra=extraMetrics.get(m.metric.toLowerCase());
     const extraUnit=m.unit.toLowerCase()==="lbs"?"lb":m.unit.toLowerCase();
     const metric_key=profile?.key ?? extra?.key, unit=profile?.unit ?? extraUnit;
-    if (!metric_key || (profile ? !validatePlayerMetricValue(profile.key,m.value,unit) : !extra?.units.includes(unit) || m.value<0 || (unit==="%" && m.value>100))) return fail();
+    if (!metric_key || (profile ? !validatePlayerMetricValue(profile.key,m.value,unit) : !extra?.units.includes(unit) || m.value<0 || (extra?.positiveOnly === true && m.value === 0) || (unit==="%" && m.value>100))) return fail();
     return {observation_id:m.id,athlete_code:m.athlete_code,metric_key,measured_at:m.measured_at,value:m.value,unit,
       source:m.source,source_file:m.source_file,source_sheet:m.source_sheet,source_row:m.source_row,file_hash:m.file_hash};
   });

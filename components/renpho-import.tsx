@@ -8,7 +8,8 @@ import { useLocalWorkspace } from "@/components/local-workspace";
 import { athleteName } from "@/lib/types";
 import { findRenphoAthlete, normalizeRenphoId, type MeasurementPreview } from "@/lib/imports/engine";
 import { previewRenphoMeasurements, renphoReviewIssues } from "@/lib/imports/renpho-preview";
-import { withReviewedRenphoBodyScore } from "@/lib/imports/renpho";
+import { RENPHO_SEGMENTS, type RenphoSegmentKey } from "@/lib/renpho-segments";
+import { withReviewedRenphoBodyScore, withReviewedRenphoMuscleBalance } from "@/lib/imports/renpho";
 import { readRenphoReport } from "@/lib/imports/renpho-file";
 import { FileDropZone } from "@/components/file-drop-zone";
 import type { Measurement } from "@/lib/imports/engine";
@@ -33,6 +34,8 @@ export function RenphoReportForm({ workspace, shared }: { workspace: RenphoWorks
   const [date, setDate] = useState("");
   const [renphoId, setRenphoId] = useState("");
   const [remember, setRemember] = useState(false);
+  const [manualSegments, setManualSegments] = useState<Partial<Record<RenphoSegmentKey, string>>>({});
+  const [segmentUnit, setSegmentUnit] = useState("");
   const [manualBodyScore, setManualBodyScore] = useState("");
   const [values, setValues] = useState<Record<string, string>>({});
   const [excluded, setExcluded] = useState<string[]>([]);
@@ -82,7 +85,7 @@ export function RenphoReportForm({ workspace, shared }: { workspace: RenphoWorks
   async function chooseFile(file?: File) {
     controller.current?.abort();
     const current = new AbortController(); controller.current = current;
-    invalidate(); setManualBodyScore(""); setReport(null); setSharedExisting([]); setAthleteCode(""); setDate(""); setRenphoId(""); setRemember(false); setExcluded([]); setConfirmedUnits([]); setValues({});
+    invalidate(); setManualBodyScore(""); setManualSegments({}); setSegmentUnit(""); setReport(null); setSharedExisting([]); setAthleteCode(""); setDate(""); setRenphoId(""); setRemember(false); setExcluded([]); setConfirmedUnits([]); setValues({});
     matchRequest.current++; setSharedMatch(null); setMatchError(""); setMatching(false);
     if (imageUrl.current) { URL.revokeObjectURL(imageUrl.current); imageUrl.current = ""; }
     if (!file) { setBusy(""); return; }
@@ -115,7 +118,7 @@ export function RenphoReportForm({ workspace, shared }: { workspace: RenphoWorks
       if (matching || matchPending) throw new Error("Check the RENPHO ID to finish matching this report.");
       if (!athleteCode || !date) throw new Error("Choose the player and test date first.");
       if (remember && !renphoId.trim()) throw new Error("Enter the report ID before remembering its player.");
-      const parsed = withReviewedRenphoBodyScore(report.parsed, manualBodyScore);
+      const parsed = withReviewedRenphoMuscleBalance(withReviewedRenphoBodyScore(report.parsed, manualBodyScore), manualSegments, segmentUnit);
       const candidates = parsed.candidateReadings.filter(reading => !excluded.includes(reading.key)).map(reading => {
         const text = reading.unitEvidence === "manual-report" ? reading.valueText : values[reading.key]?.trim() ?? "";
         if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(text) || !Number.isFinite(Number(text))) throw new Error(`Check the number for ${reading.label}.`);
@@ -188,6 +191,7 @@ export function RenphoReportForm({ workspace, shared }: { workspace: RenphoWorks
               <td><input aria-label={`${reading.label} value`} className="min-w-20" inputMode="decimal" value={values[reading.key] ?? ""} disabled={!!busy || excluded.includes(reading.key)} onChange={event => { invalidate(); setValues(current => ({ ...current, [reading.key]: event.target.value })); }} /></td>
               <td className="text-sm">{reading.unit}{reading.unitNeedsConfirmation && <label className="mt-2 flex min-w-40 items-start gap-2 text-xs font-normal"><input type="checkbox" checked={confirmedUnits.includes(reading.key)} disabled={!!busy || excluded.includes(reading.key)} onChange={event => { invalidate(); setConfirmedUnits(current => event.target.checked ? [...current, reading.key] : current.filter(key => key !== reading.key)); }} /><span>Confirm {reading.label} unit is {reading.unit}. The small exponent was unreadable; check the original or leave this reading out.</span></label>}</td>
             </tr>)}</tbody></table></div>
+            {report.parsed.recognizedLayout && RENPHO_SEGMENTS.some(segment => !report.parsed.candidateReadings.some(reading => reading.key === segment.key)) && <details className="mt-4 rounded-lg border border-[var(--line-subtle)] p-4"><summary className="cursor-pointer text-sm font-semibold">Add Missing Muscle Balance Readings (Optional)</summary><p className="text-xs text-[var(--text-secondary)]">Use the first mass printed under each body part in Muscle Balance—not the percentage or standard value below it. Leave unreadable values blank.</p><label className="block text-sm">Printed Muscle Balance Unit<select value={segmentUnit} disabled={!!busy} onChange={event => { invalidate(); setSegmentUnit(event.target.value); }}><option value="">Select Printed Unit</option><option value="lb">lb</option><option value="kg">kg</option></select></label><div className="mt-3 grid gap-3 sm:grid-cols-2">{RENPHO_SEGMENTS.filter(segment => !report.parsed.candidateReadings.some(reading => reading.key === segment.key)).map(segment => <label key={segment.key} className="text-sm">{segment.label}<input inputMode="decimal" value={manualSegments[segment.key] ?? ""} disabled={!!busy} placeholder="Printed mass" onChange={event => { invalidate(); setManualSegments(previous => ({ ...previous, [segment.key]: event.target.value })); }} /></label>)}</div></details>}
             {report.parsed.recognizedLayout && !report.parsed.candidateReadings.some(reading => reading.key === "body_score") && <label className="mt-4 block text-sm">Body Score — Top Right of Report <span className="muted">(optional)</span><input inputMode="decimal" placeholder="Enter the printed score" value={manualBodyScore} disabled={!!busy} onChange={event => { invalidate(); setManualBodyScore(event.target.value); }} /><span className="muted text-xs">Points on the report’s /100 scale. Leave blank to save the other readings.</span></label>}
             <details className="mt-3 text-sm"><summary className="muted cursor-pointer font-medium">About These Readings</summary><p className="muted mb-0 mt-3 text-xs">Units stay as printed. BMI/SMI use kg/m²; visceral fat is a device index and waist-to-hip is a ratio. Reference ranges, device targets, and body classifications are excluded.</p></details>
             <button type="button" className="btn btn-primary mt-3" disabled={!!busy || matching || matchPending || parserErrors.length > 0 || !athleteCode || !date || !!identityError || !workspace.ready || !!workspace.error} onClick={preview}>Review import</button>

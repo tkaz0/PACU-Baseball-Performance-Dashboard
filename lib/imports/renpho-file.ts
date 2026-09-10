@@ -1,3 +1,4 @@
+import { RENPHO_SEGMENTS } from "@/lib/renpho-segments";
 import type { PDFDocumentLoadingTask, PDFWorker, RenderTask } from "pdfjs-dist";
 import type { Worker as OcrWorker } from "tesseract.js";
 import { parseRenphoRegions, type RenphoParsedReport, type RenphoRegions } from "./renpho";
@@ -102,6 +103,14 @@ function extractRegions(words: OcrWord[], canvas: HTMLCanvasElement): RenphoRegi
       measurement: text([.187, top, .333, ROW_EDGES[index + 1]]),
       line: index + 1,
     })),
+    muscleBalanceTitle: text([.32, .594, .59, .618]),
+    muscleBalance: {
+      left_arm_muscle_mass: text([.322, .618, .43, .674]),
+      right_arm_muscle_mass: text([.467, .618, .578, .674]),
+      trunk_muscle_mass: text([.323, .681, .43, .738]),
+      left_leg_muscle_mass: text([.322, .751, .433, .808]),
+      right_leg_muscle_mass: text([.474, .751, .58, .808]),
+    },
     bodyScore: text([.645, .108, .97, .174]),
     assessment: text([.645, .353, .97, .477]),
     indicators: text([.645, .811, .97, .955]),
@@ -321,6 +330,44 @@ export async function readRenphoReport(file: File, onProgress?: (message: string
       } finally { header.width = 0; header.height = 0; }
     }
     let parsed = parseRenphoRegions(regions);
+    if (parsed.recognizedLayout && /^Muscle\s+Balance$/i.test((regions.muscleBalanceTitle ?? "").trim())) {
+      // Read only the label and actual mass row, excluding reference percentages
+      // and standard masses. Native pixels preserve the small decimal/unit text.
+      const labelBoxes: readonly Region[] = [[.325,.619,.405,.633],[.51,.619,.576,.633],[.325,.683,.385,.698],[.325,.753,.387,.768],[.51,.753,.58,.769]];
+      const massBoxes: readonly Region[] = [[.326,.636,.379,.645],[.516,.636,.565,.645],[.326,.699,.386,.710],[.326,.769,.386,.780],[.516,.769,.57,.780]];
+      const source = bitmap ?? canvas;
+      const readCrop = async (box: Region, scale: number) => {
+        const crop = document.createElement("canvas");
+        const x=Math.floor(box[0]*source.width), y=Math.floor(box[1]*source.height);
+        const width=Math.ceil((box[2]-box[0])*source.width), height=Math.ceil((box[3]-box[1])*source.height);
+        crop.width=width*scale+40; crop.height=height*scale+40;
+        try {
+          const context=crop.getContext("2d",{willReadFrequently:true});
+          if (!context) return "";
+          context.fillStyle="white";context.fillRect(0,0,crop.width,crop.height);
+          context.drawImage(source,x,y,width,height,20,20,width*scale,height*scale);
+          // The actual text is dark gray; remove colored bullets/classifications
+          // without substituting any character or decimal.
+          const pixels=context.getImageData(0,0,crop.width,crop.height);
+          for(let i=0;i<pixels.data.length;i+=4){const keep=Math.max(pixels.data[i],pixels.data[i+1],pixels.data[i+2])<160;if(!keep)pixels.data[i]=pixels.data[i+1]=pixels.data[i+2]=255;}
+          context.putImageData(pixels,0,0);
+          await cancellable(worker!.setParameters({tessedit_pageseg_mode:tesseract.PSM.SINGLE_LINE,tessedit_char_whitelist:""}),activeSignal);
+          const result=await cancellable(worker!.recognize(crop,{rotateAuto:false},{text:true,blocks:false}),activeSignal);
+          return result.data.text.length<=200?result.data.text.trim():"";
+        }finally{crop.width=0;crop.height=0;}
+      };
+      for(const [index,segment] of RENPHO_SEGMENTS.entries()) {
+        progress(`Reading ${segment.regionLabel} muscle mass…`);
+        const label=await readCrop(labelBoxes[index],1);
+        const first=await readCrop(massBoxes[index],3), second=await readCrop(massBoxes[index],4);
+        const clean=(value:string)=>value.replace(/\s+/g," ").trim().replace(/\s+(?:Ib|1b)\b/g," lb");
+        // Two independent scales must agree exactly. Unclear digits remain omitted.
+        const mass=clean(first)===clean(second)?first.trim():"";
+        regions.muscleBalance={...regions.muscleBalance,[segment.key]:`${label}\n${mass}`};
+      }
+      parsed=parseRenphoRegions(regions);
+    }
+
     const percentageRereads: string[] = [];
     // Native image pixels can retain a decimal lost by the full-page downsample.
     // Require separate labelled-line and value-only reads; never guess its position.

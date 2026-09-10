@@ -1,3 +1,4 @@
+import { RENPHO_SEGMENTS } from "@/lib/renpho-segments";
 import { PLAYER_METRICS } from "@/lib/player-performance";
 
 export type AnalyticsPlayer = { id: string; code: string; name: string; academicClass: string; position: string; playerType: string; bats: string; throws: string };
@@ -7,7 +8,7 @@ export type AnalyticsVariable = { key: string; metric: string; label: string; un
 export type AnalyticsPoint = { player: AnalyticsPlayer; x: AnalyticsReading; y: AnalyticsReading; gap: number };
 export type ColorGroup = "academicClass" | "position" | "playerType" | "bats" | "throws" | "team";
 export const COLOR_GROUPS: { key: ColorGroup; label: string }[] = [{key:"academicClass",label:"Class"},{key:"position",label:"Primary Position"},{key:"playerType",label:"Player Type"},{key:"bats",label:"Bats"},{key:"throws",label:"Throws"},{key:"team",label:"Team"}];
-const body = new Set(["body_fat_mass","bone_mass","protein_mass","body_water_mass","skeletal_muscle_mass","bmi","bmr","fat_free_mass","subcutaneous_fat_pct","skeletal_muscle_pct","body_water_pct","protein_pct","metabolic_age","visceral_fat","smi","whr","bone_mass_pct",...PLAYER_METRICS.filter(m=>m.group==="body").map(m=>m.key)]);
+const body = new Set([...RENPHO_SEGMENTS.map(segment => segment.key),"body_fat_mass","bone_mass","protein_mass","body_water_mass","skeletal_muscle_mass","bmi","bmr","fat_free_mass","subcutaneous_fat_pct","skeletal_muscle_pct","body_water_pct","protein_pct","metabolic_age","visceral_fat","smi","whr","bone_mass_pct",...PLAYER_METRICS.filter(m=>m.group==="body").map(m=>m.key)]);
 export const variableKey = (row: AnalyticsReading) => JSON.stringify([row.metric,row.unit,row.source.trim().toLowerCase().replace(/\s+/g," ")]);
 export const prettyGroup = (value: string) => value.replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase());
 export const pointGroup = (player: AnalyticsPlayer, group: ColorGroup) => group === "team" ? "Pacific" : prettyGroup(player[group] || "Not listed");
