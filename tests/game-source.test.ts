@@ -15,6 +15,15 @@ function fixture(pitching=false) {
   return{contract,snapshot,set,events,run:()=>parseGameSource(snapshot,contract,identities,events)};
 }
 describe("source-grounded Fall game adapters",()=>{
+  it("uses owner-confirmed blank zeros only on QPA rows with PA or AB",()=>{
+    const f=fixture();f.set(2,4);const p=f.run();expect(p.canImport).toBe(true);expect(p.observations.find(x=>x.metric==="base_hit")?.value).toBe(0);expect(p.observations.find(x=>x.metric==="sb")?.value).toBe(0);
+    const blank=fixture();expect(blank.run().observations).toEqual([]);
+    const partial=fixture();partial.set(12,1);expect(partial.run().observations.some(x=>x.metric==="bb")).toBe(false);
+    const pitch=fixture(true);pitch.set(3,4);expect(pitch.run().observations.some(x=>x.metric==="k")).toBe(false);
+  });
+  it("excludes only explicitly reviewed names without assigning their counts",()=>{const f=fixture();f.set(2,4);const p=parseGameSource(f.snapshot,f.contract,[{sourceName:"Fictional Player",athleteCode:"exclude"}]);expect(p.observations).toEqual([]);expect(p.issues.map(x=>x.code)).toEqual(["excluded_identity"]);});
+  it("accepts plain digit counts stored as text, but never expressions or formatted guesses",()=>{const f=fixture();f.set(2," 5 ");f.set(3,"4");expect(f.run().canImport).toBe(true);expect(f.run().observations.find(r=>r.metric==="qpa_pct")?.value).toBe(80);for(const value of ["1e2","1,000","2.5","=5","+5"]){f.set(2,value);expect(f.run().canImport).toBe(false);}});
+  it("imports reviewed stolen-base and double-play columns",()=>{const f=fixture();f.set(2,5);f.set(27,2);f.set(28,1);expect(f.run().observations.filter(x=>["sb","gdp"].includes(x.metric)).map(x=>[x.metric,x.value,x.sourceColumn])).toEqual([["sb",2,27],["gdp",1,28]]);});
   it("keeps prepared formula zeros and division errors missing when raw inputs are blank",()=>{
     for(const pitching of [false,true]) {const f=fixture(pitching);f.set(pitching?5:8,undefined,{formula:pitching?"=D40/C40":"=C2/B2",error:"DIVIDE_BY_ZERO",effective:0});const p=f.run();expect(p.observations).toEqual([]);expect(p.populatedRows).toBe(0);expect(p.canImport).toBe(false);}
   });
@@ -25,7 +34,7 @@ describe("source-grounded Fall game adapters",()=>{
   it("never fabricates a rate from a missing count or denominator zero",()=>{
     for(const denominator of [undefined,0]) {const f=fixture();f.set(2,denominator);f.set(3,0);expect(f.run().observations.some(x=>x.metric==="qpa_pct")).toBe(false);}
   });
-  it.each([-1,1.5,"4","#DIV/0!",Number.NaN,Number.POSITIVE_INFINITY])("rejects invalid raw count %#",value=>{const f=fixture();f.set(2,value);expect(f.run().canImport).toBe(false);expect(f.run().issues.some(x=>x.code==="raw_value")).toBe(true);});
+  it.each([-1,1.5,"4a","#DIV/0!",Number.NaN,Number.POSITIVE_INFINITY])("rejects invalid raw count %#",value=>{const f=fixture();f.set(2,value);expect(f.run().canImport).toBe(false);expect(f.run().issues.some(x=>x.code==="raw_value")).toBe(true);});
   it("rejects formulas entered where actual raw counts belong",()=>{const f=fixture();f.set(2,undefined,{formula:"=SUM(B3:B5)",effective:10});expect(f.run().canImport).toBe(false);});
   it("treats pitcher K% as strikes/pitches and disambiguates both BB columns by position",()=>{
     const f=fixture(true);f.set(3,20);f.set(4,10);f.set(9,6);f.set(21,1);f.set(5,undefined,{formula:"=D40/C40"});const p=f.run();expect(p.canImport).toBe(true);

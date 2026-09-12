@@ -24,9 +24,9 @@ export type GameSourcePreview = {
   populatedRows: number; missingRawCells: number; canImport: boolean;
 };
 
-export const QPA_HEADERS = ["Player", "PA's", "QPAs", "QPA Checker", "AB's", "AB's Checker", "Walks + HBP + Sac Bunt", "Percentage", "HH Base Hit", "HH Extra Base Hit", "Pumps", "Base Hit", "3-8 HH", "8 (+) pitches", "BB", "RBI", "Sac Bunt", "Moving Runner (2nd to 3rd w/ < 2 outs)", "HBP", "Punchies", "HH %", "Hitterish Value", "AB Control: weak before 3 or plus count (0-0, 1-0, 2-0, 2-1, 3-0, 3-1) (includes popped up bunts)", "Hitterish Plus AB Control", "Hitterish Plus AB Control / Total PA's", "AB's / AB's Thrown"] as const;
+export const QPA_HEADERS = ["Player", "PA's", "QPAs", "QPA Checker", "AB's", "AB's Checker", "Walks + HBP + Sac Bunt", "Percentage", "HH Base Hit", "HH Extra Base Hit", "Pumps", "Base Hit", "3-8 HH", "8 (+) pitches", "BB", "RBI", "Sac Bunt", "Moving Runner (2nd to 3rd w/ < 2 outs)", "HBP", "Punchies", "HH %", "Hitterish Value", "AB Control: weak before 3 or plus count (0-0, 1-0, 2-0, 2-1, 3-0, 3-1) (includes popped up bunts)", "Hitterish Plus AB Control", "Hitterish Plus AB Control / Total PA's", "AB's / AB's Thrown", "SB", "GDP"] as const;
 export const PITCHING_HEADERS = ["Name", "", "Pitches", "Strikes", "K%", "FB", "FB K", "FB K%", "BB", "BB K", "BB K%", "CH", "CH K", "CH K%", "BAF", "FPS", "FPS%", "Inn", "H", "R", "BB", "HBP", "K"] as const;
-const QPA_RAW = [[2,"pa"],[3,"qpa"],[5,"ab"],[9,"hh_base_hit"],[10,"hh_extra_base_hit"],[11,"pumps"],[12,"base_hit"],[13,"three_eight_hh"],[14,"eight_plus_pitches"],[15,"bb"],[16,"rbi"],[17,"sac_bunt"],[18,"moving_runner"],[19,"hbp"],[20,"punchies"],[23,"ab_control"]] as const;
+const QPA_RAW = [[2,"pa"],[3,"qpa"],[5,"ab"],[9,"hh_base_hit"],[10,"hh_extra_base_hit"],[11,"pumps"],[12,"base_hit"],[13,"three_eight_hh"],[14,"eight_plus_pitches"],[15,"bb"],[16,"rbi"],[17,"sac_bunt"],[18,"moving_runner"],[19,"hbp"],[20,"punchies"],[23,"ab_control"],[27,"sb"],[28,"gdp"]] as const;
 const PITCHING_RAW = [[3,"pitches"],[4,"strikes"],[6,"fb"],[7,"fb_k"],[9,"bb_pitch_family"],[10,"bb_pitch_family_k"],[12,"ch"],[13,"ch_k"],[15,"baf"],[16,"fps"],[19,"h"],[20,"r"],[21,"bb_outcome"],[22,"hbp"],[23,"k"]] as const;
 const normalize = (value: string) => value.trim().replace(/\s+/g," ").toLocaleLowerCase("en-US");
 const canonicalFormula = (formula: string) => formula.replace(/\s+/g, "").toUpperCase();
@@ -62,18 +62,18 @@ export function parseGameSource(snapshot: GameSourceSnapshot, contract: Reviewed
   const byName = new Map<string,string>();
   for (const mapping of identities) {
     const name = normalize(mapping.sourceName);
-    if (!name || !/^PAC-[0-9]{4,9}$/.test(mapping.athleteCode) || byName.has(name)) problem("identity_mapping", "The reviewed identity mapping is missing, duplicated or invalid.");
+    if (!name || !(mapping.athleteCode === "exclude" || /^PAC-[0-9]{4,9}$/.test(mapping.athleteCode)) || byName.has(name)) problem("identity_mapping", "The reviewed identity mapping is missing, duplicated or invalid.");
     else byName.set(name,mapping.athleteCode);
   }
   const rows = new Set(contract.detailRows);
   if (rows.size !== contract.detailRows.length || [...rows].some(row => !Number.isSafeInteger(row) || row < (qpa ? 2 : 3) || row > 2000)) problem("detail_rows", "The reviewed source detail-row coverage is invalid.");
-  for(const cell of cells.values()) if(cell.column>(qpa?26:23)&&(cell.entered!==undefined||cell.formula||cell.error)) problem("unreviewed_columns", "Source content appeared outside the reviewed columns. Review the changed source layout before syncing.",cell.row,cell.column);
+  for(const cell of cells.values()) if(cell.column>(qpa?28:23)&&(cell.entered!==undefined||cell.formula||cell.error)) problem("unreviewed_columns", "Source content appeared outside the reviewed columns. Review the changed source layout before syncing.",cell.row,cell.column);
   const rawColumns=new Set<number>((qpa?QPA_RAW:PITCHING_RAW).map(([column])=>column));
   if(!qpa)rawColumns.add(18);
-  for(const cell of cells.values()) if(!rows.has(cell.row)&&rawColumns.has(cell.column)&&typeof cell.entered==="number"&&!cell.formula){
+  for(const cell of cells.values()) if(!rows.has(cell.row)&&rawColumns.has(cell.column)&&(typeof cell.entered==="number"||(typeof cell.entered==="string"&&/^\d{1,10}$/.test(cell.entered.trim())))&&!cell.formula){
     problem("unreviewed_rows", "Entered statistics appeared outside the reviewed detail rows. Review the changed source layout before syncing.",cell.row,cell.column);
   }
-  for (const row of rows) for (let column=1;column<=(qpa ? 26 : 23);column++) {
+  for (const row of rows) for (let column=1;column<=(qpa ? 28 : 23);column++) {
     if (!cells.has(key(row,column))) problem("coverage", "The snapshot omitted part of a reviewed detail row. Read the complete bounded source range again.",row,column);
   }
   const eventByRow = new Map<number,ReviewedPitchingEvent>();
@@ -91,6 +91,8 @@ export function parseGameSource(snapshot: GameSourceSnapshot, contract: Reviewed
   if (result.issues.some(issue => issue.severity === "error")) return result;
   const seenIdentities = new Set<string>();
   for (const row of [...rows].sort((a,b)=>a-b)) {
+    const athleteCode = byName.get(normalize(text(row,1)));
+    if (athleteCode === "exclude") { problem("excluded_identity", "This source player is explicitly excluded from dashboard imports.", row, 1, "review"); continue; }
     const raw = qpa ? QPA_RAW : PITCHING_RAW;
     const values = new Map<number,number>();
     let touched = false;
@@ -98,10 +100,18 @@ export function parseGameSource(snapshot: GameSourceSnapshot, contract: Reviewed
       const cell = cells.get(key(row,column));
       if (!cell || (cell.entered === undefined && !cell.formula && !cell.error) || cell.entered === "") { result.missingRawCells++; continue; }
       touched = true;
-      if (cell.formula || cell.error || typeof cell.entered !== "number" || !Number.isSafeInteger(cell.entered) || cell.entered < 0 || cell.entered>1000000000) {
-        problem("raw_value", "A raw count is a formula, error, text, negative value or non-integer. Review the source entry.",row,column); continue;
+      const count = typeof cell.entered === "string" && /^\d{1,10}$/.test(cell.entered.trim()) ? Number(cell.entered.trim()) : cell.entered;
+      if (cell.formula || cell.error || typeof count !== "number" || !Number.isSafeInteger(count) || count < 0 || count>1000000000) {
+        problem("raw_value", "A raw count is a formula, error, nonnumeric text, negative value or non-integer. Review the source entry.",row,column); continue;
       }
-      values.set(column,cell.entered);
+      values.set(column,count);
+    }
+    // Owner-confirmed QPA convention: blanks are zero only on rows with recorded PA or AB.
+    if (qpa && (values.has(2) || values.has(5))) for (const [column] of raw) {
+      const cell = cells.get(key(row,column));
+      if (cell && !cell.formula && !cell.error && (cell.entered === undefined || cell.entered === "")) {
+        values.set(column,0); result.missingRawCells--;
+      }
     }
     const innings = !qpa ? cells.get(key(row,18)) : undefined;
     if (innings && (innings.entered !== undefined || innings.formula || innings.error)) {
@@ -109,7 +119,6 @@ export function parseGameSource(snapshot: GameSourceSnapshot, contract: Reviewed
     }
     if (!touched) continue;
     result.populatedRows++;
-    const athleteCode = byName.get(normalize(text(row,1)));
     if (!athleteCode) { problem("unmapped_identity", "This populated source row needs an exact reviewed athlete mapping.",row,1); continue; }
     const event = qpa ? undefined : eventByRow.get(row);
     if (!qpa && !event) { problem("unmapped_event", "This populated pitching row needs a reviewed event/block and actual game date.",row); continue; }

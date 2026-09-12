@@ -15,7 +15,7 @@ export function ProfileTabs({ tabs, action }: { tabs: ProfileTab[]; action?: Rea
   }
   return <div className="min-w-0">
     <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
-      <div role="tablist" aria-label="Player performance" className="flex w-full min-w-0 gap-1 rounded-lg border border-[var(--line-subtle)] bg-[var(--surface-panel)] p-1 sm:w-auto">
+      <div role="tablist" aria-label="Player performance" className="flex w-full min-w-0 flex-wrap gap-1 rounded-lg border border-[var(--line-subtle)] bg-[var(--surface-panel)] p-1 sm:w-auto">
         {tabs.map((tab, index) => <button key={tab.id} ref={button => { buttons.current[index] = button; }} type="button" role="tab" id={`${prefix}-tab-${tab.id}`} aria-controls={`${prefix}-panel-${tab.id}`} aria-selected={selected === index} tabIndex={selected === index ? 0 : -1} onClick={() => setSelectedId(tab.id)} onKeyDown={event => keyDown(event, index)} className={`min-h-11 min-w-0 flex-1 rounded-md px-2.5 py-2.5 text-xs font-bold outline-offset-4 transition-colors sm:flex-none sm:px-5 sm:text-sm ${selected === index ? "bg-pacu-red text-white" : "text-[var(--text-secondary)] hover:bg-[var(--surface-raised)] hover:text-[var(--text-primary)]"}`}>{tab.label}</button>)}
       </div>
       {action && <div className="ml-auto">{action}</div>}

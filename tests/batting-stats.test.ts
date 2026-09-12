@@ -1,0 +1,12 @@
+import { describe, expect, it } from "vitest";
+import { battingRates, formatBattingRate } from "@/lib/batting-stats";
+import { qpaAnalytics } from "@/lib/game-analytics";
+import type { SharedGameStat } from "@/lib/game-server";
+const rows=(values:Record<string,number>):SharedGameStat[]=>Object.entries(values).map(([metric,value])=>({source:"qpa_fall_2026",athlete_id:"fictional-player",metric,value,unit:"count",scope:"cumulative_fall",event_id:null,played_on:null,source_row:2,source_column:2,derived_from:[],snapshot_id:"fictional-snapshot",fetched_at:"2026-09-13T01:00:00Z",content_hash:"a".repeat(64)}));
+describe("confirmed QPA batting definitions",()=>{
+ it("uses all-hit total once without adding overlapping hard hits or home runs",()=>{const result=battingRates(rows({pa:12,ab:10,base_hit:3,hh_base_hit:2,hh_extra_base_hit:1,pumps:1,bb:2,punchies:4}));expect(result.find(r=>r.metric==="batting_avg")?.value).toBe(.3);expect(result.find(r=>r.metric==="batting_bb_pct")?.value).toBeCloseTo(100/6);expect(result.find(r=>r.metric==="batting_k_pct")?.value).toBeCloseTo(100/3);expect(result.map(r=>r.label)).toEqual(["AVG","BB %","K %"]);});
+ it("retains confirmed zeros but never fills missing numerators or zero denominators",()=>{expect(battingRates(rows({ab:5,base_hit:0}))[0].value).toBe(0);expect(battingRates(rows({ab:5}))).toEqual([]);expect(battingRates(rows({ab:0,base_hit:0}))).toEqual([]);expect(battingRates(rows({ab:5,base_hit:6}))).toEqual([]);});
+ it("rejects mixed players, snapshots, duplicate metrics and invalid values",()=>{const base=rows({ab:10,base_hit:3});for(const extra of [{...base[0],athlete_id:"other"},{...base[0],snapshot_id:"other"},base[0],{...base[0],value:NaN}])expect(battingRates([...base,extra])).toEqual([]);});
+ it("formats baseball averages and percentage rates distinctly",()=>{expect(formatBattingRate({metric:"x",label:"x",value:1/3,unit:"avg"})).toBe(".333");expect(formatBattingRate({metric:"x",label:"x",value:1,unit:"avg"})).toBe("1.000");expect(formatBattingRate({metric:"x",label:"x",value:12.34,unit:"%"})).toBe("12.3%");});
+ it("dates cumulative analytics by Pacific snapshot day without inventing games",()=>{const result=qpaAnalytics(rows({pa:12,ab:10,base_hit:3,pumps:1}));expect(result.find(r=>r.metric==="batting_avg")?.value).toBe(.3);expect(result.every(r=>r.date==="2026-09-12"&&r.source.includes("snapshot date"))).toBe(true);expect(new Set(result.map(r=>r.id)).size).toBe(result.length);expect(qpaAnalytics([...rows({ab:10}),{...rows({base_hit:3})[0],snapshot_id:"other"}])).toEqual([]);});
+});

@@ -15,3 +15,5 @@ Math: centered/scaled ordinary least squares with an intercept and Pearson r; RÂ
 QA: synthetic known positive/negative/zero-correlation relationships, unit invariance, constant axes, missing values, date-gap boundaries, source partitions, stable latest-selection, paging failures and authorization. Visual review uses a fictional dataset in the dashboard's own chart component at laptop and phone sizes. Hosted checks must not record real player measurements in screenshots or logs.
 
 References: [NIST scatterplot guidance](https://www.itl.nist.gov/div898/handbook/eda/section3/scatterp.htm), [NIST correlation reference](https://www.itl.nist.gov/div898/software/dataplot/refman2/ch2/correlat.pdf).
+
+September 12 scope: physicality selectors contain only height, weight, recorded RENPHO Body Score, total Muscle Mass and Body Fat %. Original detailed measurements remain stored. Current QPA counts and supported AVG/BB%/K% are separate game variables. QPA cumulative observations use Pacific snapshot dates with visible source/date disclosure; the selected date-gap rule still applies.

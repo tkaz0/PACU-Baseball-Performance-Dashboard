@@ -48,6 +48,15 @@ export const STAT_DEFINITIONS: Readonly<Record<string, string>> = {
   "metabolic age": "A device-generated comparison of estimated metabolism with its age reference data. It is not the player’s actual age.",
   "skeletal muscle index": "The skeletal muscle index reported by the device, in kg/m². Retained as reported without inferring its calculation method.",
   "waist-to-hip ratio": "Waist circumference divided by hip circumference, as reported by the device.",
+  batting_avg: "Batting average: all hits divided by official at-bats. The team confirmed Base Hit contains every hit; overlapping hard-hit columns are not added again. Displayed to three decimals.",
+  batting_bb_pct: "Batting walk rate: walks divided by plate appearances, multiplied by 100. This is not the pitching walk-rate metric.",
+  batting_k_pct: "Batting strikeout rate: recorded Punchies divided by plate appearances, multiplied by 100.",
+  base_hit: "All hits recorded in the QPA sheet, as confirmed by the team. Hard-hit columns overlap this total and are not added to it.",
+  pumps: "Home runs, recorded as Pumps in the QPA sheet.",
+  sb: "Stolen bases recorded in the QPA sheet.",
+  gdp: "Grounded into double plays recorded in the QPA sheet.",
+  hh_base_hit: "The QPA sheet’s hard-hit base-hit category. It overlaps the total Base Hit field; do not add it again to calculate total hits.",
+  hh_extra_base_hit: "The QPA sheet’s hard-hit extra-base-hit category. It is not a doubles/triples breakdown and cannot determine ISO.",
   pa: "Plate appearances recorded in the team’s game sheet.", ab: "Official at-bats recorded in the team’s game sheet.",
   qpa: "Quality plate appearances credited under the team’s QPA scoring rules.",
   qpa_pct: "Quality plate appearances divided by plate appearances, multiplied by 100, using the team sheet’s recorded totals.",
@@ -62,6 +71,7 @@ export const STAT_DEFINITIONS: Readonly<Record<string, string>> = {
 };
 
 export function statDefinition(metric: string): string {
+  if(metric.startsWith("qpa_game_"))return statDefinition(metric.slice(9));
   const definition = PLAYER_METRICS.find(item => item.key === metric || item.label.toLowerCase() === metric.toLowerCase())
     ?? PLAYER_METRICS.find(item => item.units.some(unit => normalizePlayerMetric(metric, unit)?.key === item.key));
   return STAT_DEFINITIONS[definition?.key ?? metric.toLowerCase()] ?? "This is a recorded field from the source report or team sheet. Its scoring rules follow that source; a team-specific definition has not been confirmed yet.";

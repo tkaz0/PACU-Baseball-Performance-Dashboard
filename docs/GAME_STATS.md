@@ -1,23 +1,23 @@
 # Fall game statistics
 
-The protected **Game Stats** page (`/game-stats`) displays reviewed shared game statistics. Player profiles do not duplicate this section or request its data. Admins and Coaches, including interactive Coach View as, may review and save a prepared source snapshot at `/imports/game-stats`. Players read only their linked athlete. The Game Stats panel shows primary QPA totals and one pitching row per game; additional recorded fields stay in **More Stats**. Missing inputs remain unavailable.
+The protected **Game Stats** page (`/game-stats`) displays reviewed shared game statistics. Each authorized player profile now includes its own Game Stats tab. The route checks athlete access before querying that exact player; staff retain the separate team Game Stats page. Admins and Coaches, including interactive Coach View as, may review and save a prepared source snapshot at `/imports/game-stats`. Players read only their linked athlete. The Game Stats panel shows primary QPA totals and one pitching row per game; additional recorded fields stay in **More Stats**. Unrecorded rows remain unavailable.
 
 Only these user-selected tabs are supported:
 
 | Source | Exact tab | Source extent and meaning |
 | --- | --- | --- |
-| QPA % | `2026 - Fall` | Cumulative Fall totals; detail rows 2–36 and 38. Row 37 is an excluded summary. A populated row 38 requires an exact reviewed identity just like other detail rows. |
+| QPA % | `2026 - Fall` | Cumulative Fall totals; reviewed detail rows 2–38. September 12 source review confirmed row 37 is now an individual player row with row-local formulas, not a summary. Every included row requires a reviewed identity. |
 | Pitching Stats 2026-27 | `FALL` | Raw blocks 40–70, 76–106, 113–143, 150–180 and 187–217, with header rows 39, 75, 112, 149 and 186. Season summaries, block aggregates and footers are excluded. |
 
 Source IDs, exact sheet IDs and full bounded capture ranges are in `lib/game-source-config.ts`. Daily capture first verifies metadata, then reads only the authorized tab: QPA `A1:AG968`, pitching `A1:AE1025`. Full known-grid coverage catches newly entered statistics outside the existing blocks. Changes to the tab, headers, grid dimensions, raw inputs outside reviewed rows or previously unused columns stop automatic saving for review. This is bounded selected-tab access, never a whole-workbook export.
 
 ## Metric boundaries
 
-QPA accepts explicitly entered counts from columns B, C, E, I–T and W. Its QPA percentage is derived only from entered QPAs / PAs, with a positive denominator. These cumulative observations replace the previous current snapshot; daily differences are never invented as games.
+QPA accepts explicitly entered counts from columns B, C, E, I–T, W, AA (SB) and AB (GDP). Its QPA percentage is derived only from entered QPAs / PAs, with a positive denominator. These cumulative observations replace the previous current snapshot; daily differences are never invented as games.
 
 Pitching accepts explicitly entered counts from C, D, F, G, I, J, L, M, O, P and S–W. The source label `K%` in E means **Strikes / Pitches**, so the dashboard labels it **Strike %**. I and U are separate `BB (pitch family)` and `BB` outcome fields. BAF, FPS and source-specific pitch/QPA labels retain their recorded meanings without invented definitions. `Inn` stays excluded until the innings convention is confirmed. No ERA, WHIP, strikeout percentage, walk percentage or event date is inferred from these inputs. Existing source summary/checker formula inconsistencies are not treated as raw data.
 
-Only entered finite nonnegative integer counts (maximum 1 billion) are imported. An entered zero is real; a blank, formula zero or division error is not. Formula/text/invalid raw counts block saving. The two supported percentages retain raw numerator/denominator column evidence; zero denominators produce no percentage.
+Only finite nonnegative integer counts (maximum 1 billion) are imported. Plain digit strings stored as text are accepted; formulas, formatted/exponent guesses and invalid raw entries block saving. The owner confirmed QPA blank count cells mean zero when that row has a recorded PA or AB total. Entirely blank rows, pitching blanks, and QPA rows without either recorded total stay missing. Formula zeros and division errors never establish a recorded row. The two supported percentages retain raw numerator/denominator column evidence; zero denominators produce no percentage.
 
 ## Review and daily operation
 
@@ -36,7 +36,7 @@ The owner's daily Codex automation begins game checks on **September 12, 2026, A
    ```
 
    Use `pitching_fall_2026` for the pitching source. Omit `--mappings` to prepare a review draft. The output is a new exclusive `0600` file outside Git; existing files are never overwritten. Standard output contains only provenance hashes, counts and readiness, not names or statistics. The local snapshot limit is 40,000 cells / 5 MiB; the shared normalized action payload is at most 1 MiB.
-4. Review exact full-name-to-PAC mappings against the current roster. Suggestions need confirmation; partial names, row positions and jerseys never assign identity. Each populated pitching block also needs an actual reviewed Fall game date, September 1–December 31. The September 12 daily-read start does not change the game-date window. Save a **reviewed mapping file** from the import page after checking its separate confirmation. Unknown later names or new blocks stay pending; no new athlete or Auth link is created.
+4. Review exact full-name-to-PAC mappings against the current roster. Suggestions need confirmation; partial names, row positions and jerseys never assign identity. Each populated pitching block also needs an actual reviewed Fall game date, September 1–December 31. The September 12 daily-read start does not change the game-date window. Save a **reviewed mapping file** from the import page after checking its separate confirmation. An explicitly reviewed `athleteCode: "exclude"` mapping omits a named source player without creating or guessing an athlete. Unknown later names or new blocks stay pending; no new athlete or Auth link is created.
 5. On a changed, valid source with retained reviewed mappings, the authorized daily run opens `/imports/game-stats`, loads the prepared file, checks the source and preview against those mappings, confirms the review and saves through the signed-in staff session. Confirm the database-backed receipt and resulting Game Stats before advancing the last-successful snapshot. Keep incomplete or failed candidates separately. An uncertain save is checked by receipt/current state before retrying; no blind repeat.
 6. If access expires, the layout changes, an identity/date is unresolved or old observations disappear, preserve the previous shared statistics and private pending file. Notify only for meaningful changes, failures or required action. Stay quiet for unchanged/empty sources and unchanged known template issues. Never edit source Sheets/sharing or send invitations as part of this automation.
 
@@ -55,3 +55,11 @@ Synthetic source, capture, action, server projection and embedded database tests
 On September 5 local time, full bounded reads of both actual approved tabs passed the preparation command with **zero populated raw rows, zero observations, zero errors and zero review issues**. This verifies the current empty templates, not future populated games or unattended end-to-end saving. No fictional game statistics were uploaded to production.
 
 Synthetic browser QA checked 24 light/dark states at 1440 and 390 pixels, including empty and populated game panels, expanded additional statistics, both prepared source previews and mapping/date edits. There was no document overflow, browser error or POST. Changing a player match cleared both approvals; an undated populated pitching block could not sync. The temporary fixture route was removed.
+
+## Confirmed batting metrics (September 12)
+
+The owner confirmed **Base Hit** is all hits, **HH Base Hit / HH Extra Base Hit** overlap those hits, and **Pumps** means home runs. AVG uses Base Hit / AB; BB% uses BB / PA; batting K% uses Punchies / PA. These are computed from one player's one current snapshot, with positive denominators and no double-counting of hard hits. HR, RBI, SB and GDP retain raw counts. OBP is withheld pending the sacrifice-fly convention; ISO, SLG and OPS are unavailable without doubles/triples. Do not estimate the missing components.
+
+Migration `202609120001_qpa_baserunning.sql` adds only SB and GDP to the private metric-column whitelist. Deploy the compatible app before applying it. Ownership, ordinary-session imports and own-player RLS remain unchanged.
+
+Staff Analytics uses current cumulative QPA counts and supported batting rates. Their date is the source capture date in America/Los_Angeles, explicitly labeled as a snapshot date rather than a game or testing date. Physicality choices are limited to height, weight, recorded RENPHO Body Score, total muscle mass and body fat percentage.

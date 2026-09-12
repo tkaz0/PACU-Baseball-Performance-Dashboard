@@ -71,7 +71,8 @@ describe("protected profile route authorization and integration", () => {
     expect(fake.from).toHaveBeenCalledExactlyOnceWith("athletes");
     expect(fake.eq).toHaveBeenCalledExactlyOnceWith("id", ownId.toUpperCase());
     expect(fake.load).toHaveBeenCalledExactlyOnceWith(trusted, athlete);
-    expect(fake.games).not.toHaveBeenCalled();
+    expect(fake.games).toHaveBeenCalledExactlyOnceWith(trusted, athlete.id);
+    expect(html).toContain("Game Stats");
     expect(html).toContain("Fictional Profile"); expect(html).toContain('data-metric-key="max_exit_velocity"');
     expect(html).toContain('data-value="10"'); expect(html).toContain("Jersey Number");
   });
@@ -87,7 +88,7 @@ describe("protected profile route authorization and integration", () => {
     const html = renderToStaticMarkup(await Profile({ params: Promise.resolve({ id: ownId }), searchParams: Promise.resolve({ preview: "read-only" }) }));
     expect(html).toContain("This action is unavailable in the selected view. No change was saved.");
     expect(html).not.toContain('href="/imports"');
-    expect(fake.games).not.toHaveBeenCalled();
+    expect(fake.games).toHaveBeenCalledTimes(1);
   });
   it("shows imports to actual staff and Coach view, and limits management details to presented admin", async () => {
     fake.access.mockResolvedValueOnce(access(["coach"], null));

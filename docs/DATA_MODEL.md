@@ -249,3 +249,5 @@ Coaching Analytics is a read-only view over eligible 2026–27 roster attributes
 - RENPHO Body Score uses only the printed top-right report score, with no custom composite. See `RENPHO_BODY_SCORE.md`.
 
 See [RENPHO skeletal muscle and muscle balance](RENPHO_MUSCLE_BALANCE.md) for retained skeletal-mass report data, private segment readings, the 10% review flag, and migration 202609100001. Skeletal mass is hidden from main profile cards, leaderboards and Testing choices. Deploy the compatible app before enabling the catalog migration.
+
+QPA SB/GDP use source columns 27/28 via migration `202609120001_qpa_baserunning.sql`. Confirmed blank zeros are limited to QPA rows with PA/AB; entirely unrecorded rows stay absent. AVG/BB%/batting K% are calculated at read time from one current athlete snapshot, never stored as invented raw columns.
