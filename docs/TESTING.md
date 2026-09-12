@@ -307,3 +307,5 @@ See [RENPHO skeletal muscle and muscle balance](RENPHO_MUSCLE_BALANCE.md) for re
 September 12 synthetic tests cover QPA overlapping hit categories, plain numeric text, conditional blank zeros, reviewed exclusions, SB/GDP, positive rate denominators, mixed-player/snapshot rejection, own-profile access, Pacific snapshot dates and the five-metric physicality filter.
 
 Game ranking verification covers five-player ties, lower-direction GDP, SQL/JS OBP and HH% formulas, anonymous/inactive denials, own versus peer summaries, minimal leaderboard whitelists, preview link stripping, under-five percentile omission, source formula drift, the eight-variable Analytics list and manual-height exclusion. Existing hitting/throwing cards retain their common percentile renderer.
+
+Migration `202609120003_obp_count_review.sql` withholds OBP if recorded PA is smaller than AB+BB+HBP+SF. All raw values stay saved. Profiles label this as pending source count review; the dashboard does not guess whether SF was included in AB or PA was not updated. Synthetic checks cover this guard in JavaScript and SQL.
