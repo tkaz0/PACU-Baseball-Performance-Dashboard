@@ -92,3 +92,8 @@ it("shows recorded total muscle in Body Composition and Overview instead of a pe
  const overview=html.split('role="tabpanel"')[1];expect(overview).toContain("120 lb");expect(overview).toContain('aria-label="Muscle Mass Pacific percentile"');expect(overview).toContain('aria-valuenow="0"');
  expect(getPlayerProfileLayout(model([measurement("Muscle Mass Percentage",75,"%")]),fictionalAthlete("position").athlete_seasons[0]).additionalBody.find(c=>c.metric.key==="muscle_mass")?.latest).toBeNull();
 });
+it("renders the same percentile bars across hitting and throwing for comparable data",()=>{
+ const codes=Array.from({length:5},(_,i)=>`SYN-00${i+1}`),readings=codes.flatMap((code,i)=>[measurement("Max EV",90+i,"mph","2026-09-03",code),measurement("Max Velocity",80+i,"mph","2026-09-03",code),measurement("BB %",5+i,"%","2026-09-03",code)]);
+ const performance=getPlayerPerformance({readings,athleteCode:codes[0],cohortAthleteCodes:codes}),html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete:fictionalAthlete("two_way","CF","P"),performance}));
+ for(const label of ["Max EV","Max Velocity","BB %"])expect(html).toContain(`aria-label="${label} Pacific percentile"`);expect(html).toContain('data-direction="lower"');
+});
