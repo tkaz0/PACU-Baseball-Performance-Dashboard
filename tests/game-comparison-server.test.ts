@@ -1,0 +1,10 @@
+import {beforeEach,expect,it,vi} from "vitest";
+const rpc=vi.hoisted(()=>vi.fn());vi.mock("server-only",()=>({}));
+import {loadGameComparisons,loadGameLeaderboards} from "@/lib/game-comparison-server";
+const own="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",other="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+const access={roles:["player"],athleteId:own,supabase:{rpc}} as unknown as Parameters<typeof loadGameComparisons>[0];
+const comparison={metric:"batting_avg",source:"qpa_fall_2026",eventId:"",value:.3,percentile:50,sampleSize:5,snapshotId:own};
+beforeEach(()=>{rpc.mockReset();rpc.mockResolvedValue({data:[],error:null});});
+it("blocks a player's peer comparison before querying",async()=>{await expect(loadGameComparisons(access,other)).rejects.toThrow("access denied");expect(rpc).not.toHaveBeenCalled();});
+it("accepts only an exact own-summary whitelist and valid cohorts",async()=>{rpc.mockResolvedValue({data:[comparison],error:null});expect(await loadGameComparisons(access,own)).toEqual([comparison]);for(const item of [{...comparison,email:"fictional@example.com"},{...comparison,sampleSize:4},{...comparison,percentile:NaN},{...comparison,source:"other"}]){rpc.mockResolvedValue({data:[item],error:null});await expect(loadGameComparisons(access,own)).rejects.toThrow("verified");}});
+it("removes peer links in player presentation while retaining authorized ranking fields",async()=>{const row={metric:"batting_avg",source:"qpa_fall_2026",eventId:"",playedOn:null,value:.3,unit:"avg",rank:1,name:"Fictional Player",code:"PAC-0002",profileId:other,updatedAt:"2026-09-12T23:00:00Z",percentile:null,sampleSize:1};rpc.mockResolvedValue({data:[row],error:null});expect((await loadGameLeaderboards(access))[0].profileId).toBeNull();rpc.mockResolvedValue({data:[{...row,metric:"pa",unit:"count"}],error:null});await expect(loadGameLeaderboards(access)).rejects.toThrow("verified");});

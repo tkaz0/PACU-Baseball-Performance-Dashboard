@@ -24,9 +24,9 @@ export type GameSourcePreview = {
   populatedRows: number; missingRawCells: number; canImport: boolean;
 };
 
-export const QPA_HEADERS = ["Player", "PA's", "QPAs", "QPA Checker", "AB's", "AB's Checker", "Walks + HBP + Sac Bunt", "Percentage", "HH Base Hit", "HH Extra Base Hit", "Pumps", "Base Hit", "3-8 HH", "8 (+) pitches", "BB", "RBI", "Sac Bunt", "Moving Runner (2nd to 3rd w/ < 2 outs)", "HBP", "Punchies", "HH %", "Hitterish Value", "AB Control: weak before 3 or plus count (0-0, 1-0, 2-0, 2-1, 3-0, 3-1) (includes popped up bunts)", "Hitterish Plus AB Control", "Hitterish Plus AB Control / Total PA's", "AB's / AB's Thrown", "SB", "GDP"] as const;
+export const QPA_HEADERS = ["Player", "PA's", "QPAs", "QPA Checker", "AB's", "AB's Checker", "Walks + HBP + Sac Bunt", "Percentage", "HH Base Hit", "HH Extra Base Hit", "Pumps", "Base Hit", "3-8 HH", "8 (+) pitches", "BB", "RBI", "Sac Bunt", "Moving Runner (2nd to 3rd w/ < 2 outs)", "HBP", "Punchies", "HH %", "Hitterish Value", "AB Control: weak before 3 or plus count (0-0, 1-0, 2-0, 2-1, 3-0, 3-1) (includes popped up bunts)", "Hitterish Plus AB Control", "Hitterish Plus AB Control / Total PA's", "AB's / AB's Thrown", "SB", "GDP", "Sac Fly"] as const;
 export const PITCHING_HEADERS = ["Name", "", "Pitches", "Strikes", "K%", "FB", "FB K", "FB K%", "BB", "BB K", "BB K%", "CH", "CH K", "CH K%", "BAF", "FPS", "FPS%", "Inn", "H", "R", "BB", "HBP", "K"] as const;
-const QPA_RAW = [[2,"pa"],[3,"qpa"],[5,"ab"],[9,"hh_base_hit"],[10,"hh_extra_base_hit"],[11,"pumps"],[12,"base_hit"],[13,"three_eight_hh"],[14,"eight_plus_pitches"],[15,"bb"],[16,"rbi"],[17,"sac_bunt"],[18,"moving_runner"],[19,"hbp"],[20,"punchies"],[23,"ab_control"],[27,"sb"],[28,"gdp"]] as const;
+const QPA_RAW = [[2,"pa"],[3,"qpa"],[5,"ab"],[9,"hh_base_hit"],[10,"hh_extra_base_hit"],[11,"pumps"],[12,"base_hit"],[13,"three_eight_hh"],[14,"eight_plus_pitches"],[15,"bb"],[16,"rbi"],[17,"sac_bunt"],[18,"moving_runner"],[19,"hbp"],[20,"punchies"],[23,"ab_control"],[27,"sb"],[28,"gdp"],[29,"sac_fly"]] as const;
 const PITCHING_RAW = [[3,"pitches"],[4,"strikes"],[6,"fb"],[7,"fb_k"],[9,"bb_pitch_family"],[10,"bb_pitch_family_k"],[12,"ch"],[13,"ch_k"],[15,"baf"],[16,"fps"],[19,"h"],[20,"r"],[21,"bb_outcome"],[22,"hbp"],[23,"k"]] as const;
 const normalize = (value: string) => value.trim().replace(/\s+/g," ").toLocaleLowerCase("en-US");
 const canonicalFormula = (formula: string) => formula.replace(/\s+/g, "").toUpperCase();
@@ -67,13 +67,13 @@ export function parseGameSource(snapshot: GameSourceSnapshot, contract: Reviewed
   }
   const rows = new Set(contract.detailRows);
   if (rows.size !== contract.detailRows.length || [...rows].some(row => !Number.isSafeInteger(row) || row < (qpa ? 2 : 3) || row > 2000)) problem("detail_rows", "The reviewed source detail-row coverage is invalid.");
-  for(const cell of cells.values()) if(cell.column>(qpa?28:23)&&(cell.entered!==undefined||cell.formula||cell.error)) problem("unreviewed_columns", "Source content appeared outside the reviewed columns. Review the changed source layout before syncing.",cell.row,cell.column);
+  for(const cell of cells.values()) if(cell.column>(qpa?29:23)&&(cell.entered!==undefined||cell.formula||cell.error)) problem("unreviewed_columns", "Source content appeared outside the reviewed columns. Review the changed source layout before syncing.",cell.row,cell.column);
   const rawColumns=new Set<number>((qpa?QPA_RAW:PITCHING_RAW).map(([column])=>column));
   if(!qpa)rawColumns.add(18);
   for(const cell of cells.values()) if(!rows.has(cell.row)&&rawColumns.has(cell.column)&&(typeof cell.entered==="number"||(typeof cell.entered==="string"&&/^\d{1,10}$/.test(cell.entered.trim())))&&!cell.formula){
     problem("unreviewed_rows", "Entered statistics appeared outside the reviewed detail rows. Review the changed source layout before syncing.",cell.row,cell.column);
   }
-  for (const row of rows) for (let column=1;column<=(qpa ? 28 : 23);column++) {
+  for (const row of rows) for (let column=1;column<=(qpa ? 29 : 23);column++) {
     if (!cells.has(key(row,column))) problem("coverage", "The snapshot omitted part of a reviewed detail row. Read the complete bounded source range again.",row,column);
   }
   const eventByRow = new Map<number,ReviewedPitchingEvent>();
@@ -130,6 +130,8 @@ export function parseGameSource(snapshot: GameSourceSnapshot, contract: Reviewed
       const label = qpa ? QPA_HEADERS[column-1] : column === 9 ? "BB (pitch family)" : column === 21 ? "BB (outcome)" : PITCHING_HEADERS[column-1];
       add(metric,label,values.get(column)!,column);
     }
+    const hhFormula = qpa ? cells.get(key(row,21))?.formula : undefined;
+    if (hhFormula && canonicalFormula(hhFormula) !== `=(I${row}+M${row}+J${row}+K${row})/(E${row}-T${row}-Q${row})`) problem("hh_formula", "The QPA hard-hit formula changed; review before syncing.", row,21);
     const numerator = qpa ? 3 : 4, denominator = qpa ? 2 : 3, rateColumn = qpa ? 8 : 5;
     const expectedFormula = qpa ? `=C${row}/B${row}` : `=D${row}/C${row}`;
     const formula = cells.get(key(row,rateColumn))?.formula;

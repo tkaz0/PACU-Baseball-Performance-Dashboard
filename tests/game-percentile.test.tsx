@@ -1,0 +1,10 @@
+import {createElement} from "react";
+import {renderToStaticMarkup} from "react-dom/server";
+import {expect,it} from "vitest";
+import {GamePercentile} from "@/components/game-percentile";
+import {AthleteGameStats} from "@/components/athlete-game-stats";
+import {gameDirection} from "@/lib/game-metrics";
+const comparison={metric:"batting_avg",source:"qpa_fall_2026",eventId:"",value:.3,percentile:75,sampleSize:6,snapshotId:"fictional"};
+it("uses the shared accessible percentile bar only with a comparable cohort",()=>{const html=renderToStaticMarkup(createElement(GamePercentile,{comparison,label:"AVG"}));expect(html).toContain('role="meter"');expect(html).toContain('aria-valuenow="75"');expect(renderToStaticMarkup(createElement(GamePercentile,{comparison:{...comparison,sampleSize:4,percentile:null},label:"AVG"}))).toBe("");});
+it("distinguishes batting walk and strikeout directions from pitching",()=>{expect(gameDirection("qpa_fall_2026","batting_bb_pct")).toBe("higher");expect(gameDirection("qpa_fall_2026","batting_k_pct")).toBe("lower");expect(gameDirection("qpa_fall_2026","gdp")).toBe("lower");expect(gameDirection("pitching_fall_2026","bb_outcome")).toBe("lower");});
+it("retains a clean empty state without fictional percentile bars",()=>{const html=renderToStaticMarkup(createElement(AthleteGameStats,{stats:[]}));expect(html).toContain("Game Results Will Appear Here");expect(html).not.toContain('role="meter"');});

@@ -305,3 +305,5 @@ The Analytics release passed lint, TypeScript, and 1,465 tests across 80 files. 
 See [RENPHO skeletal muscle and muscle balance](RENPHO_MUSCLE_BALANCE.md) for retained skeletal-mass report data, private segment readings, the 10% review flag, and migration 202609100001. Skeletal mass is hidden from main profile cards, leaderboards and Testing choices. Deploy the compatible app before enabling the catalog migration.
 
 September 12 synthetic tests cover QPA overlapping hit categories, plain numeric text, conditional blank zeros, reviewed exclusions, SB/GDP, positive rate denominators, mixed-player/snapshot rejection, own-profile access, Pacific snapshot dates and the five-metric physicality filter.
+
+Game ranking verification covers five-player ties, lower-direction GDP, SQL/JS OBP and HH% formulas, anonymous/inactive denials, own versus peer summaries, minimal leaderboard whitelists, preview link stripping, under-five percentile omission, source formula drift, the eight-variable Analytics list and manual-height exclusion. Existing hitting/throwing cards retain their common percentile renderer.

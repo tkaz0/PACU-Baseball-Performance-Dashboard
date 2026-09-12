@@ -1,0 +1,2 @@
+import Link from "next/link";
+export function LeaderboardNavigation({group}:{group:string}){return <nav className="leaderboard-navigation" aria-label="Leaderboard group">{[["physicality","Physicality"],["hitting","Hitting"],["throwing","Throwing"],["games","Game Stats"]].map(([key,label])=><Link key={key} href={`/leaderboards?group=${key}`} aria-current={group===key?"page":undefined}>{label}</Link>)}</nav>;}

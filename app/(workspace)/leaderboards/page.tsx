@@ -1,3 +1,5 @@
+import { GameLeaderboard } from "@/components/game-leaderboard";
+import { loadGameLeaderboards } from "@/lib/game-comparison-server";
 import { requireAccess } from "@/lib/auth";
 import { PageHeading } from "@/components/page-heading";
 import { LeaderboardBoard } from "@/components/leaderboard-board";
@@ -7,6 +9,7 @@ import { LEADERBOARD_GROUPS, visibleLeaderboardComparisons } from "@/lib/leaderb
 export default async function LeaderboardsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const access = await requireAccess(["admin", "coach", "player"]);
   const query = await searchParams;
+  if(query.group === "games") return <><PageHeading section="Pacific Baseball / Team Results" title="Leaderboards" description="Fall 2026 · Team game rankings."/><GameLeaderboard rows={await loadGameLeaderboards(access)}/></>;
   const group = LEADERBOARD_GROUPS.find(group => group === query.group) ?? "physicality";
   const comparisons = visibleLeaderboardComparisons(group, await loadLeaderboardComparisons(access));
   const panels = await Promise.all(comparisons.map(async comparison => ({ comparison, rows: await loadLeaderboard(access, comparison) })));

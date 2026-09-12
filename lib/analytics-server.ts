@@ -3,7 +3,7 @@ import { qpaAnalytics } from "@/lib/game-analytics";
 import "server-only";
 import { requireImportAccess } from "@/lib/auth";
 import { UUID_PATTERN } from "@/lib/types";
-import { analyticsMetricVisible } from "@/lib/analytics";
+import { analyticsReadingVisible } from "@/lib/analytics";
 import type { AnalyticsDataset, AnalyticsPlayer, AnalyticsReading } from "@/lib/analytics";
 
 const fail=():never=>{throw new Error("Analytics data could not be verified. Refresh to load the current measurements.");};
@@ -31,5 +31,5 @@ export async function loadAnalytics():Promise<AnalyticsDataset>{
   },20000);readings.push(...page);if(readings.length>20000)return fail();}
   if(new Set(readings.map(r=>r.id)).size!==readings.length)return fail();
   const games=qpaAnalytics((await loadGameStats(access)).filter(row=>eligible.some(player=>player.id===row.athlete_id)));
-  return {players:eligible.map(p=>({id:p.id,code:p.code,name:p.name,academicClass:p.academicClass,position:p.position,playerType:p.playerType,bats:p.bats,throws:p.throws})).sort((a,b)=>a.name.localeCompare(b.name)),readings:[...readings.filter(row=>analyticsMetricVisible(row.metric)),...games]};
+  return {players:eligible.map(p=>({id:p.id,code:p.code,name:p.name,academicClass:p.academicClass,position:p.position,playerType:p.playerType,bats:p.bats,throws:p.throws})).sort((a,b)=>a.name.localeCompare(b.name)),readings:[...readings.filter(row=>analyticsReadingVisible(row)),...games]};
 }

@@ -74,3 +74,5 @@ Player Body Composition and Overview now use recorded total Muscle Mass, consist
 - RENPHO Body Score uses only the printed top-right report score, with no custom composite. See `docs/RENPHO_BODY_SCORE.md`.
 
 See [RENPHO skeletal muscle and muscle balance](docs/RENPHO_MUSCLE_BALANCE.md) for retained skeletal-mass report data, private segment readings, the 10% review flag, and migration 202609100001. Skeletal mass is hidden from main profile cards, leaderboards and Testing choices. Deploy the compatible app before enabling the catalog migration.
+
+Game Stats now includes shared-style blue/red percentiles and a separate signed-in leaderboard section. QPA supports confirmed sacrifice flies for OBP and the sheet-defined HH%. Analytics exposes only the eight owner-selected game variables, with manual-testing height omitted.

@@ -11,11 +11,12 @@ export const COLOR_GROUPS: { key: ColorGroup; label: string }[] = [{key:"academi
 const body = new Set([...RENPHO_SEGMENTS.map(segment => segment.key),"body_fat_mass","bone_mass","protein_mass","body_water_mass","skeletal_muscle_mass","bmi","bmr","fat_free_mass","subcutaneous_fat_pct","skeletal_muscle_pct","body_water_pct","protein_pct","metabolic_age","visceral_fat","smi","whr","bone_mass_pct",...PLAYER_METRICS.filter(m=>m.group==="body").map(m=>m.key)]);
 export const ANALYTICS_PHYSICALITY = new Set(["height", "weight", "body_score", "muscle_mass", "body_fat_pct"]);
 export const analyticsMetricVisible = (metric: string) => !body.has(metric) || ANALYTICS_PHYSICALITY.has(metric);
+export const analyticsReadingVisible = (row: Pick<AnalyticsReading,"metric"|"source">) => analyticsMetricVisible(row.metric) && !(row.metric === "height" && row.source.trim().toLowerCase().startsWith("manual testing"));
 export const variableKey = (row: AnalyticsReading) => JSON.stringify([row.metric,row.unit,row.source.trim().toLowerCase().replace(/\s+/g," ")]);
 export const prettyGroup = (value: string) => value.replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase());
 export const pointGroup = (player: AnalyticsPlayer, group: ColorGroup) => group === "team" ? "Pacific" : prettyGroup(player[group] || "Not listed");
 export function readingsForPeriod(readings: readonly AnalyticsReading[], period: "fall" | "earlier"): AnalyticsReading[] {
-  return readings.filter(row=>analyticsMetricVisible(row.metric)).filter(row=>period==="fall" ? row.date>="2026-09-01"&&row.date<="2026-12-31" : body.has(row.metric)&&row.date>="2026-06-01"&&row.date<="2026-08-31");
+  return readings.filter(row=>analyticsReadingVisible(row)).filter(row=>period==="fall" ? row.date>="2026-09-01"&&row.date<="2026-12-31" : body.has(row.metric)&&row.date>="2026-06-01"&&row.date<="2026-08-31");
 }
 /** One latest observation per player/metric/source/unit. Date first, then import time and immutable ID. */
 export function latestAnalyticsReadings(readings: readonly AnalyticsReading[]): AnalyticsReading[] {
@@ -25,7 +26,7 @@ export function latestAnalyticsReadings(readings: readonly AnalyticsReading[]): 
 }
 export function analyticsVariables(readings: readonly AnalyticsReading[]): AnalyticsVariable[] {
   const variables=new Map<string,AnalyticsVariable>();
-  for(const row of latestAnalyticsReadings(readings.filter(row=>analyticsMetricVisible(row.metric)))){const key=variableKey(row),old=variables.get(key);if(old)old.count++;else variables.set(key,{key,metric:row.metric,label:PLAYER_METRICS.find(m=>m.key===row.metric)?.label??row.label,unit:row.unit,source:row.source,count:1});}
+  for(const row of latestAnalyticsReadings(readings.filter(row=>analyticsReadingVisible(row)))){const key=variableKey(row),old=variables.get(key);if(old)old.count++;else variables.set(key,{key,metric:row.metric,label:PLAYER_METRICS.find(m=>m.key===row.metric)?.label??row.label,unit:row.unit,source:row.source,count:1});}
   return [...variables.values()].sort((a,b)=>a.label.localeCompare(b.label)||a.unit.localeCompare(b.unit)||a.source.localeCompare(b.source));
 }
 export function pairAnalytics(players: readonly AnalyticsPlayer[], readings: readonly AnalyticsReading[], xKey: string, yKey: string, maxGap: number) {

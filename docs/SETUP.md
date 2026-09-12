@@ -299,3 +299,5 @@ Analytics at `/analytics` needs no additional migration or key. It reads existin
 See [RENPHO skeletal muscle and muscle balance](RENPHO_MUSCLE_BALANCE.md) for retained skeletal-mass report data, private segment readings, the 10% review flag, and migration 202609100001. Skeletal mass is hidden from main profile cards, leaderboards and Testing choices. Deploy the compatible app before enabling the catalog migration.
 
 Deploy the September 12 compatible game-stats app, then apply `202609120001_qpa_baserunning.sql` to enable QPA SB/GDP. Retain reviewed exact-source player/exclusion mappings outside Git for daily checks. No new credential or access grant is required.
+
+Apply `202609120002_game_rankings.sql` after 202609120001. It adds Sac Fly to the private import whitelist plus fixed game leaderboard/own-summary RPCs. This additive migration is backward compatible before new app deployment; import the new SF snapshot only after deployment. No credentials, account links or broad table grants change.

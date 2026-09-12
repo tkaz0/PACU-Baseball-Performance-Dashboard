@@ -4,10 +4,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Role, RosterAthlete } from "@/lib/types";
 import type { Measurement } from "@/lib/imports/engine";
 
-const fake = vi.hoisted(() => ({ access: vi.fn(), from: vi.fn(), select: vi.fn(), eq: vi.fn(), single: vi.fn(), load: vi.fn(), charts: vi.fn(), games: vi.fn() }));
+const fake = vi.hoisted(() => ({ access: vi.fn(), from: vi.fn(), select: vi.fn(), eq: vi.fn(), single: vi.fn(), load: vi.fn(), charts: vi.fn(), games: vi.fn(), comparisons: vi.fn() }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/auth", () => ({ requireAccess: fake.access }));
 vi.mock("@/lib/performance-server", () => ({ loadAthletePerformance: fake.load }));
+vi.mock("@/lib/game-comparison-server", () => ({ loadGameComparisons: fake.comparisons }));
 vi.mock("@/lib/game-server", () => ({ loadGameStats: fake.games }));
 vi.mock("next/navigation", () => ({ notFound: () => { throw new Error("NOT_FOUND"); } }));
 vi.mock("next/link", () => ({ default: ({ href, children, ...props }: { href: string; children: ReactNode }) => createElement("a", { href, ...props }, children) }));
@@ -31,7 +32,7 @@ function access(roles: Role[] = ["player"], athleteId: string | null = ownId, pr
     user: { id: "fictional-user", email: "private-login@example.com" }, supabase: { from: fake.from } };
 }
 beforeEach(() => {
-  vi.resetAllMocks();
+  vi.resetAllMocks(); fake.comparisons.mockResolvedValue([]);
   const chain = { select: fake.select, eq: fake.eq, maybeSingle: fake.single };
   fake.from.mockReturnValue(chain); fake.select.mockReturnValue(chain); fake.eq.mockReturnValue(chain);
   fake.single.mockResolvedValue({ data: athlete, error: null });

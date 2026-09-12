@@ -41,6 +41,7 @@ function MetricCard({ card }: { card: PlayerMetricCard }) {
     <div className="mt-2 text-3xl leading-tight tracking-tight text-[var(--text-primary)] sm:text-4xl">{reading ? <ReadingValue reading={reading} /> : <span className="font-medium text-[var(--text-secondary)]" aria-label="Not yet tested">—</span>}</div>
     {!reading && <p className="mb-0 mt-3 text-[11px] text-[var(--text-secondary)]">Not Yet Tested</p>}
     {reading && <p className="mb-0 mt-3 text-[11px] leading-5 text-[var(--text-secondary)]">Last Tested: <time dateTime={reading.measuredAt}>{measurementDate(reading.measuredAt)}</time>{reading.derived ? " · Calculated" : ""}</p>}
+    {reading && (!card.percentile || card.percentile.sampleSize < 5) && <p className="mt-4 mb-0 border-t border-[var(--line-subtle)] pt-3 text-[11px] text-[var(--text-secondary)]">Team percentile appears after 5 comparable results.</p>}
     <Percentile card={card} />
   </li>;
 }

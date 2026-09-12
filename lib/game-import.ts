@@ -3,7 +3,7 @@ import type { GameSourceKey, GameSourceObservation } from "@/lib/game-source";
 export type SharedGameObservation = Omit<GameSourceObservation,"label"|"source">;
 export type SharedGameImport = { source:GameSourceKey; contentHash:string; fetchedAt:string; observations:SharedGameObservation[] };
 export const GAME_METRIC_COLUMNS: Record<GameSourceKey,Record<string,number>> = {
-  qpa_fall_2026:{pa:2,qpa:3,ab:5,hh_base_hit:9,hh_extra_base_hit:10,pumps:11,base_hit:12,three_eight_hh:13,eight_plus_pitches:14,bb:15,rbi:16,sac_bunt:17,moving_runner:18,hbp:19,punchies:20,ab_control:23,sb:27,gdp:28,qpa_pct:8},
+  qpa_fall_2026:{pa:2,qpa:3,ab:5,hh_base_hit:9,hh_extra_base_hit:10,pumps:11,base_hit:12,three_eight_hh:13,eight_plus_pitches:14,bb:15,rbi:16,sac_bunt:17,moving_runner:18,hbp:19,punchies:20,ab_control:23,sb:27,gdp:28,sac_fly:29,qpa_pct:8},
   pitching_fall_2026:{pitches:3,strikes:4,fb:6,fb_k:7,bb_pitch_family:9,bb_pitch_family_k:10,ch:12,ch_k:13,baf:15,fps:16,h:19,r:20,bb_outcome:21,hbp:22,k:23,strike_pct:5},
 };
 const isObject=(value:unknown):value is Record<string,unknown>=>!!value&&typeof value==="object"&&!Array.isArray(value);

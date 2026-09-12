@@ -1,0 +1,6 @@
+export const GAME_LEADERBOARD_METRICS = ["batting_avg","batting_obp","qpa_pct","batting_hh_pct","pumps","sb","batting_bb_pct","batting_k_pct","gdp"] as const;
+export const GAME_METRIC_LABELS:Record<string,string>={batting_avg:"AVG",batting_obp:"OBP",batting_hh_pct:"HH %",batting_bb_pct:"BB %",batting_k_pct:"K %",qpa_pct:"QPA %",pumps:"HR",sb:"SB",gdp:"GDP"};
+export const gameDirection=(source:string,metric:string):"higher"|"lower"|"neutral"=>source==="qpa_fall_2026"?(["batting_k_pct","punchies","gdp"].includes(metric)?"lower":[...GAME_LEADERBOARD_METRICS,"base_hit","rbi","qpa","bb"].includes(metric)?"higher":"neutral"):(["bb_outcome","hbp","h","r"].includes(metric)?"lower":["strike_pct","k","strikes"].includes(metric)?"higher":"neutral");
+export const gameValue=(value:number,unit:string)=>unit==="avg"?value.toFixed(3).replace(/^0\./,"."):unit==="%"?`${value.toFixed(1)}%`:String(value);
+export type GameComparison={metric:string;source:string;eventId:string;value:number;percentile:number|null;sampleSize:number;snapshotId:string};
+export type GameLeaderboardRow={metric:string;source:string;eventId:string;playedOn:string|null;value:number;unit:string;rank:number;name:string;code:string;profileId:string|null;updatedAt:string;percentile:number|null;sampleSize:number};

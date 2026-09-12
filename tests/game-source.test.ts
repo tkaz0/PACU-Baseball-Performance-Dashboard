@@ -23,6 +23,7 @@ describe("source-grounded Fall game adapters",()=>{
   });
   it("excludes only explicitly reviewed names without assigning their counts",()=>{const f=fixture();f.set(2,4);const p=parseGameSource(f.snapshot,f.contract,[{sourceName:"Fictional Player",athleteCode:"exclude"}]);expect(p.observations).toEqual([]);expect(p.issues.map(x=>x.code)).toEqual(["excluded_identity"]);});
   it("accepts plain digit counts stored as text, but never expressions or formatted guesses",()=>{const f=fixture();f.set(2," 5 ");f.set(3,"4");expect(f.run().canImport).toBe(true);expect(f.run().observations.find(r=>r.metric==="qpa_pct")?.value).toBe(80);for(const value of ["1e2","1,000","2.5","=5","+5"]){f.set(2,value);expect(f.run().canImport).toBe(false);}});
+  it("rejects changed HH formulas",()=>{const f=fixture();f.set(2,5);f.set(21,undefined,{formula:"=I2/E2"});expect(f.run().issues.some(i=>i.code==="hh_formula")).toBe(true);});
   it("imports reviewed stolen-base and double-play columns",()=>{const f=fixture();f.set(2,5);f.set(27,2);f.set(28,1);expect(f.run().observations.filter(x=>["sb","gdp"].includes(x.metric)).map(x=>[x.metric,x.value,x.sourceColumn])).toEqual([["sb",2,27],["gdp",1,28]]);});
   it("keeps prepared formula zeros and division errors missing when raw inputs are blank",()=>{
     for(const pitching of [false,true]) {const f=fixture(pitching);f.set(pitching?5:8,undefined,{formula:pitching?"=D40/C40":"=C2/B2",error:"DIVIDE_BY_ZERO",effective:0});const p=f.run();expect(p.observations).toEqual([]);expect(p.populatedRows).toBe(0);expect(p.canImport).toBe(false);}

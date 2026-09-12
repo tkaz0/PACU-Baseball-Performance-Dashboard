@@ -17,3 +17,5 @@ QA: synthetic known positive/negative/zero-correlation relationships, unit invar
 References: [NIST scatterplot guidance](https://www.itl.nist.gov/div898/handbook/eda/section3/scatterp.htm), [NIST correlation reference](https://www.itl.nist.gov/div898/software/dataplot/refman2/ch2/correlat.pdf).
 
 September 12 scope: physicality selectors contain only height, weight, recorded RENPHO Body Score, total Muscle Mass and Body Fat %. Original detailed measurements remain stored. Current QPA counts and supported AVG/BB%/K% are separate game variables. QPA cumulative observations use Pacific snapshot dates with visible source/date disclosure; the selected date-gap rule still applies.
+
+Current QPA list is exactly AVG, GDP count, batting BB%, HR, batting K%, QPA%, sheet HH%, and SB. OBP stays on profiles/leaderboards, as the owner requested this exact Analytics list. PA, AB, hits and RBI remain recorded but are not Analytics choices. Manual-testing height is omitted; canonical RENPHO height remains available. HH% follows the inspected QPA formula, with undefined or impossible ratios omitted.

@@ -1,7 +1,7 @@
-import Link from "next/link";
+import { LeaderboardNavigation } from "@/components/leaderboard-navigation";
 import { Trophy } from "lucide-react";
 import { LeaderboardResults } from "@/components/leaderboard-results";
-import { LEADERBOARD_METRICS, LEADERBOARD_GROUPS, leaderboardGroupLabels, leaderboardMetricLabel, leaderboardMetrics, type LeaderboardComparison, type LeaderboardGroup, type LeaderboardRow } from "@/lib/leaderboards";
+import { LEADERBOARD_METRICS, leaderboardGroupLabels, leaderboardMetricLabel, leaderboardMetrics, type LeaderboardComparison, type LeaderboardGroup, type LeaderboardRow } from "@/lib/leaderboards";
 
 export type LeaderboardPanel = { comparison: LeaderboardComparison; rows: LeaderboardRow[] };
 
@@ -9,7 +9,7 @@ export function LeaderboardBoard({ group, panels }: { group: LeaderboardGroup; p
   const populated = panels.filter(panel => panel.rows.length > 0);
   const waiting = leaderboardMetrics(group).filter(metric => metric.key !== "bat_speed" && !populated.some(panel => panel.comparison.metricKey === metric.key));
   return <>
-    <nav className="leaderboard-navigation" aria-label="Leaderboard group">{LEADERBOARD_GROUPS.map(item => <Link key={item} href={`/leaderboards?group=${item}`} aria-current={group === item ? "page" : undefined}>{leaderboardGroupLabels[item]}</Link>)}</nav>
+    <LeaderboardNavigation group={group} />
     {populated.length > 0 ? <div className="leaderboard-grid">{populated.map(({ comparison, rows }) => <LeaderboardResults key={comparison.metricKey} rows={rows} metric={LEADERBOARD_METRICS.find(metric => metric.key === comparison.metricKey)!} unit={comparison.unit} source={comparison.source} period={comparison.period} />)}</div>
       : <section className="panel px-6 py-10 text-center sm:py-14"><span className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--surface-raised)] text-[var(--accent-readable)]"><Trophy size={23} aria-hidden="true" /></span><h2 className="mb-2 text-xl font-bold">No {leaderboardGroupLabels[group]} Results Yet</h2><p className="muted mx-auto mb-0 max-w-md text-sm">Rankings will appear here as testing results are added.</p></section>}
     {waiting.length > 0 && <details className="leaderboard-waiting" open={populated.length === 0}><summary>Awaiting Testing <span>{waiting.length} {waiting.length === 1 ? "metric" : "metrics"}</span></summary><div className="flex flex-wrap gap-2 pt-4">{waiting.map(metric => <span key={metric.key} className="rounded-md bg-[var(--surface-raised)] px-3 py-2 text-xs text-[var(--text-secondary)]">{leaderboardMetricLabel(metric)}</span>)}</div></details>}

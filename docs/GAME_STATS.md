@@ -13,7 +13,7 @@ Source IDs, exact sheet IDs and full bounded capture ranges are in `lib/game-sou
 
 ## Metric boundaries
 
-QPA accepts explicitly entered counts from columns B, C, E, I–T, W, AA (SB) and AB (GDP). Its QPA percentage is derived only from entered QPAs / PAs, with a positive denominator. These cumulative observations replace the previous current snapshot; daily differences are never invented as games.
+QPA accepts explicitly entered counts from columns B, C, E, I–T, W, AA (SB), AB (GDP) and AC (Sac Fly). Its QPA percentage is derived only from entered QPAs / PAs, with a positive denominator. These cumulative observations replace the previous current snapshot; daily differences are never invented as games.
 
 Pitching accepts explicitly entered counts from C, D, F, G, I, J, L, M, O, P and S–W. The source label `K%` in E means **Strikes / Pitches**, so the dashboard labels it **Strike %**. I and U are separate `BB (pitch family)` and `BB` outcome fields. BAF, FPS and source-specific pitch/QPA labels retain their recorded meanings without invented definitions. `Inn` stays excluded until the innings convention is confirmed. No ERA, WHIP, strikeout percentage, walk percentage or event date is inferred from these inputs. Existing source summary/checker formula inconsistencies are not treated as raw data.
 
@@ -58,8 +58,10 @@ Synthetic browser QA checked 24 light/dark states at 1440 and 390 pixels, includ
 
 ## Confirmed batting metrics (September 12)
 
-The owner confirmed **Base Hit** is all hits, **HH Base Hit / HH Extra Base Hit** overlap those hits, and **Pumps** means home runs. AVG uses Base Hit / AB; BB% uses BB / PA; batting K% uses Punchies / PA. These are computed from one player's one current snapshot, with positive denominators and no double-counting of hard hits. HR, RBI, SB and GDP retain raw counts. OBP is withheld pending the sacrifice-fly convention; ISO, SLG and OPS are unavailable without doubles/triples. Do not estimate the missing components.
+The owner confirmed **Base Hit** is all hits, **HH Base Hit / HH Extra Base Hit** overlap those hits, and **Pumps** means home runs. AVG uses Base Hit / AB; BB% uses BB / PA; batting K% uses Punchies / PA. These are computed from one player's one current snapshot, with positive denominators and no double-counting of hard hits. HR, RBI, SB and GDP retain raw counts. The appended Sac Fly column enables OBP = (hits + BB + HBP) / (AB + BB + HBP + SF). Sacrifice bunts are excluded. ISO, SLG and OPS remain unavailable without doubles/triples. Do not estimate the missing components.
 
 Migration `202609120001_qpa_baserunning.sql` adds only SB and GDP to the private metric-column whitelist. Deploy the compatible app before applying it. Ownership, ordinary-session imports and own-player RLS remain unchanged.
 
-Staff Analytics uses current cumulative QPA counts and supported batting rates. Their date is the source capture date in America/Los_Angeles, explicitly labeled as a snapshot date rather than a game or testing date. Physicality choices are limited to height, weight, recorded RENPHO Body Score, total muscle mass and body fat percentage.
+Staff Analytics uses only AVG, GDP, BB%, HR, K%, QPA%, HH% and SB. Their date is the source capture date in America/Los_Angeles, explicitly labeled as a snapshot date rather than a game or testing date. Physicality choices are limited to height, weight, recorded RENPHO Body Score, total muscle mass and body fat percentage.
+
+The September 12 HH% source formula is `(I+M+J+K)/(E-T-Q)` for each detail row. The parser checks this formula before sync; numeric derivation requires all recorded inputs and a positive denominator, and omits ratios above 100%. This team sheet definition is explicitly distinguished from Statcast hard-hit rate. Migration `202609120002_game_rankings.sql` adds Sac Fly support and fixed game ranking projections. See PLAYER_PROFILES and LEADERBOARDS for scopes and privacy.
