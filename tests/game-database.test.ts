@@ -18,12 +18,13 @@ beforeAll(async()=>{
  await db.exec(readFileSync(new URL("202609120003_obp_count_review.sql",dir),"utf8"));
  await db.exec(readFileSync(new URL("202609120004_game_power.sql",dir),"utf8"));
  await db.exec(readFileSync(new URL("202609120005_game_opportunities.sql",dir),"utf8"));
+ await db.exec(readFileSync(new URL("202609120006_dated_game_logs.sql",dir),"utf8"));
  await db.exec("create or replace function private.game_sync_now() returns timestamptz language sql stable set search_path='' as $$select '2026-09-15T12:00:00Z'::timestamptz$$;");
  for(const[id,role]of[[admin,"admin"],[coach,"coach"],[player,"player"],[unlinked,"player"]]){await db.query("insert into auth.users values($1)",[id]);await db.query("insert into public.app_accounts(user_id,is_active) values($1,true)",[id]);await db.query("insert into public.account_roles(user_id,role) values($1,$2)",[id,role]);}
  for(const[id,code]of[[a,"PAC-0001"],[b,"PAC-0002"]]){await db.query("insert into public.athletes(id,athlete_code,first_name,last_name) values($1,$2,'Fictional','Player')",[id,code]);await db.query("insert into public.athlete_seasons(athlete_id,season) values($1,'2026-27')",[id]);}
  await db.query("insert into public.account_athletes(user_id,athlete_id) values($1,$2)",[player,a]);
 });
-beforeEach(async()=>{await db.exec("delete from public.game_stats;delete from public.game_sync_state;delete from public.game_stat_snapshots;delete from public.audit_events where event_type='game_snapshot_imported';update public.app_accounts set is_active=true;reset extra_float_digits;");});
+beforeEach(async()=>{await db.exec("delete from private.game_log_receipts;delete from public.game_logs;delete from public.game_stats;delete from public.game_sync_state;delete from public.game_stat_snapshots;delete from public.audit_events where event_type='game_snapshot_imported';update public.app_accounts set is_active=true;reset extra_float_digits;");});
 afterAll(async()=>db.close());
 describe("reviewed Fall game snapshots",()=>{
  it("allows staff, preserves precision, and retries without appending cumulative observations",async()=>{
@@ -97,4 +98,32 @@ it("matches power rate calculations and excludes inconsistent home-run counts",a
  const own=async()=>await asUser(player,async()=>(await db.query<{r:Record<string,unknown>[]}>("select public.game_comparisons($1) r",[a])).rows[0].r);
  expect((await own()).find(r=>r.metric==="batting_hr_pct")).toMatchObject({value:5,sampleSize:1,percentile:null});
  await asUser(coach,()=>save(payload(11),"b".repeat(64),"2026-09-14T12:00:00Z"));expect((await own()).some(r=>r.metric==="batting_hr_pct")).toBe(false);
+});
+
+const logInput=(changes:Record<string,unknown>={})=>({requestId:"10101010-1010-4010-8010-101010101010",id:"20202020-2020-4020-8020-202020202020",expectedVersion:0,athleteId:a,playedOn:"2026-09-01",opponent:"Fictional Owls",gameNumber:1,kind:"game",batting:{pa:5,ab:4,h:2,doubles:1,triples:0,hr:0,bb:1,hbp:0,sf:0,sh:0,k:1},pitching:{},...changes});
+const writeLog=async(input:unknown)=>(await db.query<{r:{status:string;id:string;version:number}}>("select public.save_game_log($1::jsonb) r",[JSON.stringify(input)])).rows[0].r;
+const readLogs=async(id:string|null)=>(await db.query<{r:Record<string,unknown>[]}>("select public.read_game_logs($1) r",[id])).rows[0].r;
+it("saves and corrects coach game results with exact retry receipts and private player reads",async()=>{
+ const input=logInput(),receipt=await asUser(coach,()=>writeLog(input));expect(receipt).toMatchObject({status:"saved",version:1});expect(await asUser(coach,()=>writeLog(input))).toEqual(receipt);
+ await asUser(coach,()=>writeLog({...input,id:"90909090-9090-4090-8090-909090909090",requestId:"91919191-9191-4191-8191-919191919191",athleteId:b}));
+ expect(await asUser(player,()=>readLogs(a))).toHaveLength(1);expect(await asUser(player,()=>readLogs(null)).catch(e=>e.message)).toContain("linked athlete");
+ await asUser(player,async()=>{await expect(readLogs(b)).rejects.toThrow("Athlete access denied");expect((await db.query("select * from public.game_logs where athlete_id=$1",[b])).rows).toEqual([]);await expect(db.query("select * from private.game_log_receipts")).rejects.toThrow("permission denied");});
+ const edit={...input,requestId:"30303030-3030-4030-8030-303030303030",expectedVersion:1,batting:{...input.batting,h:1}};
+ expect(await asUser(admin,()=>writeLog(edit))).toMatchObject({version:2});expect((await asUser(player,()=>readLogs(a)))[0]).toMatchObject({version:2,batting:{h:1}});
+ expect((await db.query<{n:number}>("select count(*)::int n from private.game_log_receipts where previous_record is not null")).rows[0].n).toBe(1);
+ await asUser(coach,async()=>{await expect(writeLog({...edit,requestId:"40404040-4040-4040-8040-404040404040"})).rejects.toThrow("changed");await expect(writeLog({...input,batting:{ab:3}})).rejects.toThrow("used differently");});
+});
+it("rejects duplicate game identities, inconsistent counts, identity changes and direct writes",async()=>{
+ const input=logInput();await asUser(coach,()=>writeLog(input));
+ await asUser(coach,async()=>{
+  await expect(writeLog({...input,id:"50505050-5050-4050-8050-505050505050",requestId:"60606060-6060-4060-8060-606060606060",opponent:"fictional owls"})).rejects.toThrow("duplicate key");
+  await expect(writeLog({...input,requestId:"60606060-6060-4060-8060-606060606060",expectedVersion:1,athleteId:b})).rejects.toThrow("changed");
+  for(const change of [{batting:{h:5,ab:4}},{batting:{pa:5,ab:5,bb:0,hbp:0,sf:1}},{batting:{doubles:2,triples:1,hr:0,h:2}},{pitching:{pitches:10,strikes:11}},{batting:{ab:"4"}},{batting:{private_note:4}},{playedOn:"2027-01-01"},{opponent:"Fictional\nOwls"},{gameNumber:0},{expectedVersion:null},{batting:{},pitching:{}}])await expect(writeLog({...input,...change})).rejects.toThrow();
+  await expect(db.query("update public.game_logs set opponent='Changed'")).rejects.toThrow("permission denied");
+ });expect((await asUser(player,()=>readLogs(a)))[0]).toMatchObject({version:1,opponent:"Fictional Owls"});
+});
+it("blocks unauthorized and inactive game-log operations and allows distinct doubleheader games",async()=>{
+ const input=logInput();for(const id of [player,unlinked,null])await asUser(id,async()=>{await expect(writeLog(input)).rejects.toThrow();});
+ await asUser(coach,()=>writeLog(input));await asUser(coach,()=>writeLog({...input,id:"70707070-7070-4070-8070-707070707070",requestId:"80808080-8080-4080-8080-808080808080",gameNumber:2}));expect(await asUser(player,()=>readLogs(a))).toHaveLength(2);
+ await db.query("update public.app_accounts set is_active=false where user_id=$1",[coach]);await asUser(coach,async()=>{await expect(writeLog(input)).rejects.toThrow("Active import staff");await expect(readLogs(null)).rejects.toThrow("linked athlete");});
 });

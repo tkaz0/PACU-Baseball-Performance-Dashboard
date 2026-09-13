@@ -48,6 +48,8 @@ export const STAT_DEFINITIONS: Readonly<Record<string, string>> = {
   "metabolic age": "A device-generated comparison of estimated metabolism with its age reference data. It is not the player’s actual age.",
   "skeletal muscle index": "The skeletal muscle index reported by the device, in kg/m². Retained as reported without inferring its calculation method.",
   "waist-to-hip ratio": "Waist circumference divided by hip circumference, as reported by the device.",
+  game_log_slg: "Slugging percentage: (Hits + Doubles + 2 × Triples + 3 × Home Runs) / AB. Uses complete recorded hit types from dated game logs, separate from QPA totals.",
+  game_log_iso: "Isolated power: (Doubles + 2 × Triples + 3 × Home Runs) / AB. Requires complete extra-base-hit counts in the selected dated games.",
   batting_hr_pct: "Home run rate: Pumps (home runs) divided by plate appearances × 100. For example, 2 HR in 40 PA is 5%. Measures home-run frequency; it does not include doubles or triples and is not ISO or slugging percentage.",
   batting_obp: "On-base percentage: (all hits + walks + hit-by-pitches) / (at-bats + walks + hit-by-pitches + sacrifice flies). Sacrifice bunts are excluded.",
   batting_hh_pct: "QPA sheet hard-hit percentage: (HH Base Hit + 3–8 HH + HH Extra Base Hit + Pumps) / (AB − Punchies − Sac Bunt). Uses the team's sheet formula, not Statcast's exit-velocity threshold.",

@@ -4,11 +4,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Role, RosterAthlete } from "@/lib/types";
 import type { Measurement } from "@/lib/imports/engine";
 
-const fake = vi.hoisted(() => ({ access: vi.fn(), from: vi.fn(), select: vi.fn(), eq: vi.fn(), single: vi.fn(), load: vi.fn(), charts: vi.fn(), games: vi.fn(), comparisons: vi.fn() }));
+const fake = vi.hoisted(() => ({ access: vi.fn(), from: vi.fn(), select: vi.fn(), eq: vi.fn(), single: vi.fn(), load: vi.fn(), charts: vi.fn(), games: vi.fn(), comparisons: vi.fn(), logs: vi.fn() }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/auth", () => ({ requireAccess: fake.access }));
 vi.mock("@/lib/performance-server", () => ({ loadAthletePerformance: fake.load }));
 vi.mock("@/lib/game-comparison-server", () => ({ loadGameComparisons: fake.comparisons }));
+vi.mock("@/lib/game-log-server", () => ({ loadGameLogs: fake.logs }));
 vi.mock("@/lib/game-server", () => ({ loadGameStats: fake.games }));
 vi.mock("next/navigation", () => ({ notFound: () => { throw new Error("NOT_FOUND"); } }));
 vi.mock("next/link", () => ({ default: ({ href, children, ...props }: { href: string; children: ReactNode }) => createElement("a", { href, ...props }, children) }));
@@ -38,7 +39,7 @@ beforeEach(() => {
   fake.single.mockResolvedValue({ data: athlete, error: null });
   fake.access.mockResolvedValue(access());
   fake.load.mockResolvedValue({ measurements: [reading()], batches: [], percentileOverrides: [] });
-  fake.games.mockResolvedValue([]);
+  fake.games.mockResolvedValue([]); fake.logs.mockResolvedValue([]);
   fake.charts.mockImplementation(() => createElement("p", null, "Fictional chart boundary"));
 });
 
@@ -46,16 +47,16 @@ describe("protected profile route authorization and integration", () => {
   it("requires authentication before querying any profile or performance data", async () => {
     fake.access.mockRejectedValueOnce(new Error("REDIRECT:/login"));
     await expect(Profile({ params: Promise.resolve({ id: ownId }) })).rejects.toThrow("REDIRECT:/login");
-    expect(fake.from).not.toHaveBeenCalled(); expect(fake.load).not.toHaveBeenCalled(); expect(fake.games).not.toHaveBeenCalled();
+    expect(fake.from).not.toHaveBeenCalled(); expect(fake.load).not.toHaveBeenCalled(); expect(fake.games).not.toHaveBeenCalled(); expect(fake.logs).not.toHaveBeenCalled();
   });
   it.each([otherId, "LOCAL-0001", "", "../../admin/access", ownId + "\n"])("rejects malformed or another player's ID %# before the profile query", async id => {
     await expect(Profile({ params: Promise.resolve({ id }) })).rejects.toThrow("NOT_FOUND");
-    expect(fake.from).not.toHaveBeenCalled(); expect(fake.load).not.toHaveBeenCalled(); expect(fake.games).not.toHaveBeenCalled();
+    expect(fake.from).not.toHaveBeenCalled(); expect(fake.load).not.toHaveBeenCalled(); expect(fake.games).not.toHaveBeenCalled(); expect(fake.logs).not.toHaveBeenCalled();
   });
   it("does not fall back to actual admin authority during a player preview", async () => {
     fake.access.mockResolvedValueOnce(access(["player"], ownId, true));
     await expect(Profile({ params: Promise.resolve({ id: otherId }) })).rejects.toThrow("NOT_FOUND");
-    expect(fake.from).not.toHaveBeenCalled(); expect(fake.load).not.toHaveBeenCalled(); expect(fake.games).not.toHaveBeenCalled();
+    expect(fake.from).not.toHaveBeenCalled(); expect(fake.load).not.toHaveBeenCalled(); expect(fake.games).not.toHaveBeenCalled(); expect(fake.logs).not.toHaveBeenCalled();
   });
   it("denies unlinked players and missing/error profile results without loading measurements", async () => {
     fake.access.mockResolvedValueOnce(access(["player"], null));
@@ -64,7 +65,7 @@ describe("protected profile route authorization and integration", () => {
     await expect(Profile({ params: Promise.resolve({ id: ownId }) })).rejects.toThrow("NOT_FOUND");
     fake.single.mockResolvedValueOnce({ data: null, error: { message: "fictional query failure" } });
     await expect(Profile({ params: Promise.resolve({ id: ownId }) })).rejects.toThrow("Unable to load this athlete profile");
-    expect(fake.load).not.toHaveBeenCalled(); expect(fake.games).not.toHaveBeenCalled();
+    expect(fake.load).not.toHaveBeenCalled(); expect(fake.games).not.toHaveBeenCalled(); expect(fake.logs).not.toHaveBeenCalled();
   });
   it("queries the requested athlete and loads only its explicitly authorized performance input", async () => {
     const trusted = access(); fake.access.mockResolvedValueOnce(trusted);
@@ -73,6 +74,7 @@ describe("protected profile route authorization and integration", () => {
     expect(fake.eq).toHaveBeenCalledExactlyOnceWith("id", ownId.toUpperCase());
     expect(fake.load).toHaveBeenCalledExactlyOnceWith(trusted, athlete);
     expect(fake.games).toHaveBeenCalledExactlyOnceWith(trusted, athlete.id);
+    expect(fake.logs).toHaveBeenCalledExactlyOnceWith(trusted, athlete.id);
     expect(html).toContain("Game Stats");
     expect(html).toContain("Fictional Profile"); expect(html).toContain('data-metric-key="max_exit_velocity"');
     expect(html).toContain('data-value="10"'); expect(html).toContain("Jersey Number");
