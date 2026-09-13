@@ -17,6 +17,7 @@ beforeAll(async()=>{
  await db.exec(readFileSync(new URL("202609120002_game_rankings.sql",dir),"utf8"));
  await db.exec(readFileSync(new URL("202609120003_obp_count_review.sql",dir),"utf8"));
  await db.exec(readFileSync(new URL("202609120004_game_power.sql",dir),"utf8"));
+ await db.exec(readFileSync(new URL("202609120005_game_opportunities.sql",dir),"utf8"));
  await db.exec("create or replace function private.game_sync_now() returns timestamptz language sql stable set search_path='' as $$select '2026-09-15T12:00:00Z'::timestamptz$$;");
  for(const[id,role]of[[admin,"admin"],[coach,"coach"],[player,"player"],[unlinked,"player"]]){await db.query("insert into auth.users values($1)",[id]);await db.query("insert into public.app_accounts(user_id,is_active) values($1,true)",[id]);await db.query("insert into public.account_roles(user_id,role) values($1,$2)",[id,role]);}
  for(const[id,code]of[[a,"PAC-0001"],[b,"PAC-0002"]]){await db.query("insert into public.athletes(id,athlete_code,first_name,last_name) values($1,$2,'Fictional','Player')",[id,code]);await db.query("insert into public.athlete_seasons(athlete_id,season) values($1,'2026-27')",[id]);}
@@ -61,6 +62,7 @@ describe("reviewed Fall game snapshots",()=>{
  it("keeps pitching events distinct and rejects conflicting event dates or source rows",async()=>{
   const pitch=(changes:Record<string,unknown>={})=>row({metric:"pitches",sourceColumn:3,value:20,scope:"pitching_event",eventId:"fictional-game",playedOn:"2026-09-12",sourceRow:40,...changes});
   const rows=[pitch(),pitch({metric:"strikes",sourceColumn:4,value:10}),pitch({metric:"strike_pct",sourceColumn:5,value:50,unit:"%",derivedFrom:[4,3]}),pitch({eventId:"fictional-game-2",playedOn:"2026-09-13",sourceRow:76})];await asUser(coach,()=>save(rows,"a".repeat(64),"2026-09-13T20:00:00Z","pitching_fall_2026"));expect(await asUser(player,()=>read(a))).toHaveLength(4);
+  const pitchLeaders=await asUser(player,async()=>(await db.query<{r:Record<string,unknown>[]}>("select public.game_leaderboards() r")).rows[0].r);expect(pitchLeaders.find(r=>r.metric==="strike_pct")).toMatchObject({eventId:"fictional-game",opportunities:20});expect(pitchLeaders.filter(r=>r.metric!=="strike_pct").every(r=>r.opportunities===null)).toBe(true);
   for(const invalid of [[pitch(),pitch({athleteCode:"PAC-0002",playedOn:"2026-09-13"})],[pitch(),pitch({metric:"strikes",sourceColumn:4,sourceRow:41})],[pitch({playedOn:"2026-09-14"})]])await asUser(coach,async()=>{await expect(save(invalid,"b".repeat(64),"2026-09-13T20:00:00Z","pitching_fall_2026")).rejects.toThrow();});expect(await counts()).toEqual({observations:4,snapshots:1,audit:1});
  });
 });
@@ -72,7 +74,10 @@ it("provides fixed game rankings and own-player percentiles without exposing ful
  await asUser(admin,()=>save(payload));
  const leaders=await asUser(player,async()=>(await db.query<{r:Record<string,unknown>[]}>("select public.game_leaderboards() r")).rows[0].r);
  const avg=leaders.filter(r=>r.metric==="batting_avg");expect(avg.map(r=>r.rank)).toEqual([1,2,3,3,5]);expect(avg.find(r=>r.code==="PAC-0001")).toMatchObject({profileId:a,percentile:0,sampleSize:5});expect(avg.filter(r=>r.code!=="PAC-0001").every(r=>r.profileId===null)).toBe(true);
- expect(leaders.find(r=>r.metric==="batting_obp"&&r.code==="PAC-0001")?.value).toBe(2/12);
+ expect(leaders.find(r=>r.metric==="batting_obp"&&r.code==="PAC-0001")).toMatchObject({value:2/12,opportunities:12});
+ expect(avg.find(r=>r.code==="PAC-0001")).toMatchObject({opportunities:10});
+ expect(leaders.find(r=>r.metric==="batting_hh_pct"&&r.code==="PAC-0001")).toMatchObject({opportunities:9});
+ expect(leaders.find(r=>r.metric==="batting_hr_pct"&&r.code==="PAC-0001")).toMatchObject({opportunities:12});
  expect(leaders.find(r=>r.metric==="batting_hr_pct"&&r.code==="PAC-0001")).toMatchObject({value:0,percentile:50,sampleSize:5});
  expect(leaders.find(r=>r.metric==="gdp"&&r.code==="PAC-0001")?.percentile).toBe(100);
  expect(leaders.every(r=>!("snapshotId" in r)&&!("sourceRow" in r)&&!("email" in r)&&!["pa","ab"].includes(r.metric as string))).toBe(true);
