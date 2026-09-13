@@ -7,6 +7,7 @@ const fake = vi.hoisted(() => ({
   roles: ["admin"] as string[], active: true, authenticated: true, athleteExists: true,
   linked: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" as string | null,
   queries: [] as { table: string; columns: string; filters: [string, unknown][] }[],
+  authorizationFailures: 0,
   rpc: vi.fn(), setCookie: vi.fn(), deleteCookie: vi.fn(), revalidate: vi.fn(),
 }));
 vi.mock("server-only", () => ({}));
@@ -21,6 +22,7 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({
     const query = { table, columns: "", filters: [] as [string, unknown][] };
     const result = () => {
       fake.queries.push(query);
+      if (table === "app_accounts" && fake.authorizationFailures !== 0) { if (fake.authorizationFailures > 0) fake.authorizationFailures--; return { data: null, error: { message: "Fictional unavailable response" } }; }
       const data = table === "app_accounts" ? { is_active: fake.active } : table === "account_roles" ? fake.roles.map(role => ({ role })) : table === "account_athletes" ? fake.linked ? { athlete_id: fake.linked } : null : fake.athleteExists ? { id: query.filters.find(([key]) => key === "id")?.[1], first_name: "Fictional", preferred_name: null, last_name: "Player" } : null;
       return { data, error: null };
     };
@@ -34,7 +36,7 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({
   },
 }) }));
 
-import { getAccess, requireAdminMutation, requireAdminWorkspaceAccess, requireImportAccess, requireAccess } from "@/lib/auth";
+import { getAccess, requireAdminMutation, requireAdminWorkspaceAccess, requireImportAccess, requireAccess, getTrustedAccess } from "@/lib/auth";
 import { GET } from "@/app/api/athletes/[id]/route";
 import { GET as localWorkspaceAccess } from "@/app/api/local-workspace/access/route";
 import { startAccessPreview, exitAccessPreview } from "@/app/(workspace)/view-as/actions";
@@ -49,11 +51,29 @@ function preview(role = "player", athleteId: string | null = athleteA) {
   fake.raw = JSON.stringify({ version: 1, actorId: fake.actorId, role, athleteId, expiresAt: Date.now() + ACCESS_PREVIEW_SECONDS * 1000 - 1000 });
 }
 beforeEach(() => {
-  fake.raw = undefined; fake.roles = ["admin"]; fake.active = true; fake.authenticated = true; fake.athleteExists = true; fake.linked = athleteA; fake.queries = [];
+  fake.authorizationFailures = 0; fake.raw = undefined; fake.roles = ["admin"]; fake.active = true; fake.authenticated = true; fake.athleteExists = true; fake.linked = athleteA; fake.queries = [];
   vi.clearAllMocks();
 });
 
 describe("server preview enforcement", () => {
+  it("retries one failed authorization read without using stale permissions", async () => {
+    fake.authorizationFailures = 1;
+    expect((await getTrustedAccess()).access?.roles).toEqual(["admin"]);
+    expect(fake.queries.filter(q => q.table === "app_accounts")).toHaveLength(2);
+    fake.queries = []; fake.authorizationFailures = 1; fake.active = false;
+    expect(await getTrustedAccess()).toEqual({access:null,reason:"forbidden"});
+    expect(fake.queries.filter(q => q.table === "account_roles")).toHaveLength(2);
+  });
+  it("fails closed after two failed reads and never retries a successful denial", async () => {
+    fake.authorizationFailures = -1;
+    await expect(getTrustedAccess()).rejects.toThrow("Unable to verify access");
+    expect(fake.queries.filter(q => q.table === "app_accounts")).toHaveLength(2);
+    fake.authorizationFailures = 0; fake.active = false; fake.queries = [];
+    expect(await getTrustedAccess()).toEqual({access:null,reason:"forbidden"});
+    expect(fake.queries.filter(q => q.table === "app_accounts")).toHaveLength(1);
+    expect(fake.rpc).not.toHaveBeenCalled();
+  });
+
   it("requires live staff for imports while keeping management administrator-only", async () => {
     expect((await requireAdminWorkspaceAccess()).user.id).toBe(fake.actorId);
     const allowed = await localWorkspaceAccess();

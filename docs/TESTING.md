@@ -337,3 +337,5 @@ Release checks passed: lint, typecheck, 94 test files / 1,572 tests, and product
 ## Coach progress and comparison regression checks
 
 `tests/coaching-tools.test.ts` covers exact test pairing, prior/future/ambiguous dates, missing and zero baselines, retest intervals, pitcher/two-way eligibility, neutral body changes, game sample sizes, snapshot/event mismatches, and linked UI/empty states. `tests/analytics-server.test.ts` checks fresh access denial for both staff loaders, pagination and restricted output. Browser QA includes both new tools and compact Overview on desktop/mobile in light/dark themes with fictional data. See [COACHING_TOOLS.md](COACHING_TOOLS.md).
+
+Live rollout encountered an intermittent failed database authorization read. The trusted-access loader now retries that read once, re-reading all three authorization records. Persistent errors still fail closed; successful inactive/no-role results are not retried. Tests cover recovery, revocation on the new read, bounded persistent failure and non-retry of denied access. No previous permissions are cached or reused.

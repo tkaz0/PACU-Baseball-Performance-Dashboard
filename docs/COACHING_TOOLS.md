@@ -21,3 +21,5 @@ Only the existing main metric catalog is serialized for these testing views; ske
 ## Validation
 
 Synthetic tests cover date/source/unit partitions, previous-date conflicts, zero baselines, missing/future/invalid readings, role eligibility, adjustable queues, same-snapshot game opportunities and event boundaries. Server tests cover denial before reads, bounded pagination and safe projections. Browser verification uses fictional fixtures for screenshots and desktop/mobile/theme checks; live checks record only aggregate success/failure signals.
+
+Live rollout encountered an intermittent failed database authorization read. The trusted-access loader now retries that read once, re-reading all three authorization records. Persistent errors still fail closed; successful inactive/no-role results are not retried. Tests cover recovery, revocation on the new read, bounded persistent failure and non-retry of denied access. No previous permissions are cached or reused.
