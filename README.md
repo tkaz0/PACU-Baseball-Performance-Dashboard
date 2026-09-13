@@ -88,3 +88,5 @@ Game Stats now opens a team summary for Coaches/Admins and a private personal su
 RENPHO repeat tests show signed percentage changes, previous values/dates, and the owner's green/red/neutral preferences. Personal and team Game Stats include SB/PA with PA counts. See [RENPHO changes](docs/RENPHO_CHANGES.md) and [advanced hitting readiness](docs/ADVANCED_HITTING.md); weighted hitting metrics remain pending the missing source fields and reference context.
 
 Profile Overview now separates Physicality (Muscle Mass, printed Body Score, Body Fat %) from Game Stats and role-relevant testing percentiles. Current game rates can populate Strengths/Weaknesses with visible sample sizes. Standalone batting Hits/AB are removed from personal displays; AVG retains its AB denominator. See [profile presentation](docs/PLAYER_PROFILES.md).
+
+Staff now have [Team Progress and Compare Players](docs/COACHING_TOOLS.md): compact testing-change bars, adjustable retest queues, and two-player measurement/game comparisons with dates and sample sizes. Profile Overview percentiles use a tighter responsive layout.

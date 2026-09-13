@@ -313,3 +313,7 @@ The September 13 team Game Stats presentation uses the existing ordinary-session
 RENPHO change badges and SB/PA use existing authorized reads and need no new migration, key, or account changes. Existing import invalidation refreshes player pages after a reviewed save. See [RENPHO changes](RENPHO_CHANGES.md) and [advanced hitting readiness](ADVANCED_HITTING.md).
 
 The Overview game comparison update needs no migration or new key. Profile routes reuse the same own-athlete game reads and existing aggregate comparison RPC; deploy through the existing Vercel project. Source-sheet correction permissions are unchanged.
+
+## Coach progress and comparisons
+
+`/team-progress` and `/compare` reuse the existing ordinary-session measurement/game read permissions; no new environment variables or migration. Both require fresh staff access and reject Player View. See [COACHING_TOOLS.md](COACHING_TOOLS.md).

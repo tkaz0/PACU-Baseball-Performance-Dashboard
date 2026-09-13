@@ -267,3 +267,7 @@ Team Game Stats is a read-time aggregation of the current QPA snapshot and revie
 RENPHO deltas are calculated at read time from canonical raw report measurements with exact athlete/metric/source/unit matching and a previous distinct test date. They are never stored as new observations. Personal changes may cross the June–August/Fall boundary without pooling percentile cohorts. SB/PA is also derived at read time from one QPA snapshot (team totals use summed counts); existing own-player RLS and staff aggregation permissions remain unchanged. See [RENPHO changes](RENPHO_CHANGES.md) and [advanced hitting](ADVANCED_HITTING.md).
 
 Overview game metrics are read-time views of an authorized player's current game snapshot and existing comparison projection, matched on metric/source/event/snapshot/value. They introduce no peer reads, new derived records or schema changes. Only rate-based game comparisons contribute to strengths/weaknesses; recorded game counts remain available for calculations after removal of personal Hits/AB cards.
+
+## Read-only coach tools
+
+Team Progress and Compare Players add no tables or persisted scores. Current eligible roster roles, including secondary position, determine applicable tests. Numerical histories are partitioned by metric/source/unit and distinct dates; game pairs require matching snapshot/event. Retest intervals are client display controls. Analytics retains its previous public dataset projection. See [COACHING_TOOLS.md](COACHING_TOOLS.md).

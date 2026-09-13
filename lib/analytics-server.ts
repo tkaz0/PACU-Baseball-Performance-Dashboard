@@ -1,6 +1,7 @@
 import { loadGameStats } from "@/lib/game-server";
 import { qpaAnalytics } from "@/lib/game-analytics";
 import "server-only";
+import { coachingReadingVisible, coachingGames } from "@/lib/coaching-tools";
 import { requireImportAccess } from "@/lib/auth";
 import { UUID_PATTERN } from "@/lib/types";
 import { analyticsReadingVisible } from "@/lib/analytics";
@@ -13,14 +14,14 @@ export async function analyticsPages<T>(request:(from:number,to:number)=>Promise
   const rows:T[]=[];let count:number|undefined;
   for(let offset=0;;offset+=500){const result=await request(offset,offset+499);if(result.error||!Array.isArray(result.data)||result.count===null||!Number.isSafeInteger(result.count)||result.count<0||result.count>maximum||(count!==undefined&&count!==result.count))return fail();count=result.count;if(result.data.length!==Math.min(500,count-offset))return fail();rows.push(...result.data.map(parse));if(rows.length===count)return rows;}
 }
-export async function loadAnalytics():Promise<AnalyticsDataset>{
+async function loadTeamSource(){
   // Fresh trusted account check also denies Admin-as-Player before any team query.
   const access=await requireImportAccess();
   const {supabase}=access;
-  const players=await analyticsPages((from,to)=>supabase.from("athletes").select("id,athlete_code,first_name,preferred_name,last_name,athlete_seasons!inner(season,academic_class,primary_position,player_type,bats,throws,roster_status)",{count:"exact"}).eq("athlete_seasons.season","2026-27").order("id").range(from,to),row=>{
+  const players=await analyticsPages((from,to)=>supabase.from("athletes").select("id,athlete_code,first_name,preferred_name,last_name,athlete_seasons!inner(season,academic_class,primary_position,secondary_position,player_type,bats,throws,roster_status)",{count:"exact"}).eq("athlete_seasons.season","2026-27").order("id").range(from,to),row=>{
     if(!object(row)||!text(row.id)||!UUID_PATTERN.test(row.id)||!text(row.athlete_code,40)||!text(row.first_name,100)||!text(row.last_name,100)||(row.preferred_name!==null&&!text(row.preferred_name,100))||!Array.isArray(row.athlete_seasons)||row.athlete_seasons.length!==1)return fail();
-    const s=row.athlete_seasons[0];if(!object(s)||s.season!=="2026-27"||["academic_class","primary_position","player_type","bats","throws","roster_status"].some(k=>s[k]!==null&&!text(s[k])))return fail();
-    return {id:row.id,code:row.athlete_code,name:`${row.preferred_name||row.first_name} ${row.last_name}`,academicClass:s.academic_class??"",position:s.primary_position??"",playerType:s.player_type??"",bats:s.bats??"",throws:s.throws??"",status:s.roster_status} as AnalyticsPlayer&{status:string|null};
+    const s=row.athlete_seasons[0];if(!object(s)||s.season!=="2026-27"||(s.secondary_position!=null&&!text(s.secondary_position))||["academic_class","primary_position","player_type","bats","throws","roster_status"].some(k=>s[k]!==null&&!text(s[k])))return fail();
+    return {id:row.id,code:row.athlete_code,name:`${row.preferred_name||row.first_name} ${row.last_name}`,academicClass:s.academic_class??"",position:s.primary_position??"",secondaryPosition:s.secondary_position??"",playerType:s.player_type??"",bats:s.bats??"",throws:s.throws??"",status:s.roster_status} as AnalyticsPlayer&{status:string|null;secondaryPosition:string};
   },1000);
   const eligible=players.filter(p=>p.status===null||p.status==="active"||p.status==="redshirt");
   if(new Set(players.map(p=>p.id)).size!==players.length)return fail();
@@ -30,6 +31,14 @@ export async function loadAnalytics():Promise<AnalyticsDataset>{
     return {id:row.observation_id,athleteId:row.athlete_id,metric:row.metric_key,label:row.metric,unit:row.unit,value:row.value,date:row.measured_at,source:row.source,importedAt:row.imported_at};
   },20000);readings.push(...page);if(readings.length>20000)return fail();}
   if(new Set(readings.map(r=>r.id)).size!==readings.length)return fail();
-  const games=qpaAnalytics((await loadGameStats(access)).filter(row=>eligible.some(player=>player.id===row.athlete_id)));
-  return {players:eligible.map(p=>({id:p.id,code:p.code,name:p.name,academicClass:p.academicClass,position:p.position,playerType:p.playerType,bats:p.bats,throws:p.throws})).sort((a,b)=>a.name.localeCompare(b.name)),readings:[...readings.filter(row=>analyticsReadingVisible(row)),...games]};
+  const games=(await loadGameStats(access)).filter(row=>eligible.some(player=>player.id===row.athlete_id));
+  return {players:eligible.map(p=>({id:p.id,code:p.code,name:p.name,academicClass:p.academicClass,position:p.position,secondaryPosition:p.secondaryPosition,playerType:p.playerType,bats:p.bats,throws:p.throws})).sort((a,b)=>a.name.localeCompare(b.name)),readings,games};
+}
+export async function loadAnalytics():Promise<AnalyticsDataset>{
+  const data=await loadTeamSource();
+  return {players:data.players.map(p=>({id:p.id,code:p.code,name:p.name,academicClass:p.academicClass,position:p.position,playerType:p.playerType,bats:p.bats,throws:p.throws})),readings:[...data.readings.filter(analyticsReadingVisible),...qpaAnalytics(data.games)]};
+}
+export async function loadCoachingData(){
+  const data=await loadTeamSource();
+  return {players:data.players,readings:data.readings.filter(coachingReadingVisible),games:coachingGames(data.games)};
 }
