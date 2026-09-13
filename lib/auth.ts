@@ -20,7 +20,14 @@ export async function getTrustedAccess() {
   let [account, roleResult, link] = await readAuthorization();
   // Retry a failed read once. Never reuse an old permission result or retry a denial.
   if (account.error || roleResult.error || link.error) [account, roleResult, link] = await readAuthorization();
-  if (account.error || roleResult.error || link.error) throw new Error("Unable to verify access. Check database setup and availability.");
+  if (account.error || roleResult.error || link.error) {
+    // Diagnostic codes only: never log query data, user IDs, tokens or error messages.
+    console.error("Authorization reads unavailable", [account, roleResult, link].map(result => ({
+      status: Number.isFinite(result.status) ? result.status : 0,
+      code: result.error && /^[A-Z0-9_]{1,24}$/.test(result.error.code) ? result.error.code : result.error ? "TRANSPORT_OR_UNKNOWN" : "OK",
+    })));
+    throw new Error("Unable to verify access. Check database setup and availability.");
+  }
   const roles = (roleResult.data ?? []).map((r: { role: Role }) => r.role);
   if (!account.data?.is_active || !roles.length) return { access: null, reason: "forbidden" as const };
   return { access: { supabase, user, roles, athleteId: (link.data?.athlete_id as string | undefined) ?? null }, reason: null };

@@ -20,7 +20,7 @@ export function WorkspaceNavigation({ links }: { links: WorkspaceNavLink[] }) {
     <nav id={id} className="workspace-nav" data-open={open} aria-label="Main navigation">
       {links.map(({ href, label, icon: Icon, group }, index) => <div className="workspace-nav-item" key={href}>
         {group && group !== links[index - 1]?.group && <p className="workspace-nav-group">{group}</p>}
-        <Link className="nav-link" href={href} aria-current={current?.href === href ? "page" : undefined} onClick={() => setOpen(false)}><Icon size={18} aria-hidden="true" /><span>{label}</span></Link>
+        <Link prefetch={false} className="nav-link" href={href} aria-current={current?.href === href ? "page" : undefined} onClick={() => setOpen(false)}><Icon size={18} aria-hidden="true" /><span>{label}</span></Link>
       </div>)}
     </nav>
   </div>;
