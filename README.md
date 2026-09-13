@@ -82,3 +82,5 @@ Home Run Rate (HR%) uses recorded Pumps / PA × 100, with a positive denominator
 Game rates now show their recorded opportunity counts beneath the result, separate from the percentile cohort size. AVG uses AB; OBP uses AB+BB+HBP+SF; HH% uses the verified team denominator; other batting rates use PA; pitching Strike% uses pitches from the same event. Missing counts remain absent. Deploy the compatible app before `202609120005_game_opportunities.sql`, which adds only a nullable opportunity count to each authorized leaderboard row. Tests cover denominator selection, event isolation, missing data and response validation.
 
 Dated **Game Log**, recent-five-game summaries, **Limited sample** labels, and staff **Data Review** are documented in [docs/GAME_LOG.md](docs/GAME_LOG.md). Apply additive migration `202609120006_dated_game_logs.sql` before the app. Existing QPA snapshots, Analytics selections, account permissions and daily imports stay separate from manually logged games.
+
+Game Stats now opens a team summary for Coaches/Admins and a private personal summary for Players. Data Review stays in Coaching Tools; Game Log is removed from the menu.

@@ -1,3 +1,5 @@
+The owner removed Game Log from the coaching menu and game-page shortcuts on September 13. Existing dated records and correction links remain intact; Data Review stays in Coaching Tools. The main Game Stats page now leads with team totals for staff and own-player stats for Players.
+
 # Dated game logs and coach data review
 
 Coaches and Admins (including interactive Coach View) use **Game Log** to record or correct one player's actual Fall 2026 result, with date, opponent, game/intrasquad type and doubleheader game number. Player View is read-only. Players see only their linked player's log through both server guards and table RLS. No accounts or invitations are changed.
