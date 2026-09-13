@@ -125,3 +125,7 @@ Game comparisons reuse the already-authorized own-athlete rows and aggregate sum
 Strengths and weaknesses combine supported testing with batting rates (AVG, OBP, QPA%, HH%, HR%, BB%, K%) and pitching Strike %. These retain the 75th/25th percentile cutoffs, at most three items per section, denominator counts and limited-sample labels. Raw count ranks do not establish strengths/weaknesses because they depend on playing opportunities. Body metrics stay descriptive. Cumulative snapshots do not establish Biggest Jumps; that section still requires repeat comparable testing.
 
 Personal game displays remove standalone batting Hits and AB cards, including the expanded additional totals. Dated batting rows replace their AB/H columns with AVG and its recorded AB sample size. Underlying counts, coach editing/review, team summaries, calculations, permissions and stored data remain unchanged.
+
+## First-visit guide
+
+Linked players receive a three-step profile guide on their first workspace visit in a browser. It explains profile tabs, blue/red percentile ranks, comparable sample sizes and test/update dates. A Guide button reopens it; Escape, Close or Got It dismiss it. The versioned per-account browser preference stores only `seen`, does not affect authorization, and does not sync across devices. Player View as offers the guide manually without automatically opening or dismissing the actual player's guide. Coaches/admins do not receive an automatic walkthrough.

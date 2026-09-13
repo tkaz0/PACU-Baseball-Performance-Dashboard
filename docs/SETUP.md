@@ -319,3 +319,7 @@ The Overview game comparison update needs no migration or new key. Profile route
 `/team-progress` and `/compare` reuse the existing ordinary-session measurement/game read permissions; no new environment variables or migration. Both require fresh staff access and reject Player View. See [COACHING_TOOLS.md](COACHING_TOOLS.md).
 
 Launch polish adds no configuration or migrations. Comparison uses `loadComparisonData` to include the full current-season roster under the existing staff guard; progress/Analytics/percentile cohorts retain their eligibility rules.
+
+### Testing-day readiness
+
+Testing opens Data Coverage (`/testing/coverage`); Record Tests retains manual entry. The staff-only checklist uses existing current-roster and observation permissions, with no new migration or server key. Direct RENPHO, Full Swing and Blast imports now display a confirmed-save receipt with player/date links, reviewed metric names, exact new/already-present counts and omitted readings. Receipt state stays in memory and never persists source images or text. Linked players have a dismissible first-visit profile guide and a Guide button; its cosmetic browser preference is account-scoped. No invitation sends or account changes accompany these additions.

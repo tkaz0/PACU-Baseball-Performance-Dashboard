@@ -1,0 +1,28 @@
+.guide { margin:auto; width:min(520px,calc(100% - 28px)); max-height:calc(100dvh - 28px); overflow:auto; padding:0; border:1px solid var(--line-subtle); border-radius:14px; color:var(--text-primary); background:var(--surface-panel); box-shadow:0 20px 70px #0005; }
+.guide::backdrop { background:#10141fcc; }
+.header { display:flex; align-items:center; justify-content:space-between; padding:14px 22px; background:#8c1c2b; color:white; }
+.header>span { font-size:12px; font-weight:750; letter-spacing:.04em; }
+.close { display:grid; place-items:center; width:34px; height:34px; padding:0; border:0; border-radius:6px; background:transparent; color:white; cursor:pointer; }
+.close:hover { background:#ffffff20; }
+.body { padding:24px; }
+.eyebrow { font-size:10px!important; text-transform:uppercase; font-weight:750; letter-spacing:.08em; color:var(--text-secondary); margin:0 0 10px!important; }
+.body h2 { font-weight:750; font-size:23px; line-height:1.25; margin:0 0 16px; outline:none; }
+.body>p { font-size:14px; line-height:1.75; margin:12px 0 0; }
+.preview,.tip { display:flex; gap:14px; align-items:flex-start; margin:20px 0; }
+.preview { background:var(--surface-raised); border:1px solid var(--line-subtle); border-radius:10px; padding:16px; }
+.preview svg,.tip svg { flex-shrink:0; color:var(--accent-readable); }
+.preview strong,.tip strong { font-size:13px; display:block; }
+.preview span { display:block; margin-top:6px; font-size:12px; line-height:1.8; color:var(--text-secondary); }
+.tip p { font-size:13px; line-height:1.7; margin:4px 0 0; color:var(--text-secondary); }
+.percentile { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:24px 0; }
+.percentile div { grid-column:1/-1; height:14px; border-radius:7px; background:linear-gradient(90deg,#2669af,#a9c9e5,#e6c0c5,#bc2439); }
+.percentile span { font-size:11px; color:var(--text-secondary); }
+.percentile span:last-child { text-align:right; }
+.note { color:var(--text-secondary); font-size:12px!important; }
+.footer { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:0 24px; }
+.footer>div:last-child { display:flex; gap:8px; }
+.dots { display:flex; gap:6px; }
+.dots span { width:6px; height:6px; border-radius:3px; background:var(--line-subtle); }
+.dots span[data-current=true] { width:20px; background:var(--accent-readable); }
+.reminder { margin:0; padding:16px 24px 20px; color:var(--text-secondary); font-size:10px; line-height:1.7; }
+@media(max-width:500px) { .body { padding:20px; } .body h2 { font-size:21px; } .footer { padding:0 20px; } .reminder { padding:16px 20px; } }

@@ -31,3 +31,11 @@ The server reloads the current eligible roster, validates the exact entry and ch
 Each entry has a stable random submission ID and deterministic observation identities. Once saving begins, fields lock. If the response is uncertain, check the profile or explicitly choose **Retry Same Entry**; the reviewed payload and identifiers remain identical. An existing matching observation is counted as unchanged, and a conflicting observation is rejected rather than overwritten. No automatic retry occurs. Do not refresh or navigate away from an uncertain entry and re-enter it as a new test; that would create a separate submission identity.
 
 A confirmed save refreshes profiles, leaderboards, testing and import history. Numerical results are not emailed. Existing invitation settings and daily sheet-monitor schedules are unchanged.
+
+## Team data coverage
+
+`/testing/coverage` is the default Testing destination for staff. Record Tests remains at `/testing`. A fresh `requireImportAccess` check precedes ordinary-session roster and measurement reads; active/null/redshirt current-season players remain included even with no results. Player View is denied before team queries.
+
+Coverage uses validated September–December 2026 tests through today's Pacific date. RENPHO requires its exact source and tracks the five main body metrics. Hitting tracks max/average EV and bat speed, smash factor and max distance; throwing follows the player's pitching/field roles. Each cell lists individual testing dates and missing metrics. Recorded means all listed metrics have unambiguous results; Partial means some do. It does not assert a single complete report or all possible testing. Same-day conflicting latest values within a source/unit partition require review. Earlier body tests, future tests, game-sheet snapshots and RENPHO IDs alone never count as Fall coverage.
+
+The client receives only roster display identity, metric availability and dates; raw values, report provenance and game rows are not returned by this view. Search and missing/review filters affect the roster list; the three summary bars remain explicitly team-wide.

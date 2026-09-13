@@ -2,9 +2,9 @@ import { beforeEach, expect, it, vi } from "vitest";
 const mocks=vi.hoisted(()=>({access:vi.fn(),from:vi.fn(),games:vi.fn()}));
 vi.mock("server-only",()=>({}));vi.mock("@/lib/auth",()=>({requireImportAccess:mocks.access}));
 vi.mock("@/lib/game-server",()=>({loadGameStats:mocks.games}));
-import { analyticsPages, loadAnalytics, loadCoachingData, loadComparisonData } from "@/lib/analytics-server";
+import { analyticsPages, loadAnalytics, loadCoachingData, loadComparisonData, loadDataCoverage } from "@/lib/analytics-server";
 beforeEach(()=>{vi.resetAllMocks();mocks.games.mockResolvedValue([]);});
-it("denies unauthorized access before any team query",async()=>{mocks.access.mockRejectedValue(Error("DENIED"));await expect(loadAnalytics()).rejects.toThrow("DENIED");await expect(loadCoachingData()).rejects.toThrow("DENIED");await expect(loadComparisonData()).rejects.toThrow("DENIED");expect(mocks.from).not.toHaveBeenCalled();expect(mocks.games).not.toHaveBeenCalled();});
+it("denies unauthorized access before any team query",async()=>{mocks.access.mockRejectedValue(Error("DENIED"));await expect(loadAnalytics()).rejects.toThrow("DENIED");await expect(loadCoachingData()).rejects.toThrow("DENIED");await expect(loadComparisonData()).rejects.toThrow("DENIED");await expect(loadDataCoverage()).rejects.toThrow("DENIED");expect(mocks.from).not.toHaveBeenCalled();expect(mocks.games).not.toHaveBeenCalled();});
 it("detects provider truncation and changing page counts instead of returning false missing data",async()=>{await expect(analyticsPages(async()=>({data:[1],count:2,error:null}),x=>x,1000)).rejects.toThrow("could not be verified");const req=vi.fn().mockResolvedValueOnce({data:Array(500).fill(1),count:501,error:null}).mockResolvedValueOnce({data:[1,2],count:502,error:null});await expect(analyticsPages(req,x=>x,1000)).rejects.toThrow("could not be verified");});
 it("reads the full final page and fails on provider errors",async()=>{const req=vi.fn().mockResolvedValueOnce({data:Array(500).fill(1),count:501,error:null}).mockResolvedValueOnce({data:[2],count:501,error:null});expect(await analyticsPages(req,x=>x,1000)).toHaveLength(501);await expect(analyticsPages(async()=>({data:null,count:0,error:"unavailable"}),x=>x,1000)).rejects.toThrow("could not be verified");});
 it("returns only eligible roster fields and numerical readings through the signed-in client",async()=>{
@@ -22,6 +22,7 @@ it("offers all current-season identities for comparison while keeping progress/c
  const all=[makeAthlete("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","active"),makeAthlete("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb","inactive")];
  mocks.from.mockImplementation(table=>{const data=table==="athletes"?all:[];const chain={select:vi.fn(),eq:vi.fn(),in:vi.fn(),gte:vi.fn(),lte:vi.fn(),order:vi.fn(),range:vi.fn().mockResolvedValue({data,count:data.length,error:null})};for(const k of ["select","eq","in","gte","lte","order"] as const)chain[k].mockReturnValue(chain);return chain;});
  mocks.access.mockResolvedValue({supabase:{from:mocks.from}});
+ const coverage=await loadDataCoverage();expect(coverage.rows).toHaveLength(1);expect(mocks.games).not.toHaveBeenCalled();expect(coverage.rows[0].cells.renpho.status).toBe("missing");
  const comparison=await loadComparisonData();expect(comparison.players).toHaveLength(2);expect(comparison.readings).toEqual([]);
  expect((await loadCoachingData()).players).toHaveLength(1);expect((await loadAnalytics()).players).toHaveLength(1);
  expect(JSON.stringify(comparison)).not.toContain("email");expect(JSON.stringify(comparison)).not.toContain("roster_status");

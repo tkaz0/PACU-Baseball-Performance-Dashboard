@@ -92,3 +92,5 @@ Profile Overview now separates Physicality (Muscle Mass, printed Body Score, Bod
 Staff now have [Team Progress and Compare Players](docs/COACHING_TOOLS.md): compact testing-change bars, adjustable retest queues, and two-player measurement/game comparisons with dates and sample sizes. Profile Overview percentiles use a tighter responsive layout.
 
 Compare Players now offers an explicit searchable dropdown for every current-season roster identity, including players without measurements. Launch presentation uses smaller headers/cards, compact import lanes, and expandable secondary team totals.
+
+Testing now opens a compact staff Data Coverage checklist for RENPHO, hitting and throwing; expand a player's status to see missing metrics and test dates. Confirmed direct imports show matched player links, reviewed measurement names, dates, new/existing counts and left-out values. A short first-visit guide helps players read their profile and can be reopened using Guide. These additions use the existing permissions and do not send invitations or provision accounts.

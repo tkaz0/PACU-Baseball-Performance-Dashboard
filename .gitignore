@@ -2,7 +2,7 @@ node_modules/
 public/report-assets/
 .next/
 out/
-coverage/
+/coverage/
 playwright-report/
 test-results/
 .env*

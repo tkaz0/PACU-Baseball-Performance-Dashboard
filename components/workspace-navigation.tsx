@@ -10,7 +10,7 @@ export type WorkspaceNavLink = { href: string; label: string; icon: LucideIcon; 
 export function WorkspaceNavigation({ links }: { links: WorkspaceNavLink[] }) {
   const path = usePathname(), id = useId(), toggle = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
-  const current = links.filter(link => link.current ?? (path === link.href || path.startsWith(`${link.href}/`) || (link.href === "/roster" && path.startsWith("/athletes/")))).sort((a, b) => b.href.length - a.href.length)[0];
+  const current = links.filter(link => link.current ?? (path === link.href || path.startsWith(`${link.href}/`) || (link.href === "/testing/coverage" && path.startsWith("/testing")) || (link.href === "/roster" && path.startsWith("/athletes/")))).sort((a, b) => b.href.length - a.href.length)[0];
   return <div className="workspace-navigation" onKeyDown={event => {
     if (event.key === "Escape" && open) { setOpen(false); toggle.current?.focus(); }
   }}>

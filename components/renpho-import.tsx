@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { ImportConfirmation } from "@/components/import-confirmation";
+import { buildImportConfirmation, type ReadingsSaved, type ImportConfirmationData, type ImportSkipped } from "@/lib/import-confirmation";
 import { useEffect, useRef, useState } from "react";
 import { Check, LoaderCircle } from "lucide-react";
 import styles from "./import-presentation.module.css";
@@ -27,7 +29,7 @@ export function RenphoReportForm({ workspace, shared }: { workspace: RenphoWorks
   loadExisting: (fileHash: string) => Promise<Measurement[]>;
   matchPlayer: (reportId: string) => Promise<string | null>;
   profileHref: (athleteCode: string) => string;
-  receipt: string;
+  save: (measurements: Measurement[], identity: { athleteCode: string; renphoId: string }) => Promise<ReadingsSaved>;
 } }) {
   const [report, setReport] = useState<LoadedReport | null>(null);
   const [athleteCode, setAthleteCode] = useState("");
@@ -40,11 +42,12 @@ export function RenphoReportForm({ workspace, shared }: { workspace: RenphoWorks
   const [values, setValues] = useState<Record<string, string>>({});
   const [excluded, setExcluded] = useState<string[]>([]);
   const [confirmedUnits, setConfirmedUnits] = useState<string[]>([]);
-  const [reviewed, setReviewed] = useState<{ data: MeasurementPreview; revision: number } | null>(null);
+  const [reviewed, setReviewed] = useState<{ data: MeasurementPreview; revision: number; selected: Pick<Measurement, "athlete_code" | "measured_at" | "metric">[]; skipped: ImportSkipped[] } | null>(null);
   const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  const [receipt, setReceipt] = useState<ImportConfirmationData | null>(null);
   const [sharedExisting, setSharedExisting] = useState<Measurement[]>([]);
   const [sharedMatch, setSharedMatch] = useState<{ id: string; code: string | null } | null>(null);
   const [matchError, setMatchError] = useState("");
@@ -53,7 +56,7 @@ export function RenphoReportForm({ workspace, shared }: { workspace: RenphoWorks
   const controller = useRef<AbortController | null>(null);
   const imageUrl = useRef("");
   useEffect(() => () => { controller.current?.abort(); if (imageUrl.current) URL.revokeObjectURL(imageUrl.current); }, []);
-  const invalidate = () => { setReviewed(null); setConfirmed(false); setSaved(false); setError(""); };
+  const invalidate = () => { setReviewed(null); setConfirmed(false); setSaved(false); setReceipt(null); setError(""); };
   let matchingCode: string | null = null;
   let identityError = "";
   try { matchingCode = shared ? (sharedMatch?.id === normalizeRenphoId(renphoId) ? sharedMatch.code : null) : findRenphoAthlete(workspace.roster, renphoId); }
@@ -125,7 +128,12 @@ export function RenphoReportForm({ workspace, shared }: { workspace: RenphoWorks
         return { ...reading, value: Number(text), valueText: text };
       });
       const data = previewRenphoMeasurements({ parsed, candidates, athleteCode, measuredAt: date, roster: workspace.roster, existing: shared ? sharedExisting : workspace.measurements, fileHash: report.fileHash, fileName: report.fileName, confirmedUnits });
-      setReviewed({ data, revision: workspace.revision });
+      const skipped: ImportSkipped[] = [
+        ...parsed.candidateReadings.filter(reading => excluded.includes(reading.key)).map(reading => ({ label: reading.label, reason: "Not selected for saving." })),
+        ...renphoReviewIssues(parsed, candidates).omitted.map(issue => ({ label: issue.metric!, reason: "Could not be read clearly; omitted during review." })),
+      ];
+      const selected = candidates.map(reading => ({ athlete_code: athleteCode, measured_at: date, metric: reading.label }));
+      setReviewed({ data, revision: workspace.revision, selected, skipped });
     } catch (error) { setError(message(error)); }
   }
 
@@ -133,7 +141,10 @@ export function RenphoReportForm({ workspace, shared }: { workspace: RenphoWorks
     if (!canSave || !reviewed || !report) return;
     setBusy("Saving readings…"); setError("");
     try {
-      await workspace.applyRenphoReport(reviewed.data.candidateMeasurements, {
+      if (shared) {
+        const result = await shared.save(reviewed.data.candidateMeasurements, { athleteCode, renphoId: normalizeRenphoId(renphoId) });
+        setReceipt(buildImportConfirmation(reviewed.selected, workspace.roster, result, reviewed.skipped, reviewed.selected.length - reviewed.data.candidateMeasurements.length));
+      } else await workspace.applyRenphoReport(reviewed.data.candidateMeasurements, {
         id: crypto.randomUUID(), kind: "measurements", fileName: report.fileName, fileHash: report.fileHash,
         source: "RENPHO", importedAt: new Date().toISOString(), created: reviewed.data.counts.create,
         updated: reviewed.data.counts.update, unchanged: reviewed.data.counts.unchanged,
@@ -198,7 +209,7 @@ export function RenphoReportForm({ workspace, shared }: { workspace: RenphoWorks
           </div>
         </div>
         {reviewed && <div className={styles.saveReview}>
-          <p role="status" className="font-semibold">{reviewed.data.candidateMeasurements.length} new readings ready</p>
+          <p role="status" className="font-semibold">{reviewed.data.candidateMeasurements.length} new {reviewed.data.candidateMeasurements.length === 1 ? "reading" : "readings"} ready</p>
           {omittedMetrics.length > 0 && <p className="muted text-sm">Not included: {omittedMetrics.join(", ")}.</p>}
           {reviewed.data.issues.map((issue, index) => <p role="alert" key={index} className="notice notice-error">{issue.message}</p>)}
           {!reviewed.data.candidateMeasurements.length && reviewed.data.canApply && <p className="notice">These readings are already imported. Nothing new will be saved.</p>}
@@ -206,7 +217,7 @@ export function RenphoReportForm({ workspace, shared }: { workspace: RenphoWorks
           <label className="my-5 flex items-start gap-3"><input type="checkbox" checked={confirmed} disabled={!!busy} onChange={event => setConfirmed(event.target.checked)} /><span>I checked the player, test date, units, and selected values against the original report.</span></label>
           <button type="button" className="btn btn-primary" disabled={!canSave} onClick={() => { void save(); }}><Check size={17} />Save RENPHO readings</button>
         </div>}
-        {saved && <div role="status" className="notice notice-success mt-5">{shared ? shared.receipt : "Readings saved in this browser."} <Link className="font-semibold" href={shared ? shared.profileHref(athleteCode) : `/preview/athletes/${encodeURIComponent(athleteCode)}`}>Open player profile →</Link></div>}
+        {saved && (shared ? receipt && <ImportConfirmation receipt={receipt} /> : <div role="status" className="notice notice-success mt-5">Readings saved in this browser. <Link className="font-semibold" href={`/preview/athletes/${encodeURIComponent(athleteCode)}`}>Open player profile →</Link></div>)}
       </section>
     </>}
   </div>;

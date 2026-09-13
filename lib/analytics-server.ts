@@ -1,3 +1,5 @@
+import { buildDataCoverage } from "@/lib/data-coverage";
+import { pacificTestingDate } from "@/lib/testing-checklist";
 import { loadGameStats } from "@/lib/game-server";
 import { qpaAnalytics } from "@/lib/game-analytics";
 import "server-only";
@@ -14,7 +16,7 @@ export async function analyticsPages<T>(request:(from:number,to:number)=>Promise
   const rows:T[]=[];let count:number|undefined;
   for(let offset=0;;offset+=500){const result=await request(offset,offset+499);if(result.error||!Array.isArray(result.data)||result.count===null||!Number.isSafeInteger(result.count)||result.count<0||result.count>maximum||(count!==undefined&&count!==result.count))return fail();count=result.count;if(result.data.length!==Math.min(500,count-offset))return fail();rows.push(...result.data.map(parse));if(rows.length===count)return rows;}
 }
-async function loadTeamSource(includeFullRoster=false){
+async function loadTeamSource(includeFullRoster=false, includeGames=true){
   // Fresh trusted account check also denies Admin-as-Player before any team query.
   const access=await requireImportAccess();
   const {supabase}=access;
@@ -31,7 +33,7 @@ async function loadTeamSource(includeFullRoster=false){
     return {id:row.observation_id,athleteId:row.athlete_id,metric:row.metric_key,label:row.metric,unit:row.unit,value:row.value,date:row.measured_at,source:row.source,importedAt:row.imported_at};
   },20000);readings.push(...page);if(readings.length>20000)return fail();}
   if(new Set(readings.map(r=>r.id)).size!==readings.length)return fail();
-  const games=(await loadGameStats(access)).filter(row=>eligible.some(player=>player.id===row.athlete_id));
+  const games=(includeGames ? await loadGameStats(access) : []).filter(row=>eligible.some(player=>player.id===row.athlete_id));
   return {players:eligible.map(p=>({id:p.id,code:p.code,name:p.name,academicClass:p.academicClass,position:p.position,secondaryPosition:p.secondaryPosition,playerType:p.playerType,bats:p.bats,throws:p.throws})).sort((a,b)=>a.name.localeCompare(b.name)),readings,games};
 }
 export async function loadAnalytics():Promise<AnalyticsDataset>{
@@ -47,4 +49,10 @@ export async function loadCoachingData(){
 export async function loadComparisonData(){
   const data=await loadTeamSource(true);
   return {players:data.players,readings:data.readings.filter(coachingReadingVisible),games:coachingGames(data.games)};
+}
+
+/** Coverage projects only identities, metric availability and dates to the client. */
+export async function loadDataCoverage(){
+  const data=await loadTeamSource(false, false);
+  return buildDataCoverage(data.players, data.readings, pacificTestingDate());
 }

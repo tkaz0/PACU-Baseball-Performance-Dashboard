@@ -1,4 +1,5 @@
 import { requireAccess } from "@/lib/auth";
+import { PlayerProfileGuide } from "@/components/player-profile-guide";
 import { Sidebar } from "@/components/sidebar";
 import { AccessPreviewControl } from "@/components/access-preview-control";
 import { AppearanceControl } from "@/components/appearance-control";
@@ -20,6 +21,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
         <p className="workspace-context"><span className="topbar-diamond" aria-hidden="true" />Player Development</p>
         <div className="workspace-controls">
           {roles.some(role => role === "admin" || role === "coach") && <StaffAthleteSearch athletes={searchAthletes} compact />}
+          {athleteId && !roles.some(role => role === "admin" || role === "coach") && <PlayerProfileGuide key={preview ? "preview" : access.user.id} accountKey={preview ? "preview" : access.user.id} autoStart={!preview} />}
           <AppearanceControl />
           <span className="workspace-account-role">{preview ? `${preview.role} View` : roles.join(" · ")}</span>
           {actualRoles.includes("admin") && <AccessPreviewControl preview={preview} athletes={athletes} />}

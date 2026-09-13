@@ -29,6 +29,7 @@ async function saveMeasurements(measurements: unknown, confirmed: boolean, ident
   } catch { return { error: "The save could not be confirmed. Refresh the profiles before retrying; conflicting observations are never replaced." }; }
   revalidatePath("/imports");
   revalidatePath("/testing");
+  revalidatePath("/testing/coverage");
   revalidatePath("/admin/performance");
   revalidatePath("/overview");
   revalidatePath("/leaderboards");

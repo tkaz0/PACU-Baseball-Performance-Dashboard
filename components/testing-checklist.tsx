@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { TestingNavigation } from "@/components/testing-navigation";
 import { useRouter } from "next/navigation";
 import { ArrowUpRight, Check, ClipboardList, Plus } from "lucide-react";
 import { PageHeading } from "@/components/page-heading";
@@ -21,6 +22,7 @@ export function TestingChecklist({ checklist }: { checklist: Checklist }) {
       <Link href={entry} className="btn btn-primary"><Plus size={16} aria-hidden="true" />Enter Results</Link>
     </PageHeading>
 
+    <TestingNavigation />
     <nav className="testing-categories" aria-label="Testing categories">
       {TESTING_CATEGORIES.map(item => <Link key={item.key} href={`/testing?metric=${item.metricKeys[0]}`} aria-current={category.key === item.key ? "page" : undefined}>{item.label}</Link>)}
     </nav>

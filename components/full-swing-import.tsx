@@ -1,5 +1,7 @@
 "use client";
 
+import { ImportConfirmation } from "@/components/import-confirmation";
+import { buildImportConfirmation, type ReadingsSaved, type ImportConfirmationData } from "@/lib/import-confirmation";
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { Check, LoaderCircle, Plus, Trash2 } from "lucide-react";
@@ -14,7 +16,7 @@ import { athleteName, type RosterAthlete } from "@/lib/types";
 
 type MetricMap = { id: number; column: number; key: string; unit: string };
 type FileData = Awaited<ReturnType<typeof readImportFile>>;
-export type SaveImportAction = (measurements: Measurement[]) => Promise<string>;
+export type SaveImportAction = (measurements: Measurement[]) => Promise<ReadingsSaved>;
 const errorText = (error: unknown) => error instanceof Error ? error.message : "The import could not be completed. Review the file and try again.";
 
 function ColumnSelect({ label, headers, value, onChange }: { label: string; headers: string[]; value: number; onChange: (value: number) => void }) {
@@ -39,14 +41,14 @@ export function FullSwingImport({ category, roster, saveAction, vendor = "Full S
   const [reviewed, setReviewed] = useState<MeasurementPreview | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [receipt, setReceipt] = useState("");
+  const [receipt, setReceipt] = useState<ImportConfirmationData | null>(null);
   const blast = vendor === "Blast Motion";
   const definitions = blast ? BLAST_MOTION_METRICS : fullSwingMetrics(category);
   let table: ReturnType<typeof selectTable> | null = null;
   let tableError = "";
   if (file) { try { table = selectTable(file.sheets[0].matrix, headerRow); } catch (error) { tableError = errorText(error); } }
   const identities = table && identityColumn >= 0 ? [...new Set(table.rows.map(row => row[identityColumn]).filter(Boolean))] : [];
-  const invalidate = () => { setReviewed(null); setConfirmed(false); setError(""); setReceipt(""); };
+  const invalidate = () => { setReviewed(null); setConfirmed(false); setError(""); setReceipt(null); };
   async function chooseFile(next?: File) {
     const version = ++request.current;
     invalidate(); setFile(null); setHeaderRow(0); setIdentityColumn(-1); setOverrides({}); setDateColumn(-1); setSummaryConfirmed(false);
@@ -76,7 +78,15 @@ export function FullSwingImport({ category, roster, saveAction, vendor = "Full S
   async function save() {
     if (!reviewed?.canApply || !confirmed || busy) return;
     setBusy(true); setError("");
-    try { setReceipt(await saveAction(reviewed.candidateMeasurements)); setReviewed(null); setConfirmed(false); }
+    try {
+      const skipped = metrics.flatMap(metric => {
+        const count = table?.rows.filter(row => !row[metric.column]?.trim()).length ?? 0;
+        return count ? [{ label: definitions.find(item => item.key === metric.key)!.label, reason: `${count} blank ${count === 1 ? "cell was" : "cells were"} skipped.` }] : [];
+      });
+      const result = await saveAction(reviewed.candidateMeasurements);
+      setReceipt(buildImportConfirmation(reviewed.candidateMeasurements, roster, result, skipped));
+      setReviewed(null); setConfirmed(false);
+    }
     catch (error) { setError(errorText(error)); }
     finally { setBusy(false); }
   }
@@ -120,7 +130,7 @@ export function FullSwingImport({ category, roster, saveAction, vendor = "Full S
       </section>
       {reviewed && <section className="panel p-5 sm:p-7">
         <h2 className={styles.stepTitle}><span className={styles.stepNumber}>3.</span>{" "}Review and Save</h2>
-        <p className={styles.sectionLead}>{reviewed.candidateMeasurements.length} readings · {vendor} · {FULL_SWING_LABELS[category]} · Fall 2026</p>
+        <p className={styles.sectionLead}>{reviewed.candidateMeasurements.length} {reviewed.candidateMeasurements.length === 1 ? "reading" : "readings"} · {vendor} · {FULL_SWING_LABELS[category]} · Fall 2026</p>
         {!!reviewed.issues.length && <div role="alert" className="notice notice-error"><p className="font-semibold">Fix these rows before saving.</p><ul className="mb-0 list-disc pl-5">{reviewed.issues.slice(0, 30).map((issue, index) => <li key={index}>Row {issue.row}: {issue.message}</li>)}</ul>{reviewed.issues.length > 30 && <p>{reviewed.issues.length - 30} additional issues remain.</p>}</div>}
         <div className="table-wrap"><table><caption className="sr-only">All reviewed readings</caption><thead><tr><th>Player</th><th>Date</th><th>Measurement</th><th>Value</th><th>Source Row</th></tr></thead><tbody>{reviewed.candidateMeasurements.map(row => <tr key={row.id}><td><Link className="font-semibold underline underline-offset-2" prefetch={false} href={`/athletes/${roster.find(athlete => athlete.athlete_code === row.athlete_code)!.id}`}>{athleteName(roster.find(athlete => athlete.athlete_code === row.athlete_code)!)}</Link><span className="muted block text-xs">{row.athlete_code}</span></td><td className="whitespace-nowrap">{row.measured_at}</td><td>{row.metric}<StatInfo metric={row.metric} /></td><td className="whitespace-nowrap">{row.value} {row.unit}</td><td>{row.source_row}</td></tr>)}</tbody></table></div>
         <label className="my-5 flex items-start gap-3"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} /><span>I checked every player match, date, measurement, and unit. Save these readings to the team’s private profiles.</span></label>
@@ -128,6 +138,6 @@ export function FullSwingImport({ category, roster, saveAction, vendor = "Full S
       </section>}
     </fieldset>}
     {error && <p role="alert" className="notice notice-error">{error}</p>}
-    {receipt && <p role="status" className="notice notice-success">{receipt} <Link href="/roster" className="font-semibold underline">Open Team Profiles</Link></p>}
+    {receipt && <ImportConfirmation receipt={receipt} />}
   </div>;
 }
