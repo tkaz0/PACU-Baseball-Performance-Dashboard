@@ -317,3 +317,5 @@ The Overview game comparison update needs no migration or new key. Profile route
 ## Coach progress and comparisons
 
 `/team-progress` and `/compare` reuse the existing ordinary-session measurement/game read permissions; no new environment variables or migration. Both require fresh staff access and reject Player View. See [COACHING_TOOLS.md](COACHING_TOOLS.md).
+
+Launch polish adds no configuration or migrations. Comparison uses `loadComparisonData` to include the full current-season roster under the existing staff guard; progress/Analytics/percentile cohorts retain their eligibility rules.

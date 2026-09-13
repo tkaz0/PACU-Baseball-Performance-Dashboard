@@ -54,3 +54,22 @@
 :global(html[data-theme="dark"]) .negative { color:#ff9aa8; }
 :global(html[data-theme="dark"]) .a { color:#ff9aa8; }
 :global(html[data-theme="dark"]) .b { color:#85bbf0; }
+
+.picker { position:relative; min-width:0; }
+.pickerLabel { display:block; margin-bottom:6px; font-size:11px; font-weight:700; color:var(--text-secondary); }
+.pickerTrigger { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; min-height:44px; border:1px solid var(--line-subtle); border-radius:8px; background:var(--surface-raised); padding:10px 12px; text-align:left; color:var(--text-primary); font-size:14px; font-weight:700; cursor:pointer; }
+.pickerTrigger span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pickerTrigger svg { flex-shrink:0; }
+.pickerMenu { position:absolute; top:100%; left:0; right:0; z-index:60; margin-top:6px; padding:8px; border:1px solid var(--line-subtle); border-radius:10px; background:var(--surface-panel); box-shadow:0 12px 28px #0003; }
+.pickerSearch { display:flex; align-items:center; gap:8px; border:1px solid var(--line-subtle); background:var(--surface-raised); padding:0 10px; border-radius:6px; }
+.pickerSearch svg { color:var(--text-secondary); flex-shrink:0; }
+.pickerSearch input { width:100%; min-width:0; margin:0; min-height:42px; border:0!important; background:transparent; padding:8px 0; color:var(--text-primary); font-size:13px; }
+.pickerCount { margin:8px 8px; font-size:11px; color:var(--text-secondary); }
+.pickerList { max-height:min(280px,40svh); overflow-y:auto; overscroll-behavior:contain; }
+.pickerList button { display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; padding:10px; min-height:54px; text-align:left; border:0; border-radius:6px; background:transparent; color:var(--text-primary); cursor:pointer; }
+.pickerList button:hover,.pickerList button[data-active=true] { background:var(--surface-raised); }
+.pickerList button[aria-selected=true] { color:var(--accent-readable); }
+.pickerList strong { display:block; font-size:13px; font-weight:700; }
+.pickerList small { display:block; margin-top:3px; font-size:10px; color:var(--text-secondary); }
+.pickerEmpty { padding:8px; font-size:12px; color:var(--text-secondary); line-height:1.6; }
+.pickerTrigger:focus-visible,.pickerList button:focus-visible,.tabs button:focus-visible { outline:2px solid var(--accent-readable); outline-offset:3px; }

@@ -2,9 +2,9 @@ import { beforeEach, expect, it, vi } from "vitest";
 const mocks=vi.hoisted(()=>({access:vi.fn(),from:vi.fn(),games:vi.fn()}));
 vi.mock("server-only",()=>({}));vi.mock("@/lib/auth",()=>({requireImportAccess:mocks.access}));
 vi.mock("@/lib/game-server",()=>({loadGameStats:mocks.games}));
-import { analyticsPages, loadAnalytics, loadCoachingData } from "@/lib/analytics-server";
+import { analyticsPages, loadAnalytics, loadCoachingData, loadComparisonData } from "@/lib/analytics-server";
 beforeEach(()=>{vi.resetAllMocks();mocks.games.mockResolvedValue([]);});
-it("denies unauthorized access before any team query",async()=>{mocks.access.mockRejectedValue(Error("DENIED"));await expect(loadAnalytics()).rejects.toThrow("DENIED");await expect(loadCoachingData()).rejects.toThrow("DENIED");expect(mocks.from).not.toHaveBeenCalled();expect(mocks.games).not.toHaveBeenCalled();});
+it("denies unauthorized access before any team query",async()=>{mocks.access.mockRejectedValue(Error("DENIED"));await expect(loadAnalytics()).rejects.toThrow("DENIED");await expect(loadCoachingData()).rejects.toThrow("DENIED");await expect(loadComparisonData()).rejects.toThrow("DENIED");expect(mocks.from).not.toHaveBeenCalled();expect(mocks.games).not.toHaveBeenCalled();});
 it("detects provider truncation and changing page counts instead of returning false missing data",async()=>{await expect(analyticsPages(async()=>({data:[1],count:2,error:null}),x=>x,1000)).rejects.toThrow("could not be verified");const req=vi.fn().mockResolvedValueOnce({data:Array(500).fill(1),count:501,error:null}).mockResolvedValueOnce({data:[1,2],count:502,error:null});await expect(analyticsPages(req,x=>x,1000)).rejects.toThrow("could not be verified");});
 it("reads the full final page and fails on provider errors",async()=>{const req=vi.fn().mockResolvedValueOnce({data:Array(500).fill(1),count:501,error:null}).mockResolvedValueOnce({data:[2],count:501,error:null});expect(await analyticsPages(req,x=>x,1000)).toHaveLength(501);await expect(analyticsPages(async()=>({data:null,count:0,error:"unavailable"}),x=>x,1000)).rejects.toThrow("could not be verified");});
 it("returns only eligible roster fields and numerical readings through the signed-in client",async()=>{
@@ -15,4 +15,14 @@ it("returns only eligible roster fields and numerical readings through the signe
  const roster=make([athlete]),readings=make([measurement]);mocks.from.mockImplementation(table=>table==="athletes"?roster:readings);mocks.access.mockResolvedValue({supabase:{from:mocks.from}});
  const staff=await loadCoachingData();expect(staff.players[0].secondaryPosition).toBe("");expect(staff.readings).toHaveLength(1);expect(staff.games).toEqual([]);
  const result=await loadAnalytics();expect(result.players).toHaveLength(1);expect(result.readings[0].value).toBe(180);expect(Object.keys(result.players[0]).sort()).toEqual(["id","code","name","academicClass","position","playerType","bats","throws"].sort());expect(readings.in).toHaveBeenCalledWith("athlete_id",[id]);expect(readings.gte).toHaveBeenCalledWith("measured_at","2026-06-01");
+});
+
+it("offers all current-season identities for comparison while keeping progress/cohort eligibility unchanged",async()=>{
+ const makeAthlete=(id:string,status:string)=>({id,athlete_code:`SYN-${status}`,first_name:"Fictional",last_name:status,preferred_name:null,athlete_seasons:[{season:"2026-27",academic_class:"freshman",primary_position:"OF",secondary_position:null,player_type:"position",bats:"R",throws:"R",roster_status:status}]});
+ const all=[makeAthlete("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","active"),makeAthlete("bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb","inactive")];
+ mocks.from.mockImplementation(table=>{const data=table==="athletes"?all:[];const chain={select:vi.fn(),eq:vi.fn(),in:vi.fn(),gte:vi.fn(),lte:vi.fn(),order:vi.fn(),range:vi.fn().mockResolvedValue({data,count:data.length,error:null})};for(const k of ["select","eq","in","gte","lte","order"] as const)chain[k].mockReturnValue(chain);return chain;});
+ mocks.access.mockResolvedValue({supabase:{from:mocks.from}});
+ const comparison=await loadComparisonData();expect(comparison.players).toHaveLength(2);expect(comparison.readings).toEqual([]);
+ expect((await loadCoachingData()).players).toHaveLength(1);expect((await loadAnalytics()).players).toHaveLength(1);
+ expect(JSON.stringify(comparison)).not.toContain("email");expect(JSON.stringify(comparison)).not.toContain("roster_status");
 });

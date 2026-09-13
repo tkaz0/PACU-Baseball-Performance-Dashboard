@@ -8,7 +8,7 @@ const updated = (date: string) => new Date(date).toLocaleDateString("en-US", { m
 function Metric({ metric }: { metric: TeamGameMetric }) {
   return <div className="rounded-xl border border-[var(--line-subtle)] bg-[var(--surface-raised)] p-4">
     <dt className="text-xs font-semibold text-[var(--text-secondary)]">{metric.label}<StatInfo metric={metric.metric} label={metric.label}/></dt>
-    <dd className="mt-2 text-3xl font-black tabular-nums">{formatTeamGameMetric(metric)}</dd>
+    <dd className="mt-2 text-2xl font-bold tabular-nums">{formatTeamGameMetric(metric)}</dd>
     {metric.pending ? <p className="muted mb-0 mt-2 text-xs">Counts need review</p> : metric.opportunities !== undefined ? <div className="muted mt-2 text-xs">{metric.opportunities.toLocaleString("en-US")} {metric.opportunityLabel}<LimitedSample count={metric.opportunities} pitching={metric.opportunityLabel === "pitches"} opportunityLabel={metric.opportunityLabel}/></div> : null}
   </div>;
 }
@@ -21,7 +21,8 @@ export function TeamGameStats({ stats, names }: { stats: SharedGameStat[]; names
       <div className="mb-5 flex flex-wrap items-start justify-between gap-2"><div><h2 className="m-0 text-xl font-bold">Team Batting</h2><p className="muted mb-0 mt-1 text-xs">QPA · Fall 2026{batting.players > 0 && ` · ${batting.players} ${batting.players === 1 ? "player" : "players"} with recorded results`}</p></div>{batting.updatedAt && <p className="muted m-0 text-xs">Updated {updated(batting.updatedAt)}</p>}</div>
       {!batting.entries ? <p className="muted text-sm">Team batting totals will appear after the first verified QPA update.</p> : <>
         <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">{batting.rates.slice(0, 6).map(m => <Metric key={m.metric} metric={m}/>)}</dl>
-        <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">{[...batting.counts, batting.rates[6], batting.rates[7]].map(m => <Metric key={m.metric} metric={m}/>)}</dl>
+        <dl className="team-game-counts">{batting.counts.filter(m=>["pa","pumps","rbi","sb"].includes(m.metric)).map(m=><div key={m.metric}><dt>{m.label}<StatInfo metric={m.metric} label={m.label}/></dt><dd>{formatTeamGameMetric(m)}</dd></div>)}</dl>
+        <details className="team-game-more"><summary>More Team Totals &amp; Rates</summary><dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">{[...batting.counts.filter(m=>!["pa","pumps","rbi","sb"].includes(m.metric)), batting.rates[6], batting.rates[7]].map(m => <Metric key={m.metric} metric={m}/>)}</dl></details>
       </>}
     </section>
     <section className="panel p-5 sm:p-6" aria-label="Team pitching statistics">

@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { expect,it } from "vitest";
 import { comparableTests, compareTests, compareGames, coachingGames, coachingEligible, coachingVariables, coachingValue, progressRows, progressTone, type CoachingData, type CoachingPlayer } from "@/lib/coaching-tools";
 import { variableKey, type AnalyticsReading } from "@/lib/analytics";
+import { filterComparisonPlayers } from "@/components/comparison-player-picker";
 import { TeamProgress } from "@/components/team-progress";
 import { PlayerComparison } from "@/components/player-comparison";
 import type { SharedGameStat } from "@/lib/game-server";
@@ -69,6 +70,16 @@ it("pitching comparisons retain actual event boundaries and do not choose a diff
 it("renders linked names, neutral first tests, readable comparison values and meaningful empty states",()=>{
  const d=data([reading(150,"2026-08-01"),reading(156,today),reading(145,today,{athleteId:b.id})]);
  const html=renderToStaticMarkup(createElement(TeamProgress,{data:d,today}));expect(html).toContain("+4.0%");expect(html).toContain("First Test");expect(html).toContain(`/athletes/${a.id}`);
- const comparison=renderToStaticMarkup(createElement(PlayerComparison,{data:d,today}));expect(comparison).toContain("156 lb");expect(comparison).toContain("145 lb");expect(comparison).toContain('aria-label="Player A"');
+ const comparison=renderToStaticMarkup(createElement(PlayerComparison,{data:d,today}));expect(comparison).toContain("156 lb");expect(comparison).toContain("145 lb");expect(comparison).toContain('aria-haspopup="dialog"');expect(comparison).toContain('>Player A</span>');
  const empty=renderToStaticMarkup(createElement(TeamProgress,{data:data([]),today}));expect(empty).toContain("Ready for");expect(empty).toContain("Information Imports");
+});
+
+it("searches the full supplied roster without requiring measurements or exact display labels",()=>{
+ const players=[a,b,{...a,id:"fictional-c",name:"Example José North",code:"SYN-003"}];
+ expect(filterComparisonPlayers(players,"")).toHaveLength(3);
+ expect(filterComparisonPlayers(players,"jose north").map(p=>p.id)).toEqual(["fictional-c"]);
+ expect(filterComparisonPlayers(players,"SYN-002").map(p=>p.id)).toEqual([b.id]);
+ expect(filterComparisonPlayers(players,"missing")).toEqual([]);
+ const html=renderToStaticMarkup(createElement(PlayerComparison,{data:{players,readings:[],games:[]},today}));
+ expect(html).toContain(a.name);expect(html).toContain(b.name);expect(html).toContain("No recorded");
 });

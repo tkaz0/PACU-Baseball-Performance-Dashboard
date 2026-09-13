@@ -23,3 +23,7 @@ Only the existing main metric catalog is serialized for these testing views; ske
 Synthetic tests cover date/source/unit partitions, previous-date conflicts, zero baselines, missing/future/invalid readings, role eligibility, adjustable queues, same-snapshot game opportunities and event boundaries. Server tests cover denial before reads, bounded pagination and safe projections. Browser verification uses fictional fixtures for screenshots and desktop/mobile/theme checks; live checks record only aggregate success/failure signals.
 
 Live rollout encountered an intermittent failed database authorization read. The trusted-access loader now retries that read once, re-reading all three authorization records. Persistent errors still fail closed; successful inactive/no-role results are not retried. Tests cover recovery, revocation on the new read, bounded persistent failure and non-retry of denied access. No previous permissions are cached or reused.
+
+### Full roster picker
+
+Compare Players now uses an explicit dropdown that opens the entire current-season roster and optionally filters by name or PAC ID. Selection stores the permanent UUID. Players without readings remain selectable and display missing results honestly. Comparison includes every current-season roster identity; progress and statistical cohorts keep their existing active/redshirt rules. Arrow keys and Enter select a result; Escape closes the list. No measurement, email, or account is required merely to choose an existing roster player.

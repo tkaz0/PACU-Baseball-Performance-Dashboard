@@ -14,7 +14,7 @@ export async function analyticsPages<T>(request:(from:number,to:number)=>Promise
   const rows:T[]=[];let count:number|undefined;
   for(let offset=0;;offset+=500){const result=await request(offset,offset+499);if(result.error||!Array.isArray(result.data)||result.count===null||!Number.isSafeInteger(result.count)||result.count<0||result.count>maximum||(count!==undefined&&count!==result.count))return fail();count=result.count;if(result.data.length!==Math.min(500,count-offset))return fail();rows.push(...result.data.map(parse));if(rows.length===count)return rows;}
 }
-async function loadTeamSource(){
+async function loadTeamSource(includeFullRoster=false){
   // Fresh trusted account check also denies Admin-as-Player before any team query.
   const access=await requireImportAccess();
   const {supabase}=access;
@@ -23,7 +23,7 @@ async function loadTeamSource(){
     const s=row.athlete_seasons[0];if(!object(s)||s.season!=="2026-27"||(s.secondary_position!=null&&!text(s.secondary_position))||["academic_class","primary_position","player_type","bats","throws","roster_status"].some(k=>s[k]!==null&&!text(s[k])))return fail();
     return {id:row.id,code:row.athlete_code,name:`${row.preferred_name||row.first_name} ${row.last_name}`,academicClass:s.academic_class??"",position:s.primary_position??"",secondaryPosition:s.secondary_position??"",playerType:s.player_type??"",bats:s.bats??"",throws:s.throws??"",status:s.roster_status} as AnalyticsPlayer&{status:string|null;secondaryPosition:string};
   },1000);
-  const eligible=players.filter(p=>p.status===null||p.status==="active"||p.status==="redshirt");
+  const eligible=players.filter(p=>includeFullRoster||p.status===null||p.status==="active"||p.status==="redshirt");
   if(new Set(players.map(p=>p.id)).size!==players.length)return fail();
   const readings:AnalyticsReading[]=[];
   for(let start=0;start<eligible.length;start+=100){const ids=eligible.slice(start,start+100).map(p=>p.id);const page=await analyticsPages((from,to)=>supabase.from("performance_measurements").select("observation_id,athlete_id,metric_key,metric,unit,value,measured_at,source,imported_at",{count:"exact"}).in("athlete_id",ids).gte("measured_at","2026-06-01").lte("measured_at","2026-12-31").order("observation_id").range(from,to),row=>{
@@ -40,5 +40,11 @@ export async function loadAnalytics():Promise<AnalyticsDataset>{
 }
 export async function loadCoachingData(){
   const data=await loadTeamSource();
+  return {players:data.players,readings:data.readings.filter(coachingReadingVisible),games:coachingGames(data.games)};
+}
+
+/** Staff comparison can select any current-season roster identity, even without results. */
+export async function loadComparisonData(){
+  const data=await loadTeamSource(true);
   return {players:data.players,readings:data.readings.filter(coachingReadingVisible),games:coachingGames(data.games)};
 }

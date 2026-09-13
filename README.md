@@ -90,3 +90,5 @@ RENPHO repeat tests show signed percentage changes, previous values/dates, and t
 Profile Overview now separates Physicality (Muscle Mass, printed Body Score, Body Fat %) from Game Stats and role-relevant testing percentiles. Current game rates can populate Strengths/Weaknesses with visible sample sizes. Standalone batting Hits/AB are removed from personal displays; AVG retains its AB denominator. See [profile presentation](docs/PLAYER_PROFILES.md).
 
 Staff now have [Team Progress and Compare Players](docs/COACHING_TOOLS.md): compact testing-change bars, adjustable retest queues, and two-player measurement/game comparisons with dates and sample sizes. Profile Overview percentiles use a tighter responsive layout.
+
+Compare Players now offers an explicit searchable dropdown for every current-season roster identity, including players without measurements. Launch presentation uses smaller headers/cards, compact import lanes, and expandable secondary team totals.

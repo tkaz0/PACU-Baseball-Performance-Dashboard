@@ -271,3 +271,5 @@ Overview game metrics are read-time views of an authorized player's current game
 ## Read-only coach tools
 
 Team Progress and Compare Players add no tables or persisted scores. Current eligible roster roles, including secondary position, determine applicable tests. Numerical histories are partitioned by metric/source/unit and distinct dates; game pairs require matching snapshot/event. Retest intervals are client display controls. Analytics retains its previous public dataset projection. See [COACHING_TOOLS.md](COACHING_TOOLS.md).
+
+Comparison roster membership is distinct from percentile eligibility: all current-season roster identities can be selected, including those without measurements or with inactive status. The comparison-only loader queries their authorized numerical data; cohort/leaderboard and progress membership are unchanged. Picker state stores permanent UUIDs, never parsed name strings.
