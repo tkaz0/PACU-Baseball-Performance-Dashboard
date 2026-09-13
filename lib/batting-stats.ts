@@ -11,6 +11,8 @@ export function battingRates(rows: readonly SharedGameStat[]): BattingRate[] {
     const top=values.get(topKey),bottom=values.get(bottomKey);
     if(top!==undefined&&bottom!==undefined&&bottom>0&&top<=bottom)rates.push({metric,label,value:(unit==="%"?100:1)*(top/bottom),unit});
   }
+  const hr=values.get("pumps"),pa=values.get("pa");
+  if(hr!==undefined&&pa!==undefined&&pa>0&&hr<=pa&&(values.get("base_hit")===undefined||hr<=values.get("base_hit")!))rates.push({metric:"batting_hr_pct",label:"HR %",value:100*(hr/pa),unit:"%"});
   const hit=values.get("base_hit"),ab=values.get("ab"),bb=values.get("bb"),hbp=values.get("hbp"),sf=values.get("sac_fly");
   if(hit!==undefined&&ab!==undefined&&bb!==undefined&&hbp!==undefined&&sf!==undefined&&hit<=ab&&ab+bb+hbp+sf>0&&(values.get("pa")===undefined||ab+bb+hbp+sf<=values.get("pa")!))rates.push({metric:"batting_obp",label:"OBP",value:(hit+bb+hbp)/(ab+bb+hbp+sf),unit:"avg"});
   const hhKeys=["hh_base_hit","three_eight_hh","hh_extra_base_hit","pumps","ab","punchies","sac_bunt"];

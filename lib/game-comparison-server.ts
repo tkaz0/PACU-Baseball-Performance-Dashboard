@@ -6,7 +6,7 @@ import { GAME_METRIC_COLUMNS } from "@/lib/game-import";
 import { GAME_LEADERBOARD_METRICS, type GameComparison, type GameLeaderboardRow } from "@/lib/game-metrics";
 type Access=Awaited<ReturnType<typeof requireAccess>>;
 const fail=():never=>{throw Error("Game comparisons could not be verified.");};
-const derived=new Set(["batting_avg","batting_obp","batting_bb_pct","batting_k_pct","batting_hh_pct"]);
+const derived=new Set(["batting_avg","batting_obp","batting_hr_pct","batting_bb_pct","batting_k_pct","batting_hh_pct"]);
 const fields=(item:Record<string,unknown>,keys:string[])=>Object.keys(item).sort().join()===keys.sort().join();
 function base(item:unknown):Record<string,unknown>{
  if(!item||typeof item!=="object"||Array.isArray(item))return fail();const r=item as Record<string,unknown>;

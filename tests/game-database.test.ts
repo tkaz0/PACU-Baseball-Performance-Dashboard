@@ -16,6 +16,7 @@ beforeAll(async()=>{
  await db.exec(readFileSync(new URL("202609120001_qpa_baserunning.sql",dir),"utf8"));
  await db.exec(readFileSync(new URL("202609120002_game_rankings.sql",dir),"utf8"));
  await db.exec(readFileSync(new URL("202609120003_obp_count_review.sql",dir),"utf8"));
+ await db.exec(readFileSync(new URL("202609120004_game_power.sql",dir),"utf8"));
  await db.exec("create or replace function private.game_sync_now() returns timestamptz language sql stable set search_path='' as $$select '2026-09-15T12:00:00Z'::timestamptz$$;");
  for(const[id,role]of[[admin,"admin"],[coach,"coach"],[player,"player"],[unlinked,"player"]]){await db.query("insert into auth.users values($1)",[id]);await db.query("insert into public.app_accounts(user_id,is_active) values($1,true)",[id]);await db.query("insert into public.account_roles(user_id,role) values($1,$2)",[id,role]);}
  for(const[id,code]of[[a,"PAC-0001"],[b,"PAC-0002"]]){await db.query("insert into public.athletes(id,athlete_code,first_name,last_name) values($1,$2,'Fictional','Player')",[id,code]);await db.query("insert into public.athlete_seasons(athlete_id,season) values($1,'2026-27')",[id]);}
@@ -72,6 +73,7 @@ it("provides fixed game rankings and own-player percentiles without exposing ful
  const leaders=await asUser(player,async()=>(await db.query<{r:Record<string,unknown>[]}>("select public.game_leaderboards() r")).rows[0].r);
  const avg=leaders.filter(r=>r.metric==="batting_avg");expect(avg.map(r=>r.rank)).toEqual([1,2,3,3,5]);expect(avg.find(r=>r.code==="PAC-0001")).toMatchObject({profileId:a,percentile:0,sampleSize:5});expect(avg.filter(r=>r.code!=="PAC-0001").every(r=>r.profileId===null)).toBe(true);
  expect(leaders.find(r=>r.metric==="batting_obp"&&r.code==="PAC-0001")?.value).toBe(2/12);
+ expect(leaders.find(r=>r.metric==="batting_hr_pct"&&r.code==="PAC-0001")).toMatchObject({value:0,percentile:50,sampleSize:5});
  expect(leaders.find(r=>r.metric==="gdp"&&r.code==="PAC-0001")?.percentile).toBe(100);
  expect(leaders.every(r=>!("snapshotId" in r)&&!("sourceRow" in r)&&!("email" in r)&&!["pa","ab"].includes(r.metric as string))).toBe(true);
  const own=await asUser(player,async()=>(await db.query<{r:Record<string,unknown>[]}>("select public.game_comparisons($1) r",[a])).rows[0].r);expect(own.find(r=>r.metric==="batting_hh_pct")?.value).toBeCloseTo(100/9);expect(own.every(r=>!("name" in r)&&!("code" in r))).toBe(true);
@@ -82,4 +84,12 @@ it("provides fixed game rankings and own-player percentiles without exposing ful
 it("keeps game comparisons unavailable to anonymous and inactive accounts",async()=>{
  await asUser(null,async()=>{await expect(db.query("select public.game_leaderboards()")).rejects.toThrow("permission denied");});
  await db.query("update public.app_accounts set is_active=false where user_id=$1",[player]);await asUser(player,async()=>{await expect(db.query("select public.game_leaderboards()")).rejects.toThrow("Active player or staff");await expect(db.query("select public.game_comparisons($1)",[a])).rejects.toThrow("Athlete access denied");});
+});
+
+it("matches power rate calculations and excludes inconsistent home-run counts",async()=>{
+ const payload=(hr:number)=>[["pa",2,40],["ab",5,35],["base_hit",12,10],["pumps",11,hr]].map(([metric,sourceColumn,value])=>row({metric,sourceColumn,value}));
+ await asUser(coach,()=>save(payload(2)));
+ const own=async()=>await asUser(player,async()=>(await db.query<{r:Record<string,unknown>[]}>("select public.game_comparisons($1) r",[a])).rows[0].r);
+ expect((await own()).find(r=>r.metric==="batting_hr_pct")).toMatchObject({value:5,sampleSize:1,percentile:null});
+ await asUser(coach,()=>save(payload(11),"b".repeat(64),"2026-09-14T12:00:00Z"));expect((await own()).some(r=>r.metric==="batting_hr_pct")).toBe(false);
 });
