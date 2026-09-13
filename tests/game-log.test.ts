@@ -21,5 +21,5 @@ it("labels samples at documented boundaries without changing data",()=>{
 });
 it("renders real dated games and an honest empty state",()=>{
  expect(renderToStaticMarkup(createElement(PlayerGameLog,{logs:[]}))).toContain("Your first recorded game");
- const html=renderToStaticMarkup(createElement(PlayerGameLog,{logs:[log()]}));expect(html).toContain("Fictional Owls");expect(html).toContain("Last 1 Logged Batting Game");expect(html).toContain("Separate from QPA sheet totals");expect(html).not.toContain('role="meter"');
+ const html=renderToStaticMarkup(createElement(PlayerGameLog,{logs:[log()]}));expect(html).toContain("Fictional Owls");expect(html).toContain("Last 1 Logged Batting Game");expect(html).toContain("Separate from QPA sheet totals");expect(html).not.toContain('role="meter"');expect(html).not.toContain("<th>AB</th>");expect(html).not.toContain("<th>H</th>");expect(html).toContain("<th>AVG</th>");
 });

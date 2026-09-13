@@ -1,3 +1,5 @@
+import type { SharedGameStat } from "@/lib/game-server";
+import type { GameComparison } from "@/lib/game-metrics";
 import { MeasurementChange } from "@/components/measurement-change";
 import { playerRenphoChange } from "@/lib/measurement-change";
 import { RenphoBodyScore } from "@/components/renpho-body-score";
@@ -15,6 +17,7 @@ import type { getPlayerPerformance, PlayerMetricCard, PlayerMetricReading } from
 
 export type PlayerPerformanceProfileProps = {
   athlete: RosterAthlete; performance: ReturnType<typeof getPlayerPerformance>; season?: AthleteSeason | null;
+  overviewGameStats?: SharedGameStat[]; gameComparisons?: GameComparison[];
   fictional?: boolean; action?: ReactNode; muscleBalance?: ReactNode; physicalityDetails?: ReactNode; history?: ReactNode; gameStats?: ReactNode;
 };
 function measurementDate(value: string) {
@@ -50,7 +53,7 @@ function MetricCard({ card }: { card: PlayerMetricCard }) {
 function MetricGroup({ id, title, cards }: { id: string; title: string; cards: PlayerMetricCard[] }) {
   return <section id={id} aria-labelledby={`${id}-heading`} className="min-w-0"><div className="mb-4 flex items-center gap-3"><h2 id={`${id}-heading`} className="m-0 shrink-0 text-lg font-bold tracking-tight">{title}</h2><span className="h-px flex-1 bg-[var(--line-subtle)]" aria-hidden="true" /></div><ul className={`m-0 grid list-none grid-cols-1 gap-3 p-0 min-[360px]:grid-cols-2 sm:gap-4 ${cards.length === 3 ? "min-[360px]:[&>li:last-child]:col-span-2 xl:[&>li:last-child]:col-span-1" : ""} ${cards.length === 2 ? "xl:grid-cols-2" : cards.length === 4 ? "xl:grid-cols-4" : "xl:grid-cols-3"}`}>{cards.map(card => <MetricCard key={card.metric.key} card={card} />)}</ul></section>;
 }
-export function PlayerPerformanceProfile({ athlete, performance, season, fictional = false, action, muscleBalance, physicalityDetails, history, gameStats }: PlayerPerformanceProfileProps) {
+export function PlayerPerformanceProfile({ athlete, performance, season, fictional = false, action, muscleBalance, physicalityDetails, history, gameStats, overviewGameStats = [], gameComparisons = [] }: PlayerPerformanceProfileProps) {
   const bodyScoreCard = performance.body.find(card => card.metric.key === "body_score");
   const bodyScore = bodyScoreCard?.latest ?? null;
   const selectedSeason = season ?? [...athlete.athlete_seasons].sort((a, b) => b.season.localeCompare(a.season))[0];
@@ -60,7 +63,7 @@ export function PlayerPerformanceProfile({ athlete, performance, season, fiction
   const sourcedCards = [...cards, ...performance.body.filter(card => card.metric.key === "body_score")].filter(card => card.latest);
   const lastTested = sourcedCards.map(card => card.latest!.measuredAt).sort().at(-1);
   const tabs: ProfileTab[] = [
-    { id: "overview", label: "Overview", content: <><RenphoBodyScore reading={bodyScore} change={bodyScoreCard ? playerRenphoChange(bodyScoreCard) : null}/><PlayerOverview cards={cards} /></> },
+    { id: "overview", label: "Overview", content: <PlayerOverview cards={[...cards, ...(bodyScoreCard ? [bodyScoreCard] : [])]} gameStats={overviewGameStats} gameComparisons={gameComparisons} /> },
     { id: "physicality", label: "Physicality", content: <>
       <RenphoBodyScore reading={bodyScore} change={bodyScoreCard ? playerRenphoChange(bodyScoreCard) : null}/>
       <MetricGroup id="body-measurements" title="Physicality" cards={layout.physicality} />

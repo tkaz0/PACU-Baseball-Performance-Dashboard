@@ -47,7 +47,7 @@ export default async function Profile({ params, searchParams }: { params: Promis
   return <>
     <AccessPreviewNotice status={query?.preview} isPreview={!!access.preview} />
     {staff && <Link href="/roster" className="profile-back"><ArrowLeft size={15} />Team roster</Link>}
-    <PlayerPerformanceProfile gameStats={<><AthleteGameStats stats={gameStats} comparisons={gameComparisons} /><PlayerGameLog logs={gameLogs}/></>} athlete={athlete} performance={performance} season={season}
+    <PlayerPerformanceProfile overviewGameStats={gameStats} gameComparisons={gameComparisons} gameStats={<><AthleteGameStats stats={gameStats} comparisons={gameComparisons} /><PlayerGameLog logs={gameLogs}/></>} athlete={athlete} performance={performance} season={season}
       action={canImportPresentedAccess(access) ? <Link href="/imports" className="text-link">Import Information <ArrowRight size={15} /></Link> : undefined}
       muscleBalance={<RenphoMuscleBalance report={getRenphoReports(readings,shared.batches,athlete.athlete_code)[0]} />}
       physicalityDetails={getRenphoReports(readings,shared.batches,athlete.athlete_code).length > 0 ? <details className="group rounded-lg border border-[var(--line-subtle)] bg-[var(--surface-panel)]"><summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-sm font-semibold sm:px-6">Full RENPHO charts &amp; report history<ChevronDown size={16} className="shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" /></summary><div className="border-t border-[var(--line-subtle)] px-5 py-5 sm:px-6"><RenphoCharts readings={readings} batches={shared.batches} athleteCode={athlete.athlete_code} /></div></details> : undefined}
