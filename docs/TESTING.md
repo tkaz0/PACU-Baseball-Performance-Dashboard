@@ -347,3 +347,5 @@ Authenticated sidebar, roster, progress and comparison links now load on navigat
 ### Launch readiness additions
 
 `data-coverage.test.ts` checks period boundaries, role eligibility, partial/missing results, conflicts, no-data roster inclusion and the minimal client projection. `analytics-server.test.ts` verifies access denial before coverage reads, eligible-roster behavior and omission of game queries. `import-confirmation.test.ts` checks player/date grouping, exact profile links, dedup counts, skipped values and absence of raw values/provenance. Import action tests verify coverage revalidation without changing atomic saves. Browser QA should cover coverage filters/expanded details, confirmed and failed saves, skipped RENPHO fields, CSV blank cells, first guide display, keyboard dismissal, reopening and account-scoped persistence on desktop and mobile with fictional fixtures.
+
+- `tests/profile-trends.test.ts` checks history partition isolation, conflicting dates, sparse/flat/zero results, exact accessible chart data, and bounded game-rate scales. Visual QA uses fictional profile histories and game totals in light/dark desktop and mobile layouts.

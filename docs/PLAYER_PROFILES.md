@@ -129,3 +129,9 @@ Personal game displays remove standalone batting Hits and AB cards, including th
 ## First-visit guide
 
 Linked players receive a three-step profile guide on their first workspace visit in a browser. It explains profile tabs, blue/red percentile ranks, comparable sample sizes and test/update dates. A Guide button reopens it; Escape, Close or Got It dismiss it. The versioned per-account browser preference stores only `seen`, does not affect authorization, and does not sync across devices. Player View as offers the guide manually without automatically opening or dismissing the actual player's guide. Coaches/admins do not receive an automatic walkthrough.
+
+### Visual test history and recorded game rates
+
+Profiles show a compact Testing Progress chart on Overview and the matching Physicality, Hitting or Throwing tab when at least two distinct comparable dates exist. A measurement selector keeps the panel compact. Each series uses the latest result's exact athlete, metric, source, unit and testing period; no summer/Fall blending, derived readings, or conflicting same-day values. The date axis reflects elapsed time, the labeled vertical scale zooms to the recorded range, and expandable Chart Data provides exact dates and results. Single-test series stay hidden. Role filtering and own-player authorization remain unchanged. Only chart labels, source, period, dates and values enter the chart component, without file provenance.
+
+Player and team game cards now show recorded AVG/OBP on a 0–1 scale and percentage rates on a 0–100% scale. These solid red rate tracks are explicitly labeled separately from blue/red percentile bars. Pending results, counts and unbounded SB/PA do not get rate tracks. Game snapshots remain cumulative totals, never inferred game histories. No data model, account or import changes are required.

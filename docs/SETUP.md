@@ -323,3 +323,5 @@ Launch polish adds no configuration or migrations. Comparison uses `loadComparis
 ### Testing-day readiness
 
 Testing opens Data Coverage (`/testing/coverage`); Record Tests retains manual entry. The staff-only checklist uses existing current-roster and observation permissions, with no new migration or server key. Direct RENPHO, Full Swing and Blast imports now display a confirmed-save receipt with player/date links, reviewed metric names, exact new/already-present counts and omitted readings. Receipt state stays in memory and never persists source images or text. Linked players have a dismissible first-visit profile guide and a Guide button; its cosmetic browser preference is account-scoped. No invitation sends or account changes accompany these additions.
+
+Testing Progress appears automatically on profile Overview and the appropriate testing tab after two comparable test dates in one period. Select a measurement or expand Chart Data to inspect values. Game Stats displays recorded rate bars separately from percentile bars. No migration, re-import or new service is needed.

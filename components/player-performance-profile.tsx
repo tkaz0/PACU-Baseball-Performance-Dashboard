@@ -1,3 +1,5 @@
+import { ProfileTrendChart } from "@/components/profile-trend-chart";
+import { profileTrends } from "@/lib/profile-trends";
 import type { SharedGameStat } from "@/lib/game-server";
 import type { GameComparison } from "@/lib/game-metrics";
 import { MeasurementChange } from "@/components/measurement-change";
@@ -68,14 +70,16 @@ export function PlayerPerformanceProfile({ athlete, performance, season, fiction
       <RenphoBodyScore reading={bodyScore} change={bodyScoreCard ? playerRenphoChange(bodyScoreCard) : null}/>
       <MetricGroup id="body-measurements" title="Physicality" cards={layout.physicality} />
       {!!layout.additionalBody.length && <MetricGroup id="body-composition" title="Body Composition" cards={layout.additionalBody} />}
+      <ProfileTrendChart series={profileTrends([...layout.physicality, ...layout.additionalBody, ...(bodyScoreCard ? [bodyScoreCard] : []), ...layout.speedAgility])} />
       {muscleBalance}
       {physicalityDetails}
       {!!layout.speedAgility.length && <MetricGroup id="speed-agility" title="Speed & Agility" cards={layout.speedAgility} />}
     </> },
-    ...(layout.showHitting ? [{ id: "hitting", label: "Hitting", content: <><MetricGroup id="hitting-performance" title="Hitting" cards={layout.hitting} />{!!layout.otherHitting.length && <MetricGroup id="other-hitting" title="Other Hitting Measurements" cards={layout.otherHitting} />}</> }] : []),
+    ...(layout.showHitting ? [{ id: "hitting", label: "Hitting", content: <><MetricGroup id="hitting-performance" title="Hitting" cards={layout.hitting} /><ProfileTrendChart series={profileTrends([...layout.hitting, ...layout.otherHitting])} />{!!layout.otherHitting.length && <MetricGroup id="other-hitting" title="Other Hitting Measurements" cards={layout.otherHitting} />}</> }] : []),
     { id: "throwing", label: "Throwing", content: <>
       {!!layout.fieldThrowing.length && <MetricGroup id="field-throwing" title="Position Throwing" cards={layout.fieldThrowing} />}
       {!!layout.pitching.length && <MetricGroup id="pitching-performance" title="Pitching" cards={layout.pitching} />}
+      <ProfileTrendChart series={profileTrends([...layout.fieldThrowing, ...layout.pitching])} />
       {!layout.hasThrowingRole && <section className="rounded-lg border border-dashed border-[var(--line-subtle)] bg-[var(--surface-panel)] p-6 sm:p-8"><h2 className="m-0 text-lg font-bold">Throwing</h2><p className="mb-0 mt-2 max-w-md text-sm leading-6 text-[var(--text-secondary)]">Position-specific throwing tests have not been assigned.</p></section>}
     </> },
     ...(gameStats ? [{ id: "games", label: "Game Stats", content: gameStats }] : []),

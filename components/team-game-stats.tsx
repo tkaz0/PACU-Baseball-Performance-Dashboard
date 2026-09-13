@@ -1,3 +1,4 @@
+import { GameRateBar } from "@/components/game-rate-bar";
 import Link from "next/link";
 import { StatInfo } from "@/components/stat-info";
 import { LimitedSample } from "@/components/limited-sample";
@@ -9,6 +10,7 @@ function Metric({ metric }: { metric: TeamGameMetric }) {
   return <div className="rounded-xl border border-[var(--line-subtle)] bg-[var(--surface-raised)] p-4">
     <dt className="text-xs font-semibold text-[var(--text-secondary)]">{metric.label}<StatInfo metric={metric.metric} label={metric.label}/></dt>
     <dd className="mt-2 text-2xl font-bold tabular-nums">{formatTeamGameMetric(metric)}</dd>
+    <GameRateBar value={metric.value} unit={metric.unit} label={metric.label}/>
     {metric.pending ? <p className="muted mb-0 mt-2 text-xs">Counts need review</p> : metric.opportunities !== undefined ? <div className="muted mt-2 text-xs">{metric.opportunities.toLocaleString("en-US")} {metric.opportunityLabel}<LimitedSample count={metric.opportunities} pitching={metric.opportunityLabel === "pitches"} opportunityLabel={metric.opportunityLabel}/></div> : null}
   </div>;
 }

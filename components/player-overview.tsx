@@ -1,3 +1,5 @@
+import { ProfileTrendChart } from "@/components/profile-trend-chart";
+import { profileTrends } from "@/lib/profile-trends";
 import { MeasurementChange } from "@/components/measurement-change";
 import { playerRenphoChange } from "@/lib/measurement-change";
 import { StatInfo } from "@/components/stat-info";
@@ -83,8 +85,9 @@ export function PlayerOverview({ cards, gameStats = [], gameComparisons = [] }: 
       <TestingComparisons title="Physicality" cards={physicality}/>
       <GameComparisons metrics={games}/>
       <TestingComparisons title="Hitting & Athletic Testing" cards={testing.filter(c => c.metric.group === "hitting" && c.latest)}/>
-      <TestingComparisons title="Throwing" cards={testing.filter(c => c.metric.group === "pitching" && c.latest)}/>
+      <TestingComparisons title="Throwing" cards={testing.filter(c => ["pitching", "throwing"].includes(c.metric.group) && c.latest)}/>
     </div>
+    <ProfileTrendChart series={profileTrends([...physicality, ...testing])} />
     <details className="group border-t border-[var(--line-subtle)] pt-4 text-xs text-[var(--text-secondary)]"><summary className="flex min-h-8 w-fit cursor-pointer list-none items-center gap-2 font-semibold">How This Overview Works<ChevronDown size={14} className="transition-transform group-open:rotate-180" aria-hidden="true" /></summary>
       <div className="mt-3 max-w-3xl space-y-2 leading-relaxed">
         <p>Strengths are at or above the 75th Pacific percentile; weaknesses are at or below the 25th. Testing comparisons use the same test, source, unit and period; game comparisons use the same current QPA snapshot or pitching event, with at least five comparable players. Game highlights use batting rates and pitching Strike %, with opportunity counts and limited-sample labels. Lower batting K % is favorable. Raw game totals do not determine strengths or weaknesses. Up to three results appear in each section.</p>
