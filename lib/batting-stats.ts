@@ -1,5 +1,5 @@
 import type { SharedGameStat } from "@/lib/game-server";
-export type BattingRate = { metric: string; label: string; value: number; unit: "avg" | "%" };
+export type BattingRate = { metric: string; label: string; value: number; unit: "avg" | "%" | "ratio" };
 /** Owner-confirmed: Base Hit contains all hits; Pumps means home runs. HH fields overlap hits. */
 export function battingRates(rows: readonly SharedGameStat[]): BattingRate[] {
   const qpa=rows.filter(r=>r.source==="qpa_fall_2026");
@@ -13,6 +13,8 @@ export function battingRates(rows: readonly SharedGameStat[]): BattingRate[] {
   }
   const hr=values.get("pumps"),pa=values.get("pa");
   if(hr!==undefined&&pa!==undefined&&pa>0&&hr<=pa&&(values.get("base_hit")===undefined||hr<=values.get("base_hit")!))rates.push({metric:"batting_hr_pct",label:"HR %",value:100*(hr/pa),unit:"%"});
+  const sb=values.get("sb");
+  if(sb!==undefined&&pa!==undefined&&pa>0)rates.push({metric:"batting_sb_per_pa",label:"SB/PA",value:sb/pa,unit:"ratio"});
   const hit=values.get("base_hit"),ab=values.get("ab"),bb=values.get("bb"),hbp=values.get("hbp"),sf=values.get("sac_fly");
   if(hit!==undefined&&ab!==undefined&&bb!==undefined&&hbp!==undefined&&sf!==undefined&&hit<=ab&&ab+bb+hbp+sf>0&&(values.get("pa")===undefined||ab+bb+hbp+sf<=values.get("pa")!))rates.push({metric:"batting_obp",label:"OBP",value:(hit+bb+hbp)/(ab+bb+hbp+sf),unit:"avg"});
   const hhKeys=["hh_base_hit","three_eight_hh","hh_extra_base_hit","pumps","ab","punchies","sac_bunt"];
@@ -20,7 +22,7 @@ export function battingRates(rows: readonly SharedGameStat[]): BattingRate[] {
     if(bottom>0&&top<=bottom)rates.push({metric:"batting_hh_pct",label:"HH %",value:100*top/bottom,unit:"%"});}
   return rates;
 }
-export const formatBattingRate = (rate:BattingRate) => rate.unit==="%"?`${rate.value.toFixed(1)}%`:rate.value.toFixed(3).replace(/^0\./,".");
+export const formatBattingRate = (rate:BattingRate) => rate.unit==="%"?`${rate.value.toFixed(1)}%`:rate.unit==="ratio"?rate.value.toFixed(3):rate.value.toFixed(3).replace(/^0\./,".");
 
 /** PA can exceed the OBP denominator (for example, sacrifice bunts), but cannot be smaller. */
 export function obpNeedsReview(rows:readonly SharedGameStat[]):boolean {

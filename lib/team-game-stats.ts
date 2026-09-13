@@ -1,7 +1,7 @@
 import type { SharedGameStat } from "@/lib/game-server";
 
 export type TeamGameMetric = {
-  metric: string; label: string; value: number | null; unit: "count" | "%" | "avg";
+  metric: string; label: string; value: number | null; unit: "count" | "%" | "avg" | "ratio";
   opportunities?: number; opportunityLabel?: string;
   pending: boolean;
 };
@@ -30,9 +30,9 @@ export function teamGameSummary(stats: readonly SharedGameStat[], source: Shared
     const complete = valid && entries.length > 0 && entries.every(v => v.has(metric));
     return { metric, label, unit: "count", value: complete ? entries.reduce((n, v) => n + v.get(metric)!, 0) : null, pending: entries.length > 0 && !complete };
   };
-  const rate = (metric: string, label: string, unit: "%" | "avg", keys: string[], ratio: (v: Counts) => Ratio | null, opportunityLabel: string): TeamGameMetric => {
+  const rate = (metric: string, label: string, unit: "%" | "avg" | "ratio", keys: string[], ratio: (v: Counts) => Ratio | null, opportunityLabel: string, allowMultiple = false): TeamGameMetric => {
     const parts = valid ? entries.map(v => keys.every(k => v.has(k)) ? ratio(v) : null) : [null];
-    const complete = entries.length > 0 && parts.every((p): p is Ratio => p !== null && p.top >= 0 && p.bottom >= 0 && p.top <= p.bottom);
+    const complete = entries.length > 0 && parts.every((p): p is Ratio => p !== null && p.top >= 0 && p.bottom >= 0 && (allowMultiple || p.top <= p.bottom));
     const top = complete ? parts.reduce((n, p) => n + p!.top, 0) : 0;
     const bottom = complete ? parts.reduce((n, p) => n + p!.bottom, 0) : 0;
     return { metric, label, unit, value: complete && bottom > 0 ? top / bottom * (unit === "%" ? 100 : 1) : null,
@@ -54,6 +54,7 @@ export function teamGameSummary(stats: readonly SharedGameStat[], source: Shared
     simple("batting_bb_pct", "BB %", "bb", "pa", "%", "PA"),
     simple("batting_k_pct", "K %", "punchies", "pa", "%", "PA"),
     rate("batting_hr_pct", "HR %", "%", ["pumps", "pa"], v => v.has("base_hit") && v.get("pumps")! > v.get("base_hit")! ? null : { top: v.get("pumps")!, bottom: v.get("pa")! }, "PA"),
+    rate("batting_sb_per_pa", "SB/PA", "ratio", ["sb", "pa"], v => ({top: v.get("sb")!, bottom: v.get("pa")!}), "PA", true),
   ] : [simple("strike_pct", "Strike %", "strikes", "pitches", "%", "pitches")];
   return { players: new Set(rows.map(r => r.athlete_id)).size, entries: entries.length,
     games: qpa ? 0 : new Set(rows.map(r => r.event_id)).size,
@@ -64,6 +65,7 @@ export function teamGameSummary(stats: readonly SharedGameStat[], source: Shared
 export function formatTeamGameMetric(metric: TeamGameMetric): string {
   if (metric.value === null) return "—";
   if (metric.unit === "%") return `${metric.value.toFixed(1)}%`;
+  if (metric.unit === "ratio") return metric.value.toFixed(3);
   if (metric.unit === "avg") return metric.value.toFixed(3).replace(/^0\./, ".");
   return metric.value.toLocaleString("en-US");
 }

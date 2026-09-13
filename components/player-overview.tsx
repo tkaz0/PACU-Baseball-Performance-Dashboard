@@ -1,3 +1,5 @@
+import { MeasurementChange } from "@/components/measurement-change";
+import { playerRenphoChange } from "@/lib/measurement-change";
 import { StatInfo } from "@/components/stat-info";
 import { PercentileBar, PercentileLegend } from "@/components/percentile-bar";
 import { formatHeight } from "@/lib/measurement-display";
@@ -34,7 +36,7 @@ export function PlayerOverview({ cards }: { cards: readonly PlayerMetricCard[] }
       <ul className={styles.rows}>{comparisonCards.map(card => {
         const reading = card.latest!, percentile = card.percentile!;
         const value = card.metric.key === "height" ? formatHeight(reading.value, reading.unit) : null;
-        return <li className={styles.row} key={card.metric.key}><div><h3>{leaderboardMetricLabel(card.metric)}<StatInfo metric={card.metric.key} label={leaderboardMetricLabel(card.metric)} /></h3><span className="font-bold tabular-nums">{value ?? `${reading.derived ? `≈${reading.value.toFixed(1)}` : String(reading.value)} ${reading.unit === "ratio" ? "" : reading.unit}`}</span><p className={styles.meta}>Last Tested: <time dateTime={reading.measuredAt}>{leaderboardTestDate(reading.measuredAt)}</time> · {reading.source}</p></div><div><PercentileBar value={percentile.value} sampleSize={percentile.sampleSize} label={card.metric.label} descriptive={card.metric.direction === "neutral"} /><p className={styles.meta}>{percentile.sampleSize} comparable Pacific players{card.metric.direction === "neutral" ? " · Measured value, not a rating" : ""}</p></div></li>;
+        return <li className={styles.row} key={card.metric.key}><div><h3>{leaderboardMetricLabel(card.metric)}<StatInfo metric={card.metric.key} label={leaderboardMetricLabel(card.metric)} /></h3><span className="font-bold tabular-nums">{value ?? `${reading.derived ? `≈${reading.value.toFixed(1)}` : String(reading.value)} ${reading.unit === "ratio" ? "" : reading.unit}`}</span><MeasurementChange change={playerRenphoChange(card)} metric={card.metric.key}/><p className={styles.meta}>Last Tested: <time dateTime={reading.measuredAt}>{leaderboardTestDate(reading.measuredAt)}</time> · {reading.source}</p></div><div><PercentileBar value={percentile.value} sampleSize={percentile.sampleSize} label={card.metric.label} descriptive={card.metric.direction === "neutral"} /><p className={styles.meta}>{percentile.sampleSize} comparable Pacific players{card.metric.direction === "neutral" ? " · Measured value, not a rating" : ""}</p></div></li>;
       })}</ul>
     </section>}
     <div className="grid items-stretch gap-4 xl:grid-cols-3">

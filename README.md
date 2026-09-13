@@ -84,3 +84,5 @@ Game rates now show their recorded opportunity counts beneath the result, separa
 Dated **Game Log**, recent-five-game summaries, **Limited sample** labels, and staff **Data Review** are documented in [docs/GAME_LOG.md](docs/GAME_LOG.md). Apply additive migration `202609120006_dated_game_logs.sql` before the app. Existing QPA snapshots, Analytics selections, account permissions and daily imports stay separate from manually logged games.
 
 Game Stats now opens a team summary for Coaches/Admins and a private personal summary for Players. Data Review stays in Coaching Tools; Game Log is removed from the menu.
+
+RENPHO repeat tests show signed percentage changes, previous values/dates, and the owner's green/red/neutral preferences. Personal and team Game Stats include SB/PA with PA counts. See [RENPHO changes](docs/RENPHO_CHANGES.md) and [advanced hitting readiness](docs/ADVANCED_HITTING.md); weighted hitting metrics remain pending the missing source fields and reference context.

@@ -58,3 +58,8 @@ it("renders the coach summary, linked player breakdown, empty pitching and revie
   for (const text of ["Team Batting", "Team Pitching", "Player Breakdown", "No recorded pitching results yet", "Counts need review", "/athletes/fictional-a", "Open Data Review"]) expect(html).toContain(text);
   expect(html).not.toContain('role="meter"'); expect(html).not.toContain("Game Log");
 });
+
+it("weights SB/PA by team PA and preserves more than one steal per appearance",()=>{
+ const stats=[...rows("fictional-a",{...counts,pa:1,sb:2}),...rows("fictional-b",{...counts,pa:19,sb:1})];
+ expect(metric(stats,"batting_sb_per_pa")).toMatchObject({value:.15,opportunities:20,pending:false});
+});

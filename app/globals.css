@@ -719,3 +719,12 @@ button.panel[aria-pressed="true"] { border-color: var(--accent-readable); box-sh
   .team-roster-table th { font-size: 10px; }
   .team-roster-table .roster-initials { display: none; }
 }
+
+/* Relative changes use separate colors from the blue/red cohort percentile scale. */
+.measurement-change { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 5px 8px; margin-top: 9px; max-width: 100%; vertical-align: middle; font-size: 11px; line-height: 1.5; font-weight: 500; letter-spacing: normal; }
+.measurement-change-badge { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; border-radius: 5px; padding: 3px 6px; font-weight: 700; background: var(--surface-raised); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.measurement-change-reference { color: var(--text-secondary); font-size: 10px; }
+.measurement-change[data-tone="green"] .measurement-change-badge { color: #166534; background: #dcfce7; }
+.measurement-change[data-tone="red"] .measurement-change-badge { color: #991b1b; background: #fee2e2; }
+html[data-theme="dark"] .measurement-change[data-tone="green"] .measurement-change-badge { color: #86efac; background: #153727; }
+html[data-theme="dark"] .measurement-change[data-tone="red"] .measurement-change-badge { color: #fca5a5; background: #472027; }

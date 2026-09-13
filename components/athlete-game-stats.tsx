@@ -15,7 +15,7 @@ function MetricGrid({rows,comparisons=[]}:{rows:SharedGameStat[];comparisons?:Ga
 export function AthleteGameStats({stats,comparisons=[]}:{stats:SharedGameStat[];comparisons?:GameComparison[]}) {
  const qpa=stats.filter(row=>row.source==="qpa_fall_2026"),pitching=stats.filter(row=>row.source==="pitching_fall_2026");
  const games=[...new Set(pitching.map(row=>row.event_id))].map(id=>pitching.filter(row=>row.event_id===id)).sort((a,b)=>(b[0].played_on??"").localeCompare(a[0].played_on??"")||(a[0].event_id??"").localeCompare(b[0].event_id??""));
- const rateOrder=["batting_avg","batting_obp","qpa_pct","batting_hh_pct","batting_bb_pct","batting_k_pct"];
+ const rateOrder=["batting_avg","batting_obp","qpa_pct","batting_hh_pct","batting_bb_pct","batting_k_pct","batting_sb_per_pa"];
  const power=battingRates(qpa).find(rate=>rate.metric==="batting_hr_pct");
  const rates=[...battingRates(qpa).filter(rate=>rate.metric!=="batting_hr_pct"),...qpa.filter(r=>r.metric==="qpa_pct").map(r=>({metric:r.metric,label:"QPA %",value:r.value,unit:"%" as const}))].sort((a,b)=>rateOrder.indexOf(a.metric)-rateOrder.indexOf(b.metric));
  const otherQpa=qpa.filter(row=>!primaryQpa.includes(row.metric)&&row.metric!=="qpa_pct"),otherPitching=pitching.filter(row=>!primaryPitching.includes(row.metric));

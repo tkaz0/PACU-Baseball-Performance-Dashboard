@@ -319,3 +319,11 @@ Dated **Game Log**, recent-five-game summaries, **Limited sample** labels, and s
 September 13 team-game tests independently reconcile weighted AVG/OBP/QPA/HH/HR and pitching Strike %, zero/missing inputs, mixed snapshots, duplicates and individual inconsistencies masked by aggregate totals. Route tests cover actual Admin/Coach and Coach View team presentation, own-player/Player View explicit scoping, unlinked accounts and authentication failure. Team pages do not fetch per-player logs or percentile comparisons.
 
 The actual team-summary component was rendered locally with fictional data: desktop light mode, 390px dark mode, expanded batting/pitching breakdown, missing-count review, empty state and the OBP explanation popover. No page overflow or browser console errors were observed. No fictional statistics were saved to the dashboard.
+
+## September 13 RENPHO changes and SB/PA
+
+`tests/measurement-change.test.ts` covers signed relative changes, owner-approved colors, neutral height/weight, feet/inches references, zero and tiny changes, distinct dates, exact athlete/source/unit matching, conflicting same-day readings, first reports, late uploads, prior summer reports, and canonical report-only provenance. `tests/batting-stats.test.ts` and `tests/team-game-stats.test.ts` cover SB/PA, missing/zero PA, multiple steals per PA, and ratios from combined team counts.
+
+The isolated local UI fixture uses fictional profiles/reports only. Verify main cards, Body Score, report selection, first-report state, and personal/team SB/PA in light/dark themes and mobile widths. This does not save fabricated reports or claim a new production upload was performed. Full lint/typecheck/test/build and authenticated production read checks are required before release; PGlite tests are not full hosted Supabase integration tests.
+
+Release validation: `pnpm check` passed lint, typecheck, 93 test files / 1,566 tests, and the production build. Fictional browser QA confirmed desktop/light and 390px mobile/dark layouts, no horizontal overflow, green/red/neutral changes, previous feet/inches, older-report selection, absent first-report changes, and personal/team SB/PA with PA counts. No fabricated production report was saved; the full Playwright browser suite was not run for this release.

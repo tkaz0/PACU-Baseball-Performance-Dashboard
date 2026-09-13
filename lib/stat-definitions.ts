@@ -59,6 +59,7 @@ export const STAT_DEFINITIONS: Readonly<Record<string, string>> = {
   batting_k_pct: "Batting strikeout rate: recorded Punchies divided by plate appearances, multiplied by 100.",
   base_hit: "All hits recorded in the QPA sheet, as confirmed by the team. Hard-hit columns overlap this total and are not added to it.",
   pumps: "Home runs, recorded as Pumps in the QPA sheet.",
+  batting_sb_per_pa: "Stolen bases divided by plate appearances. For example, 4 SB in 40 PA is 0.100 SB/PA. This describes stolen-base frequency, not success rate; caught-stealing counts are needed for success rate. More than one steal can occur after a plate appearance.",
   sb: "Stolen bases recorded in the QPA sheet.",
   gdp: "Grounded into double plays recorded in the QPA sheet.",
   hh_base_hit: "The QPA sheet’s hard-hit base-hit category. It overlaps the total Base Hit field; do not add it again to calculate total hits.",

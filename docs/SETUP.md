@@ -309,3 +309,5 @@ Game rates now show their recorded opportunity counts beneath the result, separa
 Dated **Game Log**, recent-five-game summaries, **Limited sample** labels, and staff **Data Review** are documented in [GAME_LOG.md](GAME_LOG.md). Apply additive migration `202609120006_dated_game_logs.sql` before the app. Existing QPA snapshots, Analytics selections, account permissions and daily imports stay separate from manually logged games.
 
 The September 13 team Game Stats presentation uses the existing ordinary-session reads and requires no new database migration. Coach View shows team totals; Player View explicitly scopes every read to the selected athlete.
+
+RENPHO change badges and SB/PA use existing authorized reads and need no new migration, key, or account changes. Existing import invalidation refreshes player pages after a reviewed save. See [RENPHO changes](RENPHO_CHANGES.md) and [advanced hitting readiness](ADVANCED_HITTING.md).

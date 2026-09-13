@@ -1,3 +1,5 @@
+import { MeasurementChange } from "@/components/measurement-change";
+import { playerRenphoChange } from "@/lib/measurement-change";
 import { RenphoBodyScore } from "@/components/renpho-body-score";
 import { StatInfo } from "@/components/stat-info";
 import { PercentileBar } from "@/components/percentile-bar";
@@ -38,7 +40,7 @@ function MetricCard({ card }: { card: PlayerMetricCard }) {
   const reading = card.latest;
   return <li className={`flex min-w-0 flex-col rounded-lg border border-[var(--line-subtle)] p-4 sm:p-5 ${reading ? "bg-[var(--surface-panel)]" : "border-dashed bg-[var(--surface-page)]"}`} data-testid="player-metric" data-metric-key={card.metric.key} data-value={reading?.value} data-unit={reading?.unit} data-date={reading?.measuredAt}>
     <h3 className="m-0 min-h-10 text-sm font-semibold leading-5 text-[var(--text-secondary)]">{card.metric.key === "bat_speed" ? "Bat Speed (Unspecified)" : card.metric.label}<StatInfo metric={card.metric.key} label={card.metric.label} /></h3>
-    <div className="mt-2 text-3xl leading-tight tracking-tight text-[var(--text-primary)] sm:text-4xl">{reading ? <ReadingValue reading={reading} /> : <span className="font-medium text-[var(--text-secondary)]" aria-label="Not yet tested">—</span>}</div>
+    <div className="mt-2 text-3xl leading-tight tracking-tight text-[var(--text-primary)] sm:text-4xl">{reading ? <><span className="mr-2 inline-block"><ReadingValue reading={reading} /></span><MeasurementChange change={playerRenphoChange(card)} metric={card.metric.key}/></> : <span className="font-medium text-[var(--text-secondary)]" aria-label="Not yet tested">—</span>}</div>
     {!reading && <p className="mb-0 mt-3 text-[11px] text-[var(--text-secondary)]">Not Yet Tested</p>}
     {reading && <p className="mb-0 mt-3 text-[11px] leading-5 text-[var(--text-secondary)]">Last Tested: <time dateTime={reading.measuredAt}>{measurementDate(reading.measuredAt)}</time>{reading.derived ? " · Calculated" : ""}</p>}
     {reading && (!card.percentile || card.percentile.sampleSize < 5) && <p className="mt-4 mb-0 border-t border-[var(--line-subtle)] pt-3 text-[11px] text-[var(--text-secondary)]">Team percentile appears after 5 comparable results.</p>}
@@ -49,7 +51,8 @@ function MetricGroup({ id, title, cards }: { id: string; title: string; cards: P
   return <section id={id} aria-labelledby={`${id}-heading`} className="min-w-0"><div className="mb-4 flex items-center gap-3"><h2 id={`${id}-heading`} className="m-0 shrink-0 text-lg font-bold tracking-tight">{title}</h2><span className="h-px flex-1 bg-[var(--line-subtle)]" aria-hidden="true" /></div><ul className={`m-0 grid list-none grid-cols-1 gap-3 p-0 min-[360px]:grid-cols-2 sm:gap-4 ${cards.length === 3 ? "min-[360px]:[&>li:last-child]:col-span-2 xl:[&>li:last-child]:col-span-1" : ""} ${cards.length === 2 ? "xl:grid-cols-2" : cards.length === 4 ? "xl:grid-cols-4" : "xl:grid-cols-3"}`}>{cards.map(card => <MetricCard key={card.metric.key} card={card} />)}</ul></section>;
 }
 export function PlayerPerformanceProfile({ athlete, performance, season, fictional = false, action, muscleBalance, physicalityDetails, history, gameStats }: PlayerPerformanceProfileProps) {
-  const bodyScore = performance.body.find(card => card.metric.key === "body_score")?.latest ?? null;
+  const bodyScoreCard = performance.body.find(card => card.metric.key === "body_score");
+  const bodyScore = bodyScoreCard?.latest ?? null;
   const selectedSeason = season ?? [...athlete.athlete_seasons].sort((a, b) => b.season.localeCompare(a.season))[0];
   const position = [selectedSeason?.primary_position, selectedSeason?.secondary_position].filter((value, index, values) => value && values.indexOf(value) === index).join(" / ");
   const layout = getPlayerProfileLayout(performance, selectedSeason);
@@ -57,9 +60,9 @@ export function PlayerPerformanceProfile({ athlete, performance, season, fiction
   const sourcedCards = [...cards, ...performance.body.filter(card => card.metric.key === "body_score")].filter(card => card.latest);
   const lastTested = sourcedCards.map(card => card.latest!.measuredAt).sort().at(-1);
   const tabs: ProfileTab[] = [
-    { id: "overview", label: "Overview", content: <><RenphoBodyScore reading={bodyScore} /><PlayerOverview cards={cards} /></> },
+    { id: "overview", label: "Overview", content: <><RenphoBodyScore reading={bodyScore} change={bodyScoreCard ? playerRenphoChange(bodyScoreCard) : null}/><PlayerOverview cards={cards} /></> },
     { id: "physicality", label: "Physicality", content: <>
-      <RenphoBodyScore reading={bodyScore} />
+      <RenphoBodyScore reading={bodyScore} change={bodyScoreCard ? playerRenphoChange(bodyScoreCard) : null}/>
       <MetricGroup id="body-measurements" title="Physicality" cards={layout.physicality} />
       {!!layout.additionalBody.length && <MetricGroup id="body-composition" title="Body Composition" cards={layout.additionalBody} />}
       {muscleBalance}
@@ -90,6 +93,7 @@ export function PlayerPerformanceProfile({ athlete, performance, season, fiction
     <details className="group rounded-lg border border-[var(--line-subtle)] bg-[var(--surface-panel)]" data-testid="player-performance-methods"><summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-sm font-semibold sm:px-6">Sources &amp; Percentiles<ChevronDown size={16} className="shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" /></summary>
       <div className="space-y-5 border-t border-[var(--line-subtle)] px-5 py-5 text-xs leading-6 text-[var(--text-secondary)] sm:px-6"><p className="m-0">Pacific percentiles compare the latest comparable reading per player within the same metric, unit, source and testing period. Tied values share a percentile. They describe this team cohort, with no MLB, NCAA or outside-athlete comparison. The mark at 50 is the cohort midpoint.</p>
         <div className="grid gap-3 sm:grid-cols-2"><p className="m-0"><ArrowUp size={13} className="mr-1 inline" aria-hidden="true" />For metrics where higher is better, a larger measured value produces a higher percentile. <ArrowDown size={13} className="mx-1 inline" aria-hidden="true" />For lower-is-better metrics, including timed tests and BB %, a lower measured value produces a higher percentile.</p><p className="m-0">Blue indicates a lower percentile; red indicates a higher percentile. For height, weight, body composition and spin, this means a higher measured value, without a good/bad score. Missing values and cohorts under 5 are not charted.</p></div>
+        <p className="m-0">RENPHO changes compare the previous distinct test date for the same measurement, source and unit, including a prior summer report. Percent changes are relative to the prior result; no percent is shown for a zero prior value or an ambiguous same-day comparison. Green marks higher muscle mass/body score or lower body fat; red marks the reverse. Weight, height and other report measurements remain neutral. Colors are display directions, not health ratings.</p>
         <p className="m-0">Baseball performance window: September 1–December 31, 2026. Body comparisons use separate June 1–August 31 and September 1–December 31 testing periods. Each reading carries its recorded test date. Height displays in feet and inches, rounded to one tenth of an inch. Original values and units remain below; different units are never mixed in a percentile. Calculated values marked ≈ are rounded to one decimal in the snapshot; the full result and formula appear below.</p>
         {sourcedCards.length > 0 ? <div className="overflow-x-auto"><table><caption className="sr-only">Sources for the performance snapshot</caption><thead><tr><th>Measurement</th><th>Test date</th><th>Value</th><th>Source / method</th></tr></thead><tbody>{sourcedCards.map(card => {
           const reading = card.latest!;

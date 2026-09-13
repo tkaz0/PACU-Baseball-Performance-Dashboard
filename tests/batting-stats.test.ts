@@ -15,3 +15,10 @@ describe("confirmed QPA batting definitions",()=>{
  it("formats baseball averages and percentage rates distinctly",()=>{expect(formatBattingRate({metric:"x",label:"x",value:1/3,unit:"avg"})).toBe(".333");expect(formatBattingRate({metric:"x",label:"x",value:1,unit:"avg"})).toBe("1.000");expect(formatBattingRate({metric:"x",label:"x",value:12.34,unit:"%"})).toBe("12.3%");});
  it("dates cumulative analytics by Pacific snapshot day without inventing games",()=>{const result=qpaAnalytics(rows({pa:12,ab:10,base_hit:3,pumps:1}));expect(result.find(r=>r.metric==="batting_avg")?.value).toBe(.3);expect(result.every(r=>r.date==="2026-09-12"&&r.source.includes("snapshot date"))).toBe(true);expect(new Set(result.map(r=>r.id)).size).toBe(result.length);expect(qpaAnalytics([...rows({ab:10}),{...rows({base_hit:3})[0],snapshot_id:"other"}])).toEqual([]);});
 });
+
+it("calculates SB/PA without confusing frequency with stealing success",()=>{
+ expect(battingRates(rows({pa:40,sb:4})).find(r=>r.metric==="batting_sb_per_pa")).toEqual({metric:"batting_sb_per_pa",label:"SB/PA",value:.1,unit:"ratio"});
+ expect(battingRates(rows({pa:1,sb:2})).find(r=>r.metric==="batting_sb_per_pa")?.value).toBe(2);
+ for(const v of [{pa:0,sb:2},{pa:10}] as Record<string,number>[])expect(battingRates(rows(v)).some(r=>r.metric==="batting_sb_per_pa")).toBe(false);
+ expect(formatBattingRate({metric:"batting_sb_per_pa",label:"SB/PA",value:.1,unit:"ratio"})).toBe("0.100");
+});

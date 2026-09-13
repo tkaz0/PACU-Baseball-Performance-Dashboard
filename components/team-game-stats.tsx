@@ -21,7 +21,7 @@ export function TeamGameStats({ stats, names }: { stats: SharedGameStat[]; names
       <div className="mb-5 flex flex-wrap items-start justify-between gap-2"><div><h2 className="m-0 text-xl font-bold">Team Batting</h2><p className="muted mb-0 mt-1 text-xs">QPA · Fall 2026{batting.players > 0 && ` · ${batting.players} ${batting.players === 1 ? "player" : "players"} with recorded results`}</p></div>{batting.updatedAt && <p className="muted m-0 text-xs">Updated {updated(batting.updatedAt)}</p>}</div>
       {!batting.entries ? <p className="muted text-sm">Team batting totals will appear after the first verified QPA update.</p> : <>
         <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">{batting.rates.slice(0, 6).map(m => <Metric key={m.metric} metric={m}/>)}</dl>
-        <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">{[...batting.counts, batting.rates[6]].map(m => <Metric key={m.metric} metric={m}/>)}</dl>
+        <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">{[...batting.counts, batting.rates[6], batting.rates[7]].map(m => <Metric key={m.metric} metric={m}/>)}</dl>
       </>}
     </section>
     <section className="panel p-5 sm:p-6" aria-label="Team pitching statistics">
@@ -31,11 +31,11 @@ export function TeamGameStats({ stats, names }: { stats: SharedGameStat[]; names
     {pending && <p className="notice text-sm">Some totals or rates need source counts reviewed. Other recorded stats remain available. <Link href="/game-stats/review" className="text-link">Open Data Review</Link></p>}
     {playerIds.length > 0 && <details className="panel p-5 sm:p-6"><summary className="cursor-pointer font-semibold">Player Breakdown · {playerIds.length} Players</summary>
       <p className="muted mt-3 text-xs">Select a name to open the player’s full profile.</p>
-      {batting.entries > 0 && <div className="table-wrap mt-4"><table aria-label="Player batting breakdown"><thead><tr><th>Player</th>{["PA", "AB", "AVG", "OBP", "QPA %", "HH %", "HR", "RBI", "SB"].map(label => <th key={label}>{label}</th>)}</tr></thead><tbody>{playerIds.flatMap(id => {
+      {batting.entries > 0 && <div className="table-wrap mt-4"><table aria-label="Player batting breakdown"><thead><tr><th>Player</th>{["PA", "AB", "AVG", "OBP", "QPA %", "HH %", "HR", "RBI", "SB", "SB/PA"].map(label => <th key={label}>{label}</th>)}</tr></thead><tbody>{playerIds.flatMap(id => {
         const summary = teamGameSummary(stats.filter(r => r.athlete_id === id), "qpa_fall_2026");
         if (!summary.entries) return [];
         const metrics = [...summary.counts, ...summary.rates];
-        return [<tr key={id}><th scope="row"><Link href={`/athletes/${id}`} className="text-link whitespace-nowrap">{names.get(id) ?? "Player"}</Link></th>{["pa", "ab", "batting_avg", "batting_obp", "qpa_pct", "batting_hh_pct", "pumps", "rbi", "sb"].map(key => { const m = metrics.find(m => m.metric === key)!; return <td key={key} className="tabular-nums" title={m.pending ? "Counts need review" : undefined}>{formatTeamGameMetric(m)}</td>; })}</tr>];
+        return [<tr key={id}><th scope="row"><Link href={`/athletes/${id}`} className="text-link whitespace-nowrap">{names.get(id) ?? "Player"}</Link></th>{["pa", "ab", "batting_avg", "batting_obp", "qpa_pct", "batting_hh_pct", "pumps", "rbi", "sb", "batting_sb_per_pa"].map(key => { const m = metrics.find(m => m.metric === key)!; return <td key={key} className="tabular-nums" title={m.pending ? "Counts need review" : undefined}>{formatTeamGameMetric(m)}</td>; })}</tr>];
       })}</tbody></table></div>}
       {pitching.entries > 0 && <div className="table-wrap mt-4"><table aria-label="Player pitching breakdown"><thead><tr><th>Pitcher</th><th>Pitches</th><th>Strike %</th><th>K</th><th>BB</th></tr></thead><tbody>{playerIds.flatMap(id => {
         const summary = teamGameSummary(stats.filter(r => r.athlete_id === id), "pitching_fall_2026"); if (!summary.entries) return [];
