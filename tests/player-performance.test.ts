@@ -249,3 +249,21 @@ describe("server-provided aggregate overlays without peer readings", () => {
     expect(card([], "max_exit_velocity", { percentileOverrides: [overlay()] }).latest).toBeNull();
   });
 });
+
+it("ranks lower body fat higher in profiles, preserving ties, cohort minimums and neutral insight meaning", () => {
+  const input = { metric: "Body Fat Percentage", unit: "%", source: "RENPHO" };
+  expect(card(peers([10, 15, 20, 25, 30], input), "body_fat_pct", {cohortAthleteCodes: cohort()}).percentile).toMatchObject({value: 100, direction: "neutral"});
+  expect(card(peers([30, 15, 20, 25, 10], input), "body_fat_pct", {cohortAthleteCodes: cohort()}).percentile?.value).toBe(0);
+  expect(card(peers([10, 10, 20, 25, 30], input), "body_fat_pct", {cohortAthleteCodes: cohort()}).percentile?.value).toBe(87.5);
+  expect(card(peers([20, 20, 20, 20, 20], input), "body_fat_pct", {cohortAthleteCodes: cohort()}).percentile?.value).toBe(50);
+  expect(card(peers([10, 15, 20, 25], input), "body_fat_pct", {cohortAthleteCodes: cohort()}).percentile).toBeNull();
+});
+
+it("reverses hosted body-fat summaries exactly once and agrees with local cohort calculations", () => {
+  const readings = peers([10, 15, 20, 25, 30], {metric: "Body Fat Percentage", unit: "%", source: "RENPHO"});
+  const source = readings[0];
+  const override: PlayerPercentileOverride = {athleteCode: source.athlete_code, metricKey: "body_fat_pct", measuredAt: source.measured_at, observedValue: source.value, source: source.source, unit: "%", period: "fall_2026", direction: "neutral", value: 0, sampleSize: 5};
+  expect(card([source], "body_fat_pct", {percentileOverrides: [override]}).percentile).toEqual(card(readings, "body_fat_pct", {cohortAthleteCodes: cohort()}).percentile);
+  expect(card([source], "body_fat_pct", {percentileOverrides: [{...override,value: 87.5}]}).percentile?.value).toBe(12.5);
+  expect(card([source], "body_fat_pct", {percentileOverrides: [{...override,value: null,sampleSize: 4}]}).percentile).toBeNull();
+});

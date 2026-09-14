@@ -227,7 +227,7 @@ export function getPlayerMetricPercentile(readings: readonly PlayerMetricReading
   const below = values.filter(value => value < target.value).length;
   const equal = values.filter(value => value === target.value).length;
   const ascending = 100 * (below + (equal - 1) / 2) / (sampleSize - 1);
-  return { percentile: { value: direction === "lower" ? 100 - ascending : ascending, sampleSize, period: target.period, unit: target.unit, direction },
+  return { percentile: { value: target.metricKey === "body_fat_pct" || direction === "lower" ? 100 - ascending : ascending, sampleSize, period: target.period, unit: target.unit, direction },
     cohortSampleSize: sampleSize, percentileStatus: "available" };
 }
 
@@ -242,7 +242,9 @@ function applyOverride(target: PlayerMetricReading, overrides: readonly PlayerPe
   if (item.sampleSize < 5) return item.value === null ? { percentile: null, cohortSampleSize: item.sampleSize, percentileStatus: "small_cohort" } : null;
   if (item.value === null) return { percentile: null, cohortSampleSize: item.sampleSize, percentileStatus: "unavailable" };
   if (!Number.isFinite(item.value) || item.value < 0 || item.value > 100) return null;
-  return { percentile: { value: item.value, sampleSize: item.sampleSize, period: item.period, unit: item.unit, direction }, cohortSampleSize: item.sampleSize, percentileStatus: "available" };
+  // The neutral body-fat RPC returns ascending numerical rank. Invert once here
+  // for the owner-requested profile order; preserve neutral insight semantics.
+  return { percentile: { value: target.metricKey === "body_fat_pct" ? 100 - item.value : item.value, sampleSize: item.sampleSize, period: item.period, unit: item.unit, direction }, cohortSampleSize: item.sampleSize, percentileStatus: "available" };
 }
 
 /** Caller supplies the permitted cohort or server-only aggregates; this function never expands access. */

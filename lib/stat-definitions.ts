@@ -8,7 +8,7 @@ export const STAT_DEFINITIONS: Readonly<Record<string, string>> = {
   height: "Recorded standing height. Displayed in feet and inches; comparisons keep the original measurement units separate.",
   weight: "Total recorded body weight on the test date. A higher percentile means a higher measured weight, not a better score.",
   grip_strength: "Force measured during a grip-strength test. Compare results taken with the same device, hand, and testing protocol.",
-  body_fat_pct: "The report’s estimated fat mass as a percentage of body weight. This is a body-composition measurement, not a performance rating.",
+  body_fat_pct: "The report’s estimated fat mass as a percentage of body weight. Lower body fat receives a higher percentile and leaderboard rank. This is a body-composition comparison, not a performance rating.",
   skeletal_muscle_mass: "The device’s estimated skeletal muscle mass, in pounds or kilograms. This is separate from total muscle mass and is not a strength test.",
   muscle_mass: "Total muscle mass reported by the device, in pounds or kilograms. It is separate from skeletal muscle mass and muscle mass percentage.",
   muscle_mass_pct: "Reported muscle mass as a percentage of body weight. Calculated readings use muscle mass and weight from the same report.",
