@@ -27,10 +27,18 @@ export type GameSourcePreview = {
 export const QPA_HEADERS = ["Player", "PA's", "QPAs", "QPA Checker", "AB's", "AB's Checker", "Walks + HBP + Sac Bunt", "Percentage", "HH Base Hit", "HH Extra Base Hit", "Pumps", "Base Hit", "3-8 HH", "8 (+) pitches", "BB", "RBI", "Sac Bunt", "Moving Runner (2nd to 3rd w/ < 2 outs)", "HBP", "Punchies", "HH %", "Hitterish Value", "AB Control: weak before 3 or plus count (0-0, 1-0, 2-0, 2-1, 3-0, 3-1) (includes popped up bunts)", "Hitterish Plus AB Control", "Hitterish Plus AB Control / Total PA's", "AB's / AB's Thrown", "SB", "GDP", "Sac Fly"] as const;
 export const PITCHING_HEADERS = ["Name", "", "Pitches", "Strikes", "K%", "FB", "FB K", "FB K%", "BB", "BB K", "BB K%", "CH", "CH K", "CH K%", "BAF", "FPS", "FPS%", "Inn", "H", "R", "BB", "HBP", "K"] as const;
 const QPA_RAW = [[2,"pa"],[3,"qpa"],[5,"ab"],[9,"hh_base_hit"],[10,"hh_extra_base_hit"],[11,"pumps"],[12,"base_hit"],[13,"three_eight_hh"],[14,"eight_plus_pitches"],[15,"bb"],[16,"rbi"],[17,"sac_bunt"],[18,"moving_runner"],[19,"hbp"],[20,"punchies"],[23,"ab_control"],[27,"sb"],[28,"gdp"],[29,"sac_fly"]] as const;
-const PITCHING_RAW = [[3,"pitches"],[4,"strikes"],[6,"fb"],[7,"fb_k"],[9,"bb_pitch_family"],[10,"bb_pitch_family_k"],[12,"ch"],[13,"ch_k"],[15,"baf"],[16,"fps"],[19,"h"],[20,"r"],[21,"bb_outcome"],[22,"hbp"],[23,"k"],[24,"weak_contact"],[25,"hard_contact"]] as const;
+const PITCHING_RAW = [[3,"pitches"],[4,"strikes"],[6,"fb"],[7,"fb_k"],[9,"bb_pitch_family"],[10,"bb_pitch_family_k"],[12,"ch"],[13,"ch_k"],[15,"baf"],[16,"fps"],[19,"h"],[20,"r"],[21,"bb_outcome"],[22,"hbp"],[23,"k"],[24,"weak_contact"],[25,"hard_contact"],[26,"earned_runs"]] as const;
 const normalize = (value: string) => value.trim().replace(/\s+/g," ").toLocaleLowerCase("en-US");
 const canonicalFormula = (formula: string) => formula.replace(/\s+/g, "").toUpperCase();
 const validDate = (value: string) => /^2026-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0,10) === value && value >= "2026-09-01" && value <= "2026-12-31";
+/** Owner-confirmed baseball innings notation, converted to exact outs. */
+export function inningsToOuts(value: unknown): number | null {
+  if (typeof value !== "number" && typeof value !== "string") return null;
+  const text=String(value).trim();
+  if(!/^\d{1,8}(?:\.(?:[012]|33|67))?$/.test(text)) return null;
+  const [whole,part="0"]=text.split(".");const outs=Number(whole)*3+(part==="33"?1:part==="67"?2:Number(part));
+  return Number.isSafeInteger(outs)&&outs<=1000000000?outs:null;
+}
 /** Reserved IDs identify reviewed weekly aggregates; a week is never a dated game. */
 export function pitchingWeek(eventId: unknown): number | null {
   const match = typeof eventId === "string" ? /^fall-2026-week-([1-5])$/.exec(eventId) : null;
@@ -83,7 +91,7 @@ export function parseGameSource(snapshot: GameSourceSnapshot, contract: Reviewed
   }
   const rows = new Set(contract.detailRows);
   if (rows.size !== contract.detailRows.length || [...rows].some(row => !Number.isSafeInteger(row) || row < (qpa ? 2 : 3) || row > 2000)) problem("detail_rows", "The reviewed source detail-row coverage is invalid.");
-  for(const cell of cells.values()) if(cell.column>(qpa?29:25)&&(cell.entered!==undefined||cell.formula||cell.error)) problem("unreviewed_columns", "Source content appeared outside the reviewed columns. Review the changed source layout before syncing.",cell.row,cell.column);
+  for(const cell of cells.values()) if(cell.column>(qpa?29:26)&&(cell.entered!==undefined||cell.formula||cell.error)) problem("unreviewed_columns", "Source content appeared outside the reviewed columns. Review the changed source layout before syncing.",cell.row,cell.column);
   const rawColumns=new Set<number>((qpa?QPA_RAW:PITCHING_RAW).map(([column])=>column));
   if(!qpa)rawColumns.add(18);
   for(const cell of cells.values()) if(!rows.has(cell.row)&&rawColumns.has(cell.column)&&(typeof cell.entered==="number"||(typeof cell.entered==="string"&&/^\d{1,10}$/.test(cell.entered.trim())))&&!cell.formula){
@@ -105,6 +113,11 @@ export function parseGameSource(snapshot: GameSourceSnapshot, contract: Reviewed
     if (contactPresent) for (const [column,header] of [[24,"Wk"],[25,"Hrd"]] as const) {
       if (normalize(text(event.headerRow,column))!==normalize(header)) problem("header", "Review the weak/hard-contact column headers.",event.headerRow,column);
       for(let row=event.firstRow;row<=event.lastRow;row++) if(!cells.has(key(row,column))) problem("coverage", "Read the complete contact-count columns.",row,column);
+    }
+    const earnedPresent=[...cells.values()].some(c=>c.row>=event.headerRow&&c.row<=event.lastRow&&c.column===26&&(c.entered!==undefined||c.formula||c.error));
+    if(earnedPresent){
+      if(normalize(text(event.headerRow,26))!=="er") problem("header","Earned runs require the ER header in column Z.",event.headerRow,26);
+      for(let row=event.firstRow;row<=event.lastRow;row++) if(!cells.has(key(row,26))) problem("coverage","Read the complete earned-run column.",row,26);
     }
     for (let row=event.firstRow;row<=event.lastRow;row++) {
       if (eventByRow.has(row)) problem("event_mapping", "Reviewed pitching blocks overlap.",row);
@@ -137,8 +150,9 @@ export function parseGameSource(snapshot: GameSourceSnapshot, contract: Reviewed
       }
     }
     const innings = !qpa ? cells.get(key(row,18)) : undefined;
-    if (innings && (innings.entered !== undefined || innings.formula || innings.error)) {
-      touched = true; problem("innings", "The innings convention is not confirmed. Inn stays excluded; no decimal or baseball-outs conversion is inferred.",row,18,"review");
+    if (innings && ((innings.entered !== undefined && innings.entered !== "") || innings.formula || innings.error)) {
+      touched = true;
+      if(innings.formula||innings.error||inningsToOuts(innings.entered)===null) problem("innings", "Review Inn: use .1 or .33 for one out, and .2 or .67 for two outs.",row,18);
     }
     if (!touched) continue;
     result.populatedRows++;
@@ -149,10 +163,12 @@ export function parseGameSource(snapshot: GameSourceSnapshot, contract: Reviewed
     if (seenIdentities.has(identityKey)) { problem("duplicate_identity", "Two source rows resolve to the same athlete and event/season.",row,1); continue; }
     seenIdentities.add(identityKey);
     const add = (metric: string,label: string,value: number,column: number,unit: "count" | "%"="count",derivedFrom: number[] = []) => result.observations.push({ athleteCode, metric, label, value, unit, scope: qpa ? "cumulative_fall" : "pitching_event", eventId: event?.eventId ?? null, playedOn: event?.playedOn ?? null, source, sourceRow: row, sourceColumn: column, derivedFrom });
+    if(innings&&!innings.formula&&!innings.error&&inningsToOuts(innings.entered)!==null) add("innings_outs","Innings Pitched (outs)",inningsToOuts(innings.entered)!,18,"count",[18]);
     for (const [column,metric] of raw) if (values.has(column)) {
-      const label = qpa ? QPA_HEADERS[column-1] : column === 9 ? "BB (pitch family)" : column === 21 ? "BB (outcome)" : column === 24 ? "Weak Contact" : column === 25 ? "Hard Contact" : PITCHING_HEADERS[column-1];
+      const label = qpa ? QPA_HEADERS[column-1] : column === 9 ? "BB (pitch family)" : column === 21 ? "BB (outcome)" : column === 24 ? "Weak Contact" : column === 25 ? "Hard Contact" : column === 26 ? "Earned Runs" : PITCHING_HEADERS[column-1];
       add(metric,label,values.get(column)!,column);
     }
+    if(!qpa&&values.has(26)&&values.has(20)&&values.get(26)!>values.get(20)!) problem("earned_runs", "Earned runs cannot exceed total runs allowed.",row,26);
     const hhFormula = qpa ? cells.get(key(row,21))?.formula : undefined;
     if (hhFormula && canonicalFormula(hhFormula) !== `=(I${row}+M${row}+J${row}+K${row})/(E${row}-T${row}-Q${row})`) problem("hh_formula", "The QPA hard-hit formula changed; review before syncing.", row,21);
     const numerator = qpa ? 3 : 4, denominator = qpa ? 2 : 3, rateColumn = qpa ? 8 : 5;

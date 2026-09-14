@@ -9,7 +9,7 @@ import { LEADERBOARD_GROUPS, visibleLeaderboardComparisons } from "@/lib/leaderb
 export default async function LeaderboardsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const access = await requireAccess(["admin", "coach", "player"]);
   const query = await searchParams;
-  if(query.group === "games") return <><PageHeading section="Pacific Baseball / Team Results" title="Leaderboards" description="Fall 2026 · Team game rankings."/><GameLeaderboard rows={await loadGameLeaderboards(access)}/></>;
+  if(query.group === "games") return <><PageHeading section="Pacific Baseball / Team Results" title="Leaderboards" description="Fall 2026 · Team game rankings."/><GameLeaderboard rows={await loadGameLeaderboards(access)} discipline={query.discipline==="pitching"?"pitching":"hitting"}/></>;
   const group = LEADERBOARD_GROUPS.find(group => group === query.group) ?? "physicality";
   const comparisons = visibleLeaderboardComparisons(group, await loadLeaderboardComparisons(access));
   const panels = await Promise.all(comparisons.map(async comparison => ({ comparison, rows: await loadLeaderboard(access, comparison) })));

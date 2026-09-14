@@ -66,3 +66,7 @@ The September 12 owner request adds the same percentile presentation across hitt
 - The owner now requests Body Fat % profile percentiles to rank lower readings higher, matching the existing lowest-first leaderboard. Invert local ascending ranks and the hosted neutral body-fat summary once in the profile model. Keep the catalog/RPC direction neutral for descriptive insight eligibility, preserve exact cohorts and n>=5, and never invert an already lowest-first leaderboard result.
 
 - September 14: stop all scheduled roster/RENPHO-ID scraping. Daily checks cover only the two approved Fall game tabs at 9 p.m. Pacific. Pitching weekly totals use reserved `fall-2026-week-[1-5]` IDs with null playedOn and exact source title checks; never fabricate game dates. Wk/Hrd are owner-confirmed weak/hard-contact counts in X/Y, with missing values preserved and no inferred contact rates. Keep player identities explicitly reviewed.
+
+- Pitching Inn now uses owner-confirmed baseball notation (.1/.2 outs), stored as innings_outs with source column 18 and [18] derivation. R is all runs, never ER; optional ER belongs in Z/26. K/9 and BB/9 derive from outs; ERA requires ER. Pitching digest v2 includes the explicit contract revision for this additive support. Verify prior counts/identities remain identical when syncing the upgrade. No source-sheet edits are authorized by this feature.
+
+The owner also confirmed the Sheet’s alternate .33/.67 endings mean one/two outs. Accept both .1/.2 and .33/.67 exactly; do not round arbitrary decimals into outs.

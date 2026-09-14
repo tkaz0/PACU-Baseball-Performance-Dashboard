@@ -45,7 +45,7 @@ describe("source-grounded Fall game adapters",()=>{
   });
   it("requires reviewed pitcher events and never invents a date from the snapshot timestamp",()=>{const f=fixture(true);f.set(3,1);expect(parseGameSource(f.snapshot,f.contract,identities).issues.some(x=>x.code==="unmapped_event")).toBe(true);f.events[0].playedOn="2026-08-31";expect(f.run().canImport).toBe(false);});
   it.each(["2026-09-01","2026-09-11"])("accepts actual Fall game date %s before the daily sync start",playedOn=>{const f=fixture(true);f.set(3,1);f.events[0].playedOn=playedOn;expect(f.run().canImport).toBe(true);expect(f.run().observations[0].playedOn).toBe(playedOn);});
-  it("does not guess innings decimals or outs and preserves other explicit counts",()=>{const f=fixture(true);f.set(3,1);f.set(18,1.2);const p=f.run();expect(p.canImport).toBe(true);expect(p.issues.find(x=>x.code==="innings")?.severity).toBe("review");expect(p.observations.some(x=>x.sourceColumn===18)).toBe(false);});
+  it("converts owner-confirmed baseball innings to exact outs",()=>{const f=fixture(true);f.set(3,1);f.set(18,1.2);const p=f.run();expect(p.canImport).toBe(true);expect(p.observations.find(x=>x.metric==="innings_outs")).toMatchObject({value:5,sourceColumn:18,derivedFrom:[18]});});
   it("requires an exact reviewed name and rejects duplicate mapping identities",()=>{
     const f=fixture();f.set(2,1);expect(parseGameSource(f.snapshot,f.contract,[{sourceName:"Player",athleteCode:"PAC-0001"}]).canImport).toBe(false);
     expect(parseGameSource(f.snapshot,f.contract,[...identities,...identities]).canImport).toBe(false);

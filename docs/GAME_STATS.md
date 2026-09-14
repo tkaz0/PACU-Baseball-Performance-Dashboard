@@ -15,7 +15,7 @@ Source IDs, exact sheet IDs and full bounded capture ranges are in `lib/game-sou
 
 QPA accepts explicitly entered counts from columns B, C, E, I–T, W, AA (SB), AB (GDP) and AC (Sac Fly). Its QPA percentage is derived only from entered QPAs / PAs, with a positive denominator. These cumulative observations replace the previous current snapshot; daily differences are never invented as games.
 
-Pitching accepts explicitly entered counts from C, D, F, G, I, J, L, M, O, P and S–W, plus reviewed optional X/Y contact counts. The source label `K%` in E means **Strikes / Pitches**, so the dashboard labels it **Strike %**. I and U are separate `BB (pitch family)` and `BB` outcome fields. BAF, FPS and source-specific pitch/QPA labels retain their recorded meanings without invented definitions. `Inn` stays excluded until the innings convention is confirmed. No ERA, WHIP, strikeout percentage, walk percentage or event date is inferred from these inputs. Existing source summary/checker formula inconsistencies are not treated as raw data.
+Pitching accepts explicitly entered counts from C, D, F, G, I, J, L, M, O, P and S–W, plus reviewed optional X/Y contact counts. The source label `K%` in E means **Strikes / Pitches**, so the dashboard labels it **Strike %**. I and U are separate `BB (pitch family)` and `BB` outcome fields. BAF, FPS and source-specific pitch/QPA labels retain their recorded meanings without invented definitions. `Inn` uses owner-confirmed baseball notation and is stored as exact outs. K/9 and BB/9 use 27 × count / outs. R is all runs; ERA requires a separately recorded ER count. WHIP, strikeout/walk percentages and game dates are not inferred. Existing source summary/checker formula inconsistencies are not treated as raw data.
 
 Only finite nonnegative integer counts (maximum 1 billion) are imported. Plain digit strings stored as text are accepted; formulas, formatted/exponent guesses and invalid raw entries block saving. The owner confirmed QPA blank count cells mean zero when that row has a recorded PA or AB total. Entirely blank rows, pitching blanks, and QPA rows without either recorded total stay missing. Formula zeros and division errors never establish a recorded row. The two supported percentages retain raw numerator/denominator column evidence; zero denominators produce no percentage.
 
@@ -79,3 +79,18 @@ Optional X/Y headers `Wk` / `Hrd` mean weak-contact / hard-contact counts, confi
 Scheduled checks now run once daily at 9 p.m. America/Los_Angeles for QPA `2026 - Fall` and Pitching `FALL` only. Roster scraping and RENPHO-ID scans are stopped. Existing approved local identities may be consulted; new/ambiguous pitching names require owner review. This Mac and an active staff session are still required to save. Apply `202609140001_weekly_pitching.sql` after deploying the compatible app, before saving weekly data.
 
 September 14 verification: 1,606 synthetic tests across 99 files, lint, typecheck and production build passed. Browser checks verified weekly labels, contact details, mobile document overflow and a complete source-to-preview comparison. The compatible deployment and hosted migration succeeded; the normal staff import produced a database-backed receipt. No roster scraping occurred.
+
+
+## Pitching rates and split leaderboards
+
+The owner confirmed Inn uses baseball innings notation (.1 = one out, .2 = two outs) and R means **all runs allowed**. Store `innings_outs` at source column 18 with `derivedFrom: [18]`; display innings using outs/3 notation. Rates are undefined at zero or missing innings. K/9 = K × 27 / outs; BB/9 = walks-outcome BB × 27 / outs. Team rates use combined counts and outs, never an average of player rates.
+
+ERA = ER × 27 / outs. The optional new **ER** header belongs in Z/26 after Hrd on a reviewed detail block. Missing ER stays missing, explicit zero stays zero, and ER > R is invalid. No source-sheet editing is done by this feature. Until ER is recorded, show an honest pending card and no ERA rank. Existing R data is unchanged.
+
+Pitch splits show Fastball, Breaking Ball and Changeup usage (family pitches / all pitches) and strike percentage (family strikes / family pitches). Blank or inconsistent family counts do not become zeros; unclassified pitches are not distributed across families. Raw pitch-type counts are not mixed with walk outcomes. No slider/curveball split is fabricated from combined breaking-ball data.
+
+Game leaderboards retain `group=games` with separate `discipline=hitting` and `discipline=pitching` links. Pitching ranks include K/9 descending and BB/9/ERA ascending, within the same reviewed period and existing eligible cohort. Player-own access and the minimal signed-in leaderboard projection remain unchanged. Per-nine opportunities display IP from exact outs, not batting sample labels.
+
+Pitching preparation now includes `contractRevision: pitching-innings-outs-v2` in its content digest so the same captured cells can add the newly authorized outs/ER interpretation as a reviewed new snapshot. QPA hashes are unchanged. Preserve every prior observation and verify the upgrade only adds newly supported fields before saving; never use revision changes to silently remap athletes or alter existing counts. Deploy the compatible app, apply migration 002, then sync a fresh complete capture with retained owner-approved identities and periods.
+
+The owner also confirmed the Sheet’s alternate .33/.67 endings mean one/two outs. Accept both .1/.2 and .33/.67 exactly; do not round arbitrary decimals into outs.

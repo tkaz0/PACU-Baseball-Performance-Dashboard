@@ -20,6 +20,7 @@ beforeAll(async()=>{
  await db.exec(readFileSync(new URL("202609120005_game_opportunities.sql",dir),"utf8"));
  await db.exec(readFileSync(new URL("202609120006_dated_game_logs.sql",dir),"utf8"));
  await db.exec(readFileSync(new URL("202609140001_weekly_pitching.sql",dir),"utf8"));
+ await db.exec(readFileSync(new URL("202609140002_pitching_rates.sql",dir),"utf8"));
  await db.exec("create or replace function private.game_sync_now() returns timestamptz language sql stable set search_path='' as $$select '2026-09-15T12:00:00Z'::timestamptz$$;");
  for(const[id,role]of[[admin,"admin"],[coach,"coach"],[player,"player"],[unlinked,"player"]]){await db.query("insert into auth.users values($1)",[id]);await db.query("insert into public.app_accounts(user_id,is_active) values($1,true)",[id]);await db.query("insert into public.account_roles(user_id,role) values($1,$2)",[id,role]);}
  for(const[id,code]of[[a,"PAC-0001"],[b,"PAC-0002"]]){await db.query("insert into public.athletes(id,athlete_code,first_name,last_name) values($1,$2,'Fictional','Player')",[id,code]);await db.query("insert into public.athlete_seasons(athlete_id,season) values($1,'2026-27')",[id]);}
@@ -134,4 +135,13 @@ it("saves weekly contact counts without a game date and preserves player isolati
  await asUser(coach,()=>save([pitch(),pitch({athleteCode:"PAC-0002",sourceRow:41,metric:"hard_contact",sourceColumn:25})],"c".repeat(64),"2026-09-14T12:00:00Z","pitching_fall_2026"));
  expect(await asUser(player,()=>read(a))).toHaveLength(1);expect((await asUser(player,()=>read(a)))[0]).toMatchObject({event_id:"fall-2026-week-1",played_on:null,metric:"weak_contact"});
  for(const invalid of [pitch({playedOn:"2026-09-14"}),pitch({eventId:"fictional-game"}),pitch({eventId:"fall-2026-week-6"})])await asUser(coach,async()=>{await expect(save([invalid],"d".repeat(64),"2026-09-15T12:00:00Z","pitching_fall_2026")).rejects.toThrow();});
+});
+
+it("derives pitching rates from outs, never substitutes total runs for earned runs",async()=>{
+ const pitch=(metric:string,value:number,col:number)=>row({metric,value,sourceColumn:col,scope:"pitching_event",eventId:"fall-2026-week-1",playedOn:null,sourceRow:40,derivedFrom:metric==="innings_outs"?[18]:[]});
+ await asUser(coach,()=>save([pitch("innings_outs",5,18),pitch("k",3,23),pitch("bb_outcome",1,21),pitch("r",4,20)],"e".repeat(64),"2026-09-14T12:00:00Z","pitching_fall_2026"));
+ const ranks=await asUser(player,async()=>(await db.query<{r:Record<string,unknown>[]}>("select public.game_leaderboards() r")).rows[0].r);
+ expect(ranks.find(r=>r.metric==="pitching_k9")).toMatchObject({value:16.2,unit:"per9",opportunities:5});expect(ranks.find(r=>r.metric==="pitching_bb9")?.value).toBe(5.4);expect(ranks.some(r=>r.metric==="pitching_era")).toBe(false);
+ await asUser(coach,()=>save([pitch("innings_outs",5,18),pitch("k",3,23),pitch("bb_outcome",1,21),pitch("r",4,20),pitch("earned_runs",2,26)],"f".repeat(64),"2026-09-15T12:00:00Z","pitching_fall_2026"));
+ const updated=await asUser(player,async()=>(await db.query<{r:Record<string,unknown>[]}>("select public.game_leaderboards() r")).rows[0].r);expect(updated.find(r=>r.metric==="pitching_era")?.value).toBe(10.8);
 });

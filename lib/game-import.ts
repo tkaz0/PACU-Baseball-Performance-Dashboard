@@ -5,7 +5,7 @@ export type SharedGameObservation = Omit<GameSourceObservation,"label"|"source">
 export type SharedGameImport = { source:GameSourceKey; contentHash:string; fetchedAt:string; observations:SharedGameObservation[] };
 export const GAME_METRIC_COLUMNS: Record<GameSourceKey,Record<string,number>> = {
   qpa_fall_2026:{pa:2,qpa:3,ab:5,hh_base_hit:9,hh_extra_base_hit:10,pumps:11,base_hit:12,three_eight_hh:13,eight_plus_pitches:14,bb:15,rbi:16,sac_bunt:17,moving_runner:18,hbp:19,punchies:20,ab_control:23,sb:27,gdp:28,sac_fly:29,qpa_pct:8},
-  pitching_fall_2026:{pitches:3,strikes:4,fb:6,fb_k:7,bb_pitch_family:9,bb_pitch_family_k:10,ch:12,ch_k:13,baf:15,fps:16,h:19,r:20,bb_outcome:21,hbp:22,k:23,weak_contact:24,hard_contact:25,strike_pct:5},
+  pitching_fall_2026:{pitches:3,strikes:4,fb:6,fb_k:7,bb_pitch_family:9,bb_pitch_family_k:10,ch:12,ch_k:13,baf:15,fps:16,h:19,r:20,bb_outcome:21,hbp:22,k:23,innings_outs:18,weak_contact:24,hard_contact:25,earned_runs:26,strike_pct:5},
 };
 const isObject=(value:unknown):value is Record<string,unknown>=>!!value&&typeof value==="object"&&!Array.isArray(value);
 export function validateGameImport(value:unknown,now=Date.now()):SharedGameImport {
@@ -16,7 +16,7 @@ export function validateGameImport(value:unknown,now=Date.now()):SharedGameImpor
   const observations:SharedGameObservation[]=value.observations.map(item=>{
     if(!isObject(item)||typeof item.athleteCode!=="string"||!/^PAC-[0-9]{4,9}$/.test(item.athleteCode)||typeof item.metric!=="string"||!Object.hasOwn(GAME_METRIC_COLUMNS[source],item.metric)||typeof item.value!=="number"||!Number.isFinite(item.value)||item.value<0||!Number.isSafeInteger(item.sourceRow)||(item.sourceRow as number)<2||(item.sourceRow as number)>2000||item.sourceColumn!==GAME_METRIC_COLUMNS[source][item.metric]) return fail();
     const rate=item.metric==="qpa_pct"||item.metric==="strike_pct";
-    if(item.unit!==(rate?"%":"count")||(rate?item.value>100:!Number.isSafeInteger(item.value)||item.value>1000000000)||!Array.isArray(item.derivedFrom)||JSON.stringify(item.derivedFrom)!==JSON.stringify(rate?(qpa?[3,2]:[4,3]):[])) return fail();
+    if(item.unit!==(rate?"%":"count")||(rate?item.value>100:!Number.isSafeInteger(item.value)||item.value>1000000000)||!Array.isArray(item.derivedFrom)||JSON.stringify(item.derivedFrom)!==JSON.stringify(rate?(qpa?[3,2]:[4,3]):item.metric==="innings_outs"?[18]:[])) return fail();
     if(qpa ? item.scope!=="cumulative_fall"||item.eventId!==null||item.playedOn!==null : item.scope!=="pitching_event"||!validPitchingPeriod(item.eventId,item.playedOn)) return fail();
     const identity=JSON.stringify([item.athleteCode,item.eventId,item.metric]);if(seen.has(identity))return fail();seen.add(identity);
     return {athleteCode:item.athleteCode,metric:item.metric,value:item.value,unit:rate?"%":"count",scope:qpa?"cumulative_fall":"pitching_event",eventId:item.eventId as string|null,playedOn:item.playedOn as string|null,sourceRow:item.sourceRow as number,sourceColumn:item.sourceColumn as number,derivedFrom:[...item.derivedFrom]};

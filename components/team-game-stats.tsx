@@ -1,3 +1,4 @@
+import { formatInnings } from "@/lib/pitching-stats";
 import { GameRateBar } from "@/components/game-rate-bar";
 import Link from "next/link";
 import { StatInfo } from "@/components/stat-info";
@@ -11,13 +12,13 @@ function Metric({ metric }: { metric: TeamGameMetric }) {
     <dt className="text-xs font-semibold text-[var(--text-secondary)]">{metric.label}<StatInfo metric={metric.metric} label={metric.label}/></dt>
     <dd className="mt-2 text-2xl font-bold tabular-nums">{formatTeamGameMetric(metric)}</dd>
     <GameRateBar value={metric.value} unit={metric.unit} label={metric.label}/>
-    {metric.pending ? <p className="muted mb-0 mt-2 text-xs">Counts need review</p> : metric.opportunities !== undefined ? <div className="muted mt-2 text-xs">{metric.opportunities.toLocaleString("en-US")} {metric.opportunityLabel}<LimitedSample count={metric.opportunities} pitching={metric.opportunityLabel === "pitches"} opportunityLabel={metric.opportunityLabel}/></div> : null}
+    {metric.metric==="pitching_era"&&metric.value===null?<p className="muted mb-0 mt-2 text-xs">Earned runs and innings needed</p>:metric.pending ? <p className="muted mb-0 mt-2 text-xs">Counts need review</p> : metric.opportunities !== undefined ? <div className="muted mt-2 text-xs">{metric.opportunityLabel==="outs"?`${formatInnings(metric.opportunities)} IP`:`${metric.opportunities.toLocaleString("en-US")} ${metric.opportunityLabel}`}{metric.opportunityLabel!=="outs"&&<LimitedSample count={metric.opportunities} pitching={metric.opportunityLabel === "pitches"} opportunityLabel={metric.opportunityLabel}/>}</div> : null}
   </div>;
 }
 export function TeamGameStats({ stats, names }: { stats: SharedGameStat[]; names: Map<string, string> }) {
   const batting = teamGameSummary(stats, "qpa_fall_2026"), pitching = teamGameSummary(stats, "pitching_fall_2026");
   const playerIds = [...new Set(stats.map(r => r.athlete_id))].sort((a, b) => (names.get(a) ?? "").localeCompare(names.get(b) ?? ""));
-  const pending = [...batting.counts, ...batting.rates, ...pitching.counts, ...pitching.rates].some(m => m.pending);
+  const pending = [...batting.counts, ...batting.rates, ...pitching.counts, ...pitching.rates].some(m => m.pending&&m.metric!=="pitching_era");
   return <div className="space-y-6">
     <section className="panel p-5 sm:p-6" aria-label="Team batting statistics">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-2"><div><h2 className="m-0 text-xl font-bold">Team Batting</h2><p className="muted mb-0 mt-1 text-xs">QPA · Fall 2026{batting.players > 0 && ` · ${batting.players} ${batting.players === 1 ? "player" : "players"} with recorded results`}</p></div>{batting.updatedAt && <p className="muted m-0 text-xs">Updated {updated(batting.updatedAt)}</p>}</div>

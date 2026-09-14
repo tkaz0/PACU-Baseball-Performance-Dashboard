@@ -20,7 +20,7 @@ try{
  const read=async path=>{if((await stat(path)).size>5*1024*1024)throw new Error("The private input exceeds 5 MiB.");try{return JSON.parse(await readFile(path,"utf8"));}catch{throw new Error("The private input is not valid JSON.");}};
  const normalized=normalizeGameCapture(await read(input),contract,GAME_CAPTURE_SHAPES[contract.source]);
  const mappings=options["--mappings"]?validateGameMappings(await read(await outside(options["--mappings"])),contract):{identities:[],events:[]};
- const contentHash=createHash("sha256").update(JSON.stringify({source:normalized.source,spreadsheetId:normalized.spreadsheetId,sheetId:normalized.sheetId,sheetTitle:normalized.sheetTitle,cells:normalized.cells})).digest("hex");
+ const contentHash=createHash("sha256").update(JSON.stringify({...(normalized.source==="pitching_fall_2026"?{contractRevision:"pitching-innings-outs-v2"}:{}),source:normalized.source,spreadsheetId:normalized.spreadsheetId,sheetId:normalized.sheetId,sheetTitle:normalized.sheetTitle,cells:normalized.cells})).digest("hex");
  const snapshot={...normalized,contentHash},preview=parseGameSource(snapshot,contract,mappings.identities,mappings.events);
  const status={source:contract.source,contentHash,fetchedAt:normalized.fetchedAt,populatedRows:preview.populatedRows,observations:preview.observations.length,errors:preview.issues.filter(x=>x.severity==="error").length,reviewIssues:preview.issues.filter(x=>x.severity==="review").length,issueCodes:[...new Set(preview.issues.map(x=>x.code))],canImport:preview.canImport&&Date.parse(normalized.fetchedAt)>=Date.parse("2026-09-12T00:00:00-07:00"),mappingsReviewed:!!options["--mappings"]};
  await writeFile(output,JSON.stringify({snapshot,...mappings,status}),{mode:0o600,flag:"wx"});

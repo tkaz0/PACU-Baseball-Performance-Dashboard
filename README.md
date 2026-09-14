@@ -98,3 +98,5 @@ Testing now opens a compact staff Data Coverage checklist for RENPHO, hitting an
 Profiles include selectable test-history charts after two comparable test dates. Player/team game rates use labeled value-scale bars alongside existing percentile comparisons; mobile profile tabs wrap cleanly. See [PLAYER_PROFILES](docs/PLAYER_PROFILES.md).
 
 Weekly Fall pitching now uses reviewed week IDs with null game dates and separately recorded Wk/Hrd contact counts. See [Game Stats](docs/GAME_STATS.md) and migration `202609140001_weekly_pitching.sql`. Daily source checks exclude the roster.
+
+Pitching rates use exact recorded outs; K/9 and BB/9 use 27 × count / outs. ERA requires separate earned runs and never substitutes total R. Migration `202609140002_pitching_rates.sql` adds outs/ER and the existing narrow ranking projections. Game leaderboards have separate Hitting/Pitching views.

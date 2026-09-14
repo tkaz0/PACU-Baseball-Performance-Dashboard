@@ -327,3 +327,5 @@ Testing opens Data Coverage (`/testing/coverage`); Record Tests retains manual e
 Testing Progress appears automatically on profile Overview and the appropriate testing tab after two comparable test dates in one period. Select a measurement or expand Chart Data to inspect values. Game Stats displays recorded rate bars separately from percentile bars. No migration, re-import or new service is needed.
 
 Weekly Fall pitching now uses reviewed week IDs with null game dates and separately recorded Wk/Hrd contact counts. See [Game Stats](GAME_STATS.md) and migration `202609140001_weekly_pitching.sql`. Daily source checks exclude the roster.
+
+Pitching rates use exact recorded outs; K/9 and BB/9 use 27 × count / outs. ERA requires separate earned runs and never substitutes total R. Migration `202609140002_pitching_rates.sql` adds outs/ER and the existing narrow ranking projections. Game leaderboards have separate Hitting/Pitching views.

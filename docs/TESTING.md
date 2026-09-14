@@ -351,3 +351,5 @@ Authenticated sidebar, roster, progress and comparison links now load on navigat
 - `tests/profile-trends.test.ts` checks history partition isolation, conflicting dates, sparse/flat/zero results, exact accessible chart data, and bounded game-rate scales. Visual QA uses fictional profile histories and game totals in light/dark desktop and mobile layouts.
 
 Weekly Fall pitching now uses reviewed week IDs with null game dates and separately recorded Wk/Hrd contact counts. See [Game Stats](GAME_STATS.md) and migration `202609140001_weekly_pitching.sql`. Daily source checks exclude the roster.
+
+Pitching rates use exact recorded outs; K/9 and BB/9 use 27 × count / outs. ERA requires separate earned runs and never substitutes total R. Migration `202609140002_pitching_rates.sql` adds outs/ER and the existing narrow ranking projections. Game leaderboards have separate Hitting/Pitching views.
