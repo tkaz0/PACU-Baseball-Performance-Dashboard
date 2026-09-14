@@ -11,7 +11,7 @@ export type ReviewedGameSource = {
   detailRows: number[];
 };
 export type ReviewedGameIdentity = { sourceName: string; athleteCode: string };
-export type ReviewedPitchingEvent = { headerRow: number; firstRow: number; lastRow: number; eventId: string; playedOn: string };
+export type ReviewedPitchingEvent = { headerRow: number; firstRow: number; lastRow: number; eventId: string; playedOn: string | null };
 export type GameSourceIssue = { severity: "error" | "review"; code: string; row: number | null; column: number | null; message: string };
 export type GameSourceObservation = {
   athleteCode: string; metric: string; label: string; value: number; unit: "count" | "%";
@@ -27,10 +27,26 @@ export type GameSourcePreview = {
 export const QPA_HEADERS = ["Player", "PA's", "QPAs", "QPA Checker", "AB's", "AB's Checker", "Walks + HBP + Sac Bunt", "Percentage", "HH Base Hit", "HH Extra Base Hit", "Pumps", "Base Hit", "3-8 HH", "8 (+) pitches", "BB", "RBI", "Sac Bunt", "Moving Runner (2nd to 3rd w/ < 2 outs)", "HBP", "Punchies", "HH %", "Hitterish Value", "AB Control: weak before 3 or plus count (0-0, 1-0, 2-0, 2-1, 3-0, 3-1) (includes popped up bunts)", "Hitterish Plus AB Control", "Hitterish Plus AB Control / Total PA's", "AB's / AB's Thrown", "SB", "GDP", "Sac Fly"] as const;
 export const PITCHING_HEADERS = ["Name", "", "Pitches", "Strikes", "K%", "FB", "FB K", "FB K%", "BB", "BB K", "BB K%", "CH", "CH K", "CH K%", "BAF", "FPS", "FPS%", "Inn", "H", "R", "BB", "HBP", "K"] as const;
 const QPA_RAW = [[2,"pa"],[3,"qpa"],[5,"ab"],[9,"hh_base_hit"],[10,"hh_extra_base_hit"],[11,"pumps"],[12,"base_hit"],[13,"three_eight_hh"],[14,"eight_plus_pitches"],[15,"bb"],[16,"rbi"],[17,"sac_bunt"],[18,"moving_runner"],[19,"hbp"],[20,"punchies"],[23,"ab_control"],[27,"sb"],[28,"gdp"],[29,"sac_fly"]] as const;
-const PITCHING_RAW = [[3,"pitches"],[4,"strikes"],[6,"fb"],[7,"fb_k"],[9,"bb_pitch_family"],[10,"bb_pitch_family_k"],[12,"ch"],[13,"ch_k"],[15,"baf"],[16,"fps"],[19,"h"],[20,"r"],[21,"bb_outcome"],[22,"hbp"],[23,"k"]] as const;
+const PITCHING_RAW = [[3,"pitches"],[4,"strikes"],[6,"fb"],[7,"fb_k"],[9,"bb_pitch_family"],[10,"bb_pitch_family_k"],[12,"ch"],[13,"ch_k"],[15,"baf"],[16,"fps"],[19,"h"],[20,"r"],[21,"bb_outcome"],[22,"hbp"],[23,"k"],[24,"weak_contact"],[25,"hard_contact"]] as const;
 const normalize = (value: string) => value.trim().replace(/\s+/g," ").toLocaleLowerCase("en-US");
 const canonicalFormula = (formula: string) => formula.replace(/\s+/g, "").toUpperCase();
 const validDate = (value: string) => /^2026-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0,10) === value && value >= "2026-09-01" && value <= "2026-12-31";
+/** Reserved IDs identify reviewed weekly aggregates; a week is never a dated game. */
+export function pitchingWeek(eventId: unknown): number | null {
+  const match = typeof eventId === "string" ? /^fall-2026-week-([1-5])$/.exec(eventId) : null;
+  return match ? Number(match[1]) : null;
+}
+export function validPitchingPeriod(eventId: unknown, playedOn: unknown): boolean {
+  if (typeof eventId !== "string" || !/^[A-Za-z0-9_-]{1,80}$/.test(eventId)) return false;
+  if (pitchingWeek(eventId) !== null) return playedOn === null;
+  if (eventId.startsWith("fall-2026-week-")) return false;
+  return typeof playedOn === "string" && validDate(playedOn);
+}
+export function pitchingPeriodLabel(eventId: string | null, playedOn: string | null): string {
+  const week = pitchingWeek(eventId);
+  if (week !== null && playedOn === null) return `Fall Ball · Week ${week}`;
+  return playedOn ? new Date(`${playedOn}T12:00:00Z`).toLocaleDateString("en-US", {month:"short",day:"numeric",year:"numeric",timeZone:"UTC"}) : "Period unavailable";
+}
 const key = (row: number, column: number) => `${row}:${column}`;
 
 export function parseGameSource(snapshot: GameSourceSnapshot, contract: ReviewedGameSource, identities: ReviewedGameIdentity[], events: ReviewedPitchingEvent[] = [], now=Date.now()): GameSourcePreview {
@@ -67,7 +83,7 @@ export function parseGameSource(snapshot: GameSourceSnapshot, contract: Reviewed
   }
   const rows = new Set(contract.detailRows);
   if (rows.size !== contract.detailRows.length || [...rows].some(row => !Number.isSafeInteger(row) || row < (qpa ? 2 : 3) || row > 2000)) problem("detail_rows", "The reviewed source detail-row coverage is invalid.");
-  for(const cell of cells.values()) if(cell.column>(qpa?29:23)&&(cell.entered!==undefined||cell.formula||cell.error)) problem("unreviewed_columns", "Source content appeared outside the reviewed columns. Review the changed source layout before syncing.",cell.row,cell.column);
+  for(const cell of cells.values()) if(cell.column>(qpa?29:25)&&(cell.entered!==undefined||cell.formula||cell.error)) problem("unreviewed_columns", "Source content appeared outside the reviewed columns. Review the changed source layout before syncing.",cell.row,cell.column);
   const rawColumns=new Set<number>((qpa?QPA_RAW:PITCHING_RAW).map(([column])=>column));
   if(!qpa)rawColumns.add(18);
   for(const cell of cells.values()) if(!rows.has(cell.row)&&rawColumns.has(cell.column)&&(typeof cell.entered==="number"||(typeof cell.entered==="string"&&/^\d{1,10}$/.test(cell.entered.trim())))&&!cell.formula){
@@ -79,10 +95,17 @@ export function parseGameSource(snapshot: GameSourceSnapshot, contract: Reviewed
   const eventByRow = new Map<number,ReviewedPitchingEvent>();
   const eventIds = new Set<string>();
   if (!qpa) for (const event of events) {
-    if (!Number.isSafeInteger(event.headerRow) || !Number.isSafeInteger(event.firstRow) || !Number.isSafeInteger(event.lastRow) || event.headerRow < 3 || event.firstRow !== event.headerRow+1 || event.lastRow < event.firstRow || event.lastRow > 2000 || !/^[A-Za-z0-9_-]{1,80}$/.test(event.eventId) || eventIds.has(event.eventId) || !validDate(event.playedOn)) {
-      problem("event_mapping", "Pitching blocks need unique reviewed event IDs and Fall game dates."); continue;
+    if (!Number.isSafeInteger(event.headerRow) || !Number.isSafeInteger(event.firstRow) || !Number.isSafeInteger(event.lastRow) || event.headerRow < 3 || event.firstRow !== event.headerRow+1 || event.lastRow < event.firstRow || event.lastRow > 2000 || !/^[A-Za-z0-9_-]{1,80}$/.test(event.eventId) || eventIds.has(event.eventId) || !validPitchingPeriod(event.eventId,event.playedOn)) {
+      problem("event_mapping", "Pitching blocks need a reviewed Fall week or an actual game date."); continue;
     }
     eventIds.add(event.eventId); checkHeader(event.headerRow,PITCHING_HEADERS);
+    const week = pitchingWeek(event.eventId);
+    if (week !== null && normalize(text(event.headerRow-1,1)) !== `fall ball week ${week} pitching stats`) problem("week_label", "The reviewed week does not match the source block title.",event.headerRow-1,1);
+    const contactPresent = [...cells.values()].some(c=>c.row>=event.headerRow&&c.row<=event.lastRow&&c.column>=24&&c.column<=25&&(c.entered!==undefined||c.formula||c.error));
+    if (contactPresent) for (const [column,header] of [[24,"Wk"],[25,"Hrd"]] as const) {
+      if (normalize(text(event.headerRow,column))!==normalize(header)) problem("header", "Review the weak/hard-contact column headers.",event.headerRow,column);
+      for(let row=event.firstRow;row<=event.lastRow;row++) if(!cells.has(key(row,column))) problem("coverage", "Read the complete contact-count columns.",row,column);
+    }
     for (let row=event.firstRow;row<=event.lastRow;row++) {
       if (eventByRow.has(row)) problem("event_mapping", "Reviewed pitching blocks overlap.",row);
       eventByRow.set(row,event);
@@ -121,13 +144,13 @@ export function parseGameSource(snapshot: GameSourceSnapshot, contract: Reviewed
     result.populatedRows++;
     if (!athleteCode) { problem("unmapped_identity", "This populated source row needs an exact reviewed athlete mapping.",row,1); continue; }
     const event = qpa ? undefined : eventByRow.get(row);
-    if (!qpa && !event) { problem("unmapped_event", "This populated pitching row needs a reviewed event/block and actual game date.",row); continue; }
+    if (!qpa && !event) { problem("unmapped_event", "This populated pitching row needs a reviewed week or game date.",row); continue; }
     const identityKey = `${athleteCode}:${event?.eventId ?? "cumulative"}`;
     if (seenIdentities.has(identityKey)) { problem("duplicate_identity", "Two source rows resolve to the same athlete and event/season.",row,1); continue; }
     seenIdentities.add(identityKey);
     const add = (metric: string,label: string,value: number,column: number,unit: "count" | "%"="count",derivedFrom: number[] = []) => result.observations.push({ athleteCode, metric, label, value, unit, scope: qpa ? "cumulative_fall" : "pitching_event", eventId: event?.eventId ?? null, playedOn: event?.playedOn ?? null, source, sourceRow: row, sourceColumn: column, derivedFrom });
     for (const [column,metric] of raw) if (values.has(column)) {
-      const label = qpa ? QPA_HEADERS[column-1] : column === 9 ? "BB (pitch family)" : column === 21 ? "BB (outcome)" : PITCHING_HEADERS[column-1];
+      const label = qpa ? QPA_HEADERS[column-1] : column === 9 ? "BB (pitch family)" : column === 21 ? "BB (outcome)" : column === 24 ? "Weak Contact" : column === 25 ? "Hard Contact" : PITCHING_HEADERS[column-1];
       add(metric,label,values.get(column)!,column);
     }
     const hhFormula = qpa ? cells.get(key(row,21))?.formula : undefined;

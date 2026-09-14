@@ -1,3 +1,4 @@
+import { pitchingWeek } from "@/lib/game-source";
 import { battingRates } from "@/lib/batting-stats";
 import { GAME_METRIC_LABELS, gameDirection, type GameComparison } from "@/lib/game-metrics";
 import { gameOpportunities } from "@/lib/game-opportunities";
@@ -32,9 +33,14 @@ export function gameOverviewMetrics(stats: readonly SharedGameStat[], comparison
     }
   }
   group(stats.filter(r => r.source === "qpa_fall_2026" && r.event_id === null), "qpa_fall_2026", "");
-  // One clearly dated latest pitching event; never combine event percentiles or invent an overall rate.
-  const pitching = stats.filter(r => r.source === "pitching_fall_2026" && r.event_id && r.played_on);
-  const newest = [...pitching].sort((a, b) => b.played_on!.localeCompare(a.played_on!) || b.event_id!.localeCompare(a.event_id!))[0];
+  // Keep weekly and dated result series separate; never infer where an undated week falls among games.
+  const pitching = stats.filter(r => r.source === "pitching_fall_2026" && r.event_id);
+  const weekly = pitching.filter(r => pitchingWeek(r.event_id) !== null && r.played_on === null);
+  const dated = pitching.filter(r => r.played_on);
+  // The current sheet is weekly. Mixed series need an explicit period choice before an overview is shown.
+  const newest = weekly.length && dated.length ? undefined : weekly.length
+    ? [...weekly].sort((a,b)=>pitchingWeek(b.event_id)!-pitchingWeek(a.event_id)!)[0]
+    : [...dated].sort((a,b)=>b.played_on!.localeCompare(a.played_on!)||b.event_id!.localeCompare(a.event_id!))[0];
   if (newest) group(pitching.filter(r => r.event_id === newest.event_id), "pitching_fall_2026", newest.event_id!);
   return output;
 }

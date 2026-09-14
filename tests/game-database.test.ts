@@ -19,6 +19,7 @@ beforeAll(async()=>{
  await db.exec(readFileSync(new URL("202609120004_game_power.sql",dir),"utf8"));
  await db.exec(readFileSync(new URL("202609120005_game_opportunities.sql",dir),"utf8"));
  await db.exec(readFileSync(new URL("202609120006_dated_game_logs.sql",dir),"utf8"));
+ await db.exec(readFileSync(new URL("202609140001_weekly_pitching.sql",dir),"utf8"));
  await db.exec("create or replace function private.game_sync_now() returns timestamptz language sql stable set search_path='' as $$select '2026-09-15T12:00:00Z'::timestamptz$$;");
  for(const[id,role]of[[admin,"admin"],[coach,"coach"],[player,"player"],[unlinked,"player"]]){await db.query("insert into auth.users values($1)",[id]);await db.query("insert into public.app_accounts(user_id,is_active) values($1,true)",[id]);await db.query("insert into public.account_roles(user_id,role) values($1,$2)",[id,role]);}
  for(const[id,code]of[[a,"PAC-0001"],[b,"PAC-0002"]]){await db.query("insert into public.athletes(id,athlete_code,first_name,last_name) values($1,$2,'Fictional','Player')",[id,code]);await db.query("insert into public.athlete_seasons(athlete_id,season) values($1,'2026-27')",[id]);}
@@ -126,4 +127,11 @@ it("blocks unauthorized and inactive game-log operations and allows distinct dou
  const input=logInput();for(const id of [player,unlinked,null])await asUser(id,async()=>{await expect(writeLog(input)).rejects.toThrow();});
  await asUser(coach,()=>writeLog(input));await asUser(coach,()=>writeLog({...input,id:"70707070-7070-4070-8070-707070707070",requestId:"80808080-8080-4080-8080-808080808080",gameNumber:2}));expect(await asUser(player,()=>readLogs(a))).toHaveLength(2);
  await db.query("update public.app_accounts set is_active=false where user_id=$1",[coach]);await asUser(coach,async()=>{await expect(writeLog(input)).rejects.toThrow("Active import staff");await expect(readLogs(null)).rejects.toThrow("linked athlete");});
+});
+
+it("saves weekly contact counts without a game date and preserves player isolation",async()=>{
+ const pitch=(changes:Record<string,unknown>={})=>row({metric:"weak_contact",sourceColumn:24,value:3,scope:"pitching_event",eventId:"fall-2026-week-1",playedOn:null,sourceRow:40,...changes});
+ await asUser(coach,()=>save([pitch(),pitch({athleteCode:"PAC-0002",sourceRow:41,metric:"hard_contact",sourceColumn:25})],"c".repeat(64),"2026-09-14T12:00:00Z","pitching_fall_2026"));
+ expect(await asUser(player,()=>read(a))).toHaveLength(1);expect((await asUser(player,()=>read(a)))[0]).toMatchObject({event_id:"fall-2026-week-1",played_on:null,metric:"weak_contact"});
+ for(const invalid of [pitch({playedOn:"2026-09-14"}),pitch({eventId:"fictional-game"}),pitch({eventId:"fall-2026-week-6"})])await asUser(coach,async()=>{await expect(save([invalid],"d".repeat(64),"2026-09-15T12:00:00Z","pitching_fall_2026")).rejects.toThrow();});
 });

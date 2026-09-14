@@ -96,3 +96,5 @@ Compare Players now offers an explicit searchable dropdown for every current-sea
 Testing now opens a compact staff Data Coverage checklist for RENPHO, hitting and throwing; expand a player's status to see missing metrics and test dates. Confirmed direct imports show matched player links, reviewed measurement names, dates, new/existing counts and left-out values. A short first-visit guide helps players read their profile and can be reopened using Guide. These additions use the existing permissions and do not send invitations or provision accounts.
 
 Profiles include selectable test-history charts after two comparable test dates. Player/team game rates use labeled value-scale bars alongside existing percentile comparisons; mobile profile tabs wrap cleanly. See [PLAYER_PROFILES](docs/PLAYER_PROFILES.md).
+
+Weekly Fall pitching now uses reviewed week IDs with null game dates and separately recorded Wk/Hrd contact counts. See [Game Stats](docs/GAME_STATS.md) and migration `202609140001_weekly_pitching.sql`. Daily source checks exclude the roster.

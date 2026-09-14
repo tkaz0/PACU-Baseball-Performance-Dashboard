@@ -1,3 +1,4 @@
+import { validPitchingPeriod } from "@/lib/game-source";
 import "server-only";
 import type { requireAccess } from "@/lib/auth";
 import { canReadPresentedAthlete } from "@/lib/access-preview";
@@ -20,7 +21,7 @@ export async function loadGameStats(access:Access,athleteId?:string):Promise<Sha
     if(!row||typeof row!=="object"||Array.isArray(row)||Object.keys(row).sort().join(",")!==expectedFields||typeof row.source!=="string"||!Object.hasOwn(GAME_METRIC_COLUMNS,row.source)||typeof row.athlete_id!=="string"||!UUID_PATTERN.test(row.athlete_id)||!canReadPresentedAthlete(access,row.athlete_id)||(requested&&row.athlete_id!==requested)||typeof row.metric!=="string"||!Object.hasOwn(GAME_METRIC_COLUMNS[row.source as GameSourceKey],row.metric)||typeof row.value!=="number"||!Number.isFinite(row.value)||row.value<0||typeof row.fetched_at!=="string"||!Number.isFinite(Date.parse(row.fetched_at))||Date.parse(row.fetched_at)>Date.now()+300000||typeof row.snapshot_id!=="string"||!UUID_PATTERN.test(row.snapshot_id)||typeof row.content_hash!=="string"||row.content_hash.length!==64||!/^[a-f0-9]{64}$/.test(row.content_hash)||!Number.isSafeInteger(row.source_row)||row.source_row<2||row.source_row>2000||row.source_column!==GAME_METRIC_COLUMNS[row.source as GameSourceKey][row.metric])return invalid();
     const qpa=row.source==="qpa_fall_2026",rate=row.metric==="qpa_pct"||row.metric==="strike_pct";
     if(row.unit!==(rate?"%":"count")||(rate?row.value>100:!Number.isSafeInteger(row.value)||row.value>1000000000)||JSON.stringify(row.derived_from)!==JSON.stringify(rate?(qpa?[3,2]:[4,3]):[]))return invalid();
-    if(qpa?row.scope!=="cumulative_fall"||row.event_id!==null||row.played_on!==null:row.scope!=="pitching_event"||typeof row.event_id!=="string"||!/^[A-Za-z0-9_-]{1,80}$/.test(row.event_id)||typeof row.played_on!=="string"||!/^2026-\d{2}-\d{2}$/.test(row.played_on)||!Number.isFinite(Date.parse(row.played_on))||new Date(row.played_on).toISOString().slice(0,10)!==row.played_on||row.played_on<"2026-09-01"||row.played_on>"2026-12-31")return invalid();
+    if(qpa?row.scope!=="cumulative_fall"||row.event_id!==null||row.played_on!==null:row.scope!=="pitching_event"||!validPitchingPeriod(row.event_id,row.played_on))return invalid();
     const key=JSON.stringify([row.source,row.athlete_id,row.event_id,row.metric]);if(seen.has(key))throw new Error("Game statistics contain duplicate observations.");seen.add(key);
     return row as SharedGameStat;
   });

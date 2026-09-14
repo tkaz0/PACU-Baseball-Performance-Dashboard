@@ -26,6 +26,8 @@ export const STAT_DEFINITIONS: Readonly<Record<string, string>> = {
   max_pitch_velocity: "The highest recorded pitch speed in the reviewed session.",
   avg_pitch_velocity: "Average pitch speed for the pitches included in the reviewed session summary. It is not automatically a fastball-only average.",
   avg_fastball_spin: "Average fastball rotation rate, in revolutions per minute. Only fastballs belong in this metric; a higher spin value is not automatically a better pitch.",
+  weak_contact: "Weak-contact count recorded in the Pitching sheet’s Wk column for this period. This is a count, not a contact rate.",
+  hard_contact: "Hard-contact count recorded in the Pitching sheet’s Hrd column for this period. The team’s scoring definition applies; this is not a Statcast exit-velocity threshold.",
   strike_pct: "Strikes divided by total pitches, multiplied by 100. This measures pitch-level strike frequency, not strikeouts.",
   k_pct: "Strikeouts divided by batters faced, multiplied by 100. This is different from Strike %.",
   bb_pct: "Walks divided by batters faced, multiplied by 100. Use the same walk-counting rules as the source.",

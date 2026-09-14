@@ -28,7 +28,7 @@ export function TeamGameStats({ stats, names }: { stats: SharedGameStat[]; names
       </>}
     </section>
     <section className="panel p-5 sm:p-6" aria-label="Team pitching statistics">
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-2"><div><h2 className="m-0 text-xl font-bold">Team Pitching</h2><p className="muted mb-0 mt-1 text-xs">Pitching · Fall 2026{pitching.entries > 0 && ` · ${pitching.players} ${pitching.players === 1 ? "pitcher" : "pitchers"} · ${pitching.games} recorded ${pitching.games === 1 ? "game" : "games"}`}</p></div>{pitching.updatedAt && <p className="muted m-0 text-xs">Updated {updated(pitching.updatedAt)}</p>}</div>
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-2"><div><h2 className="m-0 text-xl font-bold">Team Pitching</h2><p className="muted mb-0 mt-1 text-xs">Pitching · Fall 2026{pitching.entries > 0 && ` · ${pitching.players} ${pitching.players === 1 ? "pitcher" : "pitchers"} · ${pitching.games} recorded ${pitching.games === 1 ? "period" : "periods"}`}</p></div>{pitching.updatedAt && <p className="muted m-0 text-xs">Updated {updated(pitching.updatedAt)}</p>}</div>
       {!pitching.entries ? <p className="muted mb-0 text-sm">No recorded pitching results yet. Team totals will appear after a verified Pitching sheet update.</p> : <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">{[...pitching.rates, ...pitching.counts].map(m => <Metric key={m.metric} metric={m}/>)}</dl>}
     </section>
     {pending && <p className="notice text-sm">Some totals or rates need source counts reviewed. Other recorded stats remain available. <Link prefetch={false} href="/game-stats/review" className="text-link">Open Data Review</Link></p>}
