@@ -31,6 +31,7 @@ export function coachingEligible(player:CoachingPlayer,metric:string):boolean {
 }
 export function coachingValue(value:number,metric:string,unit:string):string {
  if(metric==="height")return formatHeight(value,unit)??"—";
+ if(unit==="per9")return value.toFixed(2);
  if(unit==="count")return value.toLocaleString("en-US");
  if(unit==="avg")return value.toFixed(3).replace(/^0\./,".");
  if(unit==="ratio")return value.toFixed(3);
@@ -98,4 +99,11 @@ export function compareGames(data:CoachingData,a:string,b:string,event:string){
   const first=aa.length===1?aa[0]:null,second=bb.length===1?bb[0]:null;
   return {metric,label:(first??second)?.label??metric,first,second,comparable:a!==b&&!!first&&!!second&&first.source===second.source&&first.snapshotId===second.snapshotId&&first.unit===second.unit};
  });
+}
+
+/** Winner emphasis is withheld for missing, incomparable and descriptive measurements. */
+export function comparisonLead(a:number|null|undefined,b:number|null|undefined,direction:"higher"|"lower"|"neutral",comparable:boolean):"a"|"b"|"tie"|null{
+ if(!comparable||a==null||b==null||!Number.isFinite(a)||!Number.isFinite(b)||direction==="neutral")return null;
+ if(Math.abs(a-b)<1e-10)return "tie";
+ return (direction==="higher"?a>b:a<b)?"a":"b";
 }

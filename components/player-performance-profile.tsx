@@ -36,14 +36,14 @@ function Percentile({ card }: { card: PlayerMetricCard }) {
   const percentile = card.percentile;
   if (!card.latest || !percentile || !Number.isFinite(percentile.value) || percentile.value < 0 || percentile.value > 100 || percentile.sampleSize < 5) return null;
   const rounded = Math.round(percentile.value), neutral = card.metric.direction === "neutral";
-  return <div className="mt-4 border-t border-[var(--line-subtle)] pt-4" data-testid="player-percentile" data-metric-key={card.metric.key} data-percentile={percentile.value} data-sample-size={percentile.sampleSize} data-direction={card.metric.direction}>
+  return <div className="mt-3 border-t border-[var(--line-subtle)] pt-2" data-testid="player-percentile" data-metric-key={card.metric.key} data-percentile={percentile.value} data-sample-size={percentile.sampleSize} data-direction={card.metric.direction}>
     <div className="mb-2 flex flex-wrap items-baseline justify-between gap-1 text-[11px] text-[var(--text-secondary)]"><span>Pacific n={percentile.sampleSize}</span><span><strong className="text-[var(--text-primary)]">{rounded}</strong> percentile</span></div>
     <PercentileBar value={percentile.value} sampleSize={percentile.sampleSize} label={card.metric.label} descriptive={neutral} testId="player-percentile-bar" />
   </div>;
 }
 function MetricCard({ card }: { card: PlayerMetricCard }) {
   const reading = card.latest;
-  return <li className={`flex min-w-0 flex-col rounded-lg border border-[var(--line-subtle)] p-4 sm:p-5 ${reading ? "bg-[var(--surface-panel)]" : "border-dashed bg-[var(--surface-page)]"}`} data-testid="player-metric" data-metric-key={card.metric.key} data-value={reading?.value} data-unit={reading?.unit} data-date={reading?.measuredAt}>
+  return <li className={`flex min-w-0 flex-col rounded-lg border border-[var(--line-subtle)] p-3 sm:p-4 ${reading ? "bg-[var(--surface-panel)]" : "border-dashed bg-[var(--surface-page)]"}`} data-testid="player-metric" data-metric-key={card.metric.key} data-value={reading?.value} data-unit={reading?.unit} data-date={reading?.measuredAt}>
     <h3 className="m-0 min-h-7 text-sm font-semibold leading-5 text-[var(--text-secondary)]">{card.metric.key === "bat_speed" ? "Bat Speed (Unspecified)" : card.metric.label}<StatInfo metric={card.metric.key} label={card.metric.label} /></h3>
     <div className="mt-2 text-2xl leading-tight tracking-tight text-[var(--text-primary)] sm:text-3xl">{reading ? <><span className="mr-2 inline-block"><ReadingValue reading={reading} /></span><MeasurementChange change={playerRenphoChange(card)} metric={card.metric.key}/></> : <span className="font-medium text-[var(--text-secondary)]" aria-label="Not yet tested">—</span>}</div>
     {!reading && <p className="mb-0 mt-3 text-[11px] text-[var(--text-secondary)]">Not Yet Tested</p>}
@@ -84,15 +84,15 @@ export function PlayerPerformanceProfile({ athlete, performance, season, fiction
     </> },
     ...(gameStats ? [{ id: "games", label: "Game Stats", content: gameStats }] : []),
   ];
-  return <div className="min-w-0 space-y-6 sm:space-y-7" data-testid="player-performance-profile">
-    <section className="relative isolate overflow-hidden rounded-xl border-t-4 border-pacu-red bg-[#1c1d20] px-5 py-5 text-white sm:px-6 sm:py-5" aria-label="Player profile">
+  return <div className="min-w-0 space-y-4 sm:space-y-5" data-testid="player-performance-profile">
+    <section className="relative isolate overflow-hidden rounded-xl border-t-4 border-pacu-red bg-[#1c1d20] px-4 py-4 text-white sm:px-5 sm:py-4" aria-label="Player profile">
       <div className="pointer-events-none absolute -right-24 -top-32 -z-10 size-80 rotate-45 border border-white/[.05]" aria-hidden="true" />
       <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><PacificLogo className="w-9 shrink-0" decorative /><p className="m-0 text-[10px] font-bold uppercase tracking-[.18em] text-[#e0e0e3]">Pacific Baseball<span className="mx-2 text-[#a4a4aa]" aria-hidden="true">/</span>Performance</p></div>{fictional && <span className="shrink-0 rounded border border-white/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">Fictional profile</span>}</div>
-      <div className="my-4 flex items-center justify-between gap-4 sm:my-5 sm:gap-6">
+      <div className="my-3 flex items-center justify-between gap-4 sm:my-3 sm:gap-6">
         <div className="min-w-0"><h1 className="m-0 break-words text-3xl font-black leading-[1.08] tracking-tight text-white sm:text-4xl">{athleteName(athlete)}</h1><p className="mb-0 mt-3 text-sm font-semibold text-[#d6d6dc]">{position || "Position to be added"}</p></div>
         <dl className="m-0 shrink-0 border-l border-white/15 pl-4 text-center sm:pl-8"><dt className="text-[9px] font-semibold uppercase tracking-[.1em] text-[#b3b4ba]">Jersey Number</dt><dd className="m-0 mt-2 text-5xl font-black leading-none tracking-tighter text-white sm:text-5xl">{display(selectedSeason?.jersey_number)}</dd></dl>
       </div>
-      <dl className="m-0 grid grid-cols-2 gap-x-5 gap-y-4 border-t border-white/15 pt-4 text-xs sm:grid-cols-4"><div><dt className="text-[10px] uppercase tracking-wider text-[#a7a8af]">Bats / Throws</dt><dd className="m-0 mt-1.5 font-semibold">{display(selectedSeason?.bats)} / {display(selectedSeason?.throws)}</dd></div><div><dt className="text-[10px] uppercase tracking-wider text-[#a7a8af]">Season</dt><dd className="m-0 mt-1.5 font-semibold">{selectedSeason?.season ?? "To be added"}</dd></div><div><dt className="text-[10px] uppercase tracking-wider text-[#a7a8af]">PAC ID</dt><dd className="m-0 mt-1.5 font-mono font-semibold">{athlete.athlete_code}</dd></div><div><dt className="text-[10px] uppercase tracking-wider text-[#a7a8af]">Last Tested</dt><dd className="m-0 mt-1.5 font-semibold">{lastTested ? <time dateTime={lastTested}>{measurementDate(lastTested)}</time> : "Not Yet Tested"}</dd></div></dl>
+      <dl className="m-0 grid grid-cols-2 gap-x-5 gap-y-2 border-t border-white/15 pt-4 text-xs sm:grid-cols-4"><div><dt className="text-[10px] uppercase tracking-wider text-[#a7a8af]">Bats / Throws</dt><dd className="m-0 mt-1.5 font-semibold">{display(selectedSeason?.bats)} / {display(selectedSeason?.throws)}</dd></div><div><dt className="text-[10px] uppercase tracking-wider text-[#a7a8af]">Season</dt><dd className="m-0 mt-1.5 font-semibold">{selectedSeason?.season ?? "To be added"}</dd></div><div><dt className="text-[10px] uppercase tracking-wider text-[#a7a8af]">PAC ID</dt><dd className="m-0 mt-1.5 font-mono font-semibold">{athlete.athlete_code}</dd></div><div><dt className="text-[10px] uppercase tracking-wider text-[#a7a8af]">Last Tested</dt><dd className="m-0 mt-1.5 font-semibold">{lastTested ? <time dateTime={lastTested}>{measurementDate(lastTested)}</time> : "Not Yet Tested"}</dd></div></dl>
     </section>
 
     <ProfileTabs key={athlete.athlete_code} tabs={tabs} action={action} />

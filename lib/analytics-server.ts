@@ -1,7 +1,7 @@
 import { buildDataCoverage } from "@/lib/data-coverage";
 import { pacificTestingDate } from "@/lib/testing-checklist";
 import { loadGameStats } from "@/lib/game-server";
-import { qpaAnalytics } from "@/lib/game-analytics";
+import { qpaAnalytics, pitchingAnalytics } from "@/lib/game-analytics";
 import "server-only";
 import { coachingReadingVisible, coachingGames } from "@/lib/coaching-tools";
 import { requireImportAccess } from "@/lib/auth";
@@ -38,7 +38,7 @@ async function loadTeamSource(includeFullRoster=false, includeGames=true){
 }
 export async function loadAnalytics():Promise<AnalyticsDataset>{
   const data=await loadTeamSource();
-  return {players:data.players.map(p=>({id:p.id,code:p.code,name:p.name,academicClass:p.academicClass,position:p.position,playerType:p.playerType,bats:p.bats,throws:p.throws})),readings:[...data.readings.filter(analyticsReadingVisible),...qpaAnalytics(data.games)]};
+  return {players:data.players.map(p=>({id:p.id,code:p.code,name:p.name,academicClass:p.academicClass,position:p.position,playerType:p.playerType,bats:p.bats,throws:p.throws})),readings:[...data.readings.filter(analyticsReadingVisible),...qpaAnalytics(data.games),...pitchingAnalytics(data.games)]};
 }
 export async function loadCoachingData(){
   const data=await loadTeamSource();

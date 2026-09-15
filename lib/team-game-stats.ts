@@ -55,7 +55,7 @@ export function teamGameSummary(stats: readonly SharedGameStat[], source: Shared
     simple("batting_k_pct", "K %", "punchies", "pa", "%", "PA"),
     rate("batting_hr_pct", "HR %", "%", ["pumps", "pa"], v => v.has("base_hit") && v.get("pumps")! > v.get("base_hit")! ? null : { top: v.get("pumps")!, bottom: v.get("pa")! }, "PA"),
     rate("batting_sb_per_pa", "SB/PA", "ratio", ["sb", "pa"], v => ({top: v.get("sb")!, bottom: v.get("pa")!}), "PA", true),
-  ] : [simple("strike_pct", "Strike %", "strikes", "pitches", "%", "pitches"), ...[["pitching_k9","K/9","k"],["pitching_bb9","BB/9","bb_outcome"],["pitching_era","ERA","earned_runs"]].map(([metric,label,key])=>rate(metric,label,"per9",[key,"innings_outs"],v=>({top:v.get(key)!,bottom:v.get("innings_outs")!}),"outs",true))];
+  ] : [simple("strike_pct", "Strike %", "strikes", "pitches", "%", "pitches"), ...[["pitching_k9","K/9","k"],["pitching_bb9","BB/9","bb_outcome"],["pitching_r9","Runs/9","r"]].map(([metric,label,key])=>rate(metric,label,"per9",[key,"innings_outs"],v=>({top:v.get(key)!,bottom:v.get("innings_outs")!}),"outs",true)), ...[["weak_contact_pct","Weak Contact %","weak_contact"],["hard_contact_pct","Hard Contact %","hard_contact"]].map(([metric,label,key])=>rate(metric,label,"%",["weak_contact","hard_contact"],v=>({top:v.get(key)!,bottom:v.get("weak_contact")!+v.get("hard_contact")!}),"classified contacts"))];
   return { players: new Set(rows.map(r => r.athlete_id)).size, entries: entries.length,
     games: qpa ? 0 : new Set(rows.map(r => r.event_id)).size,
     updatedAt: rows.length ? rows.reduce((latest, r) => r.fetched_at > latest ? r.fetched_at : latest, rows[0].fetched_at) : null,

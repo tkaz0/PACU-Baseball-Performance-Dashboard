@@ -42,7 +42,7 @@ it("shows only the requested physicality trio in Overview while keeping body ran
   const html=renderToStaticMarkup(createElement(PlayerOverview,{cards:performance.body}));
   for(const key of ['muscle_mass','body_score','body_fat_pct'])expect(html).toContain(`data-overview-metric="${key}"`);
   for(const key of ['weight','height'])expect(html).not.toContain(`data-overview-metric="${key}"`);
-  expect(html).toContain('Measured value, not a rating');expect(html.split('aria-label="Strengths"')[1].split('aria-label="Weaknesses"')[0]).not.toContain('role="meter"');
+  expect(html).toContain('Descriptive rank');expect(html.split('aria-label="Strengths"')[1].split('aria-label="Weaknesses"')[0]).not.toContain('role="meter"');
 });
 it("removes standalone batting Hits and AB cards but retains AVG denominator", () => {
   const html=renderToStaticMarkup(createElement(AthleteGameStats,{stats,comparisons:[c]}));

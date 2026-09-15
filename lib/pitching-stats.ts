@@ -26,5 +26,15 @@ export function pitchingRates(rows:readonly SharedGameStat[]):PitchingRate[]{
  const valid=selected.length>0&&["athlete_id","event_id","snapshot_id"].every(k=>new Set(selected.map(r=>r[k as keyof SharedGameStat])).size===1)&&new Set(selected.map(r=>r.metric)).size===selected.length;
  const get=(metric:string)=>{const r=selected.find(r=>r.metric===metric);return valid&&r&&Number.isSafeInteger(r.value)&&r.value>=0?r.value:null;};
  const outs=get("innings_outs");
- return [["pitching_k9","K/9","k"],["pitching_bb9","BB/9","bb_outcome"],["pitching_era","ERA","earned_runs"]].map(([metric,label,key])=>{const n=get(key);return {metric,label,value:n!==null&&outs!==null&&outs>0?27*n/outs:null,unit:"per9" as const,outs};});
+ return [["pitching_k9","K/9","k"],["pitching_bb9","BB/9","bb_outcome"],["pitching_r9","Runs/9","r"]].map(([metric,label,key])=>{const n=get(key);return {metric,label,value:n!==null&&outs!==null&&outs>0?27*n/outs:null,unit:"per9" as const,outs};});
+}
+
+export type PitchingContactRate={metric:string;label:string;value:number|null;unit:"%";contacts:number|null;count:number|null};
+/** Owner-defined denominator: only contacts classified Wk or Hrd in the same player/period/snapshot. */
+export function pitchingContactRates(rows:readonly SharedGameStat[]):PitchingContactRate[]{
+ const selected=rows.filter(r=>r.source==="pitching_fall_2026");
+ const valid=selected.length>0&&["athlete_id","event_id","snapshot_id"].every(k=>new Set(selected.map(r=>r[k as keyof SharedGameStat])).size===1)&&new Set(selected.map(r=>r.metric)).size===selected.length;
+ const get=(metric:string)=>{const r=selected.find(r=>r.metric===metric);return valid&&r&&Number.isSafeInteger(r.value)&&r.value>=0?r.value:null;};
+ const weak=get("weak_contact"),hard=get("hard_contact"),contacts=weak!==null&&hard!==null?weak+hard:null;
+ return [["weak_contact_pct","Weak Contact %",weak],["hard_contact_pct","Hard Contact %",hard]].map(([metric,label,count])=>({metric:metric as string,label:label as string,count:count as number|null,contacts,value:contacts!==null&&contacts>0?100*(count as number)/contacts:null,unit:"%"}));
 }

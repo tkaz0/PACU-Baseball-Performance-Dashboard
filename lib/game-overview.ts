@@ -1,4 +1,4 @@
-import { pitchingRates } from "@/lib/pitching-stats";
+import { pitchingRates, pitchingContactRates } from "@/lib/pitching-stats";
 import { pitchingWeek } from "@/lib/game-source";
 import { battingRates } from "@/lib/batting-stats";
 import { GAME_METRIC_LABELS, gameDirection, type GameComparison } from "@/lib/game-metrics";
@@ -19,18 +19,18 @@ export function gameOverviewMetrics(stats: readonly SharedGameStat[], comparison
   function group(rows: SharedGameStat[], source: string, eventId: string) {
     if (!rows.length || new Set(rows.map(r => r.snapshot_id)).size !== 1 || new Set(rows.map(r => r.metric)).size !== rows.length || rows.some(r => !Number.isFinite(r.value) || r.value < 0)) return;
     const qpa = source === "qpa_fall_2026";
-    const order = qpa ? battingOrder : ["pitching_k9","pitching_bb9","pitching_era","strike_pct", "k", "bb_outcome"];
-    const values = qpa ? [...battingRates(rows), ...rows.filter(r => ["qpa_pct", "pumps", "sb", "gdp"].includes(r.metric))] : [...rows,...pitchingRates(rows).filter(r=>r.value!==null).map(r=>({...r,value:r.value!}))];
+    const order = qpa ? battingOrder : ["pitching_k9","pitching_bb9","pitching_r9","strike_pct","weak_contact_pct","hard_contact_pct", "k", "bb_outcome"];
+    const values = qpa ? [...battingRates(rows), ...rows.filter(r => ["qpa_pct", "pumps", "sb", "gdp"].includes(r.metric))] : [...rows,...[...pitchingRates(rows),...pitchingContactRates(rows)].filter(r=>r.value!==null).map(r=>({...r,value:r.value!}))];
     for (const metric of order) {
       const reading = values.find(r => r.metric === metric); if (!reading) continue;
       const matches = comparisons.filter(c => c.source === source && c.metric === metric && c.eventId === eventId);
       const c = matches.length === 1 ? matches[0] : null;
       const comparison = c && c.snapshotId === rows[0].snapshot_id && Number.isFinite(c.value) && Math.abs(c.value - reading.value) < 1e-10 && Number.isSafeInteger(c.sampleSize) && c.sampleSize >= 5 && c.percentile !== null && Number.isFinite(c.percentile) && c.percentile >= 0 && c.percentile <= 100 ? c : null;
       output.push({ metric, source, eventId, value: reading.value, unit: reading.unit,
-        label: qpa ? GAME_METRIC_LABELS[metric] ?? "SB/PA" : ({ pitching_k9:"K/9",pitching_bb9:"BB/9",pitching_era:"ERA",strike_pct: "Strike %", k: "Strikeouts", bb_outcome: "Walks Allowed" }[metric] ?? metric),
+        label: qpa ? GAME_METRIC_LABELS[metric] ?? "SB/PA" : ({ pitching_k9:"K/9",pitching_bb9:"BB/9",pitching_r9:"Runs/9",weak_contact_pct:"Weak Contact %",hard_contact_pct:"Hard Contact %",strike_pct: "Strike %", k: "Strikeouts", bb_outcome: "Walks Allowed" }[metric] ?? metric),
         updatedAt: rows.map(r => r.fetched_at).sort().at(-1)!, playedOn: rows[0].played_on,
         opportunities: gameOpportunities(rows, source, metric, eventId || null), comparison,
-        direction: gameDirection(source, metric), insightEligible: qpa ? insightRates.has(metric) : ["pitching_k9","pitching_bb9","pitching_era","strike_pct"].includes(metric) });
+        direction: gameDirection(source, metric), insightEligible: qpa ? insightRates.has(metric) : ["pitching_k9","pitching_bb9","pitching_r9","strike_pct"].includes(metric) });
     }
   }
   group(stats.filter(r => r.source === "qpa_fall_2026" && r.event_id === null), "qpa_fall_2026", "");

@@ -2,7 +2,7 @@ import type { SharedGameStat } from "@/lib/game-server";
 
 /** Labels describe recorded denominators, separately from the percentile's teammate count. */
 export function gameOpportunityLabel(source:string,metric:string):string|null {
- if(source==="pitching_fall_2026")return ["pitching_k9","pitching_bb9","pitching_era"].includes(metric)?"outs":metric==="strike_pct"?"pitches":null;
+ if(source==="pitching_fall_2026")return ["pitching_k9","pitching_bb9","pitching_r9"].includes(metric)?"outs":metric==="strike_pct"?"pitches":["weak_contact_pct","hard_contact_pct"].includes(metric)?"classified contacts":null;
  if(source!=="qpa_fall_2026")return null;
  if(metric==="batting_avg")return "AB";
  if(metric==="batting_obp")return "OBP opportunities";
@@ -14,7 +14,7 @@ export function gameOpportunities(rows:readonly SharedGameStat[],source:string,m
  if(!gameOpportunityLabel(source,metric)||!relevant.length||new Set(relevant.map(r=>r.athlete_id)).size!==1||new Set(relevant.map(r=>r.snapshot_id)).size!==1)return null;
  const values=new Map<string,number>();
  for(const r of relevant){if(values.has(r.metric)||!Number.isFinite(r.value)||r.value<0)return null;values.set(r.metric,r.value);}
- const keys=source==="pitching_fall_2026"?[gameOpportunityLabel(source,metric)==="outs"?"innings_outs":"pitches"]:metric==="batting_avg"?["ab"]:metric==="batting_obp"?["ab","bb","hbp","sac_fly"]:metric==="batting_hh_pct"?["ab","punchies","sac_bunt"]:["pa"];
+ const keys=source==="pitching_fall_2026"?(gameOpportunityLabel(source,metric)==="classified contacts"?["weak_contact","hard_contact"]:[gameOpportunityLabel(source,metric)==="outs"?"innings_outs":"pitches"]):metric==="batting_avg"?["ab"]:metric==="batting_obp"?["ab","bb","hbp","sac_fly"]:metric==="batting_hh_pct"?["ab","punchies","sac_bunt"]:["pa"];
  if(keys.some(k=>!values.has(k)))return null;
  const n=metric==="batting_hh_pct"?values.get("ab")!-values.get("punchies")!-values.get("sac_bunt")!:keys.reduce((sum,k)=>sum+values.get(k)!,0);
  return Number.isSafeInteger(n)&&n>0?n:null;

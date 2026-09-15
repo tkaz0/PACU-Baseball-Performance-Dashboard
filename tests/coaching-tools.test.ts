@@ -83,3 +83,10 @@ it("searches the full supplied roster without requiring measurements or exact di
  const html=renderToStaticMarkup(createElement(PlayerComparison,{data:{players,readings:[],games:[]},today}));
  expect(html).toContain(a.name);expect(html).toContain(b.name);expect(html).toContain("No recorded");
 });
+
+it("highlights only comparable directional results, including lower-is-better rates",async()=>{
+ const {comparisonLead,coachingValue}=await import("@/lib/coaching-tools");
+ expect(comparisonLead(10,5,"higher",true)).toBe("a");expect(comparisonLead(10,5,"lower",true)).toBe("b");expect(comparisonLead(5,5,"higher",true)).toBe("tie");
+ expect(comparisonLead(10,5,"neutral",true)).toBeNull();expect(comparisonLead(10,5,"higher",false)).toBeNull();expect(comparisonLead(undefined,5,"higher",true)).toBeNull();
+ expect(coachingValue(12.345,"pitching_r9","per9")).toBe("12.35");
+});
