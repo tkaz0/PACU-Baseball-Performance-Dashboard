@@ -45,12 +45,14 @@ export function pitchingWeek(eventId: unknown): number | null {
   return match ? Number(match[1]) : null;
 }
 export function validPitchingPeriod(eventId: unknown, playedOn: unknown): boolean {
+  if(eventId === "fall-2026-cumulative")return false; // Display projection, never an importable source period.
   if (typeof eventId !== "string" || !/^[A-Za-z0-9_-]{1,80}$/.test(eventId)) return false;
   if (pitchingWeek(eventId) !== null) return playedOn === null;
   if (eventId.startsWith("fall-2026-week-")) return false;
   return typeof playedOn === "string" && validDate(playedOn);
 }
 export function pitchingPeriodLabel(eventId: string | null, playedOn: string | null): string {
+  if(eventId === "fall-2026-cumulative" && playedOn === null)return "Fall 2026 · Cumulative";
   const week = pitchingWeek(eventId);
   if (week !== null && playedOn === null) return `Fall Ball · Week ${week}`;
   return playedOn ? new Date(`${playedOn}T12:00:00Z`).toLocaleDateString("en-US", {month:"short",day:"numeric",year:"numeric",timeZone:"UTC"}) : "Period unavailable";

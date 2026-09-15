@@ -41,11 +41,7 @@ export function coachingGames(stats:readonly SharedGameStat[]):CoachingGame[]{
  const output:CoachingGame[]=[];
  for(const athleteId of new Set(stats.map(r=>r.athlete_id))){
   const own=stats.filter(r=>r.athlete_id===athleteId);
-  // Build each actual event separately so comparisons can select a shared event.
-  for(const event of new Set([null,...own.filter(r=>r.source==="pitching_fall_2026").map(r=>r.event_id)])){
-   const rows=own.filter(r=>event===null?r.source==="qpa_fall_2026":r.source==="pitching_fall_2026"&&r.event_id===event);
-   for(const item of gameOverviewMetrics(rows,[]))output.push({athleteId,snapshotId:rows[0].snapshot_id,metric:item.metric,label:item.label,source:item.source,eventId:item.eventId,value:item.value,unit:item.unit,updatedAt:item.updatedAt,playedOn:item.playedOn,opportunities:item.opportunities,direction:item.direction,insightEligible:item.insightEligible});
-  }
+  for(const item of gameOverviewMetrics(own,[]))output.push({athleteId,snapshotId:own.find(r=>r.source===item.source)!.snapshot_id,metric:item.metric,label:item.label,source:item.source,eventId:item.eventId,value:item.value,unit:item.unit,updatedAt:item.updatedAt,playedOn:item.playedOn,opportunities:item.opportunities,direction:item.direction,insightEligible:item.insightEligible});
  }
  return output;
 }
@@ -92,7 +88,9 @@ export function compareTests(data:CoachingData,a:string,b:string,category:Coachi
  }).filter(row=>(row.eligibleA||row.eligibleB)&&(row.first||row.second||row.reviewA||row.reviewB));
 }
 export function compareGames(data:CoachingData,a:string,b:string,event:string){
- const rows=data.games.filter(r=>r.eventId===event);
+ const source=event?"pitching_fall_2026":"qpa_fall_2026";
+ if(![a,b].every(id=>{const p=data.players.find(p=>p.id===id);return p&&playerGameSources(p).includes(source);}))return [];
+ const rows=data.games.filter(r=>r.eventId===event&&r.source===source);
  const keys=[...new Set(rows.filter(r=>r.athleteId===a||r.athleteId===b).map(r=>r.metric))];
  return keys.map(metric=>{
   const aa=rows.filter(r=>r.athleteId===a&&r.metric===metric),bb=rows.filter(r=>r.athleteId===b&&r.metric===metric);
@@ -106,4 +104,12 @@ export function comparisonLead(a:number|null|undefined,b:number|null|undefined,d
  if(!comparable||a==null||b==null||!Number.isFinite(a)||!Number.isFinite(b)||direction==="neutral")return null;
  if(Math.abs(a-b)<1e-10)return "tie";
  return (direction==="higher"?a>b:a<b)?"a":"b";
+}
+
+/** Explicit two-way roles allow both sheets; pitcher-only roles exclude batting comparisons. */
+export function playerGameSources(player:Pick<CoachingPlayer,"playerType"|"position"|"secondaryPosition">):string[]{
+ const type=player.playerType.trim().toLowerCase();
+ if(type==="two_way")return ["qpa_fall_2026","pitching_fall_2026"];
+ const pitcher=type==="pitcher"||[player.position,player.secondaryPosition??""].some(p=>p.trim().toUpperCase()==="P");
+ return [pitcher?"pitching_fall_2026":"qpa_fall_2026"];
 }

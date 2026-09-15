@@ -22,6 +22,7 @@ beforeAll(async()=>{
  await db.exec(readFileSync(new URL("202609140001_weekly_pitching.sql",dir),"utf8"));
  await db.exec(readFileSync(new URL("202609140002_pitching_rates.sql",dir),"utf8"));
  await db.exec(readFileSync(new URL("202609150001_pitching_contact_runs.sql",dir),"utf8"));
+ await db.exec(readFileSync(new URL("202609150002_cumulative_pitching.sql",dir),"utf8"));
  await db.exec("create or replace function private.game_sync_now() returns timestamptz language sql stable set search_path='' as $$select '2026-09-15T12:00:00Z'::timestamptz$$;");
  for(const[id,role]of[[admin,"admin"],[coach,"coach"],[player,"player"],[unlinked,"player"]]){await db.query("insert into auth.users values($1)",[id]);await db.query("insert into public.app_accounts(user_id,is_active) values($1,true)",[id]);await db.query("insert into public.account_roles(user_id,role) values($1,$2)",[id,role]);}
  for(const[id,code]of[[a,"PAC-0001"],[b,"PAC-0002"]]){await db.query("insert into public.athletes(id,athlete_code,first_name,last_name) values($1,$2,'Fictional','Player')",[id,code]);await db.query("insert into public.athlete_seasons(athlete_id,season) values($1,'2026-27')",[id]);}
@@ -66,7 +67,7 @@ describe("reviewed Fall game snapshots",()=>{
  it("keeps pitching events distinct and rejects conflicting event dates or source rows",async()=>{
   const pitch=(changes:Record<string,unknown>={})=>row({metric:"pitches",sourceColumn:3,value:20,scope:"pitching_event",eventId:"fictional-game",playedOn:"2026-09-12",sourceRow:40,...changes});
   const rows=[pitch(),pitch({metric:"strikes",sourceColumn:4,value:10}),pitch({metric:"strike_pct",sourceColumn:5,value:50,unit:"%",derivedFrom:[4,3]}),pitch({eventId:"fictional-game-2",playedOn:"2026-09-13",sourceRow:76})];await asUser(coach,()=>save(rows,"a".repeat(64),"2026-09-13T20:00:00Z","pitching_fall_2026"));expect(await asUser(player,()=>read(a))).toHaveLength(4);
-  const pitchLeaders=await asUser(player,async()=>(await db.query<{r:Record<string,unknown>[]}>("select public.game_leaderboards() r")).rows[0].r);expect(pitchLeaders.find(r=>r.metric==="strike_pct")).toMatchObject({eventId:"fictional-game",opportunities:20});expect(pitchLeaders.filter(r=>r.metric!=="strike_pct").every(r=>r.opportunities===null)).toBe(true);
+  const pitchLeaders=await asUser(player,async()=>(await db.query<{r:Record<string,unknown>[]}>("select public.game_leaderboards() r")).rows[0].r);expect(pitchLeaders.find(r=>r.metric==="strike_pct")).toBeUndefined();expect(pitchLeaders.find(r=>r.metric==="pitches")).toMatchObject({eventId:"fall-2026-cumulative",value:40});expect(pitchLeaders.filter(r=>r.metric!=="strike_pct").every(r=>r.opportunities===null)).toBe(true);
   for(const invalid of [[pitch(),pitch({athleteCode:"PAC-0002",playedOn:"2026-09-13"})],[pitch(),pitch({metric:"strikes",sourceColumn:4,sourceRow:41})],[pitch({playedOn:"2026-09-14"})]])await asUser(coach,async()=>{await expect(save(invalid,"b".repeat(64),"2026-09-13T20:00:00Z","pitching_fall_2026")).rejects.toThrow();});expect(await counts()).toEqual({observations:4,snapshots:1,audit:1});
  });
 });
@@ -154,4 +155,14 @@ it("projects classified contact rates with correct direction, denominator and pl
  expect(ranks.find(r=>r.metric==="hard_contact_pct"&&r.code==="PAC-0001")).toMatchObject({value:25,rank:1,opportunities:8,unit:"%",percentile:null});
  expect(ranks.find(r=>r.metric==="weak_contact_pct"&&r.code==="PAC-0001")).toMatchObject({value:75,rank:1});
  expect((await asUser(player,()=>read(a))).every(r=>r.athlete_id===a)).toBe(true);await expect(asUser(player,()=>read(b))).rejects.toThrow();
+});
+
+it("ranks cumulative pitching across weeks using complete summed counts",async()=>{
+ const pitch=(metric:string,value:number,col:number,week:number)=>row({metric,value,sourceColumn:col,scope:"pitching_event",eventId:`fall-2026-week-${week}`,playedOn:null,sourceRow:week===1?40:75,derivedFrom:metric==="innings_outs"?[18]:[]});
+ const input=[pitch("innings_outs",3,18,1),pitch("k",1,23,1),pitch("r",2,20,1),pitch("weak_contact",1,24,1),pitch("hard_contact",1,25,1),pitch("innings_outs",6,18,2),pitch("k",3,23,2),pitch("r",1,20,2),pitch("weak_contact",7,24,2),pitch("hard_contact",1,25,2)];
+ await asUser(coach,()=>save(input,"8".repeat(64),"2026-09-15T12:00:00Z","pitching_fall_2026"));
+ const ranks=await asUser(player,async()=>(await db.query<{r:Record<string,unknown>[]}>("select public.game_leaderboards() r")).rows[0].r);
+ expect(ranks.every(r=>r.eventId==="fall-2026-cumulative"&&r.playedOn===null)).toBe(true);
+ expect(ranks.find(r=>r.metric==="pitching_k9")).toMatchObject({value:12,opportunities:9});expect(ranks.find(r=>r.metric==="pitching_r9")?.value).toBe(9);expect(ranks.find(r=>r.metric==="hard_contact_pct")).toMatchObject({value:20,opportunities:10});
+ expect(await asUser(player,()=>read(a))).toHaveLength(input.length);
 });

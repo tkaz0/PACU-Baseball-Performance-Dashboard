@@ -20,7 +20,7 @@ import type { getPlayerPerformance, PlayerMetricCard, PlayerMetricReading } from
 export type PlayerPerformanceProfileProps = {
   athlete: RosterAthlete; performance: ReturnType<typeof getPlayerPerformance>; season?: AthleteSeason | null;
   overviewGameStats?: SharedGameStat[]; gameComparisons?: GameComparison[];
-  fictional?: boolean; action?: ReactNode; muscleBalance?: ReactNode; physicalityDetails?: ReactNode; history?: ReactNode; gameStats?: ReactNode;
+  simplified?: boolean; fictional?: boolean; action?: ReactNode; muscleBalance?: ReactNode; physicalityDetails?: ReactNode; history?: ReactNode; gameStats?: ReactNode;
 };
 function measurementDate(value: string) {
   const date = new Date(`${value.slice(0, 10)}T12:00:00Z`);
@@ -55,7 +55,7 @@ function MetricCard({ card }: { card: PlayerMetricCard }) {
 function MetricGroup({ id, title, cards }: { id: string; title: string; cards: PlayerMetricCard[] }) {
   return <section id={id} aria-labelledby={`${id}-heading`} className="min-w-0"><div className="mb-4 flex items-center gap-3"><h2 id={`${id}-heading`} className="m-0 shrink-0 text-lg font-bold tracking-tight">{title}</h2><span className="h-px flex-1 bg-[var(--line-subtle)]" aria-hidden="true" /></div><ul className={`m-0 grid list-none grid-cols-1 gap-3 p-0 min-[360px]:grid-cols-2 sm:gap-4 ${cards.length === 3 ? "min-[360px]:[&>li:last-child]:col-span-2 xl:[&>li:last-child]:col-span-1" : ""} ${cards.length === 2 ? "xl:grid-cols-2" : cards.length === 4 ? "xl:grid-cols-4" : "xl:grid-cols-3"}`}>{cards.map(card => <MetricCard key={card.metric.key} card={card} />)}</ul></section>;
 }
-export function PlayerPerformanceProfile({ athlete, performance, season, fictional = false, action, muscleBalance, physicalityDetails, history, gameStats, overviewGameStats = [], gameComparisons = [] }: PlayerPerformanceProfileProps) {
+export function PlayerPerformanceProfile({ athlete, performance, season, fictional = false, simplified = false, action, muscleBalance, physicalityDetails, history, gameStats, overviewGameStats = [], gameComparisons = [] }: PlayerPerformanceProfileProps) {
   const bodyScoreCard = performance.body.find(card => card.metric.key === "body_score");
   const bodyScore = bodyScoreCard?.latest ?? null;
   const selectedSeason = season ?? [...athlete.athlete_seasons].sort((a, b) => b.season.localeCompare(a.season))[0];
@@ -65,14 +65,14 @@ export function PlayerPerformanceProfile({ athlete, performance, season, fiction
   const sourcedCards = [...cards, ...performance.body.filter(card => card.metric.key === "body_score")].filter(card => card.latest);
   const lastTested = sourcedCards.map(card => card.latest!.measuredAt).sort().at(-1);
   const tabs: ProfileTab[] = [
-    { id: "overview", label: "Overview", content: <PlayerOverview cards={[...cards, ...(bodyScoreCard ? [bodyScoreCard] : [])]} gameStats={overviewGameStats} gameComparisons={gameComparisons} /> },
+    { id: "overview", label: "Overview", content: <PlayerOverview showMethods={!simplified} cards={[...cards, ...(bodyScoreCard ? [bodyScoreCard] : [])]} gameStats={overviewGameStats} gameComparisons={gameComparisons} /> },
     { id: "physicality", label: "Physicality", content: <>
       <RenphoBodyScore reading={bodyScore} change={bodyScoreCard ? playerRenphoChange(bodyScoreCard) : null}/>
       <MetricGroup id="body-measurements" title="Physicality" cards={layout.physicality} />
       {!!layout.additionalBody.length && <MetricGroup id="body-composition" title="Body Composition" cards={layout.additionalBody} />}
       <ProfileTrendChart series={profileTrends([...layout.physicality, ...layout.additionalBody, ...(bodyScoreCard ? [bodyScoreCard] : []), ...layout.speedAgility])} />
       {muscleBalance}
-      {physicalityDetails}
+      {!simplified && physicalityDetails}
       {!!layout.speedAgility.length && <MetricGroup id="speed-agility" title="Speed & Agility" cards={layout.speedAgility} />}
     </> },
     ...(layout.showHitting ? [{ id: "hitting", label: "Hitting", content: <><MetricGroup id="hitting-performance" title="Hitting" cards={layout.hitting} /><ProfileTrendChart series={profileTrends([...layout.hitting, ...layout.otherHitting])} />{!!layout.otherHitting.length && <MetricGroup id="other-hitting" title="Other Hitting Measurements" cards={layout.otherHitting} />}</> }] : []),
@@ -96,8 +96,8 @@ export function PlayerPerformanceProfile({ athlete, performance, season, fiction
     </section>
 
     <ProfileTabs key={athlete.athlete_code} tabs={tabs} action={action} />
-    {history}
-    <details className="group rounded-lg border border-[var(--line-subtle)] bg-[var(--surface-panel)]" data-testid="player-performance-methods"><summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-sm font-semibold sm:px-6">Sources &amp; Percentiles<ChevronDown size={16} className="shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" /></summary>
+    {!simplified && history}
+    {!simplified && <details className="group rounded-lg border border-[var(--line-subtle)] bg-[var(--surface-panel)]" data-testid="player-performance-methods"><summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-sm font-semibold sm:px-6">Sources &amp; Percentiles<ChevronDown size={16} className="shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" /></summary>
       <div className="space-y-5 border-t border-[var(--line-subtle)] px-5 py-5 text-xs leading-6 text-[var(--text-secondary)] sm:px-6"><p className="m-0">Pacific percentiles compare the latest comparable reading per player within the same metric, unit, source and testing period. Tied values share a percentile. They describe this team cohort, with no MLB, NCAA or outside-athlete comparison. The mark at 50 is the cohort midpoint.</p>
         <div className="grid gap-3 sm:grid-cols-2"><p className="m-0"><ArrowUp size={13} className="mr-1 inline" aria-hidden="true" />For metrics where higher is better, a larger measured value produces a higher percentile. <ArrowDown size={13} className="mx-1 inline" aria-hidden="true" />For lower-is-better metrics, including timed tests and BB %, a lower measured value produces a higher percentile.</p><p className="m-0">Blue indicates a lower percentile; red indicates a higher percentile. Lower body fat produces a higher percentile. For height, weight, muscle mass, body score and spin, higher measured values produce higher percentiles. Body measurements remain descriptive. Missing values and cohorts under 5 are not charted.</p></div>
         <p className="m-0">RENPHO changes compare the previous distinct test date for the same measurement, source and unit, including a prior summer report. Percent changes are relative to the prior result; no percent is shown for a zero prior value or an ambiguous same-day comparison. Green marks higher muscle mass/body score or lower body fat; red marks the reverse. Weight, height and other report measurements remain neutral. Colors are display directions, not health ratings.</p>
@@ -107,6 +107,6 @@ export function PlayerPerformanceProfile({ athlete, performance, season, fiction
           return <tr key={card.metric.key}><td className="font-semibold">{card.metric.label}<StatInfo metric={card.metric.key} label={card.metric.label} /></td><td className="whitespace-nowrap">{reading.measuredAt}</td><td className="whitespace-nowrap">{String(reading.value)} {reading.unit}</td><td className="min-w-52 max-w-sm break-words">{reading.derived && reading.derivation && <p className="mb-1 mt-0">{reading.derivation}</p>}<span>{reading.source}</span>{reading.provenance.map(source => <span className="mt-1 block" key={source.id}>{source.source_file} · {source.source_sheet || "File"} · Row {source.source_row}</span>)}</td></tr>;
         })}</tbody></table></div> : <p className="m-0">Source details appear with the first reviewed measurements.</p>}
       </div>
-    </details>
+    </details>}
   </div>;
 }

@@ -2,10 +2,8 @@ import Link from "next/link";
 import { requireAccess } from "@/lib/auth";
 import { canImportPresentedAccess } from "@/lib/access-preview";
 import { loadGameStats } from "@/lib/game-server";
-import { loadGameLogs } from "@/lib/game-log-server";
 import { loadGameComparisons } from "@/lib/game-comparison-server";
 import { AthleteGameStats } from "@/components/athlete-game-stats";
-import { PlayerGameLog } from "@/components/player-game-log";
 import { TeamGameStats } from "@/components/team-game-stats";
 import { PageHeading } from "@/components/page-heading";
 
@@ -20,14 +18,14 @@ export default async function GameStatsPage() {
       if (error) throw new Error("Game roster could not be loaded.");
       names = new Map((data ?? []).map(a => [a.id, `${a.first_name} ${a.last_name}`]));
     }
-    return <><PageHeading section="Pacific Baseball / Competition" title="Team Game Stats" description="Fall 2026 · Overall batting and pitching from the team sheets."><Link href="/game-stats/review" className="btn btn-secondary">Data Review</Link></PageHeading><TeamGameStats stats={stats} names={names}/></>;
+    return <><PageHeading section="Pacific Baseball / Competition" title="Team Game Stats" description="Fall 2026 · Cumulative hitting and pitching."><Link href="/game-stats/review" className="btn btn-secondary">Data Review</Link></PageHeading><TeamGameStats stats={stats} names={names}/></>;
   }
 
   // Player View follows the presented athlete even when the real account is an Admin.
   const athleteId = access.athleteId;
-  if (!athleteId) return <><PageHeading section="Pacific Baseball / Competition" title="My Game Stats" description="Fall 2026 · Your recorded game statistics."/><p className="notice">Your account needs a player profile linked before game stats can appear.</p></>;
-  const [stats, logs, comparisons] = await Promise.all([
-    loadGameStats(access, athleteId), loadGameLogs(access, athleteId), loadGameComparisons(access, athleteId),
+  if (!athleteId) return <><PageHeading section="Pacific Baseball / Competition" title="My Game Stats" description="Fall 2026 · Cumulative results."/><p className="notice">Your account needs a player profile linked before game stats can appear.</p></>;
+  const [stats, comparisons] = await Promise.all([
+    loadGameStats(access, athleteId), loadGameComparisons(access, athleteId),
   ]);
-  return <><PageHeading section="Pacific Baseball / Competition" title="My Game Stats" description="Fall 2026 · Your recorded game statistics."><Link href={`/athletes/${athleteId}`} className="btn btn-secondary">My Profile</Link></PageHeading><AthleteGameStats stats={stats} comparisons={comparisons}/>{logs.length > 0 && <PlayerGameLog logs={logs}/>}</>;
+  return <><PageHeading section="Pacific Baseball / Competition" title="My Game Stats" description="Fall 2026 · Cumulative results."><Link href={`/athletes/${athleteId}`} className="btn btn-secondary">My Profile</Link></PageHeading><AthleteGameStats stats={stats} comparisons={comparisons} showDetails={false}/></>;
 }

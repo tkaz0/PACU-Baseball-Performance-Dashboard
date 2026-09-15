@@ -41,7 +41,7 @@ function TestingComparisons({ title, cards }: { title: string; cards: readonly P
 function GameComparisons({ metrics }: { metrics: GameOverviewMetric[] }) {
   if (!metrics.length) return <section aria-label="Game Stats percentiles" className="rounded-lg border border-dashed border-[var(--line-subtle)] p-3 sm:p-4"><h3 className="m-0 text-base font-bold">Game Stats</h3><p className="muted mb-0 mt-2 text-xs">Game comparisons appear after recorded Fall results are synced.</p></section>;
   const groups=[...new Set(metrics.map(m=>`${m.source}:${m.eventId}`))].map(key=>metrics.filter(m=>`${m.source}:${m.eventId}`===key));
-  return <section aria-label="Game Stats percentiles" className="rounded-lg border border-[var(--line-subtle)] bg-[var(--surface-panel)] p-3 sm:p-4"><h3 className="m-0 text-base font-bold">Game Stats</h3>{groups.map(group=><div key={`${group[0].source}:${group[0].eventId}`}><p className={styles.meta}>{group[0].source==="qpa_fall_2026"?"QPA · Fall totals":`Pitching · ${pitchingPeriodLabel(group[0].eventId,group[0].playedOn)}`} · Updated {leaderboardTestDate(gameDate(group.map(m=>m.updatedAt).sort().at(-1)!))}</p><ul className={`${styles.rows} ${styles.compactGameRows}`}>{group.map(item=><li className={styles.row} key={item.metric} data-overview-game-metric={item.metric}>
+  return <section aria-label="Game Stats percentiles" className="rounded-lg border border-[var(--line-subtle)] bg-[var(--surface-panel)] p-3 sm:p-4"><h3 className="m-0 text-base font-bold">Game Stats</h3>{groups.map(group=><div key={`${group[0].source}:${group[0].eventId}`}><p className={styles.meta}>{group[0].source==="qpa_fall_2026"?"Hitting · Fall 2026 · Cumulative":`Pitching · ${pitchingPeriodLabel(group[0].eventId,group[0].playedOn)}`} · Updated {leaderboardTestDate(gameDate(group.map(m=>m.updatedAt).sort().at(-1)!))}</p><ul className={`${styles.rows} ${styles.compactGameRows}`}>{group.map(item=><li className={styles.row} key={item.metric} data-overview-game-metric={item.metric}>
     <div><h3>{item.label}<StatInfo metric={item.metric} label={item.label}/><span className={styles.inlineValue}>{item.metric==="batting_sb_per_pa"?item.value.toFixed(3):gameValue(item.value,item.unit)}</span></h3><GameOpportunity source={item.source} metric={item.metric} count={item.opportunities}/></div>
     <div>{item.comparison?<><PercentileBar value={item.comparison.percentile!} sampleSize={item.comparison.sampleSize} label={item.label} descriptive={item.direction==="neutral"}/><p className={styles.meta}>n={item.comparison.sampleSize}</p></>:<p className={styles.meta}>{item.metric==="batting_sb_per_pa"?"Recorded rate · percentile not available":"Percentile unavailable for this result."}</p>}</div>
   </li>)}</ul></div>)}</section>;
@@ -52,7 +52,7 @@ function compactNumber(value: number): string {
   return value.toLocaleString("en-US", { maximumFractionDigits: 1 });
 }
 
-export function PlayerOverview({ cards, gameStats = [], gameComparisons = [] }: { cards: readonly PlayerMetricCard[]; gameStats?: readonly SharedGameStat[]; gameComparisons?: readonly GameComparison[] }) {
+export function PlayerOverview({ cards, gameStats = [], gameComparisons = [], showMethods = true }: { cards: readonly PlayerMetricCard[]; gameStats?: readonly SharedGameStat[]; gameComparisons?: readonly GameComparison[]; showMethods?: boolean }) {
   const physicality = ["muscle_mass", "body_score", "body_fat_pct"].flatMap(key => cards.filter(card => card.metric.key === key));
   const testing = cards.filter(card => card.metric.group !== "body");
   const insights = getPlayerInsights(testing);
@@ -93,12 +93,12 @@ export function PlayerOverview({ cards, gameStats = [], gameComparisons = [] }: 
       <TestingComparisons title="Throwing" cards={testing.filter(c => ["pitching", "throwing"].includes(c.metric.group) && c.latest)}/>
     </div>
     <ProfileTrendChart series={profileTrends([...physicality, ...testing])} />
-    <details className="group border-t border-[var(--line-subtle)] pt-4 text-xs text-[var(--text-secondary)]"><summary className="flex min-h-8 w-fit cursor-pointer list-none items-center gap-2 font-semibold">How This Overview Works<ChevronDown size={14} className="transition-transform group-open:rotate-180" aria-hidden="true" /></summary>
+    {showMethods && <details className="group border-t border-[var(--line-subtle)] pt-4 text-xs text-[var(--text-secondary)]"><summary className="flex min-h-8 w-fit cursor-pointer list-none items-center gap-2 font-semibold">How This Overview Works<ChevronDown size={14} className="transition-transform group-open:rotate-180" aria-hidden="true" /></summary>
       <div className="mt-3 max-w-3xl space-y-2 leading-relaxed">
-        <p>Strengths are at or above the 75th Pacific percentile; weaknesses are at or below the 25th. Testing comparisons use the same test, source, unit and period; game comparisons use the same current QPA snapshot or pitching event, with at least five comparable players. Game highlights use batting rates and pitching K/9, BB/9, Runs/9 and Strike %, with opportunity counts and limited-sample labels. Lower batting K % is favorable. Raw game totals do not determine strengths or weaknesses. Up to three results appear in each section.</p>
+        <p>Strengths are at or above the 75th Pacific percentile; weaknesses are at or below the 25th. Testing comparisons use the same test, source, unit and period; game comparisons use the same current cumulative QPA or pitching snapshot, with at least five comparable players. Game highlights use batting rates and pitching K/9, BB/9, Runs/9 and Strike %, with opportunity counts and limited-sample labels. Lower batting K % is favorable. Raw game totals do not determine strengths or weaknesses. Up to three results appear in each section.</p>
         <p>Biggest jumps compare the latest result with the previous testing date for the same measurement, source, unit and period. Gains are ordered by relative percentage improvement; higher or lower values count as improvement according to the test. A percentage improvement is relative to the previous value, not a percentage-point change. Displayed improvement percentages are rounded to one decimal.</p>
         <p>Body fat ranks lower percentages higher, matching the leaderboard. Height, weight, body composition and fastball spin stay descriptive throughout the profile. They are not labeled strengths, weaknesses or improvements. These highlights summarize current recorded results, not a prediction. Cumulative game snapshots do not establish biggest jumps.</p>
       </div>
-    </details>
+    </details>}
   </section>;
 }

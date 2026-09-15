@@ -23,7 +23,8 @@ it.each([false, true])("keeps players and Player View on explicitly scoped own r
   const html = renderToStaticMarkup(await Page());
   expect(html).toContain("My Game Stats"); expect(html).toContain(`/athletes/${id}`);
   expect(html).not.toContain("Team Batting"); expect(html).not.toContain("Player Breakdown"); expect(html).not.toContain("Data Review");
-  for (const fn of [mock.stats, mock.logs, mock.comparisons]) expect(fn).toHaveBeenCalledExactlyOnceWith(auth, id);
+  for (const fn of [mock.stats, mock.comparisons]) expect(fn).toHaveBeenCalledExactlyOnceWith(auth, id);
+  expect(mock.logs).not.toHaveBeenCalled();expect(html).not.toContain("More Stats");
   expect(mock.from).not.toHaveBeenCalled();
 });
 it("does not request any data for an unlinked player or failed authentication", async () => {

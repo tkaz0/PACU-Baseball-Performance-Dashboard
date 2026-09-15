@@ -74,7 +74,7 @@ describe("protected profile route authorization and integration", () => {
     expect(fake.eq).toHaveBeenCalledExactlyOnceWith("id", ownId.toUpperCase());
     expect(fake.load).toHaveBeenCalledExactlyOnceWith(trusted, athlete);
     expect(fake.games).toHaveBeenCalledExactlyOnceWith(trusted, athlete.id);
-    expect(fake.logs).toHaveBeenCalledExactlyOnceWith(trusted, athlete.id);
+    expect(fake.logs).not.toHaveBeenCalled();
     expect(html).toContain("Game Stats");
     expect(html).toContain("Fictional Profile"); expect(html).toContain('data-metric-key="max_exit_velocity"');
     expect(html).toContain('data-value="10"'); expect(html).toContain("Jersey Number");
@@ -82,8 +82,8 @@ describe("protected profile route authorization and integration", () => {
   it.each([false, true])("omits administrative controls, roster email and account metadata from rendered player view (preview=%s)", async preview => {
     fake.access.mockResolvedValueOnce(access(["player"], ownId, preview));
     const html = renderToStaticMarkup(await Profile({ params: Promise.resolve({ id: ownId }) }));
-    for (const hidden of ["private-roster@example.com", "private-login@example.com", "Administrative roster details", "Roster email", "Academic class", "graduate", "redshirt", "Permanent athlete code", "/admin/performance", "/imports", "Team roster"]) expect(html).not.toContain(hidden);
-    expect(html).toContain("Measurement history");
+    for (const hidden of ["private-roster@example.com", "private-login@example.com", "Roster Details", "Roster email", "Academic class", "graduate", "redshirt", "Permanent athlete code", "/admin/performance", "/imports", "Team Roster"]) expect(html).not.toContain(hidden);
+    expect(html).not.toContain("Measurement History");expect(html).not.toContain("RENPHO Reports");expect(html).not.toContain("Sources &amp; Percentiles");expect(fake.logs).not.toHaveBeenCalled();
     expect(html).not.toContain('data-testid="player-percentile"');
   });
   it("preserves read-only notices after the compatibility redirect without giving the preview import controls", async () => {
@@ -96,13 +96,13 @@ describe("protected profile route authorization and integration", () => {
   it("shows imports to actual staff and Coach view, and limits management details to presented admin", async () => {
     fake.access.mockResolvedValueOnce(access(["coach"], null));
     const coach = renderToStaticMarkup(await Profile({ params: Promise.resolve({ id: ownId }) }));
-    expect(coach).toContain("Team roster"); expect(coach).not.toContain("Administrative roster details"); expect(coach).not.toContain("private-roster@example.com"); expect(coach).toContain('href="/imports"');
+    expect(coach).toContain("Team Roster"); expect(coach).not.toContain("Roster Details"); expect(coach).not.toContain("private-roster@example.com"); expect(coach).toContain('href="/imports"');
     fake.access.mockResolvedValueOnce(access(["coach"], null, true));
     const preview = renderToStaticMarkup(await Profile({ params: Promise.resolve({ id: ownId }) }));
     expect(preview).toContain('href="/imports"');
     fake.access.mockResolvedValueOnce(access(["admin"], null));
     const admin = renderToStaticMarkup(await Profile({ params: Promise.resolve({ id: ownId }) }));
-    expect(admin).toContain("Administrative roster details"); expect(admin).toContain("private-roster@example.com"); expect(admin).toContain('href="/imports"');
+    expect(admin).toContain("Roster Details"); expect(admin).toContain("private-roster@example.com"); expect(admin).toContain('href="/imports"');
   });
   it("uses own aggregate overlays without peer rows and keeps baseball outside Fall out of history", async () => {
     fake.load.mockResolvedValueOnce({ measurements: [reading(), reading({ id: "fictional-summer", measured_at: "2026-08-12", metric: "Summer-only metric" }), reading({ id: "fictional-old", measured_at: "2025-09-12", metric: "Old-only metric" })], batches: [], percentileOverrides: [{
@@ -121,7 +121,7 @@ describe("protected profile route authorization and integration", () => {
     fake.load.mockResolvedValueOnce({measurements, batches: [], percentileOverrides: []});
     const html = renderToStaticMarkup(await Profile({params: Promise.resolve({id: ownId})}));
     expect(html).not.toContain("Home to First"); expect(html).not.toContain("Speed &amp; Agility");
-    expect(html).toContain("Measurement history · 1 readings"); expect(html).toContain('data-value="180"');
+    expect(html).not.toContain("Measurement History"); expect(html).toContain('data-value="180"');
     expect(measurements).toHaveLength(2);
   });
   it("does not present a failed performance load as a successful empty profile", async () => {

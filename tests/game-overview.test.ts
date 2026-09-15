@@ -21,10 +21,10 @@ it("withholds invalid OBP and duplicate source rows rather than assigning an ava
   expect(gameOverviewMetrics(inconsistent,[{...c,metric:'batting_obp'}]).some(m=>m.metric==='batting_obp')).toBe(false);
   expect(gameOverviewMetrics([...stats,stats[0]],[c])).toEqual([]);
 });
-it("uses only the latest dated pitching event and keeps its matching comparison", () => {
-  const pitch=(event:string,date:string):SharedGameStat[]=>rows({pitches:20,strike_pct:60,k:2,bb_outcome:1}).map(r=>({...r,source:'pitching_fall_2026',scope:'pitching_event',event_id:event,played_on:date,unit:r.metric==='strike_pct'?'%':'count'}));
-  const m=gameOverviewMetrics([...pitch('old','2026-09-12'),...pitch('new','2026-09-13')],[{...c,source:'pitching_fall_2026',metric:'strike_pct',eventId:'new',value:60}]);
-  expect(m.every(r=>r.eventId==='new')).toBe(true); expect(m[0].comparison).not.toBeNull(); expect(m[0].opportunities).toBe(20);
+it("combines dated pitching events and binds only a cumulative comparison", () => {
+  const pitch=(event:string,date:string):SharedGameStat[]=>rows({pitches:20,strikes:12,strike_pct:60,k:2,bb_outcome:1}).map(r=>({...r,source:'pitching_fall_2026',scope:'pitching_event',event_id:event,played_on:date,unit:r.metric==='strike_pct'?'%':'count'}));
+  const m=gameOverviewMetrics([...pitch('old','2026-09-12'),...pitch('new','2026-09-13')],[{...c,source:'pitching_fall_2026',metric:'strike_pct',eventId:'fall-2026-cumulative',value:60}]);
+  expect(m.every(r=>r.eventId==='fall-2026-cumulative')).toBe(true); expect(m[0].comparison).not.toBeNull(); expect(m[0].opportunities).toBe(40);
   expect(m.filter(r=>r.insightEligible).map(r=>r.metric)).toEqual(['strike_pct']);
 });
 it("populates strengths and weaknesses from verified game rates with sample-size context", () => {

@@ -61,11 +61,12 @@ it("game comparisons require same snapshot and show correct opportunity denomina
  d.games=coachingGames([...qpa(a.id),...qpa(b.id,"stale")]);expect(compareGames(d,a.id,b.id,"").every(r=>!r.comparable)).toBe(true);
  expect(JSON.stringify(d.games)).not.toContain("content_hash");expect(JSON.stringify(d.games)).not.toContain("source_row");
 });
-it("pitching comparisons retain actual event boundaries and do not choose a different player's latest game",()=>{
- const pitch=(id:string,event:string,date:string):SharedGameStat[]=>qpa(id).slice(0,2).map((r,i)=>({...r,source:"pitching_fall_2026",scope:"pitching_event",event_id:event,played_on:date,metric:i===0?"strike_pct":"pitches",value:i===0?60:20,unit:i===0?"%":"count"}));
- const d=data([]);d.games=coachingGames([...pitch(a.id,"one","2026-09-12"),...pitch(a.id,"two",today),...pitch(b.id,"one","2026-09-12")]);
- expect(compareGames(d,a.id,b.id,"one")[0]).toMatchObject({comparable:true,first:{opportunities:20}});
- expect(compareGames(d,a.id,b.id,"two")[0].comparable).toBe(false);
+it("pitching comparisons use cumulative counts for pitchers and reject batting-only roles",()=>{
+ const pitch=(id:string,event:string,date:string):SharedGameStat[]=>[...qpa(id).slice(0,1),...qpa(id).slice(0,1)].map((r,i)=>({...r,source:"pitching_fall_2026",scope:"pitching_event",event_id:event,played_on:date,metric:i===0?"strikes":"pitches",value:i===0?12:20,unit:"count"}));
+ const d=data([]);d.players=d.players.map(p=>({...p,playerType:"pitcher",position:"P"}));d.games=coachingGames([...pitch(a.id,"one","2026-09-12"),...pitch(a.id,"two",today),...pitch(b.id,"one","2026-09-12")]);
+ expect(compareGames(d,a.id,b.id,"fall-2026-cumulative")[0]).toMatchObject({comparable:true,first:{opportunities:40},second:{opportunities:20}});
+ expect(compareGames(d,a.id,b.id,"one")).toEqual([]);
+ d.players[1]={...d.players[1],playerType:"position",position:"OF"};expect(compareGames(d,a.id,b.id,"fall-2026-cumulative")).toEqual([]);
 });
 it("renders linked names, neutral first tests, readable comparison values and meaningful empty states",()=>{
  const d=data([reading(150,"2026-08-01"),reading(156,today),reading(145,today,{athleteId:b.id})]);
