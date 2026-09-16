@@ -1,5 +1,5 @@
 import { RENPHO_SEGMENTS } from "@/lib/renpho-segments";
-import { PLAYER_METRICS } from "@/lib/player-performance";
+import { isTimedMetric, PLAYER_METRICS } from "@/lib/player-performance";
 
 export type AnalyticsPlayer = { id: string; code: string; name: string; academicClass: string; position: string; playerType: string; bats: string; throws: string };
 export type AnalyticsReading = { id: string; athleteId: string; metric: string; label: string; unit: string; source: string; date: string; value: number; importedAt: string };
@@ -21,7 +21,7 @@ export function readingsForPeriod(readings: readonly AnalyticsReading[], period:
 /** One latest observation per player/metric/source/unit. Date first, then import time and immutable ID. */
 export function latestAnalyticsReadings(readings: readonly AnalyticsReading[]): AnalyticsReading[] {
   const latest=new Map<string,AnalyticsReading>();
-  for(const row of readings){const key=JSON.stringify([row.athleteId,variableKey(row)]),old=latest.get(key);if(!old||row.date>old.date||(row.date===old.date&&(row.importedAt>old.importedAt||(row.importedAt===old.importedAt&&row.id>old.id))))latest.set(key,row);}
+  for(const row of readings){const key=JSON.stringify([row.athleteId,variableKey(row)]),old=latest.get(key);if(!old||(isTimedMetric(row.metric)&&row.unit==="s" ? row.value<old.value || (row.value===old.value && row.date>old.date) : row.date>old.date||(row.date===old.date&&(row.importedAt>old.importedAt||(row.importedAt===old.importedAt&&row.id>old.id)))))latest.set(key,row);}
   return [...latest.values()];
 }
 export function analyticsVariables(readings: readonly AnalyticsReading[]): AnalyticsVariable[] {

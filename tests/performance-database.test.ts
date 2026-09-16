@@ -305,3 +305,17 @@ describe("recorded total-muscle profile comparisons",()=>{
   expect(loaded.percentileOverrides.find(c=>c.metricKey==="muscle_mass")).toMatchObject({observedValue:140,sampleSize:5,value:50});
  });
 });
+
+
+describe("timed trial best rankings",()=>{
+ it("preserves every trial, ranks the best, and shows an own-player average",async()=>{
+  const rows=[1,2,3,4,5].flatMap(i=>[row(i,{metric_key:"steal_start_12ft",unit:"s",value:3+i/10,measured_at:"2026-09-14"},8),row(i,{metric_key:"steal_start_12ft",unit:"s",value:5+i/10,measured_at:"2026-09-15"},9)]);
+  await asUser(users.admin,()=>importRows(rows));
+  const own=await asUser(users.playerA,()=>loadPlayerProfile());
+  const card=own.profile.hitting.find(c=>c.metric.key==="steal_start_12ft")!;
+  expect(card.latest?.value).toBeCloseTo(3.1);expect(card.timedTrials?.average).toBeCloseTo(4.1);expect(card.timedTrials?.count).toBe(2);expect(card.percentile?.value).toBe(100);
+  const board=await asUser(users.playerA,()=>db.query<{value:unknown}>("select public.team_leaderboard('steal_start_12ft','fictional radar protocol','s','fall_2026') as value"));
+  expect(board.rows[0].value).toEqual(expect.arrayContaining([expect.objectContaining({value:3.1,rank:1})]));
+  expect((await counts()).n).toBe(10);
+ });
+});

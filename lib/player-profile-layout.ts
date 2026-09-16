@@ -1,8 +1,8 @@
 import type { AthleteSeason } from "@/lib/types";
-import { normalizePlayerMetric, type PlayerMetricCard, type PlayerPerformance } from "@/lib/player-performance";
+import { TIMED_METRIC_KEYS, normalizePlayerMetric, type PlayerMetricCard, type PlayerPerformance } from "@/lib/player-performance";
 export const PHYSICALITY_PRIMARY = ["weight", "height", "grip_strength"] as const;
 export const HITTING_PRIMARY = ["max_exit_velocity", "avg_exit_velocity", "max_bat_speed", "avg_bat_speed", "smash_factor", "max_distance"] as const;
-export const SPEED_AGILITY = ["home_to_first", "home_to_second", "steal_break", "boxer_t"] as const;
+export const SPEED_AGILITY = TIMED_METRIC_KEYS;
 export const PITCHING_PRIMARY = ["max_pitch_velocity", "avg_pitch_velocity", "strike_pct", "avg_fastball_spin", "k_pct", "bb_pct"] as const;
 const infield = new Set(["1B", "2B", "3B", "SS", "IF"]), outfield = new Set(["LF", "CF", "RF", "OF"]);
 const ordered = (cards: PlayerMetricCard[], keys: readonly string[]) => keys.flatMap(key => cards.filter(card => card.metric.key === key));
@@ -25,7 +25,7 @@ export function getPlayerProfileLayout(performance: PlayerPerformance, season?: 
     showHitting: positionTesting,
     physicality: ordered(all, PHYSICALITY_PRIMARY),
     additionalBody: performance.body.filter(card => card.metric.key !== "skeletal_muscle_mass" && card.metric.key !== "body_score" && card.metric.key !== "muscle_mass_pct" && !(PHYSICALITY_PRIMARY as readonly string[]).includes(card.metric.key)),
-    speedAgility: positionTesting ? ordered(all, SPEED_AGILITY) : [],
+    speedAgility: positionTesting ? ordered(all, SPEED_AGILITY).filter(card => card.latest || !["steal_start_12ft","steal_reaction","steal_12_42ft"].includes(card.metric.key)) : [],
     hitting: ordered(all, HITTING_PRIMARY),
     // Existing generic bat speed is not relabeled as a max or average.
     otherHitting: performance.hitting.filter(card => card.latest && !new Set<string>([...HITTING_PRIMARY, ...SPEED_AGILITY]).has(card.metric.key)),

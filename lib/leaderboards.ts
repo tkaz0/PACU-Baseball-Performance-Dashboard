@@ -1,4 +1,4 @@
-import { PLAYER_METRICS, type PlayerMetricDefinition, type PlayerMetricKey, type PlayerPerformancePeriod } from "@/lib/player-performance";
+import { TIMED_METRIC_KEYS, isTimedMetric, PLAYER_METRICS, type PlayerMetricDefinition, type PlayerMetricKey, type PlayerPerformancePeriod } from "@/lib/player-performance";
 
 export type LeaderboardMetricKey = PlayerMetricKey;
 export type LeaderboardMetricDefinition = Omit<PlayerMetricDefinition, "key"> & { key: LeaderboardMetricKey };
@@ -10,7 +10,7 @@ export type LeaderboardComparison = { metricKey: LeaderboardMetricKey; source: s
 export type LeaderboardSelection = Omit<LeaderboardComparison, "athleteCount">;
 export type LeaderboardRow = { rank: number; athleteCode: string; name: string; jerseyNumber: number | null; position: string | null; profileId: string | null; value: number; measuredAt: string; source: string; derived: boolean };
 export const leaderboardGroupLabels: Record<LeaderboardGroup, string> = { physicality: "Physicality", hitting: "Hitting", throwing: "Throwing" };
-const physicality = new Set(["skeletal_muscle_mass", "body_score", "height", "weight", "grip_strength", "body_fat_pct", "muscle_mass_pct", "muscle_mass", "home_to_first", "home_to_second", "steal_break", "boxer_t"]);
+const physicality = new Set(["skeletal_muscle_mass", "body_score", "height", "weight", "grip_strength", "body_fat_pct", "muscle_mass_pct", "muscle_mass", ...TIMED_METRIC_KEYS]);
 export function leaderboardGroup(metric: LeaderboardMetricDefinition): LeaderboardGroup {
   return physicality.has(metric.key) ? "physicality" : metric.group === "hitting" ? "hitting" : "throwing";
 }
@@ -19,7 +19,7 @@ export const leaderboardMetrics = (group: LeaderboardGroup) => LEADERBOARD_METRI
   return (order.indexOf(a.key) < 0 ? 99 : order.indexOf(a.key)) - (order.indexOf(b.key) < 0 ? 99 : order.indexOf(b.key));
 });
 export const leaderboardSourceLabel = (source: string) => ({ renpho: "RENPHO", "full swing": "Full Swing", blast: "Blast", rapsodo: "Rapsodo", "player metrics": "Player Metrics" })[source] ?? source;
-export const leaderboardMetricLabel = (metric: LeaderboardMetricDefinition) => ({ max_exit_velocity: "Max Exit Velocity", avg_exit_velocity: "Average Exit Velocity", bat_speed: "Bat Speed (Unspecified)", k_pct: "Strikeout %", bb_pct: "Walk %" } as Partial<Record<LeaderboardMetricKey, string>>)[metric.key] ?? metric.label;
+export const leaderboardMetricLabel = (metric: LeaderboardMetricDefinition) => isTimedMetric(metric.key) ? `${metric.label} · Best Time` : ({ max_exit_velocity: "Max Exit Velocity", avg_exit_velocity: "Average Exit Velocity", bat_speed: "Bat Speed (Unspecified)", k_pct: "Strikeout %", bb_pct: "Walk %" } as Partial<Record<LeaderboardMetricKey, string>>)[metric.key] ?? metric.label;
 
 /** Owner-selected numerical ordering; profile insight directions remain separate. */
 export function leaderboardOrder(metric: LeaderboardMetricDefinition): "higher" | "lower" {

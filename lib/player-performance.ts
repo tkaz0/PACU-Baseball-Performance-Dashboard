@@ -6,6 +6,7 @@ export type PlayerMetricGroup = "body" | "hitting" | "pitching" | "throwing";
 export type PlayerMetricDirection = "neutral" | "higher" | "lower";
 export type PlayerMetricKey = "skeletal_muscle_mass" | "body_score" | "height" | "weight" | "grip_strength" | "body_fat_pct" | "muscle_mass_pct" | "muscle_mass"
   | "max_exit_velocity" | "avg_exit_velocity" | "bat_speed" | "home_to_first" | "home_to_second" | "steal_break" | "boxer_t"
+  | "steal_start_12ft" | "steal_reaction" | "steal_12_42ft"
   | "max_bat_speed" | "avg_bat_speed" | "smash_factor" | "max_distance"
   | "infield_velocity" | "outfield_velocity"
   | "max_pitch_velocity" | "avg_pitch_velocity" | "avg_fastball_spin" | "strike_pct" | "k_pct" | "bb_pct";
@@ -34,6 +35,9 @@ export const PLAYER_METRICS: readonly PlayerMetricDefinition[] = [
   { key: "home_to_second", label: "Home to 2nd", group: "hitting", units: ["s"], direction: "lower" },
   { key: "steal_break", label: "Steal Break", group: "hitting", units: ["s"], direction: "lower" },
   { key: "boxer_t", label: "Boxer T", group: "hitting", units: ["s"], direction: "lower" },
+  { key: "steal_start_12ft", label: "12 ft Steal Start", group: "hitting", units: ["s"], direction: "lower" },
+  { key: "steal_reaction", label: "Steal Reaction", group: "hitting", units: ["s"], direction: "lower" },
+  { key: "steal_12_42ft", label: "Steal Start · 12–42 ft", group: "hitting", units: ["s"], direction: "lower" },
   { key: "max_pitch_velocity", label: "Max Velocity", group: "pitching", units: ["mph", "km/h", "m/s"], direction: "higher" },
   { key: "avg_pitch_velocity", label: "Average Velocity", group: "pitching", units: ["mph", "km/h", "m/s"], direction: "higher" },
   { key: "avg_fastball_spin", label: "Average Fastball Spin", group: "pitching", units: ["rpm"], direction: "neutral" },
@@ -63,6 +67,7 @@ export type PlayerPercentileOverride = Omit<PlayerPercentile, "value"> & {
 };
 export type PlayerMetricCard = {
   metric: PlayerMetricDefinition; latest: PlayerMetricReading | null; summerBaseline: PlayerMetricReading | null;
+  timedTrials?: { average: number; count: number; lastTested: string };
   history: PlayerMetricReading[]; percentile: PlayerPercentile | null; cohortSampleSize: number | null;
   percentileStatus: "available" | "missing" | "small_cohort" | "not_in_cohort" | "unavailable";
 };
@@ -72,12 +77,15 @@ export type PlayerPerformanceInput = {
   cohortAthleteCodes?: readonly string[]; percentileOverrides?: readonly PlayerPercentileOverride[];
 };
 
+export const TIMED_METRIC_KEYS = ["home_to_first", "home_to_second", "steal_break", "boxer_t", "steal_start_12ft", "steal_reaction", "steal_12_42ft"] as const;
+export const isTimedMetric = (key: string) => (TIMED_METRIC_KEYS as readonly string[]).includes(key);
 const definitions = new Map(PLAYER_METRICS.map(metric => [metric.key, metric]));
 const labelKey = (value: string) => value.trim().toLowerCase().replace(/[^a-z0-9%]/g, "");
 const sourceKey = (value: string) => value.trim().toLowerCase().replace(/\s+/g, " ");
 const aliases = new Map<string, PlayerMetricKey>();
 for (const metric of PLAYER_METRICS) for (const label of [metric.key, metric.label]) aliases.set(labelKey(label), metric.key);
 const extraAliases: Record<PlayerMetricKey, readonly string[]> = {
+  steal_start_12ft: ["12 FT STEAL START"], steal_reaction: ["STEAL START (RXN)"], steal_12_42ft: ["STEAL START (12-42FT)"],
   body_score: ["Body Score"],
   height: ["Body height"], weight: ["Body weight"],
   grip_strength: ["Grip Force"],
@@ -213,7 +221,7 @@ export function getPlayerMetricPercentile(readings: readonly PlayerMetricReading
   const direction = definitions.get(target.metricKey)?.direction;
   if (!direction || !validatePlayerMetricValue(target.metricKey, target.value, target.unit)) return unavailable();
   const latest = new Map<string, PlayerMetricReading>();
-  for (const reading of [...readings].sort(newestFirst)) {
+  for (const reading of [...readings].sort((a,b) => isTimedMetric(target.metricKey) ? a.value-b.value || newestFirst(a,b) : newestFirst(a,b))) {
     if (!cohort.has(reading.athleteCode) || latest.has(reading.athleteCode) || reading.metricKey !== target.metricKey
       || reading.period !== target.period || reading.unit !== target.unit || sourceKey(reading.source) !== sourceKey(target.source)
       || !validatePlayerMetricValue(reading.metricKey, reading.value, reading.unit)) continue;
@@ -259,12 +267,15 @@ export function getPlayerPerformance({ readings, batches = [], athleteCode, coho
   const model: PlayerPerformance = { body: [], hitting: [], pitching: [], throwing: [] };
   for (const metric of PLAYER_METRICS) {
     const matching = own.filter(reading => reading.metricKey === metric.key);
-    const latest = matching[0] ?? null;
+    const anchor = matching[0] ?? null;
+    const trials = anchor && isTimedMetric(metric.key) ? matching.filter(r => r.period === anchor.period && r.unit === anchor.unit && sourceKey(r.source) === sourceKey(anchor.source)) : [];
+    const latest = trials.length ? [...trials].sort((a,b)=>a.value-b.value || newestFirst(a,b))[0] : anchor;
+    const timedTrials = trials.length ? { average: trials.reduce((sum,r)=>sum+r.value,0)/trials.length, count: trials.length, lastTested: trials.map(r=>r.measuredAt).sort().at(-1)! } : undefined;
     const summerBaseline = metric.group === "body" ? matching.find(reading => reading.period === "summer_2026") ?? null : null;
     const comparison = latest ? applyOverride(latest, percentileOverrides)
       ?? (cohortAthleteCodes === undefined ? unavailable() : getPlayerMetricPercentile(cohort, latest, cohortAthleteCodes))
       : { percentile: null, cohortSampleSize: null, percentileStatus: "missing" } as const;
-    model[metric.group].push({ metric, latest, summerBaseline, history: [...matching].reverse(), ...comparison });
+    model[metric.group].push({ metric, latest, summerBaseline, ...(timedTrials ? {timedTrials} : {}), history: [...matching].reverse(), ...comparison });
   }
   return model;
 }

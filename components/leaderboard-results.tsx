@@ -1,7 +1,7 @@
 import { StatInfo } from "@/components/stat-info";
 import Link from "next/link";
 import { leaderboardMetricLabel, leaderboardOrderLabel, leaderboardSourceLabel, leaderboardTestDate, type LeaderboardMetricDefinition, type LeaderboardRow } from "@/lib/leaderboards";
-import type { PlayerPerformancePeriod } from "@/lib/player-performance";
+import { isTimedMetric, type PlayerPerformancePeriod } from "@/lib/player-performance";
 import { formatHeight } from "@/lib/measurement-display";
 import styles from "./leaderboard.module.css";
 
@@ -11,7 +11,7 @@ function ResultValue({ row, metric, unit }: { row: LeaderboardRow; metric: Leade
   if (height) return <span className="whitespace-nowrap" title={`Recorded: ${String(row.value)} ${unit}`}>{height}</span>;
   return <>{row.derived
     ? <span title={`Exact calculated value: ${String(row.value)} ${unit}; calculated from same-report muscle and weight`}>≈{row.value.toLocaleString("en-US", { maximumFractionDigits: 1 })}</span>
-    : <span className="break-all">{String(row.value)}</span>}{unit !== "ratio" && <span className={styles.unit}>{unit}</span>}</>;
+    : <span className="break-all">{unit === "s" ? row.value.toFixed(2) : String(row.value)}</span>}{unit !== "ratio" && <span className={styles.unit}>{unit}</span>}</>;
 }
 
 function RankingTable({ rows, metric, unit, continued = false, tiedRanks }: { rows: LeaderboardRow[]; metric: LeaderboardMetricDefinition; unit: string; continued?: boolean; tiedRanks: ReadonlySet<number> }) {
@@ -37,7 +37,7 @@ export function LeaderboardResults({ rows, metric, unit, source, period }: { row
     <header className={styles.heading}>
       <div className={styles.eyebrow}><span>{source ? leaderboardSourceLabel(source) : "Team Testing"}{period ? ` · ${period === "fall_2026" ? "Fall 2026" : "Jun–Aug 2026"}` : ""}</span><span>{rows.length} {rows.length === 1 ? "Player" : "Players"}</span></div>
       <h2>{leaderboardMetricLabel(metric)}<StatInfo metric={metric.key} label={leaderboardMetricLabel(metric)} /></h2>
-      <p title={metric.direction === "neutral" ? "Numerical comparisons, not a health or performance rating." : "Latest comparable result per athlete; equal values share a rank."}>{leaderboardOrderLabel(metric)}{rows.length > 0 && <span> · Last Tested {leaderboardTestDate(latestDate)}</span>}</p>
+      <p title={isTimedMetric(metric.key) ? "Fastest comparable Fall trial per athlete; equal values share a rank." : metric.direction === "neutral" ? "Numerical comparisons, not a health or performance rating." : "Latest comparable result per athlete; equal values share a rank."}>{leaderboardOrderLabel(metric)}{rows.length > 0 && <span> · {isTimedMetric(metric.key) ? "Best Recorded" : "Last Tested"} {leaderboardTestDate(latestDate)}</span>}</p>
     </header>
     {rows.length ? <><RankingTable rows={rows.slice(0, 5)} metric={metric} unit={unit} tiedRanks={tiedRanks} />{rows.length > 5 && <details className={styles.more}><summary>Show {rows.length - 5} More</summary><RankingTable rows={rows.slice(5)} metric={metric} unit={unit} tiedRanks={tiedRanks} continued /></details>}</>
       : <p className="muted m-0 p-6 text-sm">Results will appear after testing data is added.</p>}

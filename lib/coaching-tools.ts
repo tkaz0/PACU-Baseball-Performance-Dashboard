@@ -1,5 +1,5 @@
 import { variableKey, type AnalyticsPlayer, type AnalyticsReading } from "@/lib/analytics";
-import { PLAYER_METRICS, validatePlayerMetricValue } from "@/lib/player-performance";
+import { isTimedMetric, PLAYER_METRICS, validatePlayerMetricValue } from "@/lib/player-performance";
 import { formatHeight } from "@/lib/measurement-display";
 import { gameOverviewMetrics, type GameOverviewMetric } from "@/lib/game-overview";
 import type { SharedGameStat } from "@/lib/game-server";
@@ -31,6 +31,7 @@ export function coachingEligible(player:CoachingPlayer,metric:string):boolean {
 }
 export function coachingValue(value:number,metric:string,unit:string):string {
  if(metric==="height")return formatHeight(value,unit)??"—";
+ if(unit==="s")return `${value.toFixed(2)} s`;
  if(unit==="per9")return value.toFixed(2);
  if(unit==="count")return value.toLocaleString("en-US");
  if(unit==="avg")return value.toFixed(3).replace(/^0\./,".");
@@ -52,6 +53,10 @@ export function coachingVariables(data:CoachingData,category:CoachingCategory,to
 export type TestResult={latest:AnalyticsReading|null;previous:AnalyticsReading|null;conflict:boolean};
 export function comparableTests(data:CoachingData,athleteId:string,key:string,today:string):TestResult {
  const candidates=data.readings.filter(r=>r.athleteId===athleteId&&variableKey(r)===key&&coachingReadingVisible(r)&&r.date<=today&&r.date<="2026-12-31"&&r.date>=(coachingCategory(r.metric)==="Physicality"?"2026-06-01":"2026-09-01"));
+ if(candidates.length && isTimedMetric(candidates[0].metric)) {
+  const sorted=[...candidates].sort((a,b)=>a.value-b.value || b.date.localeCompare(a.date));
+  return {latest:sorted[0],previous:null,conflict:false};
+ }
  const dates=[...new Set(candidates.map(r=>r.date))].sort().reverse();
  if(!dates.length||dates[0]<"2026-09-01")return {latest:null,previous:null,conflict:false};
  const latest=candidates.filter(r=>r.date===dates[0]);
