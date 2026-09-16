@@ -25,3 +25,13 @@
 }
 
 .testingSections { display: grid; gap: 14px; min-width: 0; }
+
+.highlightGroups { display: grid; gap: 14px; }
+.highlightGroups > div + div { border-top: 1px solid var(--line-subtle); padding-top: 12px; }
+.disciplineLabel { margin: 0 0 8px; font-size: 10px; font-weight: 750; text-transform: uppercase; letter-spacing: .08em; color: var(--text-secondary); }
+.gameHeader { padding: 10px 12px; margin: -2px -2px 12px; border-left: 3px solid var(--accent-readable); border-radius: 0 8px 8px 0; background: var(--surface-raised); }
+.gameHeader > span { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-secondary); }
+.gameHeader h3 { margin: 3px 0 0; font-size: 18px; font-weight: 750; }
+.gameDiscipline { min-width: 0; border: 1px solid var(--line-subtle); border-radius: 12px; padding: 16px; }
+.gameDiscipline + .gameDiscipline { margin-top: 28px; }
+@media (max-width: 760px) { .gameDiscipline { padding: 12px; } }

@@ -48,3 +48,22 @@ it("removes standalone batting Hits and AB cards but retains AVG denominator", (
   const html=renderToStaticMarkup(createElement(AthleteGameStats,{stats,comparisons:[c]}));
   expect(html).toContain('8 AB');expect(html).toContain('.500');expect(html).not.toContain('About Hits');expect(html).not.toContain('aria-label="About AB"');
 });
+
+it("separates two-way hitting and pitching panels and labels their highlights", () => {
+  const pitch = rows({pitches:20,strikes:16,k:2,bb_outcome:1,innings_outs:3,r:0}).map((row): SharedGameStat => ({...row, source:"pitching_fall_2026", scope:"pitching_event", event_id:"fall-2026-week-1"}));
+  const mixed = [...stats, ...pitch];
+  const comparisons = [c, {...c, source:"pitching_fall_2026", metric:"strike_pct", eventId:"fall-2026-cumulative", value:80, percentile:85}];
+  const overview = renderToStaticMarkup(createElement(PlayerOverview, {cards:[],twoWay:true,gameStats:mixed,gameComparisons:comparisons}));
+  const hitting = overview.split('aria-label="Hitting game percentiles"')[1].split('aria-label="Pitching game percentiles"')[0];
+  const pitching = overview.split('aria-label="Pitching game percentiles"')[1];
+  expect(hitting).toContain('data-overview-game-metric="batting_avg"');
+  expect(hitting).not.toContain('data-overview-game-metric="strike_pct"');
+  expect(pitching).toContain('data-overview-game-metric="strike_pct"');
+  expect(pitching).not.toContain('data-overview-game-metric="batting_avg"');
+  const strengths = overview.split('aria-label="Strengths"')[1].split('aria-label="Weaknesses"')[0];
+  expect(strengths).toContain('data-insight-discipline="Hitting"');
+  expect(strengths).toContain('data-insight-discipline="Pitching"');
+  const detail = renderToStaticMarkup(createElement(AthleteGameStats, {stats:mixed,showDetails:false}));
+  expect(detail).toContain('aria-label="Cumulative hitting statistics"');
+  expect(detail).toContain('aria-label="Cumulative pitching statistics"');
+});

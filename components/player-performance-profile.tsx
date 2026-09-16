@@ -66,7 +66,7 @@ export function PlayerPerformanceProfile({ athlete, performance, season, fiction
   const sourcedCards = [...cards, ...performance.body.filter(card => card.metric.key === "body_score")].filter(card => card.latest);
   const lastTested = sourcedCards.map(card => card.timedTrials?.lastTested ?? card.latest!.measuredAt).sort().at(-1);
   const tabs: ProfileTab[] = [
-    { id: "overview", label: "Overview", content: <PlayerOverview showMethods={!simplified} cards={[...cards, ...(bodyScoreCard ? [bodyScoreCard] : [])]} gameStats={overviewGameStats} gameComparisons={gameComparisons} /> },
+    { id: "overview", label: "Overview", content: <PlayerOverview twoWay={selectedSeason?.player_type?.trim().toLowerCase() === "two_way"} showMethods={!simplified} cards={[...cards, ...(bodyScoreCard ? [bodyScoreCard] : [])]} gameStats={overviewGameStats} gameComparisons={gameComparisons} /> },
     { id: "physicality", label: "Physicality", content: <>
       <RenphoBodyScore reading={bodyScore} change={bodyScoreCard ? playerRenphoChange(bodyScoreCard) : null}/>
       <MetricGroup id="body-measurements" title="Physicality" cards={layout.physicality} />
