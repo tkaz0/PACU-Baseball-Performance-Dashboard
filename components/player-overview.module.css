@@ -1,0 +1,27 @@
+.panel { min-width: 0; padding: 16px; border: 1px solid var(--line-subtle); border-radius: 12px; background: var(--surface-panel); }
+.panel[data-highlight] { border-top: 3px solid var(--line-subtle); }
+.panel[data-highlight="strengths"] { border-top-color: #c32132; }
+.panel[data-highlight="weaknesses"] { border-top-color: #3983be; }
+.panel[data-highlight="progress"] { border-top-color: var(--accent-readable); }
+.highlightHeader { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.highlightIcon { display: grid; place-items: center; flex-shrink: 0; width: 32px; height: 32px; border-radius: 8px; background: var(--surface-raised); color: var(--text-secondary); }
+.highlightList { margin: 0; padding: 0; list-style: none; }
+.highlightList > li { padding: 10px 0; border-top: 1px solid var(--line-subtle); }
+.highlightList > li:first-child { padding-top: 0; border-top: 0; }
+.highlightList > li:last-child { padding-bottom: 0; }
+.highlightList h3 { margin: 0; font-size: 12px; font-weight: 600; line-height: 1.5; }
+.highlightResult { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.highlightResult > div { min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+.resultValue { display: block; margin-top: 2px; font-size: 18px; font-weight: 750; font-variant-numeric: tabular-nums; }
+.percentileBadge { display: grid; place-items: center; flex-shrink: 0; width: 43px; padding: 5px 0; border-radius: 9px; }
+.percentileBadge strong { font-size: 18px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.percentileBadge > span { margin-top: 3px; font-size: 8px; font-weight: 700; letter-spacing: .06em; }
+.highlightMeta { margin: 6px 0 0; font-size: 10px; line-height: 1.5; color: var(--text-secondary); }
+.jumpValue { margin: 5px 0; color: var(--accent-readable); font-size: 18px; font-weight: 750; font-variant-numeric: tabular-nums; }
+.jumpReadings { margin: 0 0 4px; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.sectionHeading { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 24px; padding-top: 6px; }
+@media (max-width: 760px) {
+  .panel { padding: 14px; }
+}
+
+.testingSections { display: grid; gap: 14px; min-width: 0; }
