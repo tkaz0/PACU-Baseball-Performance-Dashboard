@@ -387,27 +387,7 @@ export function previewMeasurements(table: ImportTable, mapping: MeasurementMapp
   if (!/^[a-f0-9]{64}$/i.test(fileContext.fileHash)) throw new Error("A SHA-256 file hash is required for repeat-import detection.");
   if (!fileContext.fileName.trim() || fileContext.fileName.length > 255 || CONTROL.test(fileContext.fileName)) throw new Error("Use a valid source filename.");
   if ((fileContext.sheetName?.length ?? 0) > 255 || CONTROL.test(fileContext.sheetName ?? "")) throw new Error("Use a valid source sheet name.");
-  const byIdentity = new Map<string, RosterAthlete[]>();
-  const byCode = new Map<string, RosterAthlete[]>();
-  if (roster.some(athlete => athlete.athlete_code_aliases)) athleteCodeIndex(roster);
-  const normalizeIdentity = mapping.identityKind === "code" ? normalizeCode : mapping.identityKind === "email" ? normalizeEmail : normalizeName;
-  for (const athlete of roster) {
-    const code = normalizeCode(athlete.athlete_code);
-    for (const alias of [code, ...(athlete.athlete_code_aliases ?? [])]) {
-      byCode.set(alias, [...(byCode.get(alias) ?? []), athlete]);
-      if (mapping.identityKind === "code" && alias !== code) byIdentity.set(alias, [...(byIdentity.get(alias) ?? []), athlete]);
-    }
-    const value = mapping.identityKind === "code" ? code : mapping.identityKind === "email" ? athlete.pacific_email ?? "" : `${athlete.first_name} ${athlete.last_name}`;
-    if (value.trim()) {
-      const key = normalizeIdentity(value); byIdentity.set(key, [...(byIdentity.get(key) ?? []), athlete]);
-    }
-  }
-  const overrides = new Map<string, string>();
-  for (const [identity, code] of Object.entries(mapping.identityOverrides ?? {})) {
-    const key = normalizeIdentity(identity), normalizedCode = normalizeCode(code);
-    if (overrides.has(key) && overrides.get(key) !== normalizedCode) throw new Error("Conflicting athlete overrides match the same source identity.");
-    overrides.set(key, normalizedCode);
-  }
+  const resolveIdentity = measurementIdentityResolver(mapping, roster);
   const existing = new Map<string, Measurement>();
   for (const measurement of existingMeasurements) {
     if (existing.has(measurement.id)) throw new Error("Existing measurements contain duplicate observation IDs; restore a valid local backup first.");
@@ -419,14 +399,12 @@ export function previewMeasurements(table: ImportTable, mapping: MeasurementMapp
     const populated = mapping.metrics.filter(metric => (cells[metric.column] ?? "").trim() !== "");
     if (!populated.length) return row;
     const sourceIdentity = (cells[mapping.identityColumn] ?? "").trim();
-    const key = normalizeIdentity(sourceIdentity);
-    const override = overrides.get(key);
-    const matches = override === undefined ? byIdentity.get(key) ?? [] : byCode.get(override) ?? [];
+    const { matches, overridden } = resolveIdentity(sourceIdentity);
     if (!sourceIdentity) row.issues.push(issue(row.row, "identity", "The athlete identity is blank."));
     else if (matches.length !== 1) row.issues.push(issue(row.row, "identity", matches.length ? "This identity matches more than one athlete; explicitly choose a permanent athlete code." : "No roster athlete matches this identity; import the roster or explicitly select an athlete."));
     const athlete = matches.length === 1 ? matches[0] : undefined;
     row.athlete_code = athlete?.athlete_code ?? "";
-    row.matchMethod = athlete ? override !== undefined ? "override" : mapping.identityKind : "none";
+    row.matchMethod = athlete ? overridden ? "override" : mapping.identityKind : "none";
     row.requiresNameReview = row.matchMethod === "name";
     let measuredAt = fixedDate ?? "";
     if (mapping.dateColumn !== undefined) {
@@ -458,4 +436,34 @@ export function previewMeasurements(table: ImportTable, mapping: MeasurementMapp
   });
   const issues = rows.flatMap(row => row.issues);
   return { candidateMeasurements, rows, counts: countsFor(rows), issues, canApply: rows.length > 0 && issues.length === 0, nameMatches: rows.filter(row => row.requiresNameReview).length };
+}
+
+/** Exact identity rules shared by review selection and the final measurement preview. */
+export function measurementIdentityResolver(mapping: Pick<MeasurementMapping, "identityKind" | "identityOverrides">, roster: RosterAthlete[]) {
+  const byIdentity = new Map<string, RosterAthlete[]>();
+  const byCode = new Map<string, RosterAthlete[]>();
+  if (roster.some(athlete => athlete.athlete_code_aliases)) athleteCodeIndex(roster);
+  const normalizeIdentity = mapping.identityKind === "code" ? normalizeCode : mapping.identityKind === "email" ? normalizeEmail : normalizeName;
+  for (const athlete of roster) {
+    const code = normalizeCode(athlete.athlete_code);
+    for (const alias of [code, ...(athlete.athlete_code_aliases ?? [])]) {
+      byCode.set(alias, [...(byCode.get(alias) ?? []), athlete]);
+      if (mapping.identityKind === "code" && alias !== code) byIdentity.set(alias, [...(byIdentity.get(alias) ?? []), athlete]);
+    }
+    const value = mapping.identityKind === "code" ? code : mapping.identityKind === "email" ? athlete.pacific_email ?? "" : `${athlete.first_name} ${athlete.last_name}`;
+    if (value.trim()) {
+      const key = normalizeIdentity(value); byIdentity.set(key, [...(byIdentity.get(key) ?? []), athlete]);
+    }
+  }
+  const overrides = new Map<string, string>();
+  for (const [identity, code] of Object.entries(mapping.identityOverrides ?? {})) {
+    const key = normalizeIdentity(identity), normalizedCode = normalizeCode(code);
+    if (overrides.has(key) && overrides.get(key) !== normalizedCode) throw new Error("Conflicting athlete overrides match the same source identity.");
+    overrides.set(key, normalizedCode);
+  }
+  return (identity: string) => {
+    const key = normalizeIdentity(identity), override = overrides.get(key);
+    const matches = identity.trim() ? (override === undefined ? byIdentity.get(key) ?? [] : byCode.get(override) ?? []) : [];
+    return { matches, overridden: override !== undefined };
+  };
 }

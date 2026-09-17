@@ -14,6 +14,7 @@ import { selectTable, type DateFormat, type Measurement, type MeasurementMapping
 import { FULL_SWING_LABELS, fullSwingMetrics, previewFullSwingSummary, type FullSwingCategory } from "@/lib/imports/full-swing";
 import { BLAST_MOTION_METRICS, previewBlastMotionSummary } from "@/lib/imports/blast-motion";
 import { looksLikeFullSwingSession, summarizeFullSwingSession, SESSION_METRICS, type FullSwingSession } from "@/lib/imports/full-swing-session";
+import { selectRosterSummaries } from "@/lib/imports/roster-selection";
 import { StatInfo } from "@/components/stat-info";
 import { athleteName, type RosterAthlete } from "@/lib/types";
 
@@ -32,6 +33,7 @@ export function FullSwingImport({ category, roster, saveAction, assignmentStore,
   const [session, setSession] = useState<FullSwingSession | null>(null);
   const [identityKind, setIdentityKind] = useState<MeasurementMapping["identityKind"]>("name");
   const [identityColumn, setIdentityColumn] = useState(-1);
+  const [excluded, setExcluded] = useState<string[]>([]);
   const [overrides, setOverrides] = useState<Record<string, string>>({});
   const [dateMode, setDateMode] = useState<"fixed" | "column">("fixed");
   const [date, setDate] = useState("");
@@ -51,11 +53,16 @@ export function FullSwingImport({ category, roster, saveAction, assignmentStore,
   let table: ReturnType<typeof selectTable> | null = null;
   let tableError = "";
   if (file) { try { table = session?.table ?? selectTable(file.sheets[0].matrix, headerRow); } catch (error) { tableError = errorText(error); } }
-  const identities = table && identityColumn >= 0 ? [...new Set(table.rows.map(row => row[identityColumn]).filter(Boolean))] : [];
+  let selection: ReturnType<typeof selectRosterSummaries> | null = null;
+  let selectionError = "";
+  if (table && identityColumn >= 0) {
+    try { selection = selectRosterSummaries(table, { identityKind, identityColumn, identityOverrides: overrides }, roster, excluded, session?.players.map(player => player.identity)); }
+    catch (error) { selectionError = errorText(error); }
+  }
   const invalidate = () => { setReviewed(null); setConfirmed(false); setError(""); setReceipt(null); };
   async function chooseFile(next?: File) {
     const version = ++request.current;
-    invalidate(); setFile(null); setSession(null); setHeaderRow(0); setIdentityColumn(-1); setOverrides({}); setDateColumn(-1); setSummaryConfirmed(false);
+    invalidate(); setFile(null); setSession(null); setHeaderRow(0); setIdentityColumn(-1); setOverrides({}); setExcluded([]); setDateColumn(-1); setSummaryConfirmed(false);
     setMetrics([{ id: nextId.current++, column: -1, key: "", unit: "" }]);
     if (!next) return;
     setBusy(true);
@@ -84,7 +91,9 @@ export function FullSwingImport({ category, roster, saveAction, assignmentStore,
         ...(dateMode === "fixed" ? { fixedDate: date } : { dateColumn }), dateFormat: dateMode === "fixed" ? "ISO" : dateFormat,
         source: "", metrics: metrics.map(metric => ({ column: metric.column, label: definitions.find(item => item.key === metric.key)?.label ?? "", unit: metric.unit })),
       };
-      const input = { table, mapping, roster, file: { fileName: file.fileName, fileHash: file.fileHash, sheetName: session ? "CSV · Full Swing session summaries v1" : file.sheets[0].name }, category, summaryConfirmed };
+      if (selectionError) throw new Error(selectionError);
+      if (!selection?.table.rows.length) throw new Error("No rostered player readings are selected. Match an export name to a roster player before importing.");
+      const input = { table: selection.table, mapping, roster, file: { fileName: file.fileName, fileHash: file.fileHash, sheetName: session ? "CSV · Full Swing session summaries v1" : file.sheets[0].name }, category, summaryConfirmed };
       setReviewed(blast ? previewBlastMotionSummary(input) : previewFullSwingSummary(input));
     } catch (error) { setError(errorText(error)); }
   }
@@ -93,9 +102,10 @@ export function FullSwingImport({ category, roster, saveAction, assignmentStore,
     setBusy(true); setError("");
     try {
       const skipped = metrics.flatMap(metric => {
-        const count = table?.rows.filter(row => !row[metric.column]?.trim()).length ?? 0;
+        const count = selection?.table.rows.filter(row => !row[metric.column]?.trim()).length ?? 0;
         return count ? [{ label: definitions.find(item => item.key === metric.key)!.label, reason: `${count} blank ${count === 1 ? "cell was" : "cells were"} skipped.` }] : [];
       });
+      if (selection?.skipped.length) skipped.push({ label: "Excluded players", reason: `${selection.skipped.length} unmatched or excluded export names were not imported.` });
       const result = await saveAction(reviewed.candidateMeasurements);
       setReceipt(buildImportConfirmation(reviewed.candidateMeasurements, roster, result, skipped));
       setReviewed(null); setConfirmed(false);
@@ -116,19 +126,28 @@ export function FullSwingImport({ category, roster, saveAction, assignmentStore,
       <section className="panel p-5 sm:p-7">
         <h2 className={styles.stepTitle}><span className={styles.stepNumber}>2.</span>{" "}Match Players and Columns</h2>
         <p className={`${styles.sectionLead} break-words`}>{file.fileName}</p>
-        {session && <div className="notice mb-5"><p className="font-semibold">Live at Bat · {session.date}</p><p>{session.eventCount} pitches · {session.pitcherCount} {session.pitcherCount === 1 ? "pitcher" : "pitchers"} · {session.batterCount} {session.batterCount === 1 ? "batter" : "batters"}. Summaries use only recorded values; nulls are skipped.</p><p className="mb-0 text-sm">Pitch types and outcomes are absent, so fastball spin and strike, K, and BB percentages are unavailable. Potential exit speed is not measured exit velocity.</p></div>}
-        {!session && <details className="mb-5 rounded-lg border border-[var(--line-subtle)] p-4"><summary className="cursor-pointer text-sm font-semibold">File Layout</summary><label className="mt-4 max-w-xs">Header row<select value={headerRow} onChange={event => { invalidate(); setHeaderRow(Number(event.target.value)); setIdentityColumn(-1); setDateColumn(-1); setOverrides({}); setMetrics([{ id: nextId.current++, column: -1, key: "", unit: "" }]); }}>{file.sheets[0].matrix.slice(0, 20).map((_, index) => <option value={index} key={index}>Row {index + 1}</option>)}</select></label></details>}
+        {session && <div className="notice mb-5"><p className="font-semibold">Live at Bat · {session.date}</p><p>Source file: {session.eventCount} pitches · {session.pitcherCount} {session.pitcherCount === 1 ? "pitcher" : "pitchers"} · {session.batterCount} {session.batterCount === 1 ? "batter" : "batters"}. Summaries use only recorded values; nulls are skipped.</p><p className="mb-0 text-sm">Pitch types and outcomes are absent, so fastball spin and strike, K, and BB percentages are unavailable. Potential exit speed is not measured exit velocity.</p></div>}
+        {!session && <details className="mb-5 rounded-lg border border-[var(--line-subtle)] p-4"><summary className="cursor-pointer text-sm font-semibold">File Layout</summary><label className="mt-4 max-w-xs">Header row<select value={headerRow} onChange={event => { invalidate(); setHeaderRow(Number(event.target.value)); setIdentityColumn(-1); setDateColumn(-1); setOverrides({}); setExcluded([]); setMetrics([{ id: nextId.current++, column: -1, key: "", unit: "" }]); }}>{file.sheets[0].matrix.slice(0, 20).map((_, index) => <option value={index} key={index}>Row {index + 1}</option>)}</select></label></details>}
         {tableError && <p role="alert" className="notice notice-error">{tableError}</p>}
         {table && <>
-          {session ? <FullSwingSessionReview key={file.fileHash} session={session} fileHash={file.fileHash} assignmentStore={assignmentStore} /> : <details className="mb-6 rounded-lg border border-[var(--line-subtle)] p-4"><summary className="cursor-pointer text-sm font-semibold">View All Summaries · {table.rows.length} Rows</summary><div className="table-wrap mt-4 max-h-[32rem] overflow-auto"><table><thead><tr><th>Row</th>{table.headers.map((header, index) => <th key={index}>{header}</th>)}</tr></thead><tbody>{table.rows.map((row, index) => <tr key={index}><td>{table!.rowNumbers[index]}</td>{row.map((cell, column) => <td key={column}>{cell || "—"}</td>)}</tr>)}</tbody></table></div></details>}
           {!session && <div className="grid gap-5 md:grid-cols-2">
-            <label>Player identifier<select value={identityKind} onChange={event => { invalidate(); setIdentityKind(event.target.value as MeasurementMapping["identityKind"]); setOverrides({}); }}><option value="name">Player name</option><option value="code">PAC athlete ID</option><option value="email">Pacific email</option></select></label>
-            <ColumnSelect label="Player column" headers={table.headers} value={identityColumn} onChange={value => { invalidate(); setIdentityColumn(value); setOverrides({}); }} />
+            <label>Player identifier<select value={identityKind} onChange={event => { invalidate(); setIdentityKind(event.target.value as MeasurementMapping["identityKind"]); setOverrides({}); setExcluded([]); }}><option value="name">Player name</option><option value="code">PAC athlete ID</option><option value="email">Pacific email</option></select></label>
+            <ColumnSelect label="Player column" headers={table.headers} value={identityColumn} onChange={value => { invalidate(); setIdentityColumn(value); setOverrides({}); setExcluded([]); }} />
             <label>Test or game date<select value={dateMode} onChange={event => { invalidate(); setDateMode(event.target.value as "fixed" | "column"); }}><option value="fixed">One date for this file</option><option value="column">Read dates from a column</option></select></label>
             {dateMode === "fixed" ? <label>Date<input type="date" min="2026-09-01" max="2026-12-31" value={date} onChange={event => { invalidate(); setDate(event.target.value); }} /></label> : <><ColumnSelect label="Date column" headers={table.headers} value={dateColumn} onChange={value => { invalidate(); setDateColumn(value); }} /><label>Date format<select value={dateFormat} onChange={event => { invalidate(); setDateFormat(event.target.value as DateFormat); }}><option value="ISO">YYYY-MM-DD</option><option value="MDY">MM/DD/YYYY</option><option value="DMY">DD/MM/YYYY</option></select></label></>}
           </div>}
-          {!!identities.length && <details className="mt-5 rounded-lg border border-[var(--line-subtle)] p-4"><summary className="cursor-pointer font-semibold">Match Export Names to the Roster</summary><p className="muted mt-3 text-sm">Exact unique matches are suggested during review. Select a player here when an export uses a different name or ID.</p><div className="grid max-h-96 gap-4 overflow-y-auto md:grid-cols-2">{identities.map(identity => <label key={identity} className="break-words">{identity}<select value={overrides[identity] ?? ""} onChange={event => { invalidate(); setOverrides(current => { const next = { ...current }; if (event.target.value) next[identity] = event.target.value; else delete next[identity]; return next; }); }}><option value="">Use an exact unique match</option>{roster.map(athlete => <option key={athlete.id} value={athlete.athlete_code}>{athleteName(athlete)} · {athlete.athlete_code}</option>)}</select></label>)}</div></details>}
-          {session && <details className="mt-5"><summary className="cursor-pointer font-semibold">Measurement Sample Sizes</summary><div className="table-wrap mt-3"><table><thead><tr><th>Export Player</th><th>Role</th><th>Measurement</th><th>Recorded Readings</th><th>CSV Rows</th></tr></thead><tbody>{session.samples.map((sample, i) => <tr key={i}><td>{sample.identity}</td><td>{sample.role}</td><td>{sample.metric}</td><td>{sample.count}</td><td className="max-w-64 break-words text-xs">{sample.sourceRows.join(", ")}</td></tr>)}</tbody></table></div></details>}
+          {selectionError && <p role="alert" className="notice notice-error">{selectionError}</p>}
+          {selection && <div className="my-5 rounded-lg border border-[var(--line-subtle)] p-4">
+            <p className="m-0 font-semibold">{selection.includedIdentities.length} matched · {selection.skipped.length} skipped</p>
+            <p className="muted mb-0 mt-2 text-sm">Only matched roster players appear in summaries and receive stats. Unmatched names are skipped automatically; they will not block the import. Recorded results against excluded opponents still count.</p>
+            <details className="mt-3"><summary className="cursor-pointer font-semibold">Match or Exclude Export Names</summary><div className="mt-4 grid max-h-96 gap-4 overflow-y-auto md:grid-cols-2">{selection.players.map(player => <label key={player.identity} className="break-words">{player.identity || "Unnamed export player"}<span className="muted block text-xs">{player.included ? `Matched: ${athleteName(player.athlete!)}` : `Skipped · ${player.reason}`}</span><select value={excluded.includes(player.identity) ? "__exclude__" : overrides[player.identity] ?? ""} onChange={event => {
+              invalidate(); const value = event.target.value;
+              setExcluded(current => value === "__exclude__" ? [...current.filter(name => name !== player.identity), player.identity] : current.filter(name => name !== player.identity));
+              setOverrides(current => { const next = { ...current }; if (value && value !== "__exclude__") next[player.identity] = value; else delete next[player.identity]; return next; });
+            }}><option value="">Auto-match; skip if unmatched</option><option value="__exclude__">Exclude from this import</option>{roster.map(athlete => <option key={athlete.id} value={athlete.athlete_code}>{athleteName(athlete)} · {athlete.athlete_code}</option>)}</select></label>)}</div></details>
+          </div>}
+          {session ? <FullSwingSessionReview key={file.fileHash} session={session} includedIdentities={selection?.includedIdentities ?? []} fileHash={file.fileHash} assignmentStore={assignmentStore} /> : selection && <details className="mb-6 rounded-lg border border-[var(--line-subtle)] p-4"><summary className="cursor-pointer text-sm font-semibold">View Matched Summaries · {selection.table.rows.length} Rows</summary><div className="table-wrap mt-4 max-h-[32rem] overflow-auto"><table><thead><tr><th>Row</th>{table.headers.map((header, index) => <th key={index}>{header}</th>)}</tr></thead><tbody>{selection.table.rows.map((row, index) => <tr key={index}><td>{selection!.table.rowNumbers[index]}</td>{row.map((cell, column) => <td key={column}>{cell || "—"}</td>)}</tr>)}</tbody></table></div></details>}
+          {session && <details className="mt-5"><summary className="cursor-pointer font-semibold">Measurement Sample Sizes</summary><div className="table-wrap mt-3"><table><thead><tr><th>Export Player</th><th>Role</th><th>Measurement</th><th>Recorded Readings</th><th>CSV Rows</th></tr></thead><tbody>{session.samples.filter(sample => selection?.includedIdentities.includes(sample.identity)).map((sample, i) => <tr key={i}><td>{sample.identity}</td><td>{sample.role}</td><td>{sample.metric}</td><td>{sample.count}</td><td className="max-w-64 break-words text-xs">{sample.sourceRows.join(", ")}</td></tr>)}</tbody></table></div></details>}
           <h3 className="mb-2 mt-7 font-bold">Measurements</h3>
           <p className="muted text-sm">{session ? "Calculated from this session in mph and feet." : "Match each column to a measurement and its original unit."}</p>
           <details className="mb-4 text-sm"><summary className="muted cursor-pointer font-medium">Measurement Help</summary><p className="muted mb-0 mt-3">Percentages use 0–100. Keep maximum and average readings separate. {definitions.some(item => item.key === "avg_fastball_spin") && "Average fastball spin must include only fastballs. "}{session ? "Maximums and arithmetic averages are calculated separately for each player from recorded events." : "Use values already calculated in the source file."}</p></details>
@@ -146,6 +165,7 @@ export function FullSwingImport({ category, roster, saveAction, assignmentStore,
       {reviewed && <section className="panel p-5 sm:p-7">
         <h2 className={styles.stepTitle}><span className={styles.stepNumber}>3.</span>{" "}Review and Save</h2>
         <p className={styles.sectionLead}>{reviewed.candidateMeasurements.length} {reviewed.candidateMeasurements.length === 1 ? "reading" : "readings"} · {vendor} · {FULL_SWING_LABELS[category]} · Fall 2026</p>
+        {!!selection?.skipped.length && <p className="notice text-sm">{selection.skipped.length} unmatched or excluded export names will be skipped. Only the readings below will be saved.</p>}
         {!!reviewed.issues.length && <div role="alert" className="notice notice-error"><p className="font-semibold">Fix these rows before saving.</p><ul className="mb-0 list-disc pl-5">{reviewed.issues.slice(0, 30).map((issue, index) => <li key={index}>Row {issue.row}: {issue.message}</li>)}</ul>{reviewed.issues.length > 30 && <p>{reviewed.issues.length - 30} additional issues remain.</p>}</div>}
         <div className="table-wrap"><table><caption className="sr-only">All reviewed readings</caption><thead><tr><th>Player</th><th>Date</th><th>Measurement</th><th>Value</th><th>Source Row</th></tr></thead><tbody>{reviewed.candidateMeasurements.map(row => <tr key={row.id}><td><Link className="font-semibold underline underline-offset-2" prefetch={false} href={`/athletes/${roster.find(athlete => athlete.athlete_code === row.athlete_code)!.id}`}>{athleteName(roster.find(athlete => athlete.athlete_code === row.athlete_code)!)}</Link><span className="muted block text-xs">{row.athlete_code}</span></td><td className="whitespace-nowrap">{row.measured_at}</td><td>{row.metric}<StatInfo metric={row.metric} /></td><td className="whitespace-nowrap">{row.value} {row.unit}</td><td>{row.source_row}</td></tr>)}</tbody></table></div>
         <label className="my-5 flex items-start gap-3"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} /><span>I checked every player match, date, measurement, and unit. Save these readings to the team’s private profiles.</span></label>

@@ -4,16 +4,16 @@ import { useState } from "react";
 import { groupPitchRanges, SESSION_METRICS, type FullSwingSession } from "@/lib/imports/full-swing-session";
 
 const number = (value: number | null) => value === null ? "—" : value.toFixed(1);
-export function FullSwingSessionReview({ session, fileHash, assignmentStore }: { session: FullSwingSession; fileHash?: string; assignmentStore?: PitchAssignmentStore }) {
+export function FullSwingSessionReview({ session, fileHash, assignmentStore, includedIdentities }: { session: FullSwingSession; includedIdentities?: string[]; fileHash?: string; assignmentStore?: PitchAssignmentStore }) {
   const [search, setSearch] = useState("");
   const [velocityWidth, setVelocityWidth] = useState(5), [spinWidth, setSpinWidth] = useState(250);
   const [rpmConfirmed, setRpmConfirmed] = useState(false);
-  const matches = (name: string) => name.toLowerCase().includes(search.trim().toLowerCase());
+  const matches = (name: string) => (includedIdentities === undefined || includedIdentities.includes(name)) && name.toLowerCase().includes(search.trim().toLowerCase());
   const ranges = groupPitchRanges(session.pitches, velocityWidth, spinWidth).filter(r => matches(r.identity));
   const players = session.players.filter(p => matches(p.identity));
   const spinUnit = rpmConfirmed ? "RPM" : "export units";
   return <section className="my-6 space-y-5 rounded-xl border border-[var(--line-subtle)] p-4 sm:p-5" aria-label="Full Swing session review">
-    <div><h3 className="m-0 text-lg font-bold">All Player Summaries</h3><p className="muted mb-0 text-sm">{session.date} · {session.eventCount} pitches. Every exported player is included; — means no recorded value.</p></div>
+    <div><h3 className="m-0 text-lg font-bold">Roster Player Summaries</h3><p className="muted mb-0 text-sm">{session.date} · {session.eventCount} pitches in the source file. Only selected roster players appear below; — means no recorded value.</p></div>
     <label className="block max-w-md">Find a player<input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search export names" /></label>
     {!players.length && <p className="muted">No players match your search.</p>}
     {(["Batter", "Pitcher"] as const).map(role => {
@@ -34,6 +34,6 @@ export function FullSwingSessionReview({ session, fileHash, assignmentStore }: {
       })}</tbody></table></div>
       <p className="muted mb-0 text-xs">Ranges include the lower number and exclude the upper number. Percentages use all pitches thrown by that pitcher; missing spin stays in its own group.</p>
     </details>
-    <PitchAssignmentReview key={fileHash} session={session} ranges={ranges} search={search} spinUnit={spinUnit} rpmConfirmed={rpmConfirmed} fileHash={fileHash} store={assignmentStore} />
+    <PitchAssignmentReview key={fileHash} session={session} includedIdentities={includedIdentities} ranges={ranges} search={search} spinUnit={spinUnit} rpmConfirmed={rpmConfirmed} fileHash={fileHash} store={assignmentStore} />
   </section>;
 }
