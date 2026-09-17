@@ -1,4 +1,4 @@
-import { TIMED_METRIC_KEYS, isTimedMetric, PLAYER_METRICS, type PlayerMetricDefinition, type PlayerMetricKey, type PlayerPerformancePeriod } from "@/lib/player-performance";
+import { TIMED_METRIC_KEYS, isVisibleProfileMetric, isTimedMetric, PLAYER_METRICS, type PlayerMetricDefinition, type PlayerMetricKey, type PlayerPerformancePeriod } from "@/lib/player-performance";
 
 export type LeaderboardMetricKey = PlayerMetricKey;
 export type LeaderboardMetricDefinition = Omit<PlayerMetricDefinition, "key"> & { key: LeaderboardMetricKey };
@@ -10,12 +10,12 @@ export type LeaderboardComparison = { metricKey: LeaderboardMetricKey; source: s
 export type LeaderboardSelection = Omit<LeaderboardComparison, "athleteCount">;
 export type LeaderboardRow = { rank: number; athleteCode: string; name: string; jerseyNumber: number | null; position: string | null; profileId: string | null; value: number; measuredAt: string; source: string; derived: boolean };
 export const leaderboardGroupLabels: Record<LeaderboardGroup, string> = { physicality: "Physicality", hitting: "Hitting", throwing: "Throwing" };
-const physicality = new Set(["skeletal_muscle_mass", "body_score", "height", "weight", "grip_strength", "body_fat_pct", "muscle_mass_pct", "muscle_mass", ...TIMED_METRIC_KEYS]);
+const physicality = new Set(["skeletal_muscle_mass", "body_score", "height", "weight", "grip_strength", "grip_dominant", "grip_non_dominant", "body_fat_pct", "muscle_mass_pct", "muscle_mass", ...TIMED_METRIC_KEYS]);
 export function leaderboardGroup(metric: LeaderboardMetricDefinition): LeaderboardGroup {
   return physicality.has(metric.key) ? "physicality" : metric.group === "hitting" ? "hitting" : "throwing";
 }
-export const leaderboardMetrics = (group: LeaderboardGroup) => LEADERBOARD_METRICS.filter(metric => metric.key !== "skeletal_muscle_mass" && metric.key !== "muscle_mass_pct" && leaderboardGroup(metric) === group).sort((a, b) => {
-  const order = ["body_score", "height", "weight", "muscle_mass", "skeletal_muscle_mass", "body_fat_pct", "grip_strength"];
+export const leaderboardMetrics = (group: LeaderboardGroup) => LEADERBOARD_METRICS.filter(metric => isVisibleProfileMetric(metric.key) && metric.key !== "skeletal_muscle_mass" && metric.key !== "muscle_mass_pct" && leaderboardGroup(metric) === group).sort((a, b) => {
+  const order = ["body_score", "height", "weight", "muscle_mass", "skeletal_muscle_mass", "body_fat_pct", "grip_strength", "grip_dominant", "grip_non_dominant"];
   return (order.indexOf(a.key) < 0 ? 99 : order.indexOf(a.key)) - (order.indexOf(b.key) < 0 ? 99 : order.indexOf(b.key));
 });
 export const leaderboardSourceLabel = (source: string) => ({ renpho: "RENPHO", "full swing": "Full Swing", blast: "Blast", rapsodo: "Rapsodo", "player metrics": "Player Metrics" })[source] ?? source;

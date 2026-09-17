@@ -7,6 +7,8 @@ export const STAT_DEFINITIONS: Readonly<Record<string, string>> = {
   body_score: "The Body Score printed in the top-right corner of the RENPHO report, on its /100 scale. This is the device’s recorded score; PACU does not calculate or combine measurements to produce it. Some reports may exceed 100. It is not a team percentile.",
   height: "Recorded standing height. Displayed in feet and inches; comparisons keep the original measurement units separate.",
   weight: "Total recorded body weight on the test date. A higher percentile means a higher measured weight, not a better score.",
+  grip_dominant: "Grip force recorded for the dominant hand. Compare the same hand, device, protocol and unit; this is separate from non-dominant grip.",
+  grip_non_dominant: "Grip force recorded for the non-dominant hand. Compare the same hand, device, protocol and unit; this is separate from dominant grip.",
   grip_strength: "Force measured during a grip-strength test. Compare results taken with the same device, hand, and testing protocol.",
   body_fat_pct: "The report’s estimated fat mass as a percentage of body weight. Lower body fat receives a higher percentile and leaderboard rank. This is a body-composition comparison, not a performance rating.",
   skeletal_muscle_mass: "The device’s estimated skeletal muscle mass, in pounds or kilograms. This is separate from total muscle mass and is not a strength test.",

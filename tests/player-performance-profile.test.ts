@@ -42,16 +42,16 @@ describe("player profile tabs and presentation",()=>{
   {type:null,primary:"UT",secondary:"unknown SS",field:[],pitch:false},
   {type:null,primary:null,secondary:null,field:[],pitch:false},
  ])("uses exact recorded throwing positions for $type/$primary/$secondary",({type,primary,secondary,field,pitch})=>{
-  const athlete=fictionalAthlete(type,primary,secondary),layout=getPlayerProfileLayout(model(),athlete.athlete_seasons[0]);expect(layout.fieldThrowing.map(c=>c.metric.key)).toEqual(field);expect(layout.pitching.length>0).toBe(pitch);expect(layout.hasThrowingRole).toBe(pitch||!!field.length);
+  const athlete=fictionalAthlete(type,primary,secondary),layout=getPlayerProfileLayout(model([measurement("Infield Velocity",80,"mph"),measurement("Outfield Velocity",85,"mph"),measurement("Max Velocity",88,"mph")]),athlete.athlete_seasons[0]);expect(layout.fieldThrowing.map(c=>c.metric.key)).toEqual(field);expect(layout.pitching.length>0).toBe(pitch);expect(layout.hasThrowingRole).toBe(pitch||!!field.length);
  });
  it("keeps speed testing periods and legacy bat speed distinct while reordering cards",()=>{
   const performance=model([measurement("Home to First",4.2,"s"),measurement("Bat Speed",72,"mph"),measurement("Body Fat Percentage",18,"%")]),layout=getPlayerProfileLayout(performance,fictionalAthlete("position").athlete_seasons[0]);
-  expect(layout.physicality.map(c=>c.metric.key)).toEqual(["weight","height","grip_strength"]);expect(layout.hitting.map(c=>c.metric.key)).toEqual(["max_exit_velocity","avg_exit_velocity","max_bat_speed","avg_bat_speed","smash_factor","max_distance"]);
+  expect(layout.physicality.map(c=>c.metric.key)).toEqual([]);expect(layout.hitting.map(c=>c.metric.key)).toEqual([]);
   const speed=layout.speedAgility.find(c=>c.metric.key==="home_to_first")!;expect(speed).toBe(performance.hitting.find(c=>c.metric.key==="home_to_first"));expect(speed.latest).toMatchObject({measuredAt:"2026-09-03",period:"fall_2026",unit:"s",value:4.2});
-  expect(layout.additionalBody.map(c=>c.metric.key)).toEqual(["body_fat_pct","muscle_mass"]);
-  expect(layout.otherHitting.map(c=>c.metric.key)).toEqual(["bat_speed"]);expect(layout.hitting.find(c=>c.metric.key==="max_bat_speed")?.latest).toBeNull();expect(layout.hitting.find(c=>c.metric.key==="avg_bat_speed")?.latest).toBeNull();
+  expect(layout.additionalBody.map(c=>c.metric.key)).toEqual(["body_fat_pct"]);
+  expect(layout.otherHitting.map(c=>c.metric.key)).toEqual(["bat_speed"]);expect(layout.hitting.find(c=>c.metric.key==="max_bat_speed")?.latest).toBeUndefined();expect(layout.hitting.find(c=>c.metric.key==="avg_bat_speed")?.latest).toBeUndefined();
   const html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete:fictionalAthlete("position"),performance}));expect(html).toContain("Bat Speed (Unspecified)");expect(html).toContain('data-value="72"');
-  const physicality=html.split('id="body-measurements"')[1].split('id="body-composition"');expect(physicality[0]).not.toContain('data-metric-key="body_fat_pct"');expect(physicality[1]).toContain('data-metric-key="body_fat_pct" data-value="18" data-unit="%"');
+  expect(html).not.toContain('id="body-measurements"');const physicality=html.split('id="body-composition"')[1];expect(physicality).toContain('data-metric-key="body_fat_pct" data-value="18" data-unit="%"');
  });
  it("shows actual latest dates, retains older data only in the model history, and keeps source information collapsed",()=>{
   const athlete=fictionalAthlete("position"),performance=model([measurement("Weight",170,"lb","2026-08-09"),measurement("Weight",171,"lb")]);const html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete,performance}));
@@ -90,10 +90,18 @@ it("shows recorded total muscle in Body Composition and Overview instead of a pe
  expect(html).toContain('data-metric-key="muscle_mass" data-value="120" data-unit="lb"');
  expect(html).not.toContain('data-metric-key="muscle_mass_pct"');expect(html).not.toContain("Muscle Mass %");
  const overview=html.split('role="tabpanel"')[1];expect(overview).toContain("120 lb");expect(overview).toContain('aria-label="Muscle Mass Pacific percentile"');expect(overview).toContain('aria-valuenow="0"');
- expect(getPlayerProfileLayout(model([measurement("Muscle Mass Percentage",75,"%")]),fictionalAthlete("position").athlete_seasons[0]).additionalBody.find(c=>c.metric.key==="muscle_mass")?.latest).toBeNull();
+ expect(getPlayerProfileLayout(model([measurement("Muscle Mass Percentage",75,"%")]),fictionalAthlete("position").athlete_seasons[0]).additionalBody.find(c=>c.metric.key==="muscle_mass")?.latest).toBeUndefined();
 });
 it("renders the same percentile bars across hitting and throwing for comparable data",()=>{
  const codes=Array.from({length:5},(_,i)=>`SYN-00${i+1}`),readings=codes.flatMap((code,i)=>[measurement("Max EV",90+i,"mph","2026-09-03",code),measurement("Max Velocity",80+i,"mph","2026-09-03",code),measurement("BB %",5+i,"%","2026-09-03",code)]);
  const performance=getPlayerPerformance({readings,athleteCode:codes[0],cohortAthleteCodes:codes}),html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete:fictionalAthlete("two_way","CF","P"),performance}));
  for(const label of ["Max EV","Max Velocity","BB %"])expect(html).toContain(`aria-label="${label} Pacific percentile"`);expect(html).toContain('data-direction="lower"');
+});
+
+it("keeps only available profile measurements and hides paused speed protocols without deleting them",()=>{
+ const performance=model([measurement("Dominant Grip",110,"lb"),measurement("Non-Dominant Grip",105,"lb"),measurement("Steal Break",1,"s"),measurement("Steal Reaction",.3,"s"),measurement("Steal Start · 12–42 ft",2,"s"),measurement("12 ft Steal Start",1.5,"s")]);
+ const html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete:fictionalAthlete("position"),performance}));
+ for(const key of ["grip_dominant","grip_non_dominant","steal_start_12ft"])expect(html).toContain(`data-metric-key="${key}"`);
+ for(const key of ["steal_break","steal_reaction","steal_12_42ft","max_exit_velocity","weight"])expect(html).not.toContain(`data-metric-key="${key}"`);
+ expect(performance.hitting.find(c=>c.metric.key==="steal_reaction")?.history).toHaveLength(1);
 });

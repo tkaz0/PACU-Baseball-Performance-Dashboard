@@ -87,7 +87,7 @@ describe("shared performance authorization",()=>{
         expect(saved.body_metric).toBe(definition.group === "body");
       }
     }
-    const newKeys = ["grip_strength","max_bat_speed","avg_bat_speed","smash_factor","max_distance","avg_pitch_velocity","infield_velocity","outfield_velocity"];
+    const newKeys = ["grip_dominant","grip_non_dominant","grip_strength","max_bat_speed","avg_bat_speed","smash_factor","max_distance","avg_pitch_velocity","infield_velocity","outfield_velocity"];
     const added = PLAYER_METRICS.filter(item => newKeys.includes(item.key));
     const before = await counts();
     await asUser(users.coach, () => importRows(added.map((metric,index) => row(1,{metric_key:metric.key,unit:metric.units[0],value:metric.key==="smash_factor"?1.3:40},index))));

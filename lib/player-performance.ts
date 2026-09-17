@@ -4,7 +4,7 @@ import { getRenphoChartReadings, getRenphoReports } from "@/lib/renpho-charts";
 
 export type PlayerMetricGroup = "body" | "hitting" | "pitching" | "throwing";
 export type PlayerMetricDirection = "neutral" | "higher" | "lower";
-export type PlayerMetricKey = "skeletal_muscle_mass" | "body_score" | "height" | "weight" | "grip_strength" | "body_fat_pct" | "muscle_mass_pct" | "muscle_mass"
+export type PlayerMetricKey = "skeletal_muscle_mass" | "body_score" | "height" | "weight" | "grip_strength" | "grip_dominant" | "grip_non_dominant" | "body_fat_pct" | "muscle_mass_pct" | "muscle_mass"
   | "max_exit_velocity" | "avg_exit_velocity" | "bat_speed" | "home_to_first" | "home_to_second" | "steal_break" | "boxer_t"
   | "steal_start_12ft" | "steal_reaction" | "steal_12_42ft"
   | "max_bat_speed" | "avg_bat_speed" | "smash_factor" | "max_distance"
@@ -20,6 +20,8 @@ export const PLAYER_METRICS: readonly PlayerMetricDefinition[] = [
   { key: "height", label: "Height", group: "body", units: ["in", "cm"], direction: "neutral" },
   { key: "weight", label: "Weight", group: "body", units: ["lb", "kg", "st"], direction: "neutral" },
   { key: "grip_strength", label: "Grip Strength", group: "body", units: ["lb", "kg", "N"], direction: "higher" },
+  { key: "grip_dominant", label: "Dominant Grip", group: "body", units: ["lb", "kg", "N"], direction: "higher" },
+  { key: "grip_non_dominant", label: "Non-Dominant Grip", group: "body", units: ["lb", "kg", "N"], direction: "higher" },
   { key: "body_fat_pct", label: "Body Fat %", group: "body", units: ["%"], direction: "neutral" },
   { key: "muscle_mass", label: "Muscle Mass", group: "body", units: ["lb", "kg"], direction: "neutral" },
   { key: "skeletal_muscle_mass", label: "Skeletal Muscle Mass", group: "body", units: ["lb", "kg"], direction: "neutral" },
@@ -79,6 +81,8 @@ export type PlayerPerformanceInput = {
 
 export const TIMED_METRIC_KEYS = ["home_to_first", "home_to_second", "steal_break", "boxer_t", "steal_start_12ft", "steal_reaction", "steal_12_42ft"] as const;
 export const isTimedMetric = (key: string) => (TIMED_METRIC_KEYS as readonly string[]).includes(key);
+export const HIDDEN_PROFILE_METRICS = ["steal_break", "steal_reaction", "steal_12_42ft"] as const;
+export const isVisibleProfileMetric = (key: string) => !(HIDDEN_PROFILE_METRICS as readonly string[]).includes(key);
 const definitions = new Map(PLAYER_METRICS.map(metric => [metric.key, metric]));
 const labelKey = (value: string) => value.trim().toLowerCase().replace(/[^a-z0-9%]/g, "");
 const sourceKey = (value: string) => value.trim().toLowerCase().replace(/\s+/g, " ");
@@ -89,6 +93,7 @@ const extraAliases: Record<PlayerMetricKey, readonly string[]> = {
   body_score: ["Body Score"],
   height: ["Body height"], weight: ["Body weight"],
   grip_strength: ["Grip Force"],
+  grip_dominant: ["GRIP (DOM)"], grip_non_dominant: ["GRIP (NON DOM)"],
   body_fat_pct: ["Body Fat Percentage", "Body Fat Percent"],
   muscle_mass: [],
   skeletal_muscle_mass: [],

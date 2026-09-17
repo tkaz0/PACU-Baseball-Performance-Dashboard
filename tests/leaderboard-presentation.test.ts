@@ -66,14 +66,14 @@ describe("automatic ranking boards", () => {
     expect(output).toContain('href="/leaderboards?group=hitting"');
     expect(output).toContain("Last Tested Aug 9, 2026");
     expect(output).toContain("RENPHO");
-    expect(output).toContain("Awaiting Testing");
+    expect(output).not.toContain("Awaiting Testing");
     for (const unwanted of ["<form", "<select", "Show Results", "summer baseline"]) expect(output).not.toContain(unwanted);
     expect(output).toContain("<details");
   });
   it("keeps an empty category clear without ranks or zero-filled player results", () => {
     const output = renderToStaticMarkup(createElement(LeaderboardBoard, { group: "hitting", panels: [] }));
     expect(output).toContain("No Hitting Results Yet");
-    expect(output).toContain("Max Exit Velocity");
+    expect(output).not.toContain("Max Exit Velocity");
     expect(output).not.toContain("<table");
     expect(output).not.toContain("Fictional Player");
   });
@@ -112,4 +112,9 @@ describe("total muscle mass ranking", () => {
     const output=renderToStaticMarkup(createElement(LeaderboardResults,{metric:LEADERBOARD_METRICS.find(m=>m.key==="muscle_mass")!,rows:[{...row,value:100,derived:false}],unit:"lb",source:"renpho",period:"fall_2026"}));
     expect(output).toContain("Muscle Mass");expect(output).toContain("Highest First");expect(output).toContain("Fall 2026");expect(output).toContain(">lb<");expect(output).not.toContain("≈");
   });
+});
+
+it("withholds paused speed boards even when they have recorded results",()=>{
+ const options:LeaderboardComparison[]=["steal_break","steal_reaction","steal_12_42ft","steal_start_12ft"].map(metricKey=>({metricKey:metricKey as LeaderboardComparison["metricKey"],source:"player metrics",unit:"s",period:"fall_2026",athleteCount:5}));
+ expect(visibleLeaderboardComparisons("physicality",options).map(o=>o.metricKey)).toEqual(["steal_start_12ft"]);
 });
