@@ -166,6 +166,7 @@ Future sources will use the master roster as the identity registry:
 - Blast exports
 - Rapsodo hitting and pitching exports
 - Full Swing exports
+- The reviewed Field / Live at Bat adapter derives per-player session summaries with original file provenance and a separately labeled derived-summary coordinate space; it does not persist raw events or inferred outcomes. See INFORMATION_IMPORTS.md.
 - Game statistics maintained in Google Sheets
 - Physical/sprint testing maintained in Google Sheets
 - Force-plate exports when equipment is available

@@ -33,7 +33,15 @@ Mappings are additive: previous IDs still match, blanks do not delete links, and
 
 ## Full Swing readiness
 
-**No actual Full Swing export was available for this release.** The labeled upload areas support manual review of summary CSV columns; they are not a validated automatic Full Swing parser. The first real export is needed before adding a vendor-specific adapter, including any individual-swing/pitch aggregation.
+**The owner supplied a Field / Live at Bat export on September 17.** Games / Intrasquad now detects that exact 28-column layout and prepares player summaries. The owner confirmed the sample is a September 11 intrasquad session using mph and feet. Every subsequent file requires explicit confirmation of these units. Other raw layouts remain unsupported; manually reviewed summary CSVs continue to work in all lanes.
+
+The session reader groups hitters and pitchers separately by their exported identity. It calculates maximum/average measured exit velocity, maximum/average measured bat speed, maximum distance, and maximum/average pitch velocity. Each average uses only its own recorded readings; literal `null` and blank cells are missing, never zero. Review shows metric-specific sample counts and original CSV rows. Names require unique exact roster matching or an explicit manual choice. No accounts or permanent ID links are created.
+
+The sample has no pitch-type or outcome columns. It cannot supply fastball-only spin, strike/K/BB rates, or official game batting totals. Potential exit speed is not measured exit velocity. Smash factor is retained in the original file but not aggregated until a session-summary definition is chosen. Google game totals remain separate.
+
+Only one complete dated Fall session per file is accepted. Repeated pitch numbers, conflicting name/ID pairs, mixed dates, invalid measured numbers and altered headers require review. Upload a complete session once: identical file reimports retain the existing provenance-based duplicate handling, but overlapping/re-exported files with different bytes are not automatically reconciled. The review explicitly confirms the session has not been imported from another export.
+
+Derived observations retain the original file hash/name under `CSV · Full Swing session summaries v1`, with distinct derived-summary row/column coordinates. These are explicitly summary rows, not original pitch rows; the review's sample evidence lists the original rows used. No raw files, vendor IDs or names are added to the numerical save payload. The supplied private sample is kept outside Git and has not been saved to production profiles.
 
 Each row must already contain one player's session summaries. Map player name, PAC ID or email; explicitly resolve unmatched export identities against the roster. Choose the original date and units, then select only supported profile metrics. Percentages are 0–100 percentage points. Average fastball spin must already exclude other pitch types. Repeated player/date/metric rows block saving rather than silently selecting a raw event as the maximum or average. Average EV, bat speed and pitch velocity cannot exceed their matching maximum in the same unit. Generic Bat Speed remains separate; smash factor and distance must be explicitly supplied, not derived from other summaries.
 

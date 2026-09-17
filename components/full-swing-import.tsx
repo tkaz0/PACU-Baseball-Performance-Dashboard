@@ -11,6 +11,7 @@ import { readImportFile } from "@/lib/imports/files";
 import { selectTable, type DateFormat, type Measurement, type MeasurementMapping, type MeasurementPreview } from "@/lib/imports/engine";
 import { FULL_SWING_LABELS, fullSwingMetrics, previewFullSwingSummary, type FullSwingCategory } from "@/lib/imports/full-swing";
 import { BLAST_MOTION_METRICS, previewBlastMotionSummary } from "@/lib/imports/blast-motion";
+import { looksLikeFullSwingSession, summarizeFullSwingSession, SESSION_METRICS, type FullSwingSession } from "@/lib/imports/full-swing-session";
 import { StatInfo } from "@/components/stat-info";
 import { athleteName, type RosterAthlete } from "@/lib/types";
 
@@ -26,6 +27,7 @@ function ColumnSelect({ label, headers, value, onChange }: { label: string; head
 export function FullSwingImport({ category, roster, saveAction, vendor = "Full Swing" }: { vendor?: "Full Swing" | "Blast Motion"; category: FullSwingCategory; roster: RosterAthlete[]; saveAction: SaveImportAction }) {
   const [file, setFile] = useState<FileData | null>(null);
   const [headerRow, setHeaderRow] = useState(0);
+  const [session, setSession] = useState<FullSwingSession | null>(null);
   const [identityKind, setIdentityKind] = useState<MeasurementMapping["identityKind"]>("name");
   const [identityColumn, setIdentityColumn] = useState(-1);
   const [overrides, setOverrides] = useState<Record<string, string>>({});
@@ -46,19 +48,28 @@ export function FullSwingImport({ category, roster, saveAction, vendor = "Full S
   const definitions = blast ? BLAST_MOTION_METRICS : fullSwingMetrics(category);
   let table: ReturnType<typeof selectTable> | null = null;
   let tableError = "";
-  if (file) { try { table = selectTable(file.sheets[0].matrix, headerRow); } catch (error) { tableError = errorText(error); } }
+  if (file) { try { table = session?.table ?? selectTable(file.sheets[0].matrix, headerRow); } catch (error) { tableError = errorText(error); } }
   const identities = table && identityColumn >= 0 ? [...new Set(table.rows.map(row => row[identityColumn]).filter(Boolean))] : [];
   const invalidate = () => { setReviewed(null); setConfirmed(false); setError(""); setReceipt(null); };
   async function chooseFile(next?: File) {
     const version = ++request.current;
-    invalidate(); setFile(null); setHeaderRow(0); setIdentityColumn(-1); setOverrides({}); setDateColumn(-1); setSummaryConfirmed(false);
+    invalidate(); setFile(null); setSession(null); setHeaderRow(0); setIdentityColumn(-1); setOverrides({}); setDateColumn(-1); setSummaryConfirmed(false);
     setMetrics([{ id: nextId.current++, column: -1, key: "", unit: "" }]);
     if (!next) return;
     setBusy(true);
     try {
       if (!next.name.toLowerCase().endsWith(".csv")) throw new Error(`Choose a ${vendor} CSV or a reviewed PACU summary CSV.`);
       const loaded = await readImportFile(next);
-      if (version === request.current) setFile(loaded);
+      if (version === request.current) {
+        if (!blast && looksLikeFullSwingSession(loaded.sheets[0].matrix[0].map(cell => cell.trim()))) {
+          const original = selectTable(loaded.sheets[0].matrix, 0);
+          if (category !== "game" && category !== "intrasquad") throw new Error("Choose Games / Intrasquad for a Live at Bat session containing hitters and pitchers.");
+          const parsed = summarizeFullSwingSession(original);
+          setSession(parsed); setIdentityKind("name"); setIdentityColumn(0); setDateMode("column"); setDateColumn(1); setDateFormat("ISO");
+          setMetrics(SESSION_METRICS.map((m, i) => ({ id: nextId.current++, column: i + 2, key: m.key, unit: m.unit })));
+        }
+        setFile(loaded);
+      }
     } catch (error) { if (version === request.current) setError(errorText(error)); }
     finally { if (version === request.current) setBusy(false); }
   }
@@ -71,7 +82,7 @@ export function FullSwingImport({ category, roster, saveAction, vendor = "Full S
         ...(dateMode === "fixed" ? { fixedDate: date } : { dateColumn }), dateFormat: dateMode === "fixed" ? "ISO" : dateFormat,
         source: "", metrics: metrics.map(metric => ({ column: metric.column, label: definitions.find(item => item.key === metric.key)?.label ?? "", unit: metric.unit })),
       };
-      const input = { table, mapping, roster, file: { fileName: file.fileName, fileHash: file.fileHash, sheetName: file.sheets[0].name }, category, summaryConfirmed };
+      const input = { table, mapping, roster, file: { fileName: file.fileName, fileHash: file.fileHash, sheetName: session ? "CSV · Full Swing session summaries v1" : file.sheets[0].name }, category, summaryConfirmed };
       setReviewed(blast ? previewBlastMotionSummary(input) : previewFullSwingSummary(input));
     } catch (error) { setError(errorText(error)); }
   }
@@ -93,9 +104,9 @@ export function FullSwingImport({ category, roster, saveAction, vendor = "Full S
   return <div className="space-y-6">
     <section className={`panel p-5 sm:p-7 ${styles.uploadPanel}`}>
       <h2 className={styles.stepTitle}><span className={styles.stepNumber}>1.</span>{" "}Add {FULL_SWING_LABELS[category]} Data</h2>
-      <p className={styles.sectionLead}>One player’s session summary per row.</p>
+      <p className={styles.sectionLead}>{!blast && (category === "game" || category === "intrasquad") ? "Full Swing Live at Bat export or player session summaries." : "One player’s session summary per row."}</p>
       <FileDropZone label={`${vendor} CSV · ${FULL_SWING_LABELS[category]}`} description="Drop a CSV here, or choose a file." accept=".csv,text/csv" disabled={busy || !roster.length} onFile={next => { void chooseFile(next); }} />
-      <details className={styles.help}><summary>CSV Requirements &amp; Template</summary><div className="mt-3 space-y-3"><p className="muted mb-0 text-sm">Use session summaries, up to 2 MiB and 500 readings. Individual swing and pitch exports are not supported yet.</p><p className="muted mb-0 text-sm"><a className="font-semibold underline" href={blast ? "/templates/pacu-blast-motion-summary.csv" : `/templates/pacu-${category}-summary.csv`} download>Download the PACU summary template</a>. This blank template is provided by PACU; it is not a {vendor} export format.</p></div></details>
+      <details className={styles.help}><summary>CSV Requirements &amp; Template</summary><div className="mt-3 space-y-3"><p className="muted mb-0 text-sm">Use session summaries, up to 2 MiB and 500 readings. {!blast && (category === "game" || category === "intrasquad") ? "The reviewed Field / Live at Bat layout is supported after confirming mph and feet. Upload each complete session once; do not upload overlapping or edited copies." : blast ? "Individual-swing Blast exports are not supported yet." : "Full Swing Live at Bat exports belong in Games / Intrasquad."}</p><p className="muted mb-0 text-sm"><a className="font-semibold underline" href={blast ? "/templates/pacu-blast-motion-summary.csv" : `/templates/pacu-${category}-summary.csv`} download>Download the PACU summary template</a>. This blank template is provided by PACU; it is not a {vendor} export format.</p></div></details>
       {blast && <p className="muted mt-3 mb-0 text-sm">Import maximum and average bat speed from session summaries. Your first Blast export will help us verify the format; individual-swing CSVs are not supported yet.</p>}
       {busy && <p role="status" className={styles.progress}><LoaderCircle className="animate-spin" size={18} aria-hidden="true" />{file ? "Saving reviewed readings…" : "Reading CSV…"}</p>}
     </section>
@@ -103,28 +114,30 @@ export function FullSwingImport({ category, roster, saveAction, vendor = "Full S
       <section className="panel p-5 sm:p-7">
         <h2 className={styles.stepTitle}><span className={styles.stepNumber}>2.</span>{" "}Match Players and Columns</h2>
         <p className={`${styles.sectionLead} break-words`}>{file.fileName}</p>
-        <details className="mb-5 rounded-lg border border-[var(--line-subtle)] p-4"><summary className="cursor-pointer text-sm font-semibold">File Layout</summary><label className="mt-4 max-w-xs">Header row<select value={headerRow} onChange={event => { invalidate(); setHeaderRow(Number(event.target.value)); setIdentityColumn(-1); setDateColumn(-1); setOverrides({}); setMetrics([{ id: nextId.current++, column: -1, key: "", unit: "" }]); }}>{file.sheets[0].matrix.slice(0, 20).map((_, index) => <option value={index} key={index}>Row {index + 1}</option>)}</select></label></details>
+        {session && <div className="notice mb-5"><p className="font-semibold">Live at Bat · {session.date}</p><p>{session.eventCount} pitches · {session.pitcherCount} {session.pitcherCount === 1 ? "pitcher" : "pitchers"} · {session.batterCount} {session.batterCount === 1 ? "batter" : "batters"}. Summaries use only recorded values; nulls are skipped.</p><p className="mb-0 text-sm">Pitch types and outcomes are absent, so fastball spin and strike, K, and BB percentages are unavailable. Potential exit speed is not measured exit velocity.</p></div>}
+        {!session && <details className="mb-5 rounded-lg border border-[var(--line-subtle)] p-4"><summary className="cursor-pointer text-sm font-semibold">File Layout</summary><label className="mt-4 max-w-xs">Header row<select value={headerRow} onChange={event => { invalidate(); setHeaderRow(Number(event.target.value)); setIdentityColumn(-1); setDateColumn(-1); setOverrides({}); setMetrics([{ id: nextId.current++, column: -1, key: "", unit: "" }]); }}>{file.sheets[0].matrix.slice(0, 20).map((_, index) => <option value={index} key={index}>Row {index + 1}</option>)}</select></label></details>}
         {tableError && <p role="alert" className="notice notice-error">{tableError}</p>}
         {table && <>
-          <details className="mb-6 rounded-lg border border-[var(--line-subtle)] p-4"><summary className="cursor-pointer text-sm font-semibold">View File · {table.rows.length} Rows</summary><div className="table-wrap mt-4"><table><thead><tr><th>Row</th>{table.headers.map((header, index) => <th key={index}>{header}</th>)}</tr></thead><tbody>{table.rows.slice(0, 10).map((row, index) => <tr key={index}><td>{table!.rowNumbers[index]}</td>{row.map((cell, column) => <td key={column}>{cell || "—"}</td>)}</tr>)}</tbody></table></div><p className="muted mb-0 mt-3 text-xs">First 10 rows shown. All rows are reviewed before saving.</p></details>
-          <div className="grid gap-5 md:grid-cols-2">
+          <details className="mb-6 rounded-lg border border-[var(--line-subtle)] p-4"><summary className="cursor-pointer text-sm font-semibold">{session ? "Calculated Summaries" : "View File"} · {table.rows.length} Rows</summary><div className="table-wrap mt-4"><table><thead><tr><th>Row</th>{table.headers.map((header, index) => <th key={index}>{header}</th>)}</tr></thead><tbody>{table.rows.slice(0, 10).map((row, index) => <tr key={index}><td>{table!.rowNumbers[index]}</td>{row.map((cell, column) => <td key={column}>{cell || "—"}</td>)}</tr>)}</tbody></table></div><p className="muted mb-0 mt-3 text-xs">First 10 rows shown. All rows are reviewed before saving.{session && " Row numbers refer to the calculated summary; original pitch rows are available under Measurement Sample Sizes."}</p></details>
+          {!session && <div className="grid gap-5 md:grid-cols-2">
             <label>Player identifier<select value={identityKind} onChange={event => { invalidate(); setIdentityKind(event.target.value as MeasurementMapping["identityKind"]); setOverrides({}); }}><option value="name">Player name</option><option value="code">PAC athlete ID</option><option value="email">Pacific email</option></select></label>
             <ColumnSelect label="Player column" headers={table.headers} value={identityColumn} onChange={value => { invalidate(); setIdentityColumn(value); setOverrides({}); }} />
             <label>Test or game date<select value={dateMode} onChange={event => { invalidate(); setDateMode(event.target.value as "fixed" | "column"); }}><option value="fixed">One date for this file</option><option value="column">Read dates from a column</option></select></label>
             {dateMode === "fixed" ? <label>Date<input type="date" min="2026-09-01" max="2026-12-31" value={date} onChange={event => { invalidate(); setDate(event.target.value); }} /></label> : <><ColumnSelect label="Date column" headers={table.headers} value={dateColumn} onChange={value => { invalidate(); setDateColumn(value); }} /><label>Date format<select value={dateFormat} onChange={event => { invalidate(); setDateFormat(event.target.value as DateFormat); }}><option value="ISO">YYYY-MM-DD</option><option value="MDY">MM/DD/YYYY</option><option value="DMY">DD/MM/YYYY</option></select></label></>}
-          </div>
+          </div>}
           {!!identities.length && <details className="mt-5 rounded-lg border border-[var(--line-subtle)] p-4"><summary className="cursor-pointer font-semibold">Match Export Names to the Roster</summary><p className="muted mt-3 text-sm">Exact unique matches are suggested during review. Select a player here when an export uses a different name or ID.</p><div className="grid max-h-96 gap-4 overflow-y-auto md:grid-cols-2">{identities.map(identity => <label key={identity} className="break-words">{identity}<select value={overrides[identity] ?? ""} onChange={event => { invalidate(); setOverrides(current => { const next = { ...current }; if (event.target.value) next[identity] = event.target.value; else delete next[identity]; return next; }); }}><option value="">Use an exact unique match</option>{roster.map(athlete => <option key={athlete.id} value={athlete.athlete_code}>{athleteName(athlete)} · {athlete.athlete_code}</option>)}</select></label>)}</div></details>}
+          {session && <details className="mt-5"><summary className="cursor-pointer font-semibold">Measurement Sample Sizes</summary><div className="table-wrap mt-3"><table><thead><tr><th>Export Player</th><th>Role</th><th>Measurement</th><th>Recorded Readings</th><th>CSV Rows</th></tr></thead><tbody>{session.samples.map((sample, i) => <tr key={i}><td>{sample.identity}</td><td>{sample.role}</td><td>{sample.metric}</td><td>{sample.count}</td><td className="max-w-64 break-words text-xs">{sample.sourceRows.join(", ")}</td></tr>)}</tbody></table></div></details>}
           <h3 className="mb-2 mt-7 font-bold">Measurements</h3>
-          <p className="muted text-sm">Match each column to a measurement and its original unit.</p>
-          <details className="mb-4 text-sm"><summary className="muted cursor-pointer font-medium">Measurement Help</summary><p className="muted mb-0 mt-3">Percentages use 0–100. Keep maximum and average readings separate. {definitions.some(item => item.key === "avg_fastball_spin") && "Average fastball spin must include only fastballs. "}Use values already calculated in the source file.</p></details>
-          <div className="space-y-4">{metrics.map((metric, index) => <div key={metric.id} className="grid items-end gap-3 rounded-lg border border-[var(--line-subtle)] p-4 md:grid-cols-[1fr_1fr_120px_44px]">
+          <p className="muted text-sm">{session ? "Calculated from this session in mph and feet." : "Match each column to a measurement and its original unit."}</p>
+          <details className="mb-4 text-sm"><summary className="muted cursor-pointer font-medium">Measurement Help</summary><p className="muted mb-0 mt-3">Percentages use 0–100. Keep maximum and average readings separate. {definitions.some(item => item.key === "avg_fastball_spin") && "Average fastball spin must include only fastballs. "}{session ? "Maximums and arithmetic averages are calculated separately for each player from recorded events." : "Use values already calculated in the source file."}</p></details>
+          {session ? <div className="grid gap-2 sm:grid-cols-2">{SESSION_METRICS.map(metric => <div key={metric.key} className="flex items-center justify-between gap-3 rounded-lg border border-[var(--line-subtle)] px-4 py-3 text-sm"><span className="font-semibold">{metric.label}</span><span className="muted">{metric.unit}</span></div>)}</div> : <fieldset><div className="space-y-4">{metrics.map((metric, index) => <div key={metric.id} className="grid items-end gap-3 rounded-lg border border-[var(--line-subtle)] p-4 md:grid-cols-[1fr_1fr_120px_44px]">
             <ColumnSelect label={`Data column ${index + 1}`} headers={table.headers} value={metric.column} onChange={value => { invalidate(); setMetrics(current => current.map(item => item.id === metric.id ? { ...item, column: value } : item)); }} />
             <label>Measurement<select value={metric.key} onChange={event => { invalidate(); setMetrics(current => current.map(item => item.id === metric.id ? { ...item, key: event.target.value, unit: "" } : item)); }}><option value="">Choose a measurement…</option>{definitions.map(item => <option key={item.key} value={item.key}>{item.label}</option>)}</select></label>
             <label>Unit<select value={metric.unit} onChange={event => { invalidate(); setMetrics(current => current.map(item => item.id === metric.id ? { ...item, unit: event.target.value } : item)); }}><option value="">Choose…</option>{(definitions.find(item => item.key === metric.key)?.units ?? []).map(unit => <option key={unit} value={unit}>{unit}</option>)}</select></label>
             <button type="button" className="btn btn-secondary mb-px" aria-label={`Remove data column ${index + 1}`} disabled={metrics.length === 1} onClick={() => { invalidate(); setMetrics(current => current.filter(item => item.id !== metric.id)); }}><Trash2 size={16} /></button>
           </div>)}</div>
-          <button type="button" className="btn btn-secondary mt-4" disabled={metrics.length >= definitions.length} onClick={() => { invalidate(); setMetrics(current => [...current, { id: nextId.current++, column: -1, key: "", unit: "" }]); }}><Plus size={16} />Add Measurement</button>
-          <label className="my-6 flex items-start gap-3"><input type="checkbox" checked={summaryConfirmed} onChange={event => { invalidate(); setSummaryConfirmed(event.target.checked); }} /><span>Each row contains one player’s reviewed session summaries. I am not labeling individual swings or pitches as an average or maximum.</span></label>
+          <button type="button" className="btn btn-secondary mt-4" disabled={metrics.length >= definitions.length} onClick={() => { invalidate(); setMetrics(current => [...current, { id: nextId.current++, column: -1, key: "", unit: "" }]); }}><Plus size={16} />Add Measurement</button></fieldset>}
+          <label className="my-6 flex items-start gap-3"><input type="checkbox" checked={summaryConfirmed} onChange={event => { invalidate(); setSummaryConfirmed(event.target.checked); }} /><span>{session ? "I confirm this export uses mph for speeds and feet for distance. I reviewed the calculated player summaries and have not already imported this session from another export." : "Each row contains one player’s reviewed session summaries. I am not labeling individual swings or pitches as an average or maximum."}</span></label>
           <button type="button" className="btn btn-primary" onClick={review}>Review Import</button>
         </>}
       </section>
