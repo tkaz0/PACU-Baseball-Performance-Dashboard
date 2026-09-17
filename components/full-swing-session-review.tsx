@@ -1,9 +1,10 @@
 "use client";
+import { PitchAssignmentReview, type PitchAssignmentStore } from "@/components/pitch-assignment-review";
 import { useState } from "react";
 import { groupPitchRanges, SESSION_METRICS, type FullSwingSession } from "@/lib/imports/full-swing-session";
 
 const number = (value: number | null) => value === null ? "—" : value.toFixed(1);
-export function FullSwingSessionReview({ session }: { session: FullSwingSession }) {
+export function FullSwingSessionReview({ session, fileHash, assignmentStore }: { session: FullSwingSession; fileHash?: string; assignmentStore?: PitchAssignmentStore }) {
   const [search, setSearch] = useState("");
   const [velocityWidth, setVelocityWidth] = useState(5), [spinWidth, setSpinWidth] = useState(250);
   const [rpmConfirmed, setRpmConfirmed] = useState(false);
@@ -24,7 +25,7 @@ export function FullSwingSessionReview({ session }: { session: FullSwingSession 
       })}</tr>)}</tbody></table></div></div>;
     })}
     <details className="border-t border-[var(--line-subtle)] pt-4" open><summary className="cursor-pointer font-semibold">Pitch Velocity &amp; Spin Ranges</summary>
-      <p className="muted text-sm">Grouped separately for each pitcher. Ranges do not identify fastballs, breaking balls or other pitch types. This review stays with the open file; only reviewed summary measurements are saved.</p>
+      <p className="muted text-sm">Grouped separately for each pitcher. Ranges organize similar readings. Review the suggested pitch types below. Pitch assignments save separately from player measurements.</p>
       <div className="flex flex-wrap gap-4"><label>Velocity range<select value={velocityWidth} onChange={e => setVelocityWidth(Number(e.target.value))}>{[2,5,10].map(n => <option key={n} value={n}>{n} mph</option>)}</select></label><label>Spin range<select value={spinWidth} onChange={e => setSpinWidth(Number(e.target.value))}>{[100,250,500].map(n => <option key={n} value={n}>{n} {spinUnit}</option>)}</select></label></div>
       <label className="my-3 flex items-center gap-2 text-sm"><input type="checkbox" checked={rpmConfirmed} onChange={e => setRpmConfirmed(e.target.checked)} />I confirm the export’s SpinRate values are RPM.</label>
       <div className="table-wrap max-h-[32rem] overflow-auto"><table><caption className="sr-only">Pitch groups by velocity and spin</caption><thead><tr><th>Pitcher</th><th>Velocity (mph)</th><th>Spin ({spinUnit})</th><th>Pitches</th><th>Average Velocity</th><th>Average Spin</th></tr></thead><tbody>{ranges.map((range, i) => {
@@ -33,5 +34,6 @@ export function FullSwingSessionReview({ session }: { session: FullSwingSession 
       })}</tbody></table></div>
       <p className="muted mb-0 text-xs">Ranges include the lower number and exclude the upper number. Percentages use all pitches thrown by that pitcher; missing spin stays in its own group.</p>
     </details>
+    <PitchAssignmentReview key={fileHash} session={session} ranges={ranges} search={search} spinUnit={spinUnit} rpmConfirmed={rpmConfirmed} fileHash={fileHash} store={assignmentStore} />
   </section>;
 }

@@ -5,10 +5,15 @@ import styles from "./import-presentation.module.css";
 import { Activity, CircleDot, CalendarDays, Swords } from "lucide-react";
 import { RenphoReportForm } from "@/components/renpho-import";
 import { FullSwingImport } from "@/components/full-swing-import";
-import { loadSharedReportMeasurements, matchSharedRenphoPlayer, saveReviewedMeasurements, saveReviewedRenphoMeasurements } from "@/app/(workspace)/imports/actions";
+import { loadPitchAssignments, savePitchAssignments, loadSharedReportMeasurements, matchSharedRenphoPlayer, saveReviewedMeasurements, saveReviewedRenphoMeasurements } from "@/app/(workspace)/imports/actions";
 import type { ReadingsSaved } from "@/lib/import-confirmation";
 import type { Measurement } from "@/lib/imports/engine";
 import type { RosterAthlete } from "@/lib/types";
+
+const pitchAssignmentStore = {
+  load: async (hash: string) => {const result=await loadPitchAssignments(hash);if("error" in result)throw new Error(result.error);return result;},
+  save: async (hash: string, version: number, assignments: import("@/lib/imports/pitch-assignments").PitchAssignment[]) => {const result=await savePitchAssignments(hash,version,assignments);if("error" in result)throw new Error(result.error);return result;},
+};
 
 const lanes = [
   { key: "physicality", label: "Physicality", source: "RENPHO Reports", icon: Activity },
@@ -46,7 +51,7 @@ export function TeamImportCenter({ roster }: { roster: RosterAthlete[] }) {
         profileHref: code => `/athletes/${roster.find(athlete => athlete.athlete_code === code)!.id}`,
         loadExisting: async hash => { const result = await loadSharedReportMeasurements(hash); if ("error" in result) throw new Error(result.error); return result.measurements; },
         matchPlayer: async id => { const result = await matchSharedRenphoPlayer(id); if ("error" in result) throw new Error(result.error); return result.athleteCode; },
-      }} /> : <FullSwingImport key={lane === "games" ? gameKind : lane} vendor={lane === "blast" ? "Blast Motion" : "Full Swing"} category={lane === "games" ? gameKind : lane === "blast" ? "hitting" : lane} roster={roster} saveAction={save} />}
+      }} /> : <FullSwingImport key={lane === "games" ? gameKind : lane} vendor={lane === "blast" ? "Blast Motion" : "Full Swing"} category={lane === "games" ? gameKind : lane === "blast" ? "hitting" : lane} roster={roster} saveAction={save} assignmentStore={pitchAssignmentStore} />}
     </>}
   </div>;
 }

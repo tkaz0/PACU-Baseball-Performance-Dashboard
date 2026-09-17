@@ -1,5 +1,6 @@
 "use client";
 
+import type { PitchAssignmentStore } from "@/components/pitch-assignment-review";
 import { FullSwingSessionReview } from "@/components/full-swing-session-review";
 import { ImportConfirmation } from "@/components/import-confirmation";
 import { buildImportConfirmation, type ReadingsSaved, type ImportConfirmationData } from "@/lib/import-confirmation";
@@ -25,7 +26,7 @@ function ColumnSelect({ label, headers, value, onChange }: { label: string; head
   return <label>{label}<select value={value} onChange={event => onChange(Number(event.target.value))}><option value={-1}>Choose a column…</option>{headers.map((header, index) => <option key={index} value={index}>{index + 1}. {header}</option>)}</select></label>;
 }
 
-export function FullSwingImport({ category, roster, saveAction, vendor = "Full Swing" }: { vendor?: "Full Swing" | "Blast Motion"; category: FullSwingCategory; roster: RosterAthlete[]; saveAction: SaveImportAction }) {
+export function FullSwingImport({ category, roster, saveAction, assignmentStore, vendor = "Full Swing" }: { assignmentStore?: PitchAssignmentStore; vendor?: "Full Swing" | "Blast Motion"; category: FullSwingCategory; roster: RosterAthlete[]; saveAction: SaveImportAction }) {
   const [file, setFile] = useState<FileData | null>(null);
   const [headerRow, setHeaderRow] = useState(0);
   const [session, setSession] = useState<FullSwingSession | null>(null);
@@ -119,7 +120,7 @@ export function FullSwingImport({ category, roster, saveAction, vendor = "Full S
         {!session && <details className="mb-5 rounded-lg border border-[var(--line-subtle)] p-4"><summary className="cursor-pointer text-sm font-semibold">File Layout</summary><label className="mt-4 max-w-xs">Header row<select value={headerRow} onChange={event => { invalidate(); setHeaderRow(Number(event.target.value)); setIdentityColumn(-1); setDateColumn(-1); setOverrides({}); setMetrics([{ id: nextId.current++, column: -1, key: "", unit: "" }]); }}>{file.sheets[0].matrix.slice(0, 20).map((_, index) => <option value={index} key={index}>Row {index + 1}</option>)}</select></label></details>}
         {tableError && <p role="alert" className="notice notice-error">{tableError}</p>}
         {table && <>
-          {session ? <FullSwingSessionReview session={session} /> : <details className="mb-6 rounded-lg border border-[var(--line-subtle)] p-4"><summary className="cursor-pointer text-sm font-semibold">View All Summaries · {table.rows.length} Rows</summary><div className="table-wrap mt-4 max-h-[32rem] overflow-auto"><table><thead><tr><th>Row</th>{table.headers.map((header, index) => <th key={index}>{header}</th>)}</tr></thead><tbody>{table.rows.map((row, index) => <tr key={index}><td>{table!.rowNumbers[index]}</td>{row.map((cell, column) => <td key={column}>{cell || "—"}</td>)}</tr>)}</tbody></table></div></details>}
+          {session ? <FullSwingSessionReview key={file.fileHash} session={session} fileHash={file.fileHash} assignmentStore={assignmentStore} /> : <details className="mb-6 rounded-lg border border-[var(--line-subtle)] p-4"><summary className="cursor-pointer text-sm font-semibold">View All Summaries · {table.rows.length} Rows</summary><div className="table-wrap mt-4 max-h-[32rem] overflow-auto"><table><thead><tr><th>Row</th>{table.headers.map((header, index) => <th key={index}>{header}</th>)}</tr></thead><tbody>{table.rows.map((row, index) => <tr key={index}><td>{table!.rowNumbers[index]}</td>{row.map((cell, column) => <td key={column}>{cell || "—"}</td>)}</tr>)}</tbody></table></div></details>}
           {!session && <div className="grid gap-5 md:grid-cols-2">
             <label>Player identifier<select value={identityKind} onChange={event => { invalidate(); setIdentityKind(event.target.value as MeasurementMapping["identityKind"]); setOverrides({}); }}><option value="name">Player name</option><option value="code">PAC athlete ID</option><option value="email">Pacific email</option></select></label>
             <ColumnSelect label="Player column" headers={table.headers} value={identityColumn} onChange={value => { invalidate(); setIdentityColumn(value); setOverrides({}); }} />

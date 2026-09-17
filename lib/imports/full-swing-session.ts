@@ -14,7 +14,7 @@ export const SESSION_METRICS = [
 export type FullSwingSession = {
   table: ImportTable; date: string; eventCount: number; pitcherCount: number; batterCount: number;
   players: { identity: string; role: "Pitcher" | "Batter"; eventCount: number; values: string[] }[];
-  pitches: { identity: string; velocity: number | null; spin: number | null; sourceRow: number }[];
+  pitches: { identity: string; velocity: number | null; spin: number | null; sourceRow: number; pitchNumber: number }[];
   samples: { identity: string; role: string; metric: string; count: number; sourceRows: number[] }[];
 };
 export const looksLikeFullSwingSession = (headers: readonly string[]) => headers.includes("PitchNo") && headers.includes("PitcherId") && headers.includes("BatterId");
@@ -69,14 +69,14 @@ export function summarizeFullSwingSession(input: ImportTable): FullSwingSession 
         // Range review is optional: an unreadable spin cell must not block valid summary saves.
         return /^\d+(?:\.\d+)?$/.test(raw) && Number.isFinite(Number(raw)) && Number(raw) > 0 ? Number(raw) : null;
       };
-      pitchReadings.push({ identity: group.identity, velocity: numeric("RelSpeed"), spin: numeric("SpinRate"), sourceRow: row });
+      pitchReadings.push({ identity: group.identity, velocity: numeric("RelSpeed"), spin: numeric("SpinRate"), sourceRow: row, pitchNumber: Number(cells[index("PitchNo")]) });
     }
     if (values.some(Boolean)) { table.rows.push([group.identity, date, ...values]); table.rowNumbers.push(table.rows.length + 1); }
   }
   return { table, date, eventCount: input.rows.length, pitcherCount: [...groups.values()].filter(g => g.role === "Pitcher").length, batterCount: [...groups.values()].filter(g => g.role === "Batter").length, players, pitches: pitchReadings, samples };
 }
 
-export type PitchRange = { identity: string; velocityStart: number | null; spinStart: number | null; count: number; averageVelocity: number | null; averageSpin: number | null };
+export type PitchRange = { sourceRows: number[]; identity: string; velocityStart: number | null; spinStart: number | null; count: number; averageVelocity: number | null; averageSpin: number | null };
 /** Half-open, fixed ranges within each pitcher. These are descriptive bins, never inferred pitch types. */
 export function groupPitchRanges(pitches: FullSwingSession["pitches"], velocityWidth = 5, spinWidth = 250): PitchRange[] {
   if (![2, 5, 10].includes(velocityWidth) || ![100, 250, 500].includes(spinWidth)) throw new Error("Choose a supported range size.");
@@ -85,8 +85,8 @@ export function groupPitchRanges(pitches: FullSwingSession["pitches"], velocityW
     const velocityStart = pitch.velocity === null ? null : Math.floor(pitch.velocity / velocityWidth) * velocityWidth;
     const spinStart = pitch.spin === null ? null : Math.floor(pitch.spin / spinWidth) * spinWidth;
     const key = JSON.stringify([pitch.identity, velocityStart, spinStart]);
-    const group = groups.get(key) ?? { range: { identity: pitch.identity, velocityStart, spinStart, count: 0, averageVelocity: null, averageSpin: null }, velocities: [], spins: [] };
-    group.range.count++;
+    const group = groups.get(key) ?? { range: { sourceRows: [], identity: pitch.identity, velocityStart, spinStart, count: 0, averageVelocity: null, averageSpin: null }, velocities: [], spins: [] };
+    group.range.count++; group.range.sourceRows.push(pitch.sourceRow);
     if (pitch.velocity !== null) group.velocities.push(pitch.velocity);
     if (pitch.spin !== null) group.spins.push(pitch.spin);
     groups.set(key, group);

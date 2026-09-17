@@ -1,5 +1,6 @@
 "use server";
 
+import { validatePitchAssignments, type PitchAssignmentSnapshot } from "@/lib/imports/pitch-assignments";
 import { revalidatePath } from "next/cache";
 import { requireImportAccess } from "@/lib/auth";
 import { prepareReviewedPerformanceRows } from "@/lib/performance-import";
@@ -69,4 +70,30 @@ export async function loadSharedReportMeasurements(fileHash: string): Promise<{ 
     if (data.length) prepareReviewedPerformanceRows(data);
     return { measurements: data as Measurement[] };
   } catch { return { error: "Existing report measurements could not be verified. Refresh and try again before saving this report." }; }
+}
+
+function parsePitchSnapshot(value: unknown): PitchAssignmentSnapshot {
+  if(!value || typeof value!=="object" || !("version" in value) || !("assignments" in value) || !Number.isSafeInteger(value.version) || Number(value.version)<0) throw new Error("The saved pitch labels could not be verified.");
+  return {version: Number(value.version), assignments: validatePitchAssignments(value.assignments)};
+}
+export async function loadPitchAssignments(fileHash: string): Promise<PitchAssignmentSnapshot | {error:string}> {
+  const { supabase } = await requireImportAccess();
+  if (typeof fileHash!=="string" || !/^[a-f0-9]{64}$/.test(fileHash)) return {error:"Choose the original CSV again."};
+  try {
+    const { data, error } = await supabase.rpc("staff_full_swing_pitch_labels", { p_hash: fileHash });
+    if(error) return {error:"Saved pitch labels could not be loaded. Retry before editing assignments."};
+    return parsePitchSnapshot(data);
+  } catch {return {error:"Saved pitch labels could not be verified. Retry before editing assignments."};}
+}
+export async function savePitchAssignments(fileHash: string, version: number, assignments: unknown): Promise<PitchAssignmentSnapshot | {error:string}> {
+  const { supabase } = await requireImportAccess();
+  if (typeof fileHash!=="string" || !/^[a-f0-9]{64}$/.test(fileHash) || !Number.isSafeInteger(version) || version<0) return {error:"Reload this CSV before saving labels."};
+  let reviewed;
+  try {reviewed=validatePitchAssignments(assignments);} catch {return {error:"Review the pitch assignments before saving."};}
+  try {
+    const { data, error } = await supabase.rpc("staff_full_swing_pitch_labels", { p_hash: fileHash, p_version: version, p_assignments: reviewed });
+    if(error?.code==="40001") return {error:"Another staff member changed these labels. Reopen the CSV to load their changes before editing again."};
+    if(error) return {error:"The pitch-label save could not be confirmed. Retry with these same labels."};
+    return parsePitchSnapshot(data);
+  } catch {return {error:"The pitch-label save could not be confirmed. Retry with these same labels."};}
 }
