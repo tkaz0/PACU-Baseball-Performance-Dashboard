@@ -35,3 +35,13 @@ export function getPlayerProfileLayout(performance: PlayerPerformance, season?: 
     hasThrowingRole: pitches || fieldKeys.length > 0,
   };
 }
+
+/** Explicit live-session sources; unknown source labels remain in testing with their original label. */
+export function profileSessionContext(source: string): "in_game" | "practice" {
+  return /^full swing\s*·\s*(game|intrasquad)$/i.test(source.trim()) ? "in_game" : "practice";
+}
+export function getSessionPerformance(performance: PlayerPerformance, context: "in_game" | "practice"): PlayerPerformance {
+  const filter = (cards: PlayerMetricCard[]) => cards.flatMap(card => card.sourceCards ?? [card])
+    .filter(card => card.latest && profileSessionContext(card.latest.source) === context);
+  return { body: [], hitting: filter(performance.hitting), pitching: filter(performance.pitching), throwing: filter(performance.throwing) };
+}

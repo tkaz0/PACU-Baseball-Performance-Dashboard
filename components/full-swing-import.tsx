@@ -1,5 +1,6 @@
 "use client";
 
+import { FullSwingSessionReview } from "@/components/full-swing-session-review";
 import { ImportConfirmation } from "@/components/import-confirmation";
 import { buildImportConfirmation, type ReadingsSaved, type ImportConfirmationData } from "@/lib/import-confirmation";
 import { useRef, useState } from "react";
@@ -118,7 +119,7 @@ export function FullSwingImport({ category, roster, saveAction, vendor = "Full S
         {!session && <details className="mb-5 rounded-lg border border-[var(--line-subtle)] p-4"><summary className="cursor-pointer text-sm font-semibold">File Layout</summary><label className="mt-4 max-w-xs">Header row<select value={headerRow} onChange={event => { invalidate(); setHeaderRow(Number(event.target.value)); setIdentityColumn(-1); setDateColumn(-1); setOverrides({}); setMetrics([{ id: nextId.current++, column: -1, key: "", unit: "" }]); }}>{file.sheets[0].matrix.slice(0, 20).map((_, index) => <option value={index} key={index}>Row {index + 1}</option>)}</select></label></details>}
         {tableError && <p role="alert" className="notice notice-error">{tableError}</p>}
         {table && <>
-          <details className="mb-6 rounded-lg border border-[var(--line-subtle)] p-4"><summary className="cursor-pointer text-sm font-semibold">{session ? "Calculated Summaries" : "View File"} · {table.rows.length} Rows</summary><div className="table-wrap mt-4"><table><thead><tr><th>Row</th>{table.headers.map((header, index) => <th key={index}>{header}</th>)}</tr></thead><tbody>{table.rows.slice(0, 10).map((row, index) => <tr key={index}><td>{table!.rowNumbers[index]}</td>{row.map((cell, column) => <td key={column}>{cell || "—"}</td>)}</tr>)}</tbody></table></div><p className="muted mb-0 mt-3 text-xs">First 10 rows shown. All rows are reviewed before saving.{session && " Row numbers refer to the calculated summary; original pitch rows are available under Measurement Sample Sizes."}</p></details>
+          {session ? <FullSwingSessionReview session={session} /> : <details className="mb-6 rounded-lg border border-[var(--line-subtle)] p-4"><summary className="cursor-pointer text-sm font-semibold">View All Summaries · {table.rows.length} Rows</summary><div className="table-wrap mt-4 max-h-[32rem] overflow-auto"><table><thead><tr><th>Row</th>{table.headers.map((header, index) => <th key={index}>{header}</th>)}</tr></thead><tbody>{table.rows.map((row, index) => <tr key={index}><td>{table!.rowNumbers[index]}</td>{row.map((cell, column) => <td key={column}>{cell || "—"}</td>)}</tr>)}</tbody></table></div></details>}
           {!session && <div className="grid gap-5 md:grid-cols-2">
             <label>Player identifier<select value={identityKind} onChange={event => { invalidate(); setIdentityKind(event.target.value as MeasurementMapping["identityKind"]); setOverrides({}); }}><option value="name">Player name</option><option value="code">PAC athlete ID</option><option value="email">Pacific email</option></select></label>
             <ColumnSelect label="Player column" headers={table.headers} value={identityColumn} onChange={value => { invalidate(); setIdentityColumn(value); setOverrides({}); }} />

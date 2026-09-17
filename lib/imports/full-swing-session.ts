@@ -13,6 +13,8 @@ export const SESSION_METRICS = [
 ] as const;
 export type FullSwingSession = {
   table: ImportTable; date: string; eventCount: number; pitcherCount: number; batterCount: number;
+  players: { identity: string; role: "Pitcher" | "Batter"; eventCount: number; values: string[] }[];
+  pitches: { identity: string; velocity: number | null; spin: number | null; sourceRow: number }[];
   samples: { identity: string; role: string; metric: string; count: number; sourceRows: number[] }[];
 };
 export const looksLikeFullSwingSession = (headers: readonly string[]) => headers.includes("PitchNo") && headers.includes("PitcherId") && headers.includes("BatterId");
@@ -46,6 +48,7 @@ export function summarizeFullSwingSession(input: ImportTable): FullSwingSession 
   }
   if (dates.size !== 1) throw new Error("Use one dated Full Swing session per file.");
   const date = [...dates][0], table: ImportTable = { headers: ["Player", "Date", ...SESSION_METRICS.map(m => m.label)], rows: [], rowNumbers: [] }, samples: FullSwingSession["samples"] = [];
+  const players: FullSwingSession["players"] = [], pitchReadings: FullSwingSession["pitches"] = [];
   for (const group of groups.values()) {
     const values = SESSION_METRICS.map(metric => {
       if (metric.role !== group.role) return "";
@@ -59,7 +62,36 @@ export function summarizeFullSwingSession(input: ImportTable): FullSwingSession 
       samples.push({ identity: group.identity, role: group.role, metric: metric.label, count: readings.length, sourceRows: readings.map(r => r.row) });
       return String(metric.operation === "max" ? Math.max(...readings.map(r => r.value)) : readings.reduce((sum, r) => sum + r.value, 0) / readings.length);
     });
+    players.push({ identity: group.identity, role: group.role, eventCount: group.rows.length, values });
+    if (group.role === "Pitcher") for (const { cells, row } of group.rows) {
+      const numeric = (header: string) => {
+        const raw = cells[index(header)].trim();
+        // Range review is optional: an unreadable spin cell must not block valid summary saves.
+        return /^\d+(?:\.\d+)?$/.test(raw) && Number.isFinite(Number(raw)) && Number(raw) > 0 ? Number(raw) : null;
+      };
+      pitchReadings.push({ identity: group.identity, velocity: numeric("RelSpeed"), spin: numeric("SpinRate"), sourceRow: row });
+    }
     if (values.some(Boolean)) { table.rows.push([group.identity, date, ...values]); table.rowNumbers.push(table.rows.length + 1); }
   }
-  return { table, date, eventCount: input.rows.length, pitcherCount: [...groups.values()].filter(g => g.role === "Pitcher").length, batterCount: [...groups.values()].filter(g => g.role === "Batter").length, samples };
+  return { table, date, eventCount: input.rows.length, pitcherCount: [...groups.values()].filter(g => g.role === "Pitcher").length, batterCount: [...groups.values()].filter(g => g.role === "Batter").length, players, pitches: pitchReadings, samples };
+}
+
+export type PitchRange = { identity: string; velocityStart: number | null; spinStart: number | null; count: number; averageVelocity: number | null; averageSpin: number | null };
+/** Half-open, fixed ranges within each pitcher. These are descriptive bins, never inferred pitch types. */
+export function groupPitchRanges(pitches: FullSwingSession["pitches"], velocityWidth = 5, spinWidth = 250): PitchRange[] {
+  if (![2, 5, 10].includes(velocityWidth) || ![100, 250, 500].includes(spinWidth)) throw new Error("Choose a supported range size.");
+  const groups = new Map<string, { range: PitchRange; velocities: number[]; spins: number[] }>();
+  for (const pitch of pitches) {
+    const velocityStart = pitch.velocity === null ? null : Math.floor(pitch.velocity / velocityWidth) * velocityWidth;
+    const spinStart = pitch.spin === null ? null : Math.floor(pitch.spin / spinWidth) * spinWidth;
+    const key = JSON.stringify([pitch.identity, velocityStart, spinStart]);
+    const group = groups.get(key) ?? { range: { identity: pitch.identity, velocityStart, spinStart, count: 0, averageVelocity: null, averageSpin: null }, velocities: [], spins: [] };
+    group.range.count++;
+    if (pitch.velocity !== null) group.velocities.push(pitch.velocity);
+    if (pitch.spin !== null) group.spins.push(pitch.spin);
+    groups.set(key, group);
+  }
+  const mean = (values: number[]) => values.length ? values.reduce((a, b) => a + b, 0) / values.length : null;
+  return [...groups.values()].map(g => ({ ...g.range, averageVelocity: mean(g.velocities), averageSpin: mean(g.spins) }))
+    .sort((a,b) => a.identity.localeCompare(b.identity) || (b.velocityStart ?? -1) - (a.velocityStart ?? -1) || (b.spinStart ?? -1) - (a.spinStart ?? -1));
 }

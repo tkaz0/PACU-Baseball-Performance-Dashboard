@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { FULL_SWING_SESSION_HEADERS as headers, summarizeFullSwingSession } from "@/lib/imports/full-swing-session";
 import { previewFullSwingSummary } from "@/lib/imports/full-swing";
 import { getPreviewRoster } from "@/lib/preview-roster";
-import { SESSION_METRICS } from "@/lib/imports/full-swing-session";
+import { groupPitchRanges, SESSION_METRICS } from "@/lib/imports/full-swing-session";
 
 const player = getPreviewRoster()[0];
 const name = `${player.first_name} ${player.last_name}`;
@@ -47,4 +47,28 @@ describe("reviewed Full Swing Live at Bat session", () => {
     expect(() => summarizeFullSwingSession(table([event(), event({ PitchNo: "2", BatterId: "another-fictional-id" })]))).toThrow("conflicting");
     expect(() => summarizeFullSwingSession(table([event({ Batter: "null" })]))).toThrow("identity");
   });
+});
+
+it("keeps every export identity in review, including batters without measurements", () => {
+ const rows=Array.from({length:15},(_,i)=>event({PitchNo:String(i+1),Batter:`Fictional Batter ${i}`,BatterId:`fictional-${i}`,ExitSpeed:"null",BatSpeed:"null",Distance:"null"}));
+ const r=summarizeFullSwingSession(table(rows));
+ expect(r.players.filter(p=>p.role==="Batter")).toHaveLength(15);
+ expect(r.players.filter(p=>p.role==="Batter").every(p=>p.values.every(v=>v===""))).toBe(true);
+ expect(r.table.rows).toHaveLength(1); // No invented zero-valued hitting measurements to save.
+});
+it("bins velocity/spin by pitcher with exact boundaries and missing spin separate", () => {
+ const r=summarizeFullSwingSession(table([
+ event({RelSpeed:"84.99",SpinRate:"1999.9"}),event({PitchNo:"2",RelSpeed:"85",SpinRate:"2000"}),
+ event({PitchNo:"3",RelSpeed:"85",SpinRate:"null"}),event({PitchNo:"4",Pitcher:"Fictional Other",PitcherId:"fictional-other",RelSpeed:"85",SpinRate:"2000"})]));
+ const groups=groupPitchRanges(r.pitches);
+ expect(groups).toHaveLength(4);expect(groups.reduce((n,g)=>n+g.count,0)).toBe(4);
+ expect(groups).toContainEqual(expect.objectContaining({identity:name,velocityStart:80,spinStart:1750,count:1}));
+ expect(groups).toContainEqual(expect.objectContaining({identity:name,velocityStart:85,spinStart:2000,count:1}));
+ expect(groups).toContainEqual(expect.objectContaining({spinStart:null,averageSpin:null}));
+ expect(groupPitchRanges(r.pitches,10,500)).toHaveLength(4);
+ expect(()=>groupPitchRanges(r.pitches,0,250)).toThrow();
+});
+it("keeps unreadable spin out of numerical groups without blocking summary imports",()=>{
+ const r=summarizeFullSwingSession(table([event({SpinRate:"broken"})]));
+ expect(r.pitches[0].spin).toBeNull();expect(r.table.rows).toHaveLength(2);
 });

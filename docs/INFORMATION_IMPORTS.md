@@ -56,3 +56,8 @@ The hub links to shared import receipts, the advanced browser importer, and the 
 Account invitations remain disabled and unsent pending the owner's review.
 
 For grip strength and separate infield/outfield velocity, use **Testing → Enter Results**, or the advanced measurement mapping and shared-review path. These are not extracted from RENPHO reports or inferred from Full Swing pitch velocity. Existing active Coaches and an administrator choosing **View as Coach** can import through the same performance tools. Coach view does not grant roster, account or backup management. It uses the existing administrator session rather than creating a second login.
+
+### September 17: complete session review and pitch ranges
+The raw Full Swing review now lists every exported batter and pitcher, including players without measured hitting values. Search filters both summary tables and pitch ranges; it never changes which measurements are proposed for saving. Each measurement shows its own recorded sample count. Blank values remain missing.
+
+Pitch range review uses separate pitcher groups and half-open velocity bins (2, 5 or 10 mph) crossed with spin bins (100, 250 or 500 original export units). The reviewer may confirm RPM for the display label. Missing/unreadable spin remains separate and does not block valid summary measurements. These ranges do not infer pitch types and are not saved to profiles; the existing seven reviewed summary metrics and save confirmation remain unchanged.

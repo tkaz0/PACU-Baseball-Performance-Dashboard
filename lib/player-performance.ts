@@ -70,6 +70,7 @@ export type PlayerPercentileOverride = Omit<PlayerPercentile, "value"> & {
 export type PlayerMetricCard = {
   metric: PlayerMetricDefinition; latest: PlayerMetricReading | null; summerBaseline: PlayerMetricReading | null;
   timedTrials?: { average: number; count: number; lastTested: string };
+  sourceCards?: PlayerMetricCard[];
   history: PlayerMetricReading[]; percentile: PlayerPercentile | null; cohortSampleSize: number | null;
   percentileStatus: "available" | "missing" | "small_cohort" | "not_in_cohort" | "unavailable";
 };
@@ -272,15 +273,28 @@ export function getPlayerPerformance({ readings, batches = [], athleteCode, coho
   const model: PlayerPerformance = { body: [], hitting: [], pitching: [], throwing: [] };
   for (const metric of PLAYER_METRICS) {
     const matching = own.filter(reading => reading.metricKey === metric.key);
-    const anchor = matching[0] ?? null;
-    const trials = anchor && isTimedMetric(metric.key) ? matching.filter(r => r.period === anchor.period && r.unit === anchor.unit && sourceKey(r.source) === sourceKey(anchor.source)) : [];
-    const latest = trials.length ? [...trials].sort((a,b)=>a.value-b.value || newestFirst(a,b))[0] : anchor;
-    const timedTrials = trials.length ? { average: trials.reduce((sum,r)=>sum+r.value,0)/trials.length, count: trials.length, lastTested: trials.map(r=>r.measuredAt).sort().at(-1)! } : undefined;
-    const summerBaseline = metric.group === "body" ? matching.find(reading => reading.period === "summer_2026") ?? null : null;
-    const comparison = latest ? applyOverride(latest, percentileOverrides)
-      ?? (cohortAthleteCodes === undefined ? unavailable() : getPlayerMetricPercentile(cohort, latest, cohortAthleteCodes))
-      : { percentile: null, cohortSampleSize: null, percentileStatus: "missing" } as const;
-    model[metric.group].push({ metric, latest, summerBaseline, ...(timedTrials ? {timedTrials} : {}), history: [...matching].reverse(), ...comparison });
+    const makeCard = (matching: PlayerMetricReading[]): PlayerMetricCard => {
+      const anchor = matching[0] ?? null;
+      const trials = anchor && isTimedMetric(metric.key) ? matching.filter(r => r.period === anchor.period && r.unit === anchor.unit && sourceKey(r.source) === sourceKey(anchor.source)) : [];
+      const latest = trials.length ? [...trials].sort((a,b)=>a.value-b.value || newestFirst(a,b))[0] : anchor;
+      const timedTrials = trials.length ? { average: trials.reduce((sum,r)=>sum+r.value,0)/trials.length, count: trials.length, lastTested: trials.map(r=>r.measuredAt).sort().at(-1)! } : undefined;
+      const summerBaseline = metric.group === "body" ? matching.find(reading => reading.period === "summer_2026") ?? null : null;
+      const comparison = latest ? applyOverride(latest, percentileOverrides)
+        ?? (cohortAthleteCodes === undefined ? unavailable() : getPlayerMetricPercentile(cohort, latest, cohortAthleteCodes))
+        : { percentile: null, cohortSampleSize: null, percentileStatus: "missing" } as const;
+      return { metric, latest, summerBaseline, ...(timedTrials ? {timedTrials} : {}), history: [...matching].reverse(), ...comparison };
+    };
+    const card = makeCard(matching);
+    // Keep independently selected latest readings and exact cohort comparisons for every source/unit.
+    if (metric.group !== "body") {
+      const partitions = new Map<string, PlayerMetricReading[]>();
+      for (const reading of matching) {
+        const key = JSON.stringify([sourceKey(reading.source), reading.unit]);
+        const group = partitions.get(key) ?? []; group.push(reading); partitions.set(key, group);
+      }
+      card.sourceCards = [...partitions.values()].map(makeCard);
+    }
+    model[metric.group].push(card);
   }
   return model;
 }

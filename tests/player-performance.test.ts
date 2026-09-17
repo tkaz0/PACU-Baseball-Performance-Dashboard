@@ -267,3 +267,14 @@ it("reverses hosted body-fat summaries exactly once and agrees with local cohort
   expect(card([source], "body_fat_pct", {percentileOverrides: [{...override,value: 87.5}]}).percentile?.value).toBe(12.5);
   expect(card([source], "body_fat_pct", {percentileOverrides: [{...override,value: null,sampleSize: 4}]}).percentile).toBeNull();
 });
+
+it("retains distinct source and unit cards with their own exact-cohort percentiles", () => {
+ const codes=cohort();
+ const input=[...peers([70,75,80,85,90],{source:"Full Swing · Intrasquad",measured_at:"2026-09-03"}),...peers([99,90,80,70,60],{source:"Full Swing · Hitting",measured_at:"2026-09-12"}).map(r=>({...r,id:`practice-${r.id}`}))];
+ const model=getPlayerPerformance({readings:input,athleteCode:codes[0],cohortAthleteCodes:codes});
+ const cards=model.hitting.find(c=>c.metric.key==="max_exit_velocity")!.sourceCards!;
+ expect(cards).toHaveLength(2);
+ expect(cards.find(c=>c.latest?.source==="Full Swing · Intrasquad")?.percentile?.value).toBe(0);
+ expect(cards.find(c=>c.latest?.source==="Full Swing · Hitting")?.percentile?.value).toBe(100);
+ expect(cards.every(c=>c.history.every(r=>r.source===c.latest!.source))).toBe(true);
+});
