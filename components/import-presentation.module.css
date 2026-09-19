@@ -1,5 +1,5 @@
 .lanes { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
-.lane { position: relative; display: flex; flex-direction: column; gap: 15px; min-width: 0; padding: 21px; text-align: left; border: 1px solid var(--line-subtle); border-radius: 12px; background: var(--surface-panel); color: var(--text-primary); transition: border-color 160ms, background 160ms; }
+.lane { position: relative; display: flex; flex-direction: column; gap: 15px; min-width: 0; padding: 21px; text-align: left; border: 1px solid var(--line-subtle); border-radius: 14px; background: var(--surface-panel); color: var(--text-primary); transition: border-color 160ms, background 160ms; }
 .lane:not(:disabled):hover { border-color: var(--accent-readable); background: color-mix(in srgb, var(--accent-readable) 4%, var(--surface-panel)); }
 .lane[aria-pressed="true"] { border-color: var(--accent-readable); background: color-mix(in srgb, var(--accent-readable) 7%, var(--surface-panel)); box-shadow: inset 0 3px 0 var(--accent-readable); }
 .lane:focus-visible, .chooseFile:focus-visible { outline: 2px solid var(--accent-readable); outline-offset: 4px; }
@@ -10,7 +10,7 @@
 .stepTitle { display: flex; align-items: center; gap: 11px; margin: 0 0 19px; color: var(--text-primary); font-size: 18px; font-weight: 700; line-height: 1.35; }
 .stepNumber { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 29px; height: 29px; border: 1px solid var(--line-subtle); border-radius: 8px; color: var(--accent-readable); font-size: 12px; font-weight: 750; font-variant-numeric: tabular-nums; }
 .sectionLead { margin: -5px 0 20px; color: var(--text-secondary); font-size: 13px; line-height: 1.6; }
-.dropZone { position: relative; display: flex; flex-direction: column; align-items: center; padding: 32px 20px 27px; border: 1px dashed var(--line-subtle); border-radius: 10px; background: color-mix(in srgb, var(--surface-raised) 55%, var(--surface-panel)); text-align: center; transition: background 160ms, border-color 160ms; }
+.dropZone { position: relative; display: flex; flex-direction: column; align-items: center; padding: 32px 20px 27px; border: 1px dashed color-mix(in srgb, var(--accent-readable) 35%, var(--line-subtle)); border-radius: 10px; background: color-mix(in srgb, var(--surface-raised) 55%, var(--surface-panel)); text-align: center; transition: background 160ms, border-color 160ms; }
 .dropZone[data-dragging="true"] { border-color: var(--accent-readable); background: color-mix(in srgb, var(--accent-readable) 9%, var(--surface-panel)); }
 .dropZone[data-disabled="true"] { opacity: .62; }
 .dropIcon { display: flex; align-items: center; justify-content: center; width: 49px; height: 49px; margin-bottom: 15px; border-radius: 13px; color: var(--accent-readable); background: var(--surface-panel); border: 1px solid var(--line-subtle); }

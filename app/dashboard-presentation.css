@@ -1,0 +1,99 @@
+/* Shared visual system. Brand images retain their original artwork and proportions. */
+:root { --brand-red: #b51217; --panel-shadow: 0 2px 3px #11131803, 0 8px 24px #11131803; }
+body { -webkit-font-smoothing: antialiased; }
+.workspace-shell .panel { border-radius: 14px; box-shadow: var(--panel-shadow); }
+.workspace-shell .btn { font-size: 13px; border-radius: 9px; }
+.btn-primary { background: var(--brand-red); }
+.btn-primary:hover { background: #941015; }
+.workspace-shell :is(input, select, textarea) { border-radius: 9px; }
+.workspace-shell :is(input, select, textarea):focus-visible { outline-width: 2px; }
+.workspace-shell .badge { border-radius: 5px; }
+
+/* Clear page identity without another oversized hero above every tool. */
+.workspace-shell .page-head { align-items: center; padding: 4px 0 22px; margin-bottom: 24px; border-bottom: 1px solid var(--line-subtle); }
+.page-heading-copy { padding-left: 17px; border-left: 3px solid var(--brand-red); }
+.workspace-shell .page-head .eyebrow { margin: 0 0 9px; font-size: 10px; line-height: 1.4; letter-spacing: .14em; }
+.workspace-shell .page-title { margin: 0 0 9px; font-size: clamp(27px, 2.7vw, 36px); line-height: 1.12; letter-spacing: -.04em; }
+.workspace-shell .page-description { max-width: 620px; font-size: 13px; line-height: 1.65; color: var(--text-secondary); }
+.page-actions { padding-top: 0; }
+.workspace-main { padding-top: 30px; padding-bottom: 44px; }
+.workspace-footer { font-size: 10px; gap: 8px 24px; line-height: 1.7; }
+
+/* The navigation remains quiet so charts and player numbers lead the page. */
+.baseball-sidebar { background: #15161a; border-right-color: #ffffff0c; padding-top: 26px; }
+.sidebar-brand-link { padding: 4px 2px; }
+.sidebar-rule { margin: 23px 8px 4px; }
+.workspace-nav-group { margin: 21px 12px 7px; color: #a0a2ad; font-size: 9px; letter-spacing: .13em; }
+.baseball-sidebar .nav-link { padding: 10px 12px; margin: 3px 0; border-radius: 9px; color: #c3c5ce; font-size: 12px; min-height: 42px; }
+.baseball-sidebar .nav-link svg { width: 17px; height: 17px; flex-shrink: 0; }
+.baseball-sidebar .nav-link:hover { background: #ffffff09; color: #fff; }
+.baseball-sidebar .nav-link[aria-current="page"] { background: #b51217; box-shadow: none; color: #fff; }
+.sidebar-boxer { margin-top: 25px; padding: 24px 0 18px; border-top: 1px solid #ffffff14; }
+.sidebar-boxer .pacific-logo { width: 110px; margin: 0 auto; }
+.sidebar-boxer p { margin: 17px 0 0; color: #c7c9d0; text-align: center; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .16em; }
+.sidebar-disclosure { color: #a0a2ad; text-align: center; font-size: 9px; }
+.workspace-topbar { min-height: 72px; padding-top: 12px; padding-bottom: 12px; }
+.workspace-context { letter-spacing: .02em; }
+.workspace-context-detail { color: var(--text-secondary); font-weight: 400; }
+.topbar-diamond { background: var(--brand-red); flex-shrink: 0; }
+.workspace-account-role { border-radius: 20px; background: var(--surface-raised); border-color: transparent; }
+.workspace-controls .btn { font-size: 11px; }
+
+/* A consistent player card, with strong identity and compact numerical tiles. */
+.player-identity-card { position: relative; isolation: isolate; overflow: hidden; padding: 22px 24px; border: 1px solid #33343b; border-top: 4px solid var(--brand-red); border-radius: 16px; background: linear-gradient(115deg, #202127, #141519); color: #fff; }
+.performance-metric-card { border-radius: 12px; box-shadow: var(--panel-shadow); }
+.performance-metric-card h3 { font-size: 12px; }
+.profile-tab-navigation { border-radius: 12px; box-shadow: var(--panel-shadow); }
+.profile-tab-navigation [role="tab"] { border-radius: 8px; font-size: 13px; font-weight: 700; }
+.profile-tab-navigation [aria-selected="true"] { background: var(--brand-red); }
+
+/* Tables and rankings use the same reading rhythm and restrained dividers. */
+.workspace-shell th { padding-top: 13px; padding-bottom: 13px; background: var(--surface-raised); color: var(--text-secondary); letter-spacing: .07em; }
+.workspace-shell td { border-color: var(--line-subtle); }
+.workspace-shell tbody tr:hover { background: color-mix(in srgb, var(--surface-raised) 55%, var(--surface-panel)); }
+.team-roster-table .roster-initials { border: 0; border-radius: 12px; background: color-mix(in srgb, var(--accent-readable) 7%, var(--surface-panel)); color: var(--accent-readable); }
+.team-roster-table .roster-player-name { font-size: 13px; font-weight: 700; }
+.roster-profile-link { border-radius: 8px; }
+.roster-profile-link:hover { background: var(--surface-raised); }
+.leaderboard-navigation { border-radius: 12px; gap: 4px; }
+.leaderboard-navigation a { border-radius: 8px; font-size: 12px; }
+.leaderboard-navigation a[aria-current="page"] { background: var(--brand-red); }
+.leaderboard-navigation[aria-label="Leaderboard session"] { width: fit-content; min-width: 240px; padding: 3px; margin-bottom: 20px; background: var(--surface-raised); border-color: transparent; }
+.leaderboard-navigation[aria-label="Leaderboard session"] a { padding: 8px 20px; }
+.leaderboard-navigation[aria-label="Leaderboard session"] a[aria-current="page"] { background: var(--surface-panel); color: var(--text-primary); box-shadow: 0 1px 4px #00000015; }
+.workspace-shell .leaderboard-card { border-top: 3px solid var(--brand-red); }
+.leaderboard-card-heading h2 { font-size: 17px; line-height: 1.3; }
+
+/* Sign-in stays focused, with the complete Boxer mark given room to breathe. */
+.login-brand { background: linear-gradient(135deg, #202127, #101114); }
+.login-brand::before { background: var(--brand-red); }
+.login-brand-footer .pacific-logo { width: 120px; flex-basis: 120px; }
+.login-brand-footer { gap: 32px; }
+.login-brand-footer p { font-size: 11px; color: #b6b8c1; }
+.login-form-content input, .login-form-content .btn-primary { border-radius: 9px; }
+.login-access-label { text-transform: uppercase; letter-spacing: .1em; font-size: 10px; }
+.login-access-note { line-height: 1.7; }
+
+@media (min-width: 1301px) and (max-width: 1550px) { .workspace-context-detail { display: none; } }
+@media (max-width: 900px) {
+  .baseball-sidebar { padding: 17px 22px 12px; }
+  .baseball-sidebar .nav-link { min-height: 44px; }
+  .workspace-menu-toggle { border-radius: 8px; margin-top: 13px; }
+  .workspace-topbar { min-height: 64px; }
+  .workspace-context-detail { display: none; }
+  .login-brand-footer .pacific-logo { width: 100px; flex-basis: 100px; }
+  .login-brand-footer { gap: 24px; }
+}
+@media (max-width: 600px) {
+  .workspace-main { padding: 22px 16px 32px; }
+  .workspace-shell .page-head { align-items: flex-start; gap: 16px; padding-bottom: 19px; margin-bottom: 20px; }
+  .workspace-shell .page-description { font-size: 12px; }
+  .page-heading-copy { padding-left: 13px; }
+  .player-identity-card { padding: 18px 16px; border-radius: 13px; }
+  .profile-tab-navigation { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px; }
+  .profile-tab-navigation [role="tab"] { min-width: 0; padding-inline: 4px; font-size: 11px; }
+  .workspace-footer { margin-inline: 16px; }
+  .leaderboard-navigation[aria-label="Leaderboard session"] { width: 100%; }
+  .team-roster-table .roster-player-name { font-size: 12px; }
+  .login-brand-footer p { font-size: 9px; }
+}

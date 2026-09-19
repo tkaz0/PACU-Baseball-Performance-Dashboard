@@ -365,3 +365,5 @@ The pitch-selector/Position Throwing presentation update requires no new migrati
 
 
 Apply 202609190003_reversible_csv_removal.sql before using Correct CSV Assignments. This adds an Admin-only ordinary-session review/removal/restore workflow; no credentials, role grants or Player/Coach table access change. Removed source coordinates cannot be silently re-imported. The app preserves the request UUID on uncertain retries.
+
+The September 19 presentation refresh needs only the normal app deployment. Brand images are bundled locally, and `app/dashboard-presentation.css` is loaded after the existing global styles. No additional service, font download, environment variable or database migration is required.

@@ -136,3 +136,5 @@ Pitching leaderboards now use a recorded Pitch Type selector with average/max ve
 
 
 Full Swing pitch review now groups nearby velocities until a 3 mph gap, with fixed bins still optional. Player matching visibly offers No player / Skip these stats. Admin profiles include Correct CSV Assignments for reversible removal of one mistaken Full Swing file assignment.
+
+The September 19 visual refresh adds the complete Pacific Boxer mark to the roster and navigation, consistent page headings and stat panels, and compact phone tabs in both appearance modes. See [Branding](docs/BRANDING.md).

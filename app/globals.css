@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-pacu-red: #990000;
+  --color-pacu-red: #b51217;
   --color-ink: #151619;
   --color-paper: #f5f6f8;
   --font-sans: Arial, Helvetica, sans-serif;
@@ -511,7 +511,7 @@ tbody tr:hover { background: #fcfcfd; }
   --text-primary: #151619;
   --text-secondary: #606774;
   --line-subtle: #dededb;
-  --accent-readable: #990000;
+  --accent-readable: #a91016;
 }
 html[data-theme="dark"] {
   color-scheme: dark;

@@ -16,7 +16,7 @@ describe("player profile tabs and presentation",()=>{
  it("renders four accessible tabs with Overview selected and separate session contexts",()=>{
   const athlete=fictionalAthlete("position"),html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete,performance:model()}));
   expect((html.match(/role="tab"/g)??[])).toHaveLength(4);expect((html.match(/role="tabpanel"/g)??[])).toHaveLength(4);expect((html.match(/aria-selected="true"/g)??[])).toHaveLength(1);expect((html.match(/hidden=""/g)??[])).toHaveLength(3);
-  for(const label of ["Overview","Physicality","In-game","Practice"])expect(html).toContain(label);
+  for(const label of ["Overview","Physicality","In-Game","Practice"])expect(html).toContain(label);
   expect(html).not.toContain(athlete.pacific_email);expect(html).not.toContain(athlete.renpho_id);expect(html).not.toContain("Eligibility year");expect(html).toContain("Avery Northstar");expect(html).toContain("PAC ID");expect(html).toMatch(/Jersey Number<\/dt><dd[^>]*>0<\/dd>/);
  expect(html).not.toContain('role="meter"');expect(html).not.toContain('data-value="0"');expect(html).not.toContain("Pacific n=0");expect(html).not.toContain("Need 5 comparable players");expect(html).not.toContain("Team comparison not available");expect(html).not.toMatch(/<details[^>]*\sopen(?:[ =>])/);
   expect(html).not.toContain("Available Metrics");
@@ -70,7 +70,7 @@ describe("player profile tabs and presentation",()=>{
  ])("shows role-relevant tabs and insights for $type/$primary",({type,primary,hitting})=>{
   const athlete=fictionalAthlete(type,primary),performance=model([measurement("Max Exit Velocity",80,"mph","2026-09-01"),measurement("Max Exit Velocity",90,"mph","2026-09-03"),measurement("Home to First",4.5,"s","2026-09-01"),measurement("Home to First",4.2,"s","2026-09-04")]);
   const html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete,performance}));
-  expect(html).toContain('>In-game</button>');expect(html).toContain('>Practice</button>');expect((html.match(/role="tab"/g)??[])).toHaveLength(4);
+  expect(html).toContain('>In-Game</button>');expect(html).toContain('>Practice</button>');expect((html.match(/role="tab"/g)??[])).toHaveLength(4);
   const overview=html.split('role="tabpanel"')[1];expect(overview.includes("Max Exit Velocity")).toBe(hitting);expect(overview.includes("Home to 1st")).toBe(hitting);
   expect(html.includes("Speed &amp; Agility")).toBe(hitting);expect(html.includes('data-metric-key="home_to_first"')).toBe(hitting);expect(html.includes("Sep 4, 2026")).toBe(hitting);
   expect(overview).toContain("Strengths");expect(overview).toContain("Weaknesses");expect(overview).toContain("Biggest Jumps");

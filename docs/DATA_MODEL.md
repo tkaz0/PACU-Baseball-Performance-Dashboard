@@ -317,3 +317,5 @@ Pitching and Position Throwing are separate presentation groups. Pitching select
 
 
 private.csv_measurement_archives stores the original complete measurement rows and exact player/file scope for reviewed Full Swing removal. Database fingerprints are rechecked under account-then-roster locks. Archived readings are removed from performance_measurements, so all existing profiles, Analytics, comparisons and leaderboards exclude them consistently. Restore reinserts the original rows atomically, preserving IDs, values, dates, import metadata and unique constraints. A private trigger prevents re-upload of still-archived observation IDs/source coordinates. Admin-only RPCs check live role; raw archives have no application table grants.
+
+The September 19 visual refresh changes presentation only: logo placement, navigation labels, typography, cards and spacing. It introduces no schema, metric, source mapping or permission changes.

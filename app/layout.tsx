@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { AppearanceProvider } from "@/components/appearance-provider";
 import { APPEARANCE_BOOTSTRAP_SCRIPT } from "@/lib/appearance";
 import "./globals.css";
+import "./dashboard-presentation.css";
 export const metadata: Metadata = {
   title: { default: "PACU Baseball Performance", template: "%s | PACU Baseball Performance" },
   description: "A private baseball roster and performance workspace. Independently owned by Trevor Kazahaya.",

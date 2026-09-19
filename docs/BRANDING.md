@@ -25,3 +25,7 @@ Pacific's [brand guidance](https://www.pacificu.edu/directory/university-advance
 - `PacificBrand` provides the athletics mark and separate app descriptor. `PacificLogo` provides a single source mark, with optional decorative alt text when nearby text already names Pacific.
 
 No external image request is required to display the brand assets; they are served from this deployment.
+
+## September 19 visual refresh
+
+The complete official Boxer/dragon university mark now appears on the roster header and sidebar, with more room on the sign-in screen. The athletics P remains the home-navigation and player-profile mark. Artwork is unchanged. The shared presentation stylesheet uses Boxer Red (#B51217), charcoal identity cards, consistent rounded panels, restrained table dividers, and explicit light/dark tokens. Main headings have a small red rule; profile tabs stay on one row on narrow phones. In-Game is consistently capitalized as a navigation label. Keep the independent-project disclosure alongside the branded workspace.
