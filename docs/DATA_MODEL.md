@@ -311,3 +311,6 @@ Classified Full Swing summaries are separate canonical observations: max/average
 
 
 Pitch-type leaderboards use the existing `leaderboard_latest` projection and four explicitly allowed classified metrics, requiring a recognized Full Swing category/type source. Count metrics stay private. Exact source, pitch type, unit and Fall period remain separate; each athlete contributes their latest comparable reading, not a mean of session averages. Profile-metric catalog flags and ordinary own-player RLS are unchanged.
+
+
+Pitching and Position Throwing are separate presentation groups. Pitching selects one exact classified pitch before leaderboard RPC reads, preserving source/unit/period partitions; field throws expose only infield_velocity/outfield_velocity. No schema, measurement or authorization change. Magnitude bars use zero-to-table-maximum scales, not percentiles; raw values still determine ties.

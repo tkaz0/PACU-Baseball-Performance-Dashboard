@@ -99,3 +99,6 @@ September 19: owner explicitly requested a one-time full game/Player Metrics/ros
 
 
 September 19 pitch leaderboards: the owner authorizes average/max velocity and spin rankings for every recorded classified pitch type in the existing signed-in leaderboard projection. Keep In-game (Game/Intrasquad) separate from Practice in hitting and throwing boards. Do not pool fastball subtypes, units, vendor protocols or session averages. Use latest comparable per-athlete readings, exact ranks and one-decimal Full Swing displays. Migration `202609190002_pitch_type_leaderboards.sql` only extends the four-metric projection; count/provenance/raw peer access and profile percentile catalog stay unchanged. Practice imports accept only existing reviewed layouts and preserve immutable source coordinates.
+
+
+September 19 leaderboard organization: Pitching now shows only a selected recorded pitch’s four velocity/spin metrics; Position Throwing is separately limited to infield/outfield velocity. Hide overall pitching leaderboard cards without deleting data or changing profile metrics. Preserve exact source/context partitions and one-decimal Full Swing display. Magnitude bars are zero-based within each table, never percentiles or spin quality ratings.

@@ -26,3 +26,7 @@
 .more summary { padding: 13px 20px; color: var(--accent-readable); font-size: 11px; font-weight: 700; cursor: pointer; text-align: center; }
 .more summary:hover { background: var(--surface-raised); }
 @media (max-width: 480px) { .heading { padding: 18px 16px 14px; } .heading h2 { font-size: 19px; } .tableWrap tbody .result { padding-right: 16px; } }
+
+.barTrack { display: block; height: 4px; margin-top: 7px; border-radius: 9px; background: var(--line-subtle); overflow: hidden; }
+.valueBar, .spinBar { display: block; height: 100%; border-radius: inherit; background: var(--accent-readable); }
+.spinBar { background: #5286cf; }

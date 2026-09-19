@@ -130,3 +130,6 @@ Full Swing values display to one decimal across imports, profiles, comparisons a
 
 
 Hitting and Pitching & Throwing leaderboards now separate In-game and Practice. Recorded classified pitches have average/max velocity and spin rankings, grouped by pitch type; existing Game Stats rankings remain separate cumulative sheet results.
+
+
+Pitching leaderboards now use a recorded Pitch Type selector with average/max velocity and spin together. Position Throwing has separate infield/outfield velocity rankings. In-game and Practice remain distinct, and compact magnitude bars make hitting/throwing ranks easier to scan.

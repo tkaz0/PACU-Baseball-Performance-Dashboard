@@ -8,9 +8,10 @@ import { LeaderboardBoard } from "@/components/leaderboard-board";
 const row: LeaderboardRow = { rank: 1, athleteCode: "SYN-001", name: "Fictional Player", jerseyNumber: 0, position: "P", profileId: null, value: 0.30000000000000004, measuredAt: "2026-09-12", source: "fictional source", derived: false };
 const html = (key: string, rows: LeaderboardRow[] = [row]) => renderToStaticMarkup(createElement(LeaderboardResults, { metric: PLAYER_METRICS.find(metric => metric.key === key)!, rows, unit: "mph" }));
 describe("leaderboard presentation and truthful comparisons", () => {
-  it("puts timings in Physicality and field/throwing metrics in Throwing", () => {
+  it("separates Physicality, position throws and pitching", () => {
     for (const key of ["grip_strength", "home_to_first", "boxer_t"]) expect(leaderboardGroup(PLAYER_METRICS.find(metric => metric.key === key)!)).toBe("physicality");
-    for (const key of ["infield_velocity", "outfield_velocity", "max_pitch_velocity"]) expect(leaderboardGroup(PLAYER_METRICS.find(metric => metric.key === key)!)).toBe("throwing");
+    expect(leaderboardGroup(PLAYER_METRICS.find(metric => metric.key === "max_pitch_velocity")!)).toBe("pitching");
+    for (const key of ["infield_velocity", "outfield_velocity"]) expect(leaderboardGroup(PLAYER_METRICS.find(metric => metric.key === key)!)).toBe("throwing");
   });
   it("defaults to Fall and keeps the summer selection for eligible body metrics only", () => {
     const options: LeaderboardComparison[] = [{ metricKey: "weight", source: "renpho", unit: "lb", period: "summer_2026", athleteCount: 1 }];

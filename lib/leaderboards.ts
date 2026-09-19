@@ -15,21 +15,21 @@ export const LEADERBOARD_METRICS: readonly LeaderboardMetricDefinition[] = [...P
 const pitchAbbreviation: Record<string,string> = { Fastball:"FB", "Four-Seam Fastball":"FB (4-Seam)", "Two-Seam Fastball":"FB (2-Seam)", "Breaking Ball":"BRK", Slider:"SL", Curveball:"CB", Changeup:"CH", Cutter:"CT", Sweeper:"SW", Sinker:"SI", Splitter:"SPL", Knuckleball:"KN", Other:"Other" };
 export const pitchLeaderboardLabel = (metric: LeaderboardMetricDefinition, source: string) => `${pitchAbbreviation[leaderboardPitchType(source) ?? ""] ?? "Pitch"} · ${metric.label}`;
 
-export const LEADERBOARD_GROUPS = ["physicality", "hitting", "throwing"] as const;
+export const LEADERBOARD_GROUPS = ["physicality", "hitting", "pitching", "throwing"] as const;
 export type LeaderboardGroup = (typeof LEADERBOARD_GROUPS)[number];
 export type LeaderboardComparison = { metricKey: LeaderboardMetricKey; source: string; unit: string; period: PlayerPerformancePeriod; athleteCount: number };
 export type LeaderboardSelection = Omit<LeaderboardComparison, "athleteCount">;
 export type LeaderboardRow = { rank: number; athleteCode: string; name: string; jerseyNumber: number | null; position: string | null; profileId: string | null; value: number; measuredAt: string; source: string; derived: boolean };
-export const leaderboardGroupLabels: Record<LeaderboardGroup, string> = { physicality: "Physicality", hitting: "Hitting", throwing: "Pitching & Throwing" };
+export const leaderboardGroupLabels: Record<LeaderboardGroup, string> = { physicality: "Physicality", hitting: "Hitting", pitching: "Pitching", throwing: "Position Throwing" };
 const physicality = new Set(["skeletal_muscle_mass", "body_score", "height", "weight", "grip_strength", "grip_dominant", "grip_non_dominant", "body_fat_pct", "muscle_mass_pct", "muscle_mass", ...TIMED_METRIC_KEYS]);
 export function leaderboardGroup(metric: LeaderboardMetricDefinition): LeaderboardGroup {
-  return physicality.has(metric.key) ? "physicality" : metric.group === "hitting" ? "hitting" : "throwing";
+  return physicality.has(metric.key) ? "physicality" : metric.group === "hitting" ? "hitting" : metric.key === "infield_velocity" || metric.key === "outfield_velocity" ? "throwing" : "pitching";
 }
-export const leaderboardMetrics = (group: LeaderboardGroup) => LEADERBOARD_METRICS.filter(metric => isVisibleProfileMetric(metric.key) && metric.key !== "skeletal_muscle_mass" && metric.key !== "muscle_mass_pct" && leaderboardGroup(metric) === group).sort((a, b) => {
+export const leaderboardMetrics = (group: LeaderboardGroup) => LEADERBOARD_METRICS.filter(metric => isVisibleProfileMetric(metric.key) && metric.key !== "skeletal_muscle_mass" && metric.key !== "muscle_mass_pct" && leaderboardGroup(metric) === group && (group !== "pitching" || isPitchLeaderboardMetric(metric.key))).sort((a, b) => {
   const order = ["body_score", "height", "weight", "muscle_mass", "skeletal_muscle_mass", "body_fat_pct", "grip_strength", "grip_dominant", "grip_non_dominant"];
   return (order.indexOf(a.key) < 0 ? 99 : order.indexOf(a.key)) - (order.indexOf(b.key) < 0 ? 99 : order.indexOf(b.key));
 });
-export const leaderboardSourceLabel = (source: string) => ({ renpho: "RENPHO", "full swing": "Full Swing", blast: "Blast", rapsodo: "Rapsodo", "player metrics": "Player Metrics" })[source] ?? source;
+export const leaderboardSourceLabel = (source: string) => source.split(" · ").map(part => ({ renpho: "RENPHO", "full swing": "Full Swing", blast: "Blast", rapsodo: "Rapsodo", "player metrics": "Player Metrics", game: "Game", intrasquad: "Intrasquad", practice: "Practice", hitting: "Hitting", pitching: "Pitching" })[part] ?? part).join(" · ");
 export const leaderboardMetricLabel = (metric: LeaderboardMetricDefinition) => isTimedMetric(metric.key) ? `${metric.label} · Best Time` : ({ max_exit_velocity: "Max Exit Velocity", avg_exit_velocity: "Average Exit Velocity", bat_speed: "Bat Speed (Unspecified)", k_pct: "Strikeout %", bb_pct: "Walk %" } as Partial<Record<LeaderboardMetricKey, string>>)[metric.key] ?? metric.label;
 
 /** Owner-selected numerical ordering; profile insight directions remain separate. */
@@ -68,4 +68,12 @@ export function initialLeaderboardSelection(group: LeaderboardGroup, options: re
   const unit = metric.units.includes(typeof query.unit === "string" ? query.unit : "") ? query.unit as string : candidates[0]?.unit ?? metric.units[0];
   const source = candidates.find(option => option.unit === unit && option.source === query.source)?.source ?? candidates.find(option => option.unit === unit)?.source ?? "";
   return { metricKey: metric.key, period: permittedPeriod, unit, source };
+}
+
+/** Select one recorded pitch before fetching ranked player values. Keep source partitions intact. */
+export function selectPitchLeaderboards(options: readonly LeaderboardComparison[], requested?: string) {
+  const order = ["Fastball", "Four-Seam Fastball", "Two-Seam Fastball", "Sinker", "Cutter", "Slider", "Sweeper", "Curveball", "Breaking Ball", "Changeup", "Splitter", "Knuckleball", "Other"];
+  const pitches = [...new Set(options.filter(o => isPitchLeaderboardMetric(o.metricKey)).flatMap(o => { const type = leaderboardPitchType(o.source); return type ? [type] : []; }))].sort((a,b) => order.indexOf(a)-order.indexOf(b));
+  const selectedPitch = pitches.find(pitch => pitch === requested) ?? pitches[0];
+  return { pitches, selectedPitch, comparisons: selectedPitch ? options.filter(o => isPitchLeaderboardMetric(o.metricKey) && leaderboardPitchType(o.source) === selectedPitch) : [] };
 }

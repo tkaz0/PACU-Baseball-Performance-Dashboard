@@ -359,3 +359,6 @@ Deploy the compatible app, then apply `202609190001_classified_pitch_results.sql
 
 
 After the compatible app deploys, apply `202609190002_pitch_type_leaderboards.sql`. It extends the existing signed-in minimal leaderboard projection to the four classified velocity/spin metrics; no new account grants or raw-reading access. Games / Intrasquad imports now offer Practice as a Session Type for the already-reviewed Full Swing layout. Unknown vendor layouts still require review.
+
+
+The pitch-selector/Position Throwing presentation update requires no new migration or environment settings beyond installed migration 202609190002. It hides overall pitching velocity boards, loads only the selected recorded pitch, and separates field throws. Existing data, RLS and profile metrics remain unchanged.

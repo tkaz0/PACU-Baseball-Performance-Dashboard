@@ -665,8 +665,8 @@ button.panel[aria-pressed="true"] { border-color: var(--accent-readable); box-sh
 .team-roster-table td { padding-top: 15px; padding-bottom: 15px; }
 .team-roster-table .roster-initials { border: 1px solid var(--line-subtle); border-radius: 10px; font-size: 11px; }
 .team-roster-table tr:hover .roster-player-name, .team-roster-table .roster-profile-link:hover { color: var(--accent-readable); }
-.leaderboard-navigation { display: flex; align-items: center; gap: 6px; margin-bottom: 24px; padding: 5px; border: 1px solid var(--line-subtle); border-radius: 10px; background: var(--surface-panel); }
-.leaderboard-navigation a { flex: 1; min-width: 0; padding: 12px; border-radius: 6px; color: var(--text-secondary); font-size: 13px; font-weight: 700; text-align: center; text-decoration: none; }
+.leaderboard-navigation { overflow-x: auto; display: flex; align-items: center; gap: 6px; margin-bottom: 24px; padding: 5px; border: 1px solid var(--line-subtle); border-radius: 10px; background: var(--surface-panel); }
+.leaderboard-navigation a { flex: 1 0 auto; min-width: max-content; padding: 12px; border-radius: 6px; color: var(--text-secondary); font-size: 13px; font-weight: 700; text-align: center; text-decoration: none; }
 .leaderboard-navigation a:hover { background: var(--surface-raised); color: var(--text-primary); }
 .leaderboard-navigation a[aria-current="page"] { color: #fff; background: #990000; }
 .leaderboard-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); align-items: start; gap: 20px; }
@@ -743,3 +743,10 @@ html[data-theme="dark"] .measurement-change[data-tone="red"] .measurement-change
 .workspace-loading-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
 .workspace-loading-grid span { height:150px; border:1px solid var(--line-subtle); border-radius:12px; background:var(--surface-panel); }
 @media(max-width:600px) { .workspace-loading-grid { grid-template-columns:1fr; } .workspace-loading-grid span { height:90px; } .team-game-counts { gap:8px; } }
+
+@media (min-width: 1101px) { .pitch-leaderboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+@media (max-width: 600px) {
+  .leaderboard-navigation[aria-label="Leaderboard group"] { flex-wrap: wrap; }
+  .leaderboard-navigation[aria-label="Leaderboard group"] a { flex: 1 0 28%; min-width: 0; }
+}

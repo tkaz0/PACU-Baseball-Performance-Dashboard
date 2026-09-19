@@ -383,3 +383,8 @@ September 19 classified-pitch tests cover metric-specific missing data, max/mean
 
 
 Pitch leaderboards have synthetic tests for in-game/practice isolation, pitch-type separation, all four result metrics, excluded count/unrecognized-source observations, ties, raw precision, existing peer-profile restrictions and context-specific rendering. No real athlete data belongs in tests. Practice classification retains the same source observation coordinates, so recategorizing an already-saved file conflicts instead of duplicating it.
+
+
+Pitch selector checks cover exact recorded choices, safe fallback, selection before row fetching, separate Game/Intrasquad contexts, Practice isolation, hidden overall pitching cards, field-only grouping and chosen-pitch URL persistence. Fictional local visual QA covers mobile/desktop and Light/Dark, including compact bars and expandable rankings. No private data is used in screenshots or fixtures.
+
+Pitch-selector release validation: `pnpm check` passed lint, strict TypeScript, all 1,675 tests across 109 files and the production build. Fictional visual checks passed at 1440px and 390px; all category links remain visible on phones without page overflow. No migration is required for this presentation update.
