@@ -76,22 +76,30 @@ export function summarizeFullSwingSession(input: ImportTable): FullSwingSession 
   return { table, date, eventCount: input.rows.length, pitcherCount: [...groups.values()].filter(g => g.role === "Pitcher").length, batterCount: [...groups.values()].filter(g => g.role === "Batter").length, players, pitches: pitchReadings, samples };
 }
 
-export type PitchRange = { sourceRows: number[]; identity: string; velocityStart: number | null; spinStart: number | null; count: number; averageVelocity: number | null; averageSpin: number | null };
-/** Half-open, fixed ranges within each pitcher. These are descriptive bins, never inferred pitch types. */
-export function groupPitchRanges(pitches: FullSwingSession["pitches"], velocityWidth = 5, spinWidth = 250): PitchRange[] {
-  if (![2, 5, 10].includes(velocityWidth) || ![100, 250, 500].includes(spinWidth)) throw new Error("Choose a supported range size.");
+export type PitchRange = { sourceRows: number[]; identity: string; velocityStart: number | null; velocityEnd: number | null; spinStart: number | null; count: number; averageVelocity: number | null; averageSpin: number | null };
+export type PitchGroupingMode = "gap" | "fixed";
+/** Gap groups connect adjacent velocities within a pitcher/spin band; neither mode assigns pitch types. */
+export function groupPitchRanges(pitches: FullSwingSession["pitches"], velocityWidth = 3, spinWidth = 250, mode: PitchGroupingMode = "gap"): PitchRange[] {
+  if (![2, 3, 5, 10].includes(velocityWidth) || ![100, 250, 500].includes(spinWidth) || !["gap", "fixed"].includes(mode)) throw new Error("Choose a supported range size.");
   const groups = new Map<string, { range: PitchRange; velocities: number[]; spins: number[] }>();
-  for (const pitch of pitches) {
-    const velocityStart = pitch.velocity === null ? null : Math.floor(pitch.velocity / velocityWidth) * velocityWidth;
+  const previous = new Map<string, { velocity: number; start: number }>();
+  const ordered = [...pitches].sort((a,b)=>a.identity.localeCompare(b.identity) || (a.velocity ?? -1)-(b.velocity ?? -1) || a.sourceRow-b.sourceRow);
+  for (const pitch of ordered) {
     const spinStart = pitch.spin === null ? null : Math.floor(pitch.spin / spinWidth) * spinWidth;
+    let velocityStart = pitch.velocity === null ? null : Math.floor(pitch.velocity / velocityWidth) * velocityWidth;
+    if (mode === "gap" && pitch.velocity !== null) {
+      const band = JSON.stringify([pitch.identity, spinStart]), last = previous.get(band);
+      velocityStart = last && pitch.velocity - last.velocity < velocityWidth ? last.start : pitch.velocity;
+      previous.set(band, {velocity: pitch.velocity, start: velocityStart});
+    }
     const key = JSON.stringify([pitch.identity, velocityStart, spinStart]);
-    const group = groups.get(key) ?? { range: { sourceRows: [], identity: pitch.identity, velocityStart, spinStart, count: 0, averageVelocity: null, averageSpin: null }, velocities: [], spins: [] };
+    const group = groups.get(key) ?? { range: { sourceRows: [], identity: pitch.identity, velocityStart, velocityEnd: pitch.velocity, spinStart, count: 0, averageVelocity: null, averageSpin: null }, velocities: [], spins: [] };
     group.range.count++; group.range.sourceRows.push(pitch.sourceRow);
-    if (pitch.velocity !== null) group.velocities.push(pitch.velocity);
+    if (pitch.velocity !== null) { group.velocities.push(pitch.velocity); group.range.velocityEnd=pitch.velocity; }
     if (pitch.spin !== null) group.spins.push(pitch.spin);
     groups.set(key, group);
   }
   const mean = (values: number[]) => values.length ? values.reduce((a, b) => a + b, 0) / values.length : null;
-  return [...groups.values()].map(g => ({ ...g.range, averageVelocity: mean(g.velocities), averageSpin: mean(g.spins) }))
+  return [...groups.values()].map(g => ({ ...g.range, sourceRows:g.range.sourceRows.sort((a,b)=>a-b), averageVelocity: mean(g.velocities), averageSpin: mean(g.spins) }))
     .sort((a,b) => a.identity.localeCompare(b.identity) || (b.velocityStart ?? -1) - (a.velocityStart ?? -1) || (b.spinStart ?? -1) - (a.spinStart ?? -1));
 }

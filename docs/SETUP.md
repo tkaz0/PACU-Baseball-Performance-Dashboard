@@ -362,3 +362,6 @@ After the compatible app deploys, apply `202609190002_pitch_type_leaderboards.sq
 
 
 The pitch-selector/Position Throwing presentation update requires no new migration or environment settings beyond installed migration 202609190002. It hides overall pitching velocity boards, loads only the selected recorded pitch, and separates field throws. Existing data, RLS and profile metrics remain unchanged.
+
+
+Apply 202609190003_reversible_csv_removal.sql before using Correct CSV Assignments. This adds an Admin-only ordinary-session review/removal/restore workflow; no credentials, role grants or Player/Coach table access change. Removed source coordinates cannot be silently re-imported. The app preserves the request UUID on uncertain retries.

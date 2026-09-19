@@ -3,15 +3,16 @@ import { PitchAssignmentReview, type PitchAssignmentStore } from "@/components/p
 import type { PitchResultContext } from "@/lib/imports/classified-pitch-results";
 import type { SaveImportAction } from "@/components/full-swing-import";
 import { useState } from "react";
-import { groupPitchRanges, SESSION_METRICS, type FullSwingSession } from "@/lib/imports/full-swing-session";
+import { groupPitchRanges, SESSION_METRICS, type FullSwingSession, type PitchGroupingMode } from "@/lib/imports/full-swing-session";
 
 const number = (value: number | null) => value === null ? "—" : value.toFixed(1);
 export function FullSwingSessionReview({ session, fileHash, assignmentStore, includedIdentities, resultContext, saveResults }: { session: FullSwingSession; resultContext?: PitchResultContext; saveResults?: SaveImportAction; includedIdentities?: string[]; fileHash?: string; assignmentStore?: PitchAssignmentStore }) {
   const [search, setSearch] = useState("");
-  const [velocityWidth, setVelocityWidth] = useState(5), [spinWidth, setSpinWidth] = useState(250);
+  const [velocityWidth, setVelocityWidth] = useState(3), [spinWidth, setSpinWidth] = useState(250);
+  const [groupingMode, setGroupingMode] = useState<PitchGroupingMode>("gap");
   const [rpmConfirmed, setRpmConfirmed] = useState(false);
   const matches = (name: string) => (includedIdentities === undefined || includedIdentities.includes(name)) && name.toLowerCase().includes(search.trim().toLowerCase());
-  const ranges = groupPitchRanges(session.pitches, velocityWidth, spinWidth).filter(r => matches(r.identity));
+  const ranges = groupPitchRanges(session.pitches, velocityWidth, spinWidth, groupingMode).filter(r => matches(r.identity));
   const players = session.players.filter(p => matches(p.identity));
   const spinUnit = rpmConfirmed ? "RPM" : "export units";
   return <section className="my-6 space-y-5 rounded-xl border border-[var(--line-subtle)] p-4 sm:p-5" aria-label="Full Swing session review">
@@ -28,13 +29,13 @@ export function FullSwingSessionReview({ session, fileHash, assignmentStore, inc
     })}
     <details className="border-t border-[var(--line-subtle)] pt-4" open><summary className="cursor-pointer font-semibold">Pitch Velocity &amp; Spin Ranges</summary>
       <p className="muted text-sm">Grouped separately for each pitcher. Ranges organize similar readings. Review the suggested pitch types below. Pitch assignments save separately from player measurements.</p>
-      <div className="flex flex-wrap gap-4"><label>Velocity range<select value={velocityWidth} onChange={e => setVelocityWidth(Number(e.target.value))}>{[2,5,10].map(n => <option key={n} value={n}>{n} mph</option>)}</select></label><label>Spin range<select value={spinWidth} onChange={e => setSpinWidth(Number(e.target.value))}>{[100,250,500].map(n => <option key={n} value={n}>{n} {spinUnit}</option>)}</select></label></div>
+      <div className="flex flex-wrap gap-4"><label>Group pitches by<select value={groupingMode} onChange={e=>setGroupingMode(e.target.value as PitchGroupingMode)}><option value="gap">Gaps between velocities</option><option value="fixed">Fixed velocity ranges</option></select></label><label>{groupingMode === "gap" ? "Start a new group at" : "Velocity range"}<select value={velocityWidth} onChange={e => setVelocityWidth(Number(e.target.value))}>{[2,3,5,10].map(n => <option key={n} value={n}>{n} mph</option>)}</select></label><label>Spin range<select value={spinWidth} onChange={e => setSpinWidth(Number(e.target.value))}>{[100,250,500].map(n => <option key={n} value={n}>{n} {spinUnit}</option>)}</select></label></div>
       <label className="my-3 flex items-center gap-2 text-sm"><input type="checkbox" checked={rpmConfirmed} onChange={e => setRpmConfirmed(e.target.checked)} />I confirm the export’s SpinRate values are RPM.</label>
       <div className="table-wrap max-h-[32rem] overflow-auto"><table><caption className="sr-only">Pitch groups by velocity and spin</caption><thead><tr><th>Pitcher</th><th>Velocity (mph)</th><th>Spin ({spinUnit})</th><th>Pitches</th><th>Average Velocity</th><th>Average Spin</th></tr></thead><tbody>{ranges.map((range, i) => {
         const total = session.pitches.filter(p => p.identity === range.identity).length;
-        return <tr key={i}><th scope="row" className="whitespace-nowrap">{range.identity}</th><td className="whitespace-nowrap">{range.velocityStart === null ? "Not recorded" : `${range.velocityStart}–<${range.velocityStart + velocityWidth}`}</td><td className="whitespace-nowrap">{range.spinStart === null ? "Not recorded / unreadable" : `${range.spinStart}–<${range.spinStart + spinWidth}`}</td><td className="min-w-28"><span className="tabular-nums">{range.count} <span className="muted text-xs">({Math.round(range.count / total * 100)}%)</span></span><div className="mt-1 h-1.5 rounded bg-[var(--line-subtle)]" aria-hidden="true"><div className="h-full rounded bg-pacu-red" style={{ width: `${range.count / total * 100}%` }} /></div></td><td>{number(range.averageVelocity)} mph</td><td>{number(range.averageSpin)}</td></tr>;
+        return <tr key={i}><th scope="row" className="whitespace-nowrap">{range.identity}</th><td className="whitespace-nowrap">{range.velocityStart === null ? "Not recorded" : groupingMode === "gap" ? `${range.velocityStart.toFixed(1)}–${range.velocityEnd!.toFixed(1)}` : `${range.velocityStart}–<${range.velocityStart + velocityWidth}`}</td><td className="whitespace-nowrap">{range.spinStart === null ? "Not recorded / unreadable" : `${range.spinStart}–<${range.spinStart + spinWidth}`}</td><td className="min-w-28"><span className="tabular-nums">{range.count} <span className="muted text-xs">({Math.round(range.count / total * 100)}%)</span></span><div className="mt-1 h-1.5 rounded bg-[var(--line-subtle)]" aria-hidden="true"><div className="h-full rounded bg-pacu-red" style={{ width: `${range.count / total * 100}%` }} /></div></td><td>{number(range.averageVelocity)} mph</td><td>{number(range.averageSpin)}</td></tr>;
       })}</tbody></table></div>
-      <p className="muted mb-0 text-xs">Ranges include the lower number and exclude the upper number. Percentages use all pitches thrown by that pitcher; missing spin stays in its own group.</p>
+      <p className="muted mb-0 text-xs">{groupingMode === "gap" ? `A gap of ${velocityWidth} mph or more starts a new group within each pitcher’s spin band. Nearby speeds stay together, so a group can span more than ${velocityWidth} mph. Review every group before assigning a pitch type.` : "Fixed ranges include the lower number and exclude the upper number."} Percentages use all pitches thrown by that pitcher; missing spin stays separate.</p>
     </details>
     <PitchAssignmentReview key={fileHash} session={session} resultContext={resultContext} saveResults={saveResults} includedIdentities={includedIdentities} ranges={ranges} search={search} spinUnit={spinUnit} rpmConfirmed={rpmConfirmed} fileHash={fileHash} store={assignmentStore} />
   </section>;

@@ -1,0 +1,9 @@
+import { beforeEach,it,expect,vi } from "vitest";
+const fake=vi.hoisted(()=>({rpc:vi.fn(),access:vi.fn(),revalidate:vi.fn()}));
+vi.mock("@/lib/auth",()=>({requireAdminMutation:fake.access}));vi.mock("next/cache",()=>({revalidatePath:fake.revalidate}));
+import {setCsvRemoval} from "@/app/(workspace)/admin/csv-corrections/actions";
+const input={requestId:"11111111-1111-4111-8111-111111111111",athleteId:"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",fileHash:"a".repeat(64),fingerprint:"b".repeat(32),restore:false};
+beforeEach(()=>{vi.clearAllMocks();fake.access.mockResolvedValue({supabase:{rpc:fake.rpc}});fake.rpc.mockResolvedValue({data:{requestId:input.requestId,count:2,restored:false},error:null});});
+it("requires ordinary admin authorization and verified review before changing a CSV",async()=>{expect(await setCsvRemoval(input,false)).toHaveProperty("error");expect(fake.rpc).not.toHaveBeenCalled();await expect(setCsvRemoval(input,true)).resolves.toHaveProperty("receipt.count",2);expect(fake.rpc).toHaveBeenCalledWith("admin_set_csv_measurement_archive",{p_request_id:input.requestId,p_athlete:input.athleteId,p_file_hash:input.fileHash,p_fingerprint:input.fingerprint,p_restore:false,p_reviewed:true});expect(fake.revalidate).toHaveBeenCalledWith("/leaderboards");});
+it("does not invoke a mutation after preview/player authorization is denied",async()=>{fake.access.mockRejectedValue(new Error("denied"));await expect(setCsvRemoval(input,true)).rejects.toThrow();expect(fake.rpc).not.toHaveBeenCalled();});
+it("rejects malformed scope and unconfirmed receipts",async()=>{expect(await setCsvRemoval({...input,fileHash:"bad"},true)).toHaveProperty("error");expect(fake.rpc).not.toHaveBeenCalled();fake.rpc.mockResolvedValue({data:{requestId:input.requestId,count:2,restored:true},error:null});expect(await setCsvRemoval(input,true)).toHaveProperty("error");expect(fake.revalidate).not.toHaveBeenCalled();});

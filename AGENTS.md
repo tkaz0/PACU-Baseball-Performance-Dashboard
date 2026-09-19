@@ -102,3 +102,6 @@ September 19 pitch leaderboards: the owner authorizes average/max velocity and s
 
 
 September 19 leaderboard organization: Pitching now shows only a selected recorded pitch’s four velocity/spin metrics; Position Throwing is separately limited to infield/outfield velocity. Hide overall pitching leaderboard cards without deleting data or changing profile metrics. Preserve exact source/context partitions and one-decimal Full Swing display. Magnitude bars are zero-based within each table, never percentiles or spin quality ratings.
+
+
+September 19 CSV corrections: the owner requested removal of a mistaken Full Swing player assignment. Active Admins outside View as may remove exactly one athlete/file Full Swing batch after fingerprint review using ordinary-session RPCs. Migration 202609190003 privately archives complete originals, supports atomic restoration, records count-only audit events and blocks re-import of archived coordinates. Never delete unrelated readings, accounts or shared pitch labels. Pitch review now defaults to a 3 mph adjacent-velocity gap within each pitcher/spin band; grouping never overwrites saved classifications. No player / Skip explicitly excludes even previously matched export identities.

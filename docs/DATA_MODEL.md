@@ -314,3 +314,6 @@ Pitch-type leaderboards use the existing `leaderboard_latest` projection and fou
 
 
 Pitching and Position Throwing are separate presentation groups. Pitching selects one exact classified pitch before leaderboard RPC reads, preserving source/unit/period partitions; field throws expose only infield_velocity/outfield_velocity. No schema, measurement or authorization change. Magnitude bars use zero-to-table-maximum scales, not percentiles; raw values still determine ties.
+
+
+private.csv_measurement_archives stores the original complete measurement rows and exact player/file scope for reviewed Full Swing removal. Database fingerprints are rechecked under account-then-roster locks. Archived readings are removed from performance_measurements, so all existing profiles, Analytics, comparisons and leaderboards exclude them consistently. Restore reinserts the original rows atomically, preserving IDs, values, dates, import metadata and unique constraints. A private trigger prevents re-upload of still-archived observation IDs/source coordinates. Admin-only RPCs check live role; raw archives have no application table grants.

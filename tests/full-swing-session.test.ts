@@ -60,15 +60,26 @@ it("bins velocity/spin by pitcher with exact boundaries and missing spin separat
  const r=summarizeFullSwingSession(table([
  event({RelSpeed:"84.99",SpinRate:"1999.9"}),event({PitchNo:"2",RelSpeed:"85",SpinRate:"2000"}),
  event({PitchNo:"3",RelSpeed:"85",SpinRate:"null"}),event({PitchNo:"4",Pitcher:"Fictional Other",PitcherId:"fictional-other",RelSpeed:"85",SpinRate:"2000"})]));
- const groups=groupPitchRanges(r.pitches);
+ const groups=groupPitchRanges(r.pitches,5,250,"fixed");
  expect(groups).toHaveLength(4);expect(groups.reduce((n,g)=>n+g.count,0)).toBe(4);
  expect(groups).toContainEqual(expect.objectContaining({identity:name,velocityStart:80,spinStart:1750,count:1}));
  expect(groups).toContainEqual(expect.objectContaining({identity:name,velocityStart:85,spinStart:2000,count:1}));
  expect(groups).toContainEqual(expect.objectContaining({spinStart:null,averageSpin:null}));
- expect(groupPitchRanges(r.pitches,10,500)).toHaveLength(4);
+ expect(groupPitchRanges(r.pitches,10,500,"fixed")).toHaveLength(4);
  expect(()=>groupPitchRanges(r.pitches,0,250)).toThrow();
 });
 it("keeps unreadable spin out of numerical groups without blocking summary imports",()=>{
  const r=summarizeFullSwingSession(table([event({SpinRate:"broken"})]));
  expect(r.pitches[0].spin).toBeNull();expect(r.table.rows).toHaveLength(2);
+});
+
+it("groups nearby velocities across old boundaries until a 3 mph gap, preserving pitcher/spin/missing partitions",()=>{
+ const r=summarizeFullSwingSession(table([event({PitchNo:"1",RelSpeed:"79",SpinRate:"2000"}),event({PitchNo:"2",RelSpeed:"81",SpinRate:"2100"}),event({PitchNo:"3",RelSpeed:"83",SpinRate:"2001"}),event({PitchNo:"4",RelSpeed:"86",SpinRate:"2010"}),event({PitchNo:"5",RelSpeed:"81",SpinRate:"null"}),event({PitchNo:"6",RelSpeed:"81",SpinRate:"2400"})]));
+ const before=structuredClone(r.pitches),groups=groupPitchRanges(r.pitches);
+ expect(groups).toHaveLength(4);
+ expect(groups).toContainEqual(expect.objectContaining({velocityStart:79,velocityEnd:83,count:3,sourceRows:[2,3,4],averageVelocity:81}));
+ expect(groups).toContainEqual(expect.objectContaining({velocityStart:86,velocityEnd:86,count:1}));
+ expect(groups.reduce((sum,g)=>sum+g.count,0)).toBe(6);expect(r.pitches).toEqual(before);
+ expect(groupPitchRanges([...r.pitches].reverse())).toEqual(groups);
+ expect(groupPitchRanges(r.pitches,3,250,"fixed").length).toBeGreaterThan(groups.length);
 });

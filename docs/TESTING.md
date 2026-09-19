@@ -388,3 +388,8 @@ Pitch leaderboards have synthetic tests for in-game/practice isolation, pitch-ty
 Pitch selector checks cover exact recorded choices, safe fallback, selection before row fetching, separate Game/Intrasquad contexts, Practice isolation, hidden overall pitching cards, field-only grouping and chosen-pitch URL persistence. Fictional local visual QA covers mobile/desktop and Light/Dark, including compact bars and expandable rankings. No private data is used in screenshots or fixtures.
 
 Pitch-selector release validation: `pnpm check` passed lint, strict TypeScript, all 1,675 tests across 109 files and the production build. Fictional visual checks passed at 1440px and 390px; all category links remain visible on phones without page overflow. No migration is required for this presentation update.
+
+
+CSV correction tests cover narrow athlete/file scope, preserved non-Full-Swing/peer readings, complete exact restoration, identical retries, stale fingerprint rejection, review requirements, live Admin revocation, denied Coach/Player/anonymous access, private archive protection and blocked re-import/remap of removed coordinates. Server action tests verify authorization precedes mutation and uncertain receipts do not report success. Synthetic importer QA verifies 79/81/83 mph group together while 86 mph starts a new group, and a manually matched guest can be skipped before final review with original coordinates preserved.
+
+CSV grouping/correction release: `pnpm check` passed lint, strict TypeScript, 1,686 tests across 111 files and the production build. The local fictional CSV review verified gap boundaries, explicit unmatching and the final two-reading preview without saving production data.

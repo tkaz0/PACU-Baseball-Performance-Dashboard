@@ -133,3 +133,6 @@ Hitting and Pitching & Throwing leaderboards now separate In-game and Practice. 
 
 
 Pitching leaderboards now use a recorded Pitch Type selector with average/max velocity and spin together. Position Throwing has separate infield/outfield velocity rankings. In-game and Practice remain distinct, and compact magnitude bars make hitting/throwing ranks easier to scan.
+
+
+Full Swing pitch review now groups nearby velocities until a 3 mph gap, with fixed bins still optional. Player matching visibly offers No player / Skip these stats. Admin profiles include Correct CSV Assignments for reversible removal of one mistaken Full Swing file assignment.

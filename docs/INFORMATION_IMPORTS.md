@@ -79,3 +79,6 @@ Full Swing numerical displays use exactly one decimal, preserving raw precision.
 
 
 Session Type now offers Practice for the already-reviewed Field / Live at Bat CSV and mapped summaries. This changes the source context, not the accepted vendor schema. Saved classified Practice pitch results appear on the Practice profile tab and Practice rankings. Regular Hitting/Pitching summary lanes and Blast also remain Practice. Game and Intrasquad remain In-game. Do not re-import an existing file under a new context to bypass immutable observations.
+
+
+Pitch grouping defaults to gaps: adjacent velocities within one pitcher/spin band stay together until a gap of at least 3 mph. A connected group may span more than 3 mph. Fixed bins (including 3 mph) remain selectable; missing velocity/spin stay separate and original CSV coordinates never change. Classification still requires staff review. Player Matches opens visibly and offers No player / Skip these stats; exclusion removes any prior manual match from the current preview, summary and classified-result payload while preserving known opponents’ recorded events. Skip affects this import only; already saved mistaken CSV results use the Admin profile’s Correct CSV Assignments tool.
