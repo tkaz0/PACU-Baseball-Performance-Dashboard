@@ -44,6 +44,29 @@ beforeEach(async () => {
 });
 afterAll(async () => { await db.close(); });
 describe("explicit minimal team leaderboard access", () => {
+  it("ranks reviewed pitch types separately by source and session, while retaining own-player access", async () => {
+    await save([
+      row(1,{metric_key:"classified_avg_velocity",source:"Full Swing · Intrasquad · Four-Seam Fastball",value:81.234},0),
+      row(2,{metric_key:"classified_avg_velocity",source:"Full Swing · Intrasquad · Four-Seam Fastball",value:82.456},0),
+      row(1,{metric_key:"classified_avg_velocity",source:"Full Swing · Practice · Four-Seam Fastball",value:95},1),
+      row(1,{metric_key:"classified_avg_velocity",source:"Full Swing · Intrasquad · Curveball",value:65},2),
+      row(1,{metric_key:"classified_max_spin",source:"Full Swing · Intrasquad · Curveball",value:2500.123,unit:"rpm"},3),
+      row(1,{metric_key:"classified_pitch_count",source:"Full Swing · Intrasquad · Curveball",value:15,unit:"count"},4),
+      row(1,{metric_key:"classified_avg_velocity",source:"Unreviewed pitch source",value:100},5),
+      row(3,{metric_key:"classified_avg_velocity",source:"Full Swing · Intrasquad · Four-Seam Fastball",value:82.456},0),
+      row(6,{metric_key:"classified_avg_velocity",source:"Full Swing · Intrasquad · Four-Seam Fastball",value:99},0),
+    ]);
+    await asUser(users.player, async()=>{
+      const comparisons=await options();expect(comparisons).toHaveLength(4);
+      expect(comparisons.some(o=>o.metricKey.includes("count")||o.source.includes("unreviewed"))).toBe(false);
+      const rows=await board({metricKey:"classified_avg_velocity",source:"full swing · intrasquad · four-seam fastball"});
+      expect(rows.map(r=>[r.value,r.rank])).toEqual([[82.456,1],[82.456,1],[81.234,3]]);
+      expect(rows.map(r=>r.profileId)).toEqual([null,null,athlete(1)]);
+      expect(await board({metricKey:"classified_avg_velocity",source:"full swing · practice · four-seam fastball"})).toEqual([expect.objectContaining({value:95})]);
+      expect(await board({metricKey:"classified_max_spin",source:"full swing · intrasquad · curveball",unit:"rpm"})).toEqual([expect.objectContaining({value:2500.123})]);
+      expect(JSON.stringify(rows)).not.toMatch(/file_hash|source_file|email|source_row/);
+    });
+  });
   it("denies anonymous execution and inaccessible private raw helper", async () => {
     await asUser(null, async () => { await expect(options()).rejects.toThrow("permission denied"); await expect(board()).rejects.toThrow("permission denied"); });
     await asUser(users.player, async () => { await expect(db.query("select * from private.leaderboard_latest()")).rejects.toThrow("permission denied"); });

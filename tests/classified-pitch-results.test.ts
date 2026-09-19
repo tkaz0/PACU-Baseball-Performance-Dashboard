@@ -57,3 +57,12 @@ it("renders four one-decimal results, sample sizes and separate sessions for the
  for(const text of ["81.3","82.5","2050.3","2100.5","n=2","Fastball","Slider"])expect(html).toContain(text);
  expect(html).not.toContain("82.456");expect(html).not.toContain("Old fictional");expect(html).not.toContain("Fictional Excluded");
 });
+it("keeps Practice pitch readings out of In-game profiles and preserves the original observation coordinates",()=>{
+ const game=prepareClassifiedPitchResults(session,labels,context);
+ const practice=prepareClassifiedPitchResults(session,labels,{...context,category:"practice"});
+ expect(practice.map(r=>r.id)).toEqual(game.map(r=>r.id));
+ expect(prepareReviewedPerformanceRows(practice)).toHaveLength(practice.length);
+ expect(renderToStaticMarkup(createElement(ClassifiedPitchResults,{readings:practice}))).toBe("");
+ expect(renderToStaticMarkup(createElement(ClassifiedPitchResults,{readings:game,context:"practice"}))).toBe("");
+ expect(renderToStaticMarkup(createElement(ClassifiedPitchResults,{readings:practice,context:"practice"}))).toContain("Practice");
+});

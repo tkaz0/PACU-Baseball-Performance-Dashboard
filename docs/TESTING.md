@@ -380,3 +380,6 @@ Reviewed pitch types: apply `202609170001_pitch_assignments.sql` before deployin
 
 
 September 19 classified-pitch tests cover metric-specific missing data, max/mean/count calculations, exclusions, stable provenance, immutable retries/conflicts, ordinary Coach saves, own-player reads and one-decimal profile rendering. Synthetic browser QA verifies review gating and successful publishing. PGlite checks are not full hosted Auth integration.
+
+
+Pitch leaderboards have synthetic tests for in-game/practice isolation, pitch-type separation, all four result metrics, excluded count/unrecognized-source observations, ties, raw precision, existing peer-profile restrictions and context-specific rendering. No real athlete data belongs in tests. Practice classification retains the same source observation coordinates, so recategorizing an already-saved file conflicts instead of duplicating it.

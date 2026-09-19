@@ -76,3 +76,6 @@ Filtering happens after the raw session is summarized, so a rostered hitter reta
 
 
 Full Swing numerical displays use exactly one decimal, preserving raw precision. Saved pitch labels now support a separate **Save Pitch Results to Profiles** step after matching, RPM and pitch-type review. It saves max/average velocity and spin plus sample counts for each known pitcher/type in the original session; unknown pitchers and unassigned pitches are excluded. Saved source observations remain immutable: re-importing identical results skips them, while later conflicting classifications require a correction review. Label changes alone do not automatically rewrite published measurements.
+
+
+Session Type now offers Practice for the already-reviewed Field / Live at Bat CSV and mapped summaries. This changes the source context, not the accepted vendor schema. Saved classified Practice pitch results appear on the Practice profile tab and Practice rankings. Regular Hitting/Pitching summary lanes and Blast also remain Practice. Game and Intrasquad remain In-game. Do not re-import an existing file under a new context to bypass immutable observations.

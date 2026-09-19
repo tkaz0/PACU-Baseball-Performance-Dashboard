@@ -3,9 +3,9 @@ import { prepareReviewedPerformanceRows } from "@/lib/performance-import";
 import { PLAYER_METRICS, type PlayerMetricDefinition } from "@/lib/player-performance";
 import type { RosterAthlete } from "@/lib/types";
 
-export type FullSwingCategory = "hitting" | "pitching" | "game" | "intrasquad";
+export type FullSwingCategory = "hitting" | "pitching" | "game" | "intrasquad" | "practice";
 export const FULL_SWING_LABELS: Record<FullSwingCategory, string> = {
-  hitting: "Hitting", pitching: "Pitching", game: "Game", intrasquad: "Intrasquad",
+  hitting: "Hitting", pitching: "Pitching", game: "Game", intrasquad: "Intrasquad", practice: "Practice",
 };
 const hittingKeys = ["max_exit_velocity", "avg_exit_velocity", "bat_speed", "max_bat_speed", "avg_bat_speed", "smash_factor", "max_distance"];
 const pitchingKeys = ["max_pitch_velocity", "avg_pitch_velocity", "avg_fastball_spin", "strike_pct", "k_pct", "bb_pct"];
@@ -19,7 +19,7 @@ export function previewFullSwingSummary(input: {
   table: ImportTable; mapping: MeasurementMapping; roster: RosterAthlete[];
   file: FileContext; category: FullSwingCategory; summaryConfirmed: boolean;
 }): MeasurementPreview {
-  if (!Object.hasOwn(FULL_SWING_LABELS, input.category)) throw new Error("Choose Hitting, Pitching, Game, or Intrasquad.");
+  if (!Object.hasOwn(FULL_SWING_LABELS, input.category)) throw new Error("Choose Hitting, Pitching, Game, Intrasquad, or Practice.");
   if (!input.summaryConfirmed) throw new Error("Confirm that each row contains one player's session summaries. Individual swings or pitches need a separate adapter.");
   if (!input.file.fileName.toLowerCase().endsWith(".csv")) throw new Error("Choose a CSV file for Full Swing.");
   const allowed = fullSwingMetrics(input.category);

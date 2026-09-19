@@ -308,3 +308,6 @@ Full Swing/Blast roster selection filters summary rows without renumbering sourc
 
 
 Classified Full Swing summaries are separate canonical observations: max/average velocity (mph), max/average spin (rpm), pitch count and metric-specific reading counts. They retain original precision and exact CSV hash, pitcher’s first original row and stable type/metric columns under `CSV · Classified pitch summaries v1`. Source is `Full Swing · Game|Intrasquad · <reviewed pitch type>`. Missing readings and unassigned/excluded pitchers produce no invented measurements. Catalog entries are not profile-percentile metrics and do not alter ordinary fastball-spin measurements. No new table grants, roles or Auth links.
+
+
+Pitch-type leaderboards use the existing `leaderboard_latest` projection and four explicitly allowed classified metrics, requiring a recognized Full Swing category/type source. Count metrics stay private. Exact source, pitch type, unit and Fall period remain separate; each athlete contributes their latest comparable reading, not a mean of session averages. Profile-metric catalog flags and ordinary own-player RLS are unchanged.

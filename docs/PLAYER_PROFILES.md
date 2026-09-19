@@ -151,3 +151,6 @@ Each source/unit has its own latest card, trend and exact-cohort percentile; a n
 
 
 The In-game tab includes **Pitch Types · Velocity & Spin** from reviewed Full Swing summaries, displaying max/average mph and RPM with recorded sample sizes. It shows the latest recorded testing date, keeping separate files on that date distinct. These readings use the profile’s existing own-athlete access and are separate from cumulative game-sheet statistics. All Full Swing numerical result displays use one decimal; stored values and calculations retain original precision.
+
+
+Classified pitch tables now respect their recorded Game/Intrasquad versus Practice source and appear only in the corresponding tab. Team leaderboards use the same context boundary; regular Hitting/Pitching/Blast testing stays Practice. Four-seam and two-seam fastballs retain distinct pitch types rather than being pooled under a generic fastball average.

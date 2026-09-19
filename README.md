@@ -127,3 +127,6 @@ Full Swing/Blast imports skip unmatched names by default. Staff can match or exc
 
 
 Full Swing values display to one decimal across imports, profiles, comparisons and charts while original precision is retained. Reviewed pitch labels can now publish max/average velocity and spin by pitch type to the player’s In-game tab.
+
+
+Hitting and Pitching & Throwing leaderboards now separate In-game and Practice. Recorded classified pitches have average/max velocity and spin rankings, grouped by pitch type; existing Game Stats rankings remain separate cumulative sheet results.

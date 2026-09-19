@@ -3,8 +3,8 @@ import { CLASSIFIED_METRICS, classifiedPitchSource } from "@/lib/imports/classif
 import { formatSourceNumber } from "@/lib/measurement-display";
 
 /** Own-athlete readings supplied by the authorized profile route, never a peer lookup. */
-export function ClassifiedPitchResults({ readings }: { readings: readonly Measurement[] }) {
-  const valid = readings.filter(r => classifiedPitchSource(r.source) && CLASSIFIED_METRICS.some(m => m.label === r.metric && m.unit === r.unit) && r.measured_at >= "2026-09-01" && r.measured_at <= "2026-12-31");
+export function ClassifiedPitchResults({ readings, context = "in_game" }: { readings: readonly Measurement[]; context?: "in_game" | "practice" }) {
+  const valid = readings.filter(r => classifiedPitchSource(r.source) && (classifiedPitchSource(r.source)!.category === "Practice" ? "practice" : "in_game") === context && CLASSIFIED_METRICS.some(m => m.label === r.metric && m.unit === r.unit) && r.measured_at >= "2026-09-01" && r.measured_at <= "2026-12-31");
   const latest = valid.map(r => r.measured_at).sort().at(-1);
   if (!latest) return null;
   const current = valid.filter(r => r.measured_at === latest);

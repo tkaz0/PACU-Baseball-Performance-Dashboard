@@ -3,7 +3,7 @@ import type { requireAccess } from "@/lib/auth";
 import { canReadPresentedAthlete } from "@/lib/access-preview";
 import { UUID_PATTERN } from "@/lib/types";
 import { PLAYER_PERFORMANCE_PERIODS, validatePlayerMetricValue } from "@/lib/player-performance";
-import { LEADERBOARD_METRICS, leaderboardOrder, type LeaderboardComparison, type LeaderboardRow, type LeaderboardSelection } from "@/lib/leaderboards";
+import { LEADERBOARD_METRICS, isPitchLeaderboardMetric, leaderboardOrder, type LeaderboardComparison, type LeaderboardRow, type LeaderboardSelection } from "@/lib/leaderboards";
 
 type Access = Awaited<ReturnType<typeof requireAccess>>;
 const optionFields = ["athleteCount", "metricKey", "period", "source", "unit"].sort().join(",");
@@ -44,7 +44,7 @@ export async function loadLeaderboard(access: Access, selection: LeaderboardSele
       typeof item.name !== "string" || !item.name.trim() || item.name.length > 201 || /[\u0000-\u001f\u007f]/.test(item.name) ||
       (item.jerseyNumber !== null && (!Number.isSafeInteger(item.jerseyNumber) || item.jerseyNumber < 0 || item.jerseyNumber > 99)) ||
       (item.position !== null && !positions.has(item.position)) || (item.profileId !== null && (typeof item.profileId !== "string" || !UUID_PATTERN.test(item.profileId))) ||
-      typeof item.value !== "number" || !(metric.key === "muscle_mass" ? Number.isFinite(item.value) && item.value >= 0 : validatePlayerMetricValue(metric.key, item.value, selection.unit)) || typeof item.derived !== "boolean" || (item.derived && metric.key !== "muscle_mass_pct") ||
+      typeof item.value !== "number" || !(metric.key === "muscle_mass" || isPitchLeaderboardMetric(metric.key) ? Number.isFinite(item.value) && item.value >= 0 : validatePlayerMetricValue(metric.key, item.value, selection.unit)) || typeof item.derived !== "boolean" || (item.derived && metric.key !== "muscle_mass_pct") ||
       typeof item.measuredAt !== "string" || !/^2026-\d{2}-\d{2}$/.test(item.measuredAt) || !Number.isFinite(Date.parse(item.measuredAt)) || new Date(item.measuredAt).toISOString().slice(0, 10) !== item.measuredAt || item.measuredAt < period.start || item.measuredAt > period.end ||
       item.source !== selection.source || !Number.isSafeInteger(item.rank) || item.rank !== (previous && previous.value === item.value ? previous.rank : index + 1)) return fail();
     if (previous && (leaderboardOrder(metric) === "lower" ? item.value < previous.value : item.value > previous.value)) return fail();

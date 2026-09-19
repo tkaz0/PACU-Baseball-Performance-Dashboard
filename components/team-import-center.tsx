@@ -27,7 +27,7 @@ type Lane = (typeof lanes)[number]["key"];
 export function TeamImportCenter({ roster }: { roster: RosterAthlete[] }) {
   const sessionId = useId();
   const [lane, setLane] = useState<Lane>("physicality");
-  const [gameKind, setGameKind] = useState<"game" | "intrasquad">("intrasquad");
+  const [gameKind, setGameKind] = useState<"game" | "intrasquad" | "practice">("intrasquad");
   const [saving, setSaving] = useState(false);
   async function save(measurements: Measurement[], identity?: { athleteCode: string; renphoId: string }): Promise<ReadingsSaved> {
     setSaving(true);
@@ -46,7 +46,7 @@ export function TeamImportCenter({ roster }: { roster: RosterAthlete[] }) {
       </button>)}
     </div>
     {!roster.length ? <p className="notice">No players are on the 2026–27 roster yet. An admin can add the roster before measurements are imported.</p> : <>
-      {lane === "games" && <div className={styles.session}><label htmlFor={sessionId} className={styles.sessionLabel}>Session Type</label><select id={sessionId} disabled={saving} value={gameKind} onChange={event => { setGameKind(event.target.value as "game" | "intrasquad"); }}><option value="intrasquad">Intrasquad</option><option value="game">Game</option></select></div>}
+      {lane === "games" && <div className={styles.session}><label htmlFor={sessionId} className={styles.sessionLabel}>Session Type</label><select id={sessionId} disabled={saving} value={gameKind} onChange={event => { setGameKind(event.target.value as "game" | "intrasquad" | "practice"); }}><option value="intrasquad">Intrasquad</option><option value="game">Game</option><option value="practice">Practice</option></select></div>}
       {lane === "physicality" ? <RenphoReportForm workspace={{ roster, measurements: [], revision: 0, ready: true, error: null, applyRenphoReport: async (measurements, _batch, _revision, identity) => { await save(measurements, { athleteCode: identity.athleteCode, renphoId: identity.renphoId ?? "" }); } }} shared={{ save,
         profileHref: code => `/athletes/${roster.find(athlete => athlete.athlete_code === code)!.id}`,
         loadExisting: async hash => { const result = await loadSharedReportMeasurements(hash); if ("error" in result) throw new Error(result.error); return result.measurements; },

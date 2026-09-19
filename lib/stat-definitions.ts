@@ -3,6 +3,10 @@ import { PLAYER_METRICS, normalizePlayerMetric } from "@/lib/player-performance"
 
 // Short descriptions of recorded measures, not targets or medical interpretations.
 export const STAT_DEFINITIONS: Readonly<Record<string, string>> = {
+  classified_avg_velocity: "Average velocity of recorded pitches assigned to this pitch type by staff, within the player’s latest comparable session. In-game and Practice results remain separate; missing readings are excluded.",
+  classified_max_velocity: "Highest recorded velocity among pitches assigned to this pitch type in the player’s latest comparable session. Each pitch type and session context is ranked separately.",
+  classified_avg_spin: "Average recorded spin rate (RPM) for this staff-reviewed pitch type in the latest comparable session. Higher spin ranks first numerically; more spin is not universally better, especially for changeups.",
+  classified_max_spin: "Highest recorded spin rate (RPM) for this staff-reviewed pitch type in the latest comparable session. Missing readings are excluded. This is a numerical ranking, not a pitch-quality score.",
   ...Object.fromEntries(RENPHO_SEGMENTS.map(segment => [segment.label.toLowerCase(), "Estimated muscle mass for this body part from RENPHO’s Muscle Balance section. The mass is separate from the percentage compared with the device’s standard and is not a strength measurement."])),
   body_score: "The Body Score printed in the top-right corner of the RENPHO report, on its /100 scale. This is the device’s recorded score; PACU does not calculate or combine measurements to produce it. Some reports may exceed 100. It is not a team percentile.",
   height: "Recorded standing height. Displayed in feet and inches; comparisons keep the original measurement units separate.",

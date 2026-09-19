@@ -61,7 +61,7 @@ export function PitchAssignmentReview({ session, ranges, fileHash, store, search
       const rows=prepareClassifiedPitchResults(session,assignments,resultContext);
       if(!rows.length) throw new Error("No matched pitchers have reviewed pitch labels yet.");
       const receipt=await saveResults(rows);
-      setResultMessage(`${receipt.created} pitch-type readings saved · ${receipt.unchanged} already saved. View them under In-game on each pitcher’s profile.`);
+      setResultMessage(`${receipt.created} pitch-type readings saved · ${receipt.unchanged} already saved. View them under ${resultContext.category === "practice" ? "Practice" : "In-game"} on each pitcher’s profile.`);
       setResultApproval("");
     } catch(error) { setError(error instanceof Error ? error.message : "Pitch results could not be saved."); }
     finally { setSaving(false); }

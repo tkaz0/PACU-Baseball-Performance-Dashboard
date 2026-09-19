@@ -11,7 +11,8 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
   const query = await searchParams;
   if(query.group === "games") return <><PageHeading section="Pacific Baseball / Team Results" title="Leaderboards" description="Fall 2026 · Team game rankings."/><GameLeaderboard rows={await loadGameLeaderboards(access)} discipline={query.discipline==="pitching"?"pitching":"hitting"}/></>;
   const group = LEADERBOARD_GROUPS.find(group => group === query.group) ?? "physicality";
-  const comparisons = visibleLeaderboardComparisons(group, await loadLeaderboardComparisons(access));
+  const session = query.session === "practice" ? "practice" : "in_game";
+  const comparisons = visibleLeaderboardComparisons(group, await loadLeaderboardComparisons(access), session);
   const panels = await Promise.all(comparisons.map(async comparison => ({ comparison, rows: await loadLeaderboard(access, comparison) })));
-  return <><PageHeading section="Pacific Baseball / Team Results" title="Leaderboards" description="Team rankings from the latest testing results." /><LeaderboardBoard group={group} panels={panels} /></>;
+  return <><PageHeading section="Pacific Baseball / Team Results" title="Leaderboards" description="Team rankings from the latest testing results." /><LeaderboardBoard group={group} panels={panels} session={session} /></>;
 }

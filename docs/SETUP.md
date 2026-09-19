@@ -356,3 +356,6 @@ Roster-only Full Swing/Blast review requires no migration: deploy the app. Reope
 
 
 Deploy the compatible app, then apply `202609190001_classified_pitch_results.sql`. This adds seven private metric/unit definitions only, using existing staff imports and own-player RLS. In Games / Intrasquad, open the original CSV, verify matches and RPM, save reviewed pitch assignments, then select **Save Pitch Results to Profiles** after review. Repeated identical results are idempotent; a conflicting prior result requires correction review, not a changed file hash.
+
+
+After the compatible app deploys, apply `202609190002_pitch_type_leaderboards.sql`. It extends the existing signed-in minimal leaderboard projection to the four classified velocity/spin metrics; no new account grants or raw-reading access. Games / Intrasquad imports now offer Practice as a Session Type for the already-reviewed Full Swing layout. Unknown vendor layouts still require review.

@@ -11,15 +11,15 @@ export const CLASSIFIED_METRICS = [
   { key: "classified_velocity_count", label: "Pitch Type Velocity Readings", unit: "count", field: "velocityCount" },
   { key: "classified_spin_count", label: "Pitch Type Spin Readings", unit: "count", field: "spinCount" },
 ] as const;
-export type PitchResultContext = { fileName: string; fileHash: string; date: string; category: "game" | "intrasquad"; matches: { identity: string; athleteCode: string }[] };
+export type PitchResultContext = { fileName: string; fileHash: string; date: string; category: "game" | "intrasquad" | "practice"; matches: { identity: string; athleteCode: string }[] };
 export function classifiedPitchSource(source: string) {
-  const match = /^Full Swing · (Game|Intrasquad) · (.+)$/.exec(source);
+  const match = /^Full Swing · (Game|Intrasquad|Practice) · (.+)$/.exec(source);
   return match && PITCH_TYPES.includes(match[2] as typeof PITCH_TYPES[number]) ? { category: match[1], pitchType: match[2] } : null;
 }
 /** Only reviewed labels, exact roster matches and explicitly confirmed mph/RPM. */
 export function prepareClassifiedPitchResults(session: FullSwingSession, assignments: PitchAssignment[], context: PitchResultContext): Measurement[] {
   const labels = validatePitchAssignments(assignments);
-  if (!/^[a-f0-9]{64}$/.test(context.fileHash) || context.date !== session.date || !["game", "intrasquad"].includes(context.category) || labels.some(a => !session.pitches.some(p => p.sourceRow === a.sourceRow))) throw new Error("Review the original session and saved pitch labels.");
+  if (!/^[a-f0-9]{64}$/.test(context.fileHash) || context.date !== session.date || !["game", "intrasquad", "practice"].includes(context.category) || labels.some(a => !session.pitches.some(p => p.sourceRow === a.sourceRow))) throw new Error("Review the original session and saved pitch labels.");
   const matches = new Map(context.matches.map(m => [m.identity, m.athleteCode]));
   if (matches.size !== context.matches.length || new Set(matches.values()).size !== matches.size) throw new Error("Each export pitcher needs a unique roster match.");
   const sheet = "CSV · Classified pitch summaries v1";
@@ -29,7 +29,7 @@ export function prepareClassifiedPitchResults(session: FullSwingSession, assignm
     // Fixed per-pitcher source coordinate and per-type columns survive exclusions.
     const row = Math.min(...session.pitches.filter(p => p.identity === group.identity).map(p => p.sourceRow));
     const offset = PITCH_TYPES.indexOf(group.pitchType) * CLASSIFIED_METRICS.length;
-    const source = `Full Swing · ${context.category === "game" ? "Game" : "Intrasquad"} · ${group.pitchType}`;
+    const source = `Full Swing · ${context.category === "game" ? "Game" : context.category === "practice" ? "Practice" : "Intrasquad"} · ${group.pitchType}`;
     return CLASSIFIED_METRICS.flatMap((metric, i) => {
       const value = group[metric.field];
       if (value === null) return [];
