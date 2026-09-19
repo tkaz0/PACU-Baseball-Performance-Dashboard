@@ -1,4 +1,5 @@
 "use client";
+import { formatSourceNumber } from "@/lib/measurement-display";
 
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
@@ -87,7 +88,7 @@ function RowPreview({ preview, limit, onShowMore }: {
                   {row.issues.length ? <ul className="m-0 list-disc space-y-1 pl-4 text-pacu-red">{row.issues.map((issue, index) => <li key={index}>{issue.field}: {issue.message}</li>)}</ul> : row.changes.length ? (
                     <details><summary className="cursor-pointer font-semibold">{row.changes.length} field changes</summary><dl className="mt-3 space-y-2">{row.changes.map(change => <div key={change.field}><dt className="text-xs text-gray-500">{change.field}</dt><dd className="m-0 break-all">{cellText(change.before)} → {cellText(change.after)}</dd></div>)}</dl></details>
                   ) : observations.length ? (
-                    <details><summary className="cursor-pointer font-semibold">{observations.length} measurements to add</summary><ul className="mt-3 list-disc space-y-2 pl-4">{observations.map(item => <li key={item.id}><span className="text-xs text-gray-500">{item.measured_at}</span><br />{item.metric}: <strong>{item.value} {item.unit}</strong></li>)}</ul></details>
+                    <details><summary className="cursor-pointer font-semibold">{observations.length} measurements to add</summary><ul className="mt-3 list-disc space-y-2 pl-4">{observations.map(item => <li key={item.id}><span className="text-xs text-gray-500">{item.measured_at}</span><br />{item.metric}: <strong>{formatSourceNumber(item.value, item.source)} {item.unit}</strong></li>)}</ul></details>
                   ) : "No new values"}
                 </td>
               </tr>

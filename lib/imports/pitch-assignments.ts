@@ -25,7 +25,7 @@ export function summarizeAssignedPitches(pitches: FullSwingSession["pitches"], a
     g.count++; if(pitch.velocity!==null)g.velocities.push(pitch.velocity);if(pitch.spin!==null)g.spins.push(pitch.spin);groups.set(key,g);
   }
   const average=(values:number[])=>values.length?values.reduce((a,b)=>a+b,0)/values.length:null;
-  return [...groups.values()].map(g=>({identity:g.identity,pitchType:g.pitchType,count:g.count,averageVelocity:average(g.velocities),averageSpin:average(g.spins),spinCount:g.spins.length}));
+  return [...groups.values()].map(g=>({identity:g.identity,pitchType:g.pitchType,count:g.count,averageVelocity:average(g.velocities),maxVelocity:g.velocities.length?Math.max(...g.velocities):null,velocityCount:g.velocities.length,averageSpin:average(g.spins),maxSpin:g.spins.length?Math.max(...g.spins):null,spinCount:g.spins.length}));
 }
 
 /** Team-requested starting ranges, not a validated pitch classifier. Suggestions need staff review. */

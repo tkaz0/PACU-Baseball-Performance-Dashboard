@@ -377,3 +377,6 @@ September 17 session review update: all Full Swing players are visible with metr
 Reviewed pitch types: apply `202609170001_pitch_assignments.sql` before deploying the staff annotation UI. Active Admins/Coaches can save per-row pitch labels for the exact Full Swing CSV and reuse them across staff sessions. Suggestions use editable per-pitcher speed/spin guidelines and remain review-only until explicitly applied and saved. Profiles and summary-import payloads are unchanged. Tests cover classification ambiguity, pitcher-specific overrides, group/individual assignment, staff access, stale revisions, exact retries and malformed payloads. See `docs/INFORMATION_IMPORTS.md`.
 
 `tests/roster-selection.test.ts` covers unmatched/ambiguous/explicitly excluded names, later manual matching, exact normalization and code aliases, stable observation IDs, and known players facing unknown opponents. Browser verification also checks matched-only review/save and preservation of hidden saved pitch labels.
+
+
+September 19 classified-pitch tests cover metric-specific missing data, max/mean/count calculations, exclusions, stable provenance, immutable retries/conflicts, ordinary Coach saves, own-player reads and one-decimal profile rendering. Synthetic browser QA verifies review gating and successful publishing. PGlite checks are not full hosted Auth integration.

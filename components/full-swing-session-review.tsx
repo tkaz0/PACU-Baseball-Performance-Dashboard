@@ -1,10 +1,12 @@
 "use client";
 import { PitchAssignmentReview, type PitchAssignmentStore } from "@/components/pitch-assignment-review";
+import type { PitchResultContext } from "@/lib/imports/classified-pitch-results";
+import type { SaveImportAction } from "@/components/full-swing-import";
 import { useState } from "react";
 import { groupPitchRanges, SESSION_METRICS, type FullSwingSession } from "@/lib/imports/full-swing-session";
 
 const number = (value: number | null) => value === null ? "—" : value.toFixed(1);
-export function FullSwingSessionReview({ session, fileHash, assignmentStore, includedIdentities }: { session: FullSwingSession; includedIdentities?: string[]; fileHash?: string; assignmentStore?: PitchAssignmentStore }) {
+export function FullSwingSessionReview({ session, fileHash, assignmentStore, includedIdentities, resultContext, saveResults }: { session: FullSwingSession; resultContext?: PitchResultContext; saveResults?: SaveImportAction; includedIdentities?: string[]; fileHash?: string; assignmentStore?: PitchAssignmentStore }) {
   const [search, setSearch] = useState("");
   const [velocityWidth, setVelocityWidth] = useState(5), [spinWidth, setSpinWidth] = useState(250);
   const [rpmConfirmed, setRpmConfirmed] = useState(false);
@@ -34,6 +36,6 @@ export function FullSwingSessionReview({ session, fileHash, assignmentStore, inc
       })}</tbody></table></div>
       <p className="muted mb-0 text-xs">Ranges include the lower number and exclude the upper number. Percentages use all pitches thrown by that pitcher; missing spin stays in its own group.</p>
     </details>
-    <PitchAssignmentReview key={fileHash} session={session} includedIdentities={includedIdentities} ranges={ranges} search={search} spinUnit={spinUnit} rpmConfirmed={rpmConfirmed} fileHash={fileHash} store={assignmentStore} />
+    <PitchAssignmentReview key={fileHash} session={session} resultContext={resultContext} saveResults={saveResults} includedIdentities={includedIdentities} ranges={ranges} search={search} spinUnit={spinUnit} rpmConfirmed={rpmConfirmed} fileHash={fileHash} store={assignmentStore} />
   </section>;
 }

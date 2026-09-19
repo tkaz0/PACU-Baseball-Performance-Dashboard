@@ -124,3 +124,6 @@ September 17 session review update: all Full Swing players are visible with metr
 Reviewed pitch types: apply `202609170001_pitch_assignments.sql` before deploying the staff annotation UI. Active Admins/Coaches can save per-row pitch labels for the exact Full Swing CSV and reuse them across staff sessions. Suggestions use editable per-pitcher speed/spin guidelines and remain review-only until explicitly applied and saved. Profiles and summary-import payloads are unchanged. Tests cover classification ambiguity, pitcher-specific overrides, group/individual assignment, staff access, stale revisions, exact retries and malformed payloads. See `docs/INFORMATION_IMPORTS.md`.
 
 Full Swing/Blast imports skip unmatched names by default. Staff can match or exclude names before review; only selected roster players receive readings. See `docs/INFORMATION_IMPORTS.md`.
+
+
+Full Swing values display to one decimal across imports, profiles, comparisons and charts while original precision is retained. Reviewed pitch labels can now publish max/average velocity and spin by pitch type to the player’s In-game tab.

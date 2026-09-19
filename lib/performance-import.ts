@@ -1,3 +1,4 @@
+import { CLASSIFIED_METRICS, classifiedPitchSource } from "@/lib/imports/classified-pitch-results";
 import { RENPHO_SEGMENTS } from "@/lib/renpho-segments";
 import type { Measurement } from "@/lib/imports/engine";
 import { normalizePlayerMetric, validatePlayerMetricValue, PLAYER_METRICS } from "@/lib/player-performance";
@@ -9,6 +10,7 @@ export type ReviewedPerformanceRow = {
 };
 type ExtraMetric = { key: string; positiveOnly?: boolean; units: readonly string[] };
 const extraMetrics: ReadonlyMap<string, ExtraMetric> = new Map<string, ExtraMetric>([
+  ...CLASSIFIED_METRICS.map(metric => [metric.label.toLowerCase(), { key: metric.key, units: [metric.unit] }] as const),
   ...RENPHO_SEGMENTS.map(segment => [segment.label.toLowerCase(), { key: segment.key, positiveOnly: true, units: ["lb", "kg"] }] as const),
   ...[
     ["Body Fat Mass", "body_fat_mass"], ["Bone Mass", "bone_mass"], ["Protein Mass", "protein_mass"],
@@ -42,6 +44,7 @@ export function prepareReviewedPerformanceRows(measurements: readonly Measuremen
     if (!Array.isArray(position) || position.length!==4 || position[0]!==m.file_hash || position[1]!==m.source_sheet || position[2]!==m.source_row ||
       !Number.isSafeInteger(position[3]) || position[3]<0 || position[3]>10000 || observations.has(m.id) || coordinates.has(JSON.stringify(position))) return fail();
     observations.add(m.id);coordinates.add(JSON.stringify(position));
+    if (CLASSIFIED_METRICS.some(metric => metric.label.toLowerCase() === m.metric.toLowerCase()) && (!classifiedPitchSource(m.source) || m.measured_at < "2026-09-01" || m.measured_at > "2026-12-31" || (m.unit === "count" && !Number.isSafeInteger(m.value)))) return fail();
     const profile=normalizePlayerMetric(m.metric,m.unit);
     const extra=extraMetrics.get(m.metric.toLowerCase());
     const extraUnit=m.unit.toLowerCase()==="lbs"?"lb":m.unit.toLowerCase();

@@ -76,6 +76,16 @@ beforeEach(async () => {
 afterAll(async()=>{await db.close();});
 
 describe("shared performance authorization",()=>{
+  it("saves classified pitch summaries through the existing Coach import and restricts them to the linked player",async()=>{
+    const readings=[row(1,{metric_key:"classified_max_velocity",source:"Full Swing · Intrasquad · Fastball",value:82.456},0),row(1,{metric_key:"classified_avg_spin",source:"Full Swing · Intrasquad · Fastball",value:2030.456,unit:"rpm"},1)];
+    await asUser(users.coach,()=>importRows(readings));
+    expect(await asUser(users.coach,()=>importRows(readings))).toMatchObject({created:0,unchanged:2});
+    const {loaded,profile}=await asUser(users.playerA,loadPlayerProfile);
+    expect(loaded.measurements.map(r=>r.value).sort()).toEqual([82.456,2030.456].sort());
+    expect(Object.values(profile).flat().some(r=>r.latest!==null)).toBe(false);
+    await asUser(users.playerB,async()=>{await expect(measurementPage()).rejects.toThrow("Athlete access denied");});
+    await asUser(users.coach,async()=>{await expect(importRows([{...readings[0],value:83}])).rejects.toThrow();});
+  });
   it("keeps new testing metric units aligned through Coach import, database JSON, and player cards", async () => {
     const catalog = await db.query<{metric_key:string;metric_label:string;unit:string;direction:string;body_metric:boolean}>("select c.metric_key,c.metric_label,c.direction,c.body_metric,u.unit from private.performance_metric_catalog c join private.performance_metric_units u using(metric_key) where c.profile_metric");
     for (const definition of PLAYER_METRICS) {

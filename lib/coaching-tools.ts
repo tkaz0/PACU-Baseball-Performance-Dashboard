@@ -1,6 +1,6 @@
 import { variableKey, type AnalyticsPlayer, type AnalyticsReading } from "@/lib/analytics";
 import { isTimedMetric, PLAYER_METRICS, validatePlayerMetricValue } from "@/lib/player-performance";
-import { formatHeight } from "@/lib/measurement-display";
+import { formatHeight, formatSourceNumber } from "@/lib/measurement-display";
 import { gameOverviewMetrics, type GameOverviewMetric } from "@/lib/game-overview";
 import type { SharedGameStat } from "@/lib/game-server";
 
@@ -29,7 +29,8 @@ export function coachingEligible(player:CoachingPlayer,metric:string):boolean {
  if(m.group==="pitching")return pitches;
  return metric==="infield_velocity"?positions.some(p=>["IF","INF","1B","2B","3B","SS"].includes(p)):positions.some(p=>["OF","LF","CF","RF"].includes(p));
 }
-export function coachingValue(value:number,metric:string,unit:string):string {
+export function coachingValue(value:number,metric:string,unit:string,source?:string):string {
+ if (/^full swing(?:\s*·|$)/i.test(source?.trim() ?? "")) return `${formatSourceNumber(value,source)}${unit==="%"?"%":unit==="ratio"?"":` ${unit}`}`;
  if(metric==="height")return formatHeight(value,unit)??"—";
  if(unit==="s")return `${value.toFixed(2)} s`;
  if(unit==="per9")return value.toFixed(2);

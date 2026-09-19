@@ -9,3 +9,10 @@ export function formatHeight(value: number, unit: string): string | null {
   const remainder = (tenths % 120) / 10;
   return `${feet}′ ${remainder}″`;
 }
+
+/** Full Swing presentation only; preserve original numbers for storage and calculations. */
+export function formatSourceNumber(value: number, source?: string, fallback = String(value)): string {
+  return /^full swing(?:\s*·|$)/i.test(source?.trim() ?? "")
+    ? value.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1, useGrouping: false })
+    : fallback;
+}
