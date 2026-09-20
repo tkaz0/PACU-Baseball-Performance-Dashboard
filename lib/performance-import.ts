@@ -1,3 +1,4 @@
+import { BLAST_ALL_METRICS, validBlastObservation } from "@/lib/blast-metrics";
 import { CLASSIFIED_METRICS, classifiedPitchSource } from "@/lib/imports/classified-pitch-results";
 import { RENPHO_SEGMENTS } from "@/lib/renpho-segments";
 import type { Measurement } from "@/lib/imports/engine";
@@ -10,6 +11,7 @@ export type ReviewedPerformanceRow = {
 };
 type ExtraMetric = { key: string; positiveOnly?: boolean; units: readonly string[] };
 const extraMetrics: ReadonlyMap<string, ExtraMetric> = new Map<string, ExtraMetric>([
+  ...BLAST_ALL_METRICS.map(metric => [metric.label.toLowerCase(), { key: metric.key, units: [metric.unit] }] as const),
   ...CLASSIFIED_METRICS.map(metric => [metric.label.toLowerCase(), { key: metric.key, units: [metric.unit] }] as const),
   ...RENPHO_SEGMENTS.map(segment => [segment.label.toLowerCase(), { key: segment.key, positiveOnly: true, units: ["lb", "kg"] }] as const),
   ...[
@@ -49,7 +51,9 @@ export function prepareReviewedPerformanceRows(measurements: readonly Measuremen
     const extra=extraMetrics.get(m.metric.toLowerCase());
     const extraUnit=m.unit.toLowerCase()==="lbs"?"lb":m.unit.toLowerCase();
     const metric_key=profile?.key ?? extra?.key, unit=profile?.unit ?? extraUnit;
-    if (!metric_key || (profile ? !validatePlayerMetricValue(profile.key,m.value,unit) : !extra?.units.includes(unit) || m.value<0 || (extra?.positiveOnly === true && m.value === 0) || (unit==="%" && m.value>100))) return fail();
+    const blast = metric_key && (metric_key.startsWith("blast_") || metric_key === "p95_bat_speed" || m.source.startsWith("Blast Motion · Average ·") || m.source.startsWith("Blast Motion · P95 ·"));
+    if (blast && (!validBlastObservation(metric_key!,m.value,unit,m.source,m.measured_at) || m.source_sheet !== "CSV" || position[3] !== BLAST_ALL_METRICS.find(metric=>metric.key===metric_key)?.column)) return fail();
+    if (!metric_key || (profile ? !validatePlayerMetricValue(profile.key,m.value,unit) : !extra?.units.includes(unit) || (!blast && m.value<0) || (extra?.positiveOnly === true && m.value === 0) || (unit==="%" && m.value>100))) return fail();
     return {observation_id:m.id,athlete_code:m.athlete_code,metric_key,measured_at:m.measured_at,value:m.value,unit,
       source:m.source,source_file:m.source_file,source_sheet:m.source_sheet,source_row:m.source_row,file_hash:m.file_hash};
   });

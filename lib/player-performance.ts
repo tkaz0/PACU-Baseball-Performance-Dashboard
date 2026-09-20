@@ -7,7 +7,7 @@ export type PlayerMetricDirection = "neutral" | "higher" | "lower";
 export type PlayerMetricKey = "skeletal_muscle_mass" | "body_score" | "height" | "weight" | "grip_strength" | "grip_dominant" | "grip_non_dominant" | "body_fat_pct" | "muscle_mass_pct" | "muscle_mass"
   | "max_exit_velocity" | "avg_exit_velocity" | "bat_speed" | "home_to_first" | "home_to_second" | "steal_break" | "boxer_t"
   | "steal_start_12ft" | "steal_reaction" | "steal_12_42ft"
-  | "max_bat_speed" | "avg_bat_speed" | "smash_factor" | "max_distance"
+  | "max_bat_speed" | "avg_bat_speed" | "p95_bat_speed" | "smash_factor" | "max_distance"
   | "infield_velocity" | "outfield_velocity"
   | "max_pitch_velocity" | "avg_pitch_velocity" | "avg_fastball_spin" | "strike_pct" | "k_pct" | "bb_pct";
 export type PlayerMetricDefinition = {
@@ -31,6 +31,7 @@ export const PLAYER_METRICS: readonly PlayerMetricDefinition[] = [
   { key: "bat_speed", label: "Bat Speed", group: "hitting", units: ["mph", "km/h", "m/s"], direction: "higher" },
   { key: "max_bat_speed", label: "Max Bat Speed", group: "hitting", units: ["mph", "km/h", "m/s"], direction: "higher" },
   { key: "avg_bat_speed", label: "Average Bat Speed", group: "hitting", units: ["mph", "km/h", "m/s"], direction: "higher" },
+  { key: "p95_bat_speed", label: "Peak Bat Speed (95th)", group: "hitting", units: ["mph"], direction: "higher" },
   { key: "smash_factor", label: "Smash Factor", group: "hitting", units: ["ratio"], direction: "higher" },
   { key: "max_distance", label: "Max Distance", group: "hitting", units: ["ft", "m"], direction: "higher" },
   { key: "home_to_first", label: "Home to 1st", group: "hitting", units: ["s"], direction: "lower" },
@@ -103,6 +104,7 @@ const extraAliases: Record<PlayerMetricKey, readonly string[]> = {
   avg_exit_velocity: ["Average Exit Velocity", "Avg Exit Velocity", "Avg EV", "Average Exit Velo"],
   bat_speed: ["Bat Speed"], home_to_first: ["Home1st", "Home 1st", "Home to First", "Home to 1st Time"],
   max_bat_speed: ["Maximum Bat Speed"], avg_bat_speed: ["Avg Bat Speed"],
+  p95_bat_speed: [],
   smash_factor: [], max_distance: ["Maximum Distance", "Max Hit Distance"],
   home_to_second: ["Home2nd", "Home 2nd", "Home to Second", "Home to 2nd Time"],
   steal_break: ["Steal Break Time"], boxer_t: ["BoxerT", "Boxer T Time"],

@@ -1,3 +1,4 @@
+import { validBlastObservation } from "@/lib/blast-metrics";
 import "server-only";
 import { createHash } from "node:crypto";
 import type { Measurement } from "@/lib/imports/engine";
@@ -43,7 +44,7 @@ function readMeasurementPage(data: unknown, athleteId: string): DatabaseMeasurem
     if (Object.keys(row).length !== measurementFields.size || Object.keys(row).some(key => !measurementFields.has(key)) ||
       strings.some(key => typeof row[key] !== "string" || (key !== "source_sheet" && !(row[key] as string).length)) ||
       typeof row.measured_at !== "string" || !dateCell(row.measured_at) ||
-      typeof row.value !== "number" || !Number.isFinite(row.value) || row.value < 0 ||
+      typeof row.value !== "number" || !Number.isFinite(row.value) || (row.value < 0 && !validBlastObservation(row.metric_key as string,row.value,row.unit as string,row.source as string,row.measured_at)) ||
       !Number.isSafeInteger(row.source_row) || (row.source_row as number) < 1 || (row.source_row as number) > 1000000 ||
       !/^[a-f0-9]{64}$/.test(row.file_hash as string) || !UUID_PATTERN.test(row.import_id as string) ||
       !Number.isFinite(Date.parse(row.imported_at as string))) throw new Error("Shared measurement page format is invalid.");

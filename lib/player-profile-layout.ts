@@ -1,3 +1,4 @@
+import { parseBlastSource } from "@/lib/blast-metrics";
 import type { AthleteSeason } from "@/lib/types";
 import { TIMED_METRIC_KEYS, isVisibleProfileMetric, normalizePlayerMetric, type PlayerMetricCard, type PlayerPerformance } from "@/lib/player-performance";
 export const PHYSICALITY_PRIMARY = ["weight", "height", "grip_strength", "grip_dominant", "grip_non_dominant"] as const;
@@ -41,7 +42,15 @@ export function profileSessionContext(source: string): "in_game" | "practice" {
   return /^full swing\s*·\s*(game|intrasquad)$/i.test(source.trim()) ? "in_game" : "practice";
 }
 export function getSessionPerformance(performance: PlayerPerformance, context: "in_game" | "practice"): PlayerPerformance {
-  const filter = (cards: PlayerMetricCard[]) => cards.flatMap(card => card.sourceCards ?? [card])
-    .filter(card => card.latest && profileSessionContext(card.latest.source) === context);
+  const filter = (cards: PlayerMetricCard[]) => {
+    const candidates = cards.flatMap(card => card.sourceCards ?? [card]).filter(card => card.latest && profileSessionContext(card.latest.source) === context);
+    return candidates.filter(card => {
+      const report = parseBlastSource(card.latest!.source);
+      return !report || !candidates.some(other => {
+        const next = parseBlastSource(other.latest!.source);
+        return other.metric.key === card.metric.key && other.latest!.unit === card.latest!.unit && next && (next.end > report.end || (next.end === report.end && next.start > report.start));
+      });
+    });
+  };
   return { body: [], hitting: filter(performance.hitting), pitching: filter(performance.pitching), throwing: filter(performance.throwing) };
 }

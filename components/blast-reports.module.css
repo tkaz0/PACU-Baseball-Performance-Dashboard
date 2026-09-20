@@ -1,0 +1,20 @@
+.eyebrow {color:var(--text-secondary);font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem}
+.fields {display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:1rem}
+.fields label {display:grid;gap:.4rem;min-width:0;font-size:.85rem;font-weight:600}
+.fields input,.fields select,.matchRow select {width:100%;min-width:0}
+.matches,.reviewPlayer {border:1px solid var(--line-subtle);border-radius:.75rem;padding:1rem}
+.matches summary,.reviewPlayer summary {cursor:pointer;font-weight:650}
+.matchList {display:grid;gap:.7rem;margin-top:1rem}
+.matchRow {display:grid;grid-template-columns:1fr 1.2fr;align-items:center;gap:1rem;font-size:.85rem}
+.reviewList {display:grid;gap:.6rem;max-height:32rem;overflow:auto;padding:.1rem}
+.reviewSummary {float:right;color:var(--text-secondary);font-weight:400;font-size:.8rem}
+.tableWrap {width:100%;overflow:auto;margin:.75rem 0}
+.tableWrap table {width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:.86rem}
+.tableWrap th,.tableWrap td {padding:.6rem .5rem;border-bottom:1px solid var(--line-subtle);text-align:right;white-space:nowrap}
+.tableWrap th:first-child {text-align:left;white-space:normal;font-weight:500}
+.tableWrap thead th {font-size:.74rem;color:var(--text-secondary)}
+.confirm {display:flex;gap:.7rem;align-items:flex-start;font-size:.85rem}
+.confirm input {margin-top:.2rem;flex-shrink:0}
+.reportHeader {display:flex;gap:.75rem;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.count {color:var(--text-secondary);font-size:.8rem}
+@media(max-width:640px){.fields{grid-template-columns:1fr 1fr}.fields label:first-child{grid-column:1/-1}.matchRow{grid-template-columns:1fr;gap:.3rem}.reviewSummary{display:block;float:none;margin:.3rem 0 0 1rem}.reviewPlayer{padding:.8rem}.tableWrap th,.tableWrap td{padding:.6rem .3rem;font-size:.8rem}}

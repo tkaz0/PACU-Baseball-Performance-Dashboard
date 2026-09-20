@@ -1,0 +1,32 @@
+import { getSessionPerformance } from "@/lib/player-profile-layout";
+import { describe,it,expect } from "vitest";
+import { BLAST_HEADERS, blastPracticeReports, blastSource, parseBlastSource } from "@/lib/blast-metrics";
+import { previewBlastPerformance, blastIdentityTable } from "@/lib/imports/blast-performance";
+import { selectTable } from "@/lib/imports/engine";
+import { getPreviewRoster } from "@/lib/preview-roster";
+import { prepareReviewedPerformanceRows } from "@/lib/performance-import";
+import { getPlayerPerformance } from "@/lib/player-performance";
+const roster=getPreviewRoster(),p=roster[0],file={fileHash:"e".repeat(64),fileName:"fictional.csv",sheetName:"CSV"};
+const line=[p.first_name,p.last_name,"20","63.567","18.5","12.6","3.2","80","12.4","-28.2",".155",".055","81","90","85","30"];
+const run=(rows=[line],kind:"average"|"p95"="average")=>previewBlastPerformance({table:selectTable([BLAST_HEADERS,...rows],0),roster,file,kind,start:"2026-09-13",end:"2026-09-20"});
+describe("Blast weekly performance export",()=>{
+ it("shows only the latest weekly Blast card while retaining both source periods",()=>{
+  const old=run().rows,newer=old.map(r=>({...r,id:r.id.replaceAll(file.fileHash,"f".repeat(64)),file_hash:"f".repeat(64),source:blastSource("average","2026-09-21","2026-09-27"),measured_at:"2026-09-27"}));
+  const model=getPlayerPerformance({readings:[...old,...newer],athleteCode:p.athlete_code});
+  const practice=getSessionPerformance(model,"practice");
+  expect(practice.hitting.filter(c=>c.metric.key==="avg_bat_speed")).toHaveLength(1);
+  expect(practice.hitting.find(c=>c.metric.key==="avg_bat_speed")?.latest?.measuredAt).toBe("2026-09-27");
+  expect(blastPracticeReports([...old,...newer])).toHaveLength(2);
+ });
+ it("reads all columns with original coordinates and signed values",()=>{const report=run();expect(report.rows).toHaveLength(14);expect(report.rows[7]).toMatchObject({metric:"Vertical Bat Angle",value:-28.2,unit:"deg"});expect(report.rows[7].id).toBe(`observation:${JSON.stringify([file.fileHash,"CSV",2,9])}`);expect(report.rows[1].value).toBe(63.567);expect(prepareReviewedPerformanceRows(report.rows)).toHaveLength(14);});
+ it("keeps P95 separate from true maximums and identical provenance across mode changes",()=>{const avg=run(),peak=run([line],"p95");expect(peak.rows[1].metric).toBe("Peak Bat Speed (95th)");expect(peak.rows.some(r=>r.metric==="Max Bat Speed")).toBe(false);expect(peak.rows[1].id).toBe(avg.rows[1].id);expect(peak.rows[1].source).not.toBe(avg.rows[1].source);});
+ it("joins split names, skips unknown players and preserves original coordinates after exclusions",()=>{const unknown=[...line];unknown[0]="FictionalUnknown";const r=run([unknown,line]);expect(r.skipped).toHaveLength(1);expect(r.rows).toHaveLength(14);expect(r.rows[0].source_row).toBe(3);});
+ it("supports reviewed manual matches and explicit exclusion",()=>{const other=[...line];other[0]="FictionalAlias";const input={table:selectTable([BLAST_HEADERS,other],0),roster,file,kind:"average" as const,start:"2026-09-13",end:"2026-09-20",overrides:{[`FictionalAlias ${p.last_name}`]:p.athlete_code}};expect(previewBlastPerformance(input).rows).toHaveLength(14);expect(()=>previewBlastPerformance({...input,excluded:[`FictionalAlias ${p.last_name}`]})).toThrow("Match at least");});
+ it("rejects duplicate player summaries and changed schema",()=>{expect(()=>run([line,line])).toThrow("same player");expect(()=>blastIdentityTable(selectTable([[...BLAST_HEADERS,"Unknown"],[...line,"5"]],0))).toThrow("16-column");});
+ it("keeps missing metrics missing but requires a positive integral swing count",()=>{const missing=[...line];missing[4]="";expect(run([missing]).rows).toHaveLength(13);for(const value of ["","0","1.5","-1"]){const invalid=[...line];invalid[2]=value;expect(()=>run([invalid])).toThrow();}});
+ it("rejects invalid numbers and negative non-angle measurements",()=>{for(const [column,value] of [[3,"-1"],[7,"101"],[10,"0"],[6,"NaN"],[3,"63mph"]] as const){const bad=[...line];bad[column]=value;expect(()=>run([bad])).toThrow();}});
+ it("requires an explicit real Fall reporting range",()=>{expect(parseBlastSource(blastSource("p95","2026-09-13","2026-09-20"))).toEqual({kind:"p95",start:"2026-09-13",end:"2026-09-20"});for(const pair of [["2026-09-31","2026-10-01"],["2026-09-20","2026-09-13"],["2026-08-31","2026-09-20"]])expect(()=>blastSource("average",pair[0],pair[1])).toThrow();});
+ it("rejects source spoofing, wrong units, dates or original columns through shared validation",()=>{const row=run().rows[7];for(const bad of [{...row,source:"RENPHO"},{...row,unit:"lb"},{...row,measured_at:"2026-09-19"},{...row,id:`observation:${JSON.stringify([file.fileHash,"CSV",2,8])}`}])expect(()=>prepareReviewedPerformanceRows([bad])).toThrow();});
+ it("groups both reports by exact period without adding swing counts or averaging values",()=>{const average=run().rows,peak=run([line],"p95").rows.map(r=>({...r,file_hash:"f".repeat(64)}));const reports=blastPracticeReports([...average,...peak]);expect(reports).toHaveLength(1);expect(reports[0].average).toHaveLength(14);expect(reports[0].p95).toHaveLength(14);expect(reports[0].average[0].value).toBe(20);});
+ it("exposes average and P95 bat speed as independent Practice profile cards",()=>{const performance=getPlayerPerformance({readings:[...run().rows,...run([line],"p95").rows.map(r=>({...r,id:r.id.replaceAll(file.fileHash,"f".repeat(64)),file_hash:"f".repeat(64)}))],athleteCode:p.athlete_code});expect(performance.hitting.find(c=>c.metric.key==="avg_bat_speed")?.latest?.value).toBe(63.567);expect(performance.hitting.find(c=>c.metric.key==="p95_bat_speed")?.latest?.value).toBe(63.567);expect(performance.hitting.find(c=>c.metric.key==="max_bat_speed")?.latest).toBeNull();});
+});

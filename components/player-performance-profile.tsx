@@ -1,3 +1,4 @@
+import { parseBlastSource, blastPeriodLabel, formatBlastValue } from "@/lib/blast-metrics";
 import { ProfileTrendChart } from "@/components/profile-trend-chart";
 import { profileTrends } from "@/lib/profile-trends";
 import type { SharedGameStat } from "@/lib/game-server";
@@ -20,7 +21,7 @@ import type { getPlayerPerformance, PlayerMetricCard, PlayerMetricReading } from
 export type PlayerPerformanceProfileProps = {
   athlete: RosterAthlete; performance: ReturnType<typeof getPlayerPerformance>; season?: AthleteSeason | null;
   overviewGameStats?: SharedGameStat[]; gameComparisons?: GameComparison[];
-  pitchResults?: ReactNode; practicePitchResults?: ReactNode; simplified?: boolean; fictional?: boolean; action?: ReactNode; muscleBalance?: ReactNode; physicalityDetails?: ReactNode; history?: ReactNode; gameStats?: ReactNode;
+  blastResults?: ReactNode; pitchResults?: ReactNode; practicePitchResults?: ReactNode; simplified?: boolean; fictional?: boolean; action?: ReactNode; muscleBalance?: ReactNode; physicalityDetails?: ReactNode; history?: ReactNode; gameStats?: ReactNode;
 };
 function measurementDate(value: string) {
   const date = new Date(`${value.slice(0, 10)}T12:00:00Z`);
@@ -29,7 +30,7 @@ function measurementDate(value: string) {
 function ReadingValue({ reading }: { reading: PlayerMetricReading }) {
   const height = reading.metricKey === "height" ? formatHeight(reading.value, reading.unit) : null;
   if (height) return <span className="font-extrabold tabular-nums" title={`Recorded: ${reading.value} ${reading.unit}`}>{height}</span>;
-  const value = formatSourceNumber(reading.value, reading.source, reading.unit === "s" ? reading.value.toFixed(2) : reading.derived ? `≈${reading.value.toFixed(1)}` : String(reading.value));
+  const value = parseBlastSource(reading.source) ? formatBlastValue(reading.value,reading.unit) : formatSourceNumber(reading.value, reading.source, reading.unit === "s" ? reading.value.toFixed(2) : reading.derived ? `≈${reading.value.toFixed(1)}` : String(reading.value));
   return <><span className="break-all font-extrabold tabular-nums">{value}</span><span className="ml-1.5 text-sm font-medium tracking-normal text-[var(--text-secondary)]">{reading.unit}</span></>;
 }
 function Percentile({ card }: { card: PlayerMetricCard }) {
@@ -49,7 +50,7 @@ function MetricCard({ card }: { card: PlayerMetricCard }) {
     {!reading && <p className="mb-0 mt-3 text-[11px] text-[var(--text-secondary)]">Not Yet Tested</p>}
     {card.timedTrials && <p className="mb-0 mt-2 text-sm text-[var(--text-secondary)]">Average <strong className="tabular-nums text-[var(--text-primary)]">{card.timedTrials.average.toFixed(2)} s</strong><span className="ml-2 text-xs">{card.timedTrials.count} {card.timedTrials.count === 1 ? "trial" : "trials"} · Fall 2026</span></p>}
     {reading && card.metric.group !== "body" && <p className="mb-0 mt-2 text-xs font-semibold text-[var(--text-secondary)]">{reading.source}</p>}
-    {reading && <p className="mb-0 mt-3 text-[11px] leading-5 text-[var(--text-secondary)]">Last Tested: <time dateTime={card.timedTrials?.lastTested ?? reading.measuredAt}>{measurementDate(card.timedTrials?.lastTested ?? reading.measuredAt)}</time>{reading.derived ? " · Calculated" : ""}</p>}
+    {reading && <p className="mb-0 mt-3 text-[11px] leading-5 text-[var(--text-secondary)]">{parseBlastSource(reading.source) ? <>Reporting Week: {blastPeriodLabel(parseBlastSource(reading.source)!.start,parseBlastSource(reading.source)!.end)}</> : <>Last Tested: <time dateTime={card.timedTrials?.lastTested ?? reading.measuredAt}>{measurementDate(card.timedTrials?.lastTested ?? reading.measuredAt)}</time></>}{reading.derived ? " · Calculated" : ""}</p>}
     {reading && (!card.percentile || card.percentile.sampleSize < 5) && <p className="mt-4 mb-0 border-t border-[var(--line-subtle)] pt-3 text-[11px] text-[var(--text-secondary)]">Team percentile appears after 5 comparable results.</p>}
     <Percentile card={card} />
   </li>;
@@ -72,7 +73,7 @@ function SessionMeasurements({ performance, season, context }: { performance: Re
     <ProfileTrendChart series={profileTrends([...hitting, ...throwing])} />
   </section>;
 }
-export function PlayerPerformanceProfile({ athlete, performance, season, pitchResults, practicePitchResults, fictional = false, simplified = false, action, muscleBalance, physicalityDetails, history, gameStats, overviewGameStats = [], gameComparisons = [] }: PlayerPerformanceProfileProps) {
+export function PlayerPerformanceProfile({ athlete, performance, season, blastResults, pitchResults, practicePitchResults, fictional = false, simplified = false, action, muscleBalance, physicalityDetails, history, gameStats, overviewGameStats = [], gameComparisons = [] }: PlayerPerformanceProfileProps) {
   const bodyScoreCard = performance.body.find(card => card.metric.key === "body_score" && card.latest);
   const bodyScore = bodyScoreCard?.latest ?? null;
   const selectedSeason = season ?? [...athlete.athlete_seasons].sort((a, b) => b.season.localeCompare(a.season))[0];
@@ -94,7 +95,7 @@ export function PlayerPerformanceProfile({ athlete, performance, season, pitchRe
       {!!layout.speedAgility.length && <MetricGroup id="speed-agility" title="Speed & Agility" cards={layout.speedAgility} />}
     </> },
     { id: "in-game", label: "In-Game", content: <><SessionMeasurements performance={performance} season={selectedSeason} context="in_game" />{pitchResults}{gameStats && <section aria-label="Cumulative game statistics" className="space-y-4 border-t border-[var(--line-subtle)] pt-6"><h2 className="m-0 text-xl font-bold">Cumulative Game Stats · Fall 2026</h2>{gameStats}</section>}</> },
-    { id: "practice", label: "Practice", content: <><SessionMeasurements performance={performance} season={selectedSeason} context="practice" />{practicePitchResults}</> },
+    { id: "practice", label: "Practice", content: <><SessionMeasurements performance={performance} season={selectedSeason} context="practice" />{practicePitchResults}{layout.showHitting && blastResults}</> },
   ];
   return <div className="min-w-0 space-y-4 sm:space-y-5" data-testid="player-performance-profile">
     <section className="player-identity-card" aria-label="Player profile">

@@ -1,8 +1,11 @@
+import { BLAST_ALL_METRICS } from "@/lib/blast-metrics";
 import { RENPHO_SEGMENTS } from "@/lib/renpho-segments";
 import { PLAYER_METRICS, normalizePlayerMetric } from "@/lib/player-performance";
 
 // Short descriptions of recorded measures, not targets or medical interpretations.
 export const STAT_DEFINITIONS: Readonly<Record<string, string>> = {
+  ...Object.fromEntries(BLAST_ALL_METRICS.map(m=>[m.key,m.description])),
+  p95_bat_speed: "The 95th-percentile bat speed reported by Blast for the selected week, not the fastest swing. A PACU percentile bar separately compares this weekly result with the same report period for teammates.",
   classified_avg_velocity: "Average velocity of recorded pitches assigned to this pitch type by staff, within the player’s latest comparable session. In-game and Practice results remain separate; missing readings are excluded.",
   classified_max_velocity: "Highest recorded velocity among pitches assigned to this pitch type in the player’s latest comparable session. Each pitch type and session context is ranked separately.",
   classified_avg_spin: "Average recorded spin rate (RPM) for this staff-reviewed pitch type in the latest comparable session. Higher spin ranks first numerically; more spin is not universally better, especially for changeups.",

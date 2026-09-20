@@ -82,3 +82,14 @@ Session Type now offers Practice for the already-reviewed Field / Live at Bat CS
 
 
 Pitch grouping defaults to gaps: adjacent velocities within one pitcher/spin band stay together until a gap of at least 3 mph. A connected group may span more than 3 mph. Fixed bins (including 3 mph) remain selectable; missing velocity/spin stay separate and original CSV coordinates never change. Classification still requires staff review. Player Matches opens visibly and offers No player / Skip these stats; exclusion removes any prior manual match from the current preview, summary and classified-result payload while preserving known opponents’ recorded events. Skip affects this import only; already saved mistaken CSV results use the Admin profile’s Correct CSV Assignments tool.
+
+
+## Blast Weekly Performance Reports — September 20
+
+The Blast Motion lane supports the owner-supplied 16-column Average Performance and Peak (95th Percentile) CSV layout. Staff choose the report type and exact reporting start/end dates, review split-name roster matches and skipped players, inspect every measurement, and confirm before saving. The first reviewed period is September 13–20, 2026. Files stay in the browser; only reviewed numerical observations use the existing ordinary Admin/Coach save path. Custom mapped summaries remain available separately.
+
+Weekly averages and vendor P95 summaries use separate source labels containing the exact reporting range. Bat speed maps to Average Bat Speed or Peak Bat Speed (95th), never Max Bat Speed for a P95 file. Peak Hand Speed remains the underlying metric name in both reports. Swing counts describe each export and are never added across the paired reports. Original numeric precision, signed angles and CSV row/column IDs survive import. Time values display three decimals; other measurements display one and counts display integers. Blank metrics stay missing.
+
+Practice profiles show a compact weekly Average/Peak table with metric explanations. The period-end date is the observation anchor, explicitly displayed as a reporting period rather than a single testing session. No individual swings, health targets, optimal-angle thresholds or new scores are inferred. Weekly periods remain separate; summaries are never averaged together. P95 bat speed is a separate profile/leaderboard metric, unavailable for generic manual testing entry.
+
+Deploy the app before applying `supabase/migrations/202609200001_blast_performance_reports.sql`. The additive catalog and narrowly scoped signed-angle validation preserve existing RLS, staff role checks, immutable observation conflicts and account grants. Identical-file retries remain idempotent. A different file for an already saved player/metric/report period is rejected for staff review rather than silently combined. Save attempts lock the reviewed payload for identical retries.

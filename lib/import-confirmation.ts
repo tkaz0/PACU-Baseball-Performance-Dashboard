@@ -3,6 +3,7 @@ import { athleteName, type RosterAthlete } from "@/lib/types";
 export type ReadingsSaved = { created: number; unchanged: number };
 export type ImportSkipped = { label: string; reason: string };
 export type ImportConfirmationData = ReadingsSaved & {
+  reportingPeriod?: string;
   players: { code: string; name: string; href: string; date: string; metrics: string[] }[];
   skipped: ImportSkipped[];
 };
