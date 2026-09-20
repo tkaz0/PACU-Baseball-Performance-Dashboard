@@ -16,6 +16,7 @@ const message = (error: unknown) => error instanceof Error ? error.message : "Th
 
 export function BlastMotionImport({roster,saveAction}:{roster:RosterAthlete[];saveAction:SaveImportAction}) {
   const [custom,setCustom]=useState(false),[file,setFile]=useState<ImportFile|null>(null),[table,setTable]=useState<ImportTable|null>(null);
+  const [reportName,setReportName]=useState("");
   const [kind,setKind]=useState<BlastSummaryKind|"">(""),[start,setStart]=useState(""),[end,setEnd]=useState("");
   const [overrides,setOverrides]=useState<Record<string,string>>({}),[excluded,setExcluded]=useState<string[]>([]);
   const [review,setReview]=useState<ReturnType<typeof previewBlastPerformance>|null>(null),[confirmed,setConfirmed]=useState(false);
@@ -27,14 +28,15 @@ export function BlastMotionImport({roster,saveAction}:{roster:RosterAthlete[];sa
     try {
       if (!next.name.toLowerCase().endsWith(".csv")) throw new Error("Choose a Blast Performance CSV.");
       const parsed=await readImportFile(next), original=selectTable(parsed.sheets[0].matrix,0);
-      blastIdentityTable(original);setFile(parsed);setTable(original);
+      blastIdentityTable(original);setFile(parsed);setTable(original);setReportName(parsed.fileName.replace(/\.csv$/i,""));
     } catch(e) {setError(message(e));} finally {setBusy(false);}
   }
   const selection=table?selectRosterSummaries(blastIdentityTable(table),{identityKind:"name",identityColumn:0,identityOverrides:overrides},roster,excluded):null;
   function prepare() {
     invalidate();
     try {if(!file||!table||!kind)throw new Error("Choose Average or Peak (95th Percentile) for this file.");
-      setReview(previewBlastPerformance({table,roster,file:{...file,sheetName:file.sheets[0].name},kind,start,end,overrides,excluded}));
+      if(!reportName.trim() || reportName.trim().length>296 || /[\u0000-\u001f\u007f]/.test(reportName))throw new Error("Enter a report name of 1–296 characters.");
+      setReview(previewBlastPerformance({table,roster,file:{...file,fileName:`${reportName.trim()}.csv`,sheetName:file.sheets[0].name},kind,start,end,overrides,excluded}));
     }catch(e){setError(message(e));}
   }
   async function save() {
@@ -49,6 +51,7 @@ export function BlastMotionImport({roster,saveAction}:{roster:RosterAthlete[];sa
     {receipt?<><ImportConfirmation receipt={receipt}/><button className="btn btn-primary" onClick={()=>{setReceipt(null);setLocked(false);setFile(null);setTable(null);setKind("");invalidate();}}>Import Next Report</button></>:<>
       <FileDropZone label="Drop in a Blast Performance CSV" description="Average Performance or Peak (95th Percentile) · CSV" accept=".csv" disabled={busy||locked} onFile={choose}/>
       {file&&<fieldset disabled={busy||locked} className="space-y-5">
+        <label className={styles.reportName}>Report Name<input type="text" maxLength={296} value={reportName} onChange={e=>{invalidate();setReportName(e.target.value);}}/></label>
         <div className={styles.fields}>
           <label>Report Type<select value={kind} onChange={e=>{invalidate();setKind(e.target.value as BlastSummaryKind|"");}}><option value="">Choose report type…</option><option value="average">Weekly Average</option><option value="p95">Peak · 95th Percentile</option></select></label>
           <label>Period Start<input type="date" min="2026-09-01" max="2026-12-31" value={start} onChange={e=>{invalidate();setStart(e.target.value);}}/></label>
@@ -59,7 +62,7 @@ export function BlastMotionImport({roster,saveAction}:{roster:RosterAthlete[];sa
         <button type="button" className="btn btn-secondary" onClick={prepare}>Review Report</button>
       </fieldset>}
       {review&&<div className="space-y-4">
-        <div><h3>{kind==="average"?"Weekly Average":"Peak · 95th Percentile"}</h3><p className="muted">{blastPeriodLabel(start,end)} · {review.players.filter(p=>p.included).length} Players · {review.rows.length} Readings · {review.skipped.length} Skipped</p></div>
+        <div><h3>{reportName.trim()}</h3><p className="muted">{kind==="average"?"Weekly Average":"Peak · 95th Percentile"}</p><p className="muted">{blastPeriodLabel(start,end)} · {review.players.filter(p=>p.included).length} Players · {review.rows.length} Readings · {review.skipped.length} Skipped</p></div>
         <div className={styles.reviewList}>{review.players.filter(p=>p.included).map(p=>{
           const rows=review.rows.filter(r=>r.athlete_code===p.athlete!.athlete_code),speed=rows.find(r=>r.unit==="mph"),count=rows.find(r=>r.unit==="count");
           return <details key={p.identity} className={styles.reviewPlayer}><summary><span>{athleteName(p.athlete!)}</span><span className={styles.reviewSummary}>{count?.value??"—"} Swings · {speed?`${formatBlastValue(speed.value,speed.unit)} mph`:"—"} Bat Speed</span></summary><div className={styles.tableWrap}><table><thead><tr><th>Measurement</th><th>{kind==="average"?"Average":"95th Percentile"}</th></tr></thead><tbody>{rows.map(row=><tr key={row.id}><th scope="row">{row.metric}</th><td>{formatBlastValue(row.value,row.unit)} {blastUnit(row.unit)}</td></tr>)}</tbody></table></div><Link href={`/athletes/${p.athlete!.id}`}>View Profile</Link></details>;
