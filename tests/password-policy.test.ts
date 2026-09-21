@@ -74,6 +74,10 @@ describe.each([{ flow: "recovery", invite: false }, { flow: "invitation", invite
     expect(html).toContain("6–128 characters");
     expect(html).toContain("both passwords match");
     expect(html.match(/minLength="6"/g)).toHaveLength(2);
+    expect(html.match(/type="password"/g)).toHaveLength(2);
+    expect(html).toContain('type="button" aria-label="Show new password"');
+    expect(html).toContain('type="button" aria-label="Show confirm new password"');
+    expect(html.match(/aria-pressed="false"/g)).toHaveLength(2);
     expect(html.match(/maxLength="128"/g)).toHaveLength(2);
     expect(html).not.toContain("12–128");
     expect(html).not.toContain("8–128");
