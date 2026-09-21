@@ -37,3 +37,9 @@
 .gameDiscipline { min-width: 0; border: 1px solid var(--line-subtle); border-radius: 12px; padding: 16px; }
 .gameDiscipline + .gameDiscipline { margin-top: 28px; }
 @media (max-width: 760px) { .gameDiscipline { padding: 12px; } }
+
+/* Keep the label above its value instead of wrapping both into a dense line. */
+.highlightResult > div { display:block; }
+.highlightList h3 { font-size:13px; }
+.highlightMeta { font-size:11px; }
+.testingSections { gap:16px; }

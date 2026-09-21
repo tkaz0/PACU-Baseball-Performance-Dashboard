@@ -385,3 +385,5 @@ As of September 20, the configured Codex check is once weekly on Monday at 9 p.m
 
 ### Capstone screening deployment
 Apply `202609210001_movement_screenings.sql` before deploying the consuming app. It adds an own-player/staff RLS table and bounded staff import RPC; it changes no existing role or account links. Use `/imports/movement` with a private reviewed source file. Match labels, retain original source rows and explicit source colors, and confirm dates/units before preparation. Review every match/result and verify the database read-back receipt after saving. Repeated identical payloads are safe; changed source values or identities require separate review. The source workbook remains read-only, and Capstone is not added to scheduled syncing.
+
+Apply `202609210002_ankle_screening_ratings.sql` for the owner-confirmed ankle 1–5 scale. It replaces only the validated import function, retains existing grants and stored readings, and rejects out-of-scale future ankle values. Deploy the paired ankle-rating UI with it.

@@ -7,7 +7,7 @@ export type MovementPayload = { version: 1; source: typeof MOVEMENT_SOURCE; repo
 const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 const keys = (v: Record<string, unknown>, expected: string) => Object.keys(v).sort().join(",") === expected;
 const cell = (v: unknown) => v === null || (typeof v === "string" && v.length > 0 && v.length <= 120 && v.trim() === v && !/[\u0000-\u001f\u007f]/.test(v));
-export function isMovementRom(row: number) { return row >= 4 && row <= 19; }
+export function isMovementRom(row: number) { return row >= 4 && row <= 15; }
 export function movementTone(reading: MovementReading): MovementColor {
   if (reading.value === null) return "none";
   if (reading.color !== "none") return reading.color;
@@ -31,6 +31,7 @@ export function parseMovementPayload(value: unknown): MovementPayload {
       if (sourceRows.has(r.sourceRow as number)) return fail(); sourceRows.add(r.sourceRow as number);
       if (r.value !== null) {
         recorded++;
+        if ((r.row as number)>=16 && (r.row as number)<=19 && (typeof r.value!=="string" || !/^[1-5]$/.test(r.value))) return fail();
         if (isMovementRom(r.row as number) && (typeof r.value !== "string" || !/^-?\d+(\.\d+)?$/.test(r.value) || Math.abs(Number(r.value)) > 360)) return fail();
         if (!isMovementRom(r.row as number) && typeof r.value === "string" && /^-?\d+(\.\d+)?$/.test(r.value) && (!Number.isInteger(Number(r.value)) || Number(r.value)<1 || Number(r.value)>5)) return fail();
       }

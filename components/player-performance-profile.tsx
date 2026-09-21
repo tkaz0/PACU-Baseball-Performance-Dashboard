@@ -1,3 +1,4 @@
+import presentation from "./player-profile-presentation.module.css";
 import { HittingTeamAverageLine } from "@/components/hitting-team-average";
 import { hittingTeamAverage, type HittingTeamAverage } from "@/lib/hitting-team-averages";
 import { BlastPracticeReports } from "@/components/blast-practice-reports";
@@ -62,7 +63,7 @@ function MetricCard({ card, teamAverages=[] }: { card: PlayerMetricCard; teamAve
 }
 function MetricGroup({ id, title, cards, teamAverages=[] }: { id: string; title: string; cards: PlayerMetricCard[]; teamAverages?: readonly HittingTeamAverage[] }) {
   if (!cards.length) return null;
-  return <section id={id} aria-labelledby={`${id}-heading`} className="min-w-0"><div className="mb-4 flex items-center gap-3"><h2 id={`${id}-heading`} className="m-0 shrink-0 text-lg font-bold tracking-tight">{title}</h2><span className="h-px flex-1 bg-[var(--line-subtle)]" aria-hidden="true" /></div><ul className={`m-0 grid list-none grid-cols-1 gap-3 p-0 ${cards.length === 1 ? "" : "min-[360px]:grid-cols-2"} sm:gap-4 ${cards.length === 3 ? "min-[360px]:[&>li:last-child]:col-span-2 xl:[&>li:last-child]:col-span-1" : ""} ${cards.length === 1 ? "xl:grid-cols-1" : cards.length === 2 ? "xl:grid-cols-2" : cards.length === 4 ? "xl:grid-cols-4" : "xl:grid-cols-3"}`}>{cards.map(card => <MetricCard key={`${card.metric.key}:${card.latest?.source}:${card.latest?.unit}`} card={card} teamAverages={teamAverages} />)}</ul>{cards.some(card => card.latest && (!card.percentile || card.percentile.sampleSize < 5)) && <p className="mb-0 mt-3 text-xs leading-5 text-[var(--text-secondary)]">Team percentiles appear after 5 comparable player results for a measurement.</p>}</section>;
+  return <section id={id} aria-labelledby={`${id}-heading`} className={`min-w-0 ${presentation.metricGroup}`}><div className="mb-4 flex items-center gap-3"><h2 id={`${id}-heading`} className="m-0 shrink-0 text-lg font-bold tracking-tight">{title}</h2><span className="h-px flex-1 bg-[var(--line-subtle)]" aria-hidden="true" /></div><ul className={`m-0 grid list-none grid-cols-1 gap-3 p-0 ${cards.length === 1 ? "" : "min-[360px]:grid-cols-2"} sm:gap-4 ${cards.length === 3 ? "min-[360px]:[&>li:last-child]:col-span-2 xl:[&>li:last-child]:col-span-1" : ""} ${cards.length === 1 ? "xl:grid-cols-1" : cards.length === 2 ? "xl:grid-cols-2" : cards.length === 4 ? "xl:grid-cols-4" : "xl:grid-cols-3"}`}>{cards.map(card => <MetricCard key={`${card.metric.key}:${card.latest?.source}:${card.latest?.unit}`} card={card} teamAverages={teamAverages} />)}</ul>{cards.some(card => card.latest && (!card.percentile || card.percentile.sampleSize < 5)) && <p className="mb-0 mt-3 text-xs leading-5 text-[var(--text-secondary)]">Team percentiles appear after 5 comparable player results for a measurement.</p>}</section>;
 }
 function SessionMeasurements({ performance, season, context, hasBlast=false, teamAverages=[] }: { teamAverages?:readonly HittingTeamAverage[]; performance: ReturnType<typeof getPlayerPerformance>; season?: AthleteSeason | null; context: "in_game" | "practice"; hasBlast?: boolean }) {
   const layout = getPlayerProfileLayout(getSessionPerformance(performance, context), season);
@@ -95,20 +96,22 @@ export function PlayerPerformanceProfile({ athlete, performance, season, blastRe
   const tabs: ProfileTab[] = [
     { id: "overview", label: "Overview", content: <><PlayerOverview teamAverages={teamAverages} twoWay={selectedSeason?.player_type?.trim().toLowerCase() === "two_way"} showMethods={!simplified} cards={[...cards, ...(bodyScoreCard ? [bodyScoreCard] : [])]} gameStats={overviewGameStats} gameComparisons={gameComparisons} />{layout.showHitting && hasBlast && <BlastPracticeReports teamAverages={teamAverages} readings={blastReadings!} compact/>}</> },
     { id: "physicality", label: "Physicality", content: <>
-      {bodyScore && <RenphoBodyScore reading={bodyScore} change={bodyScoreCard ? playerRenphoChange(bodyScoreCard) : null}/>}
       {!layout.physicality.length && !layout.additionalBody.length && !bodyScore && <p className="muted text-sm">No physicality measurements recorded yet.</p>}
       <MetricGroup id="body-measurements" title="Physicality" cards={layout.physicality} />
-      {!!layout.additionalBody.length && <MetricGroup id="body-composition" title="Body Composition" cards={layout.additionalBody} />}
-      <ProfileTrendChart series={profileTrends([...layout.physicality, ...layout.additionalBody, ...(bodyScoreCard ? [bodyScoreCard] : []), ...layout.speedAgility])} />
-      {muscleBalance}
-      {movementScreening}
-      {!simplified && physicalityDetails}
+      <div className={bodyScore && layout.additionalBody.length ? presentation.composition : undefined}>
+        {bodyScore && <RenphoBodyScore reading={bodyScore} change={bodyScoreCard ? playerRenphoChange(bodyScoreCard) : null}/>}
+        {!!layout.additionalBody.length && <MetricGroup id="body-composition" title="Body Composition" cards={layout.additionalBody} />}
+      </div>
       {!!layout.speedAgility.length && <MetricGroup id="speed-agility" title="Speed & Agility" cards={layout.speedAgility} />}
+      {movementScreening}
+      {muscleBalance}
+      <ProfileTrendChart series={profileTrends([...layout.physicality, ...layout.additionalBody, ...(bodyScoreCard ? [bodyScoreCard] : []), ...layout.speedAgility])} />
+      {!simplified && physicalityDetails}
     </> },
     { id: "in-game", label: "In-Game", content: <><SessionMeasurements teamAverages={teamAverages} performance={performance} season={selectedSeason} context="in_game" />{pitchResults}{gameStats && <section aria-label="Cumulative game statistics" className="space-y-4 border-t border-[var(--line-subtle)] pt-6"><h2 className="m-0 text-xl font-bold">Cumulative Game Stats · Fall 2026</h2>{gameStats}</section>}</> },
     { id: "practice", label: "Practice", content: <>{layout.showHitting && hasBlast && <BlastPracticeReports teamAverages={teamAverages} readings={blastReadings!}/>}<SessionMeasurements teamAverages={teamAverages} performance={displayPerformance} season={selectedSeason} context="practice" hasBlast={hasBlast && layout.showHitting} />{practicePitchResults}</> },
   ];
-  return <div className="min-w-0 space-y-4 sm:space-y-5" data-testid="player-performance-profile">
+  return <div className={`min-w-0 space-y-4 sm:space-y-5 ${presentation.profile}`} data-testid="player-performance-profile">
     <section className="player-identity-card" aria-label="Player profile">
       <div className="pointer-events-none absolute -right-24 -top-32 -z-10 size-80 rotate-45 border border-white/[.05]" aria-hidden="true" />
       <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><PacificLogo className="w-9 shrink-0" decorative /><p className="m-0 text-[10px] font-bold uppercase tracking-[.18em] text-[#e0e0e3]">Pacific Baseball<span className="mx-2 text-[#a4a4aa]" aria-hidden="true">/</span>Performance</p></div>{fictional && <span className="shrink-0 rounded border border-white/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">Fictional profile</span>}</div>

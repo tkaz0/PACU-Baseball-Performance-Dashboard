@@ -15,8 +15,8 @@
 .overview { display:grid; gap:18px; }
 .overviewRows { margin-top:8px; }
 .overviewRows .row { padding:8px 0; gap:6px 12px; grid-template-columns:minmax(110px,1fr) minmax(120px,1.15fr); }
-.overviewRows .row h3 { font-size:12px; margin-bottom:3px; }
-.overviewRows .meta { font-size:10px; line-height:1.4; }
+.overviewRows .row h3 { font-size:13px; margin-bottom:3px; }
+.overviewRows .meta { font-size:11px; line-height:1.4; }
 .overviewRows .marker { width:26px; height:26px; font-size:10px; }
 .overviewRows .meter { padding:10px 13px; }
 .insights { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; align-items:stretch; }
@@ -28,9 +28,9 @@
 
 .compactGameRows { margin-top:8px; }
 .compactGameRows .row { grid-template-columns:minmax(125px,1fr) minmax(120px,1.15fr); gap:6px 12px; padding:6px 0; }
-.compactGameRows .row h3 { margin:0; display:flex; align-items:center; flex-wrap:wrap; font-size:12px; gap:2px; }
+.compactGameRows .row h3 { margin:0; display:flex; align-items:center; flex-wrap:wrap; font-size:13px; gap:2px; }
 .inlineValue { margin-left:auto; font-variant-numeric:tabular-nums; font-size:14px; }
-.compactGameRows .meta { font-size:10px; margin:0; }
+.compactGameRows .meta { font-size:11px; margin:0; }
 .compactGameRows .meter { padding:9px 13px; }
 .compactGameRows .marker { width:26px; height:26px; font-size:10px; }
 .compactGameRows .row>div>span { font-size:10px; margin-top:2px; }

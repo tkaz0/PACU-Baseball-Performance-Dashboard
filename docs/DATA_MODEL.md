@@ -348,3 +348,5 @@ September 20 hitting team averages: profile cards and Overview show source/unit-
 
 ### Movement screenings
 `movement_screenings` stores immutable athlete-linked Capstone reports: source tab ID, screening date, source hash, and 24 labeled readings with original source-row coordinates, recorded values, reference text and source flags. A canonical row identifies the label; `sourceRow` preserves actual sheet order (some shoulder rows are reversed). No full workbook or training-program text is stored. The unique source-tab/date key prevents duplicate or remapped reports. `staff_import_movement_screenings` accepts bounded, reviewed payloads through ordinary active Admin/Coach sessions, atomically rejects conflicting retries, and audits counts only. Table RLS permits staff and the linked player; server readers also apply presented-role restrictions before querying.
+
+Capstone canonical rows 4–15 are degrees; rows 16–19 are ankle 1–5 ratings. The September 21 correction changes interpretation and import validation only, with no rewriting or re-importing of existing values/hashes.

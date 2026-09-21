@@ -1,0 +1,27 @@
+.profile { --profile-section-gap:26px; }
+.profile :global(.player-identity-card) { padding:20px 22px; border-radius:16px; }
+.profile :global(.player-identity-card) h1 { font-size:clamp(26px,3.2vw,36px); }
+.profile :global(.player-identity-card) :global(dl:last-child) { padding-top:12px; }
+.profile [role="tabpanel"] > * + * { margin-top:var(--profile-section-gap); }
+.profile :global(.performance-metric-card) { padding:15px 16px; border-radius:12px; box-shadow:none; }
+.profile :global(.performance-metric-card) h3 { min-height:0; font-size:13px; line-height:1.45; }
+.profile :global(.performance-metric-card)>div:nth-child(2) { margin-top:10px; font-size:28px; }
+.profile :global(.performance-metric-card)>p:last-of-type { margin-top:auto; padding-top:10px; }
+.profile :global(.performance-metric-card) [data-testid="player-percentile"] { margin-top:10px; padding-top:9px; }
+.metricGroup > div:first-child { margin-bottom:12px; }
+.metricGroup > div:first-child h2 { font-size:17px; }
+.metricGroup > ul { gap:12px; }
+.composition { display:grid; gap:16px; align-items:stretch; }
+.composition [data-testid="renpho-body-score"] { margin:0; padding:18px; border-radius:12px; box-shadow:none; }
+.composition [data-testid="renpho-body-score"] h2 { font-size:15px; }
+.composition [data-testid="renpho-body-score"]>div:first-child>span { display:none; }
+@media(min-width:1200px) {
+ .composition { grid-template-columns:minmax(180px,.7fr) minmax(0,2fr); }
+ .composition>.metricGroup { align-self:center; }
+}
+@media(max-width:600px) {
+ .profile { --profile-section-gap:22px; }
+ .profile :global(.player-identity-card) { padding:16px; }
+ .profile :global(.performance-metric-card) { padding:13px; }
+ .profile :global(.performance-metric-card)>div:nth-child(2) { font-size:25px; }
+}

@@ -2,10 +2,10 @@ import {PGlite} from "@electric-sql/pglite";
 import {afterAll,beforeAll,it,expect} from "vitest";
 import {readFileSync} from "node:fs";
 const db=new PGlite(),admin="11111111-1111-4111-8111-111111111111",coach="22222222-2222-4222-8222-222222222222",player="33333333-3333-4333-8333-333333333333",athlete="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",peer="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
-const payload=()=>({version:1,source:"1Uu-bmZT-ol7ccW96H_1DAFOEI7LdGYTFgJfFUvJdDsU",reports:[{athleteCode:"PAC-0001",sheetId:42,screenedOn:"2026-09-15",sourceHash:"a".repeat(64),readings:Array.from({length:24},(_,i)=>({row:i+2,sourceRow:i+2,value:i>=2&&i<=17?"45":"3",reference:null,color:"none"}))}]});
+const payload=()=>({version:1,source:"1Uu-bmZT-ol7ccW96H_1DAFOEI7LdGYTFgJfFUvJdDsU",reports:[{athleteCode:"PAC-0001",sheetId:42,screenedOn:"2026-09-15",sourceHash:"a".repeat(64),readings:Array.from({length:24},(_,i)=>({row:i+2,sourceRow:i+2,value:i>=2&&i<=13?"45":"3",reference:null,color:"none"}))}]});
 beforeAll(async()=>{
  await db.exec("create role anon nologin;create role authenticated nologin;create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema public,auth to anon,authenticated;grant execute on function auth.uid() to anon,authenticated;");
- for(const file of ["202609040001_identity_and_access.sql","202609210001_movement_screenings.sql"])await db.exec(readFileSync(new URL(`../supabase/migrations/${file}`,import.meta.url),"utf8"));
+ for(const file of ["202609040001_identity_and_access.sql","202609210001_movement_screenings.sql","202609210002_ankle_screening_ratings.sql"])await db.exec(readFileSync(new URL(`../supabase/migrations/${file}`,import.meta.url),"utf8"));
  for(const [id,role]of [[admin,"admin"],[coach,"coach"],[player,"player"]]){await db.query("insert into auth.users values($1)",[id]);await db.query("insert into public.app_accounts(user_id,is_active) values($1,true)",[id]);await db.query("insert into public.account_roles(user_id,role) values($1,$2)",[id,role]);}
  await db.query("insert into public.athletes(id,athlete_code,first_name,last_name) values($1,'PAC-0001','Fictional','One'),($2,'PAC-0002','Fictional','Two')",[athlete,peer]);await db.query("insert into public.account_athletes(user_id,athlete_id) values($1,$2)",[player,athlete]);
 });afterAll(()=>db.close());
@@ -24,4 +24,8 @@ it("enforces own-player reads and blocks player, anonymous, inactive and direct 
 it("validates all fields and rolls back mixed invalid batches",async()=>{
  for(const mutate of [(p:ReturnType<typeof payload>)=>{p.reports[0].readings[0].value="6";},(p:ReturnType<typeof payload>)=>{p.reports[0].readings[2].value="361";},(p:ReturnType<typeof payload>)=>{p.reports[0].screenedOn="2026-09-31";},(p:ReturnType<typeof payload>)=>{p.reports[0].readings[0].row=3;}]){const p=payload();p.reports[0].sheetId=99;mutate(p);await as(admin,async()=>{await expect(save(p)).rejects.toThrow();});}
  const p=payload();p.reports[0].sheetId=100;p.reports.push({...p.reports[0],sheetId:101,athleteCode:"PAC-9999"});await as(admin,async()=>{await expect(save(p)).rejects.toThrow("Unknown athlete");});expect((await db.query("select * from public.movement_screenings where source_sheet_id>=99")).rows).toHaveLength(0);
+});
+it("enforces the owner-corrected ankle rating scale in the database",async()=>{
+ for(const row of [16,17,18,19])for(const value of ["0","6","45","3.5","Good"]){const p=payload();p.reports[0].sheetId=200;p.reports[0].readings[row-2].value=value;await as(admin,async()=>{await expect(save(p)).rejects.toThrow("Invalid ankle rating");});}
+ const p=payload();p.reports[0].sheetId=200;p.reports[0].readings[14].value="5";expect(await as(admin,()=>save(p))).toMatchObject({created:1});
 });
