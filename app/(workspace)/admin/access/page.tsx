@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireAccess } from "@/lib/auth";
 import { PageHeading } from "@/components/page-heading";
 import { AccessManager, type ConfiguredAccount } from "@/components/access-manager";
@@ -40,7 +41,7 @@ export default async function AccessPage({ searchParams }: { searchParams: Promi
     review: "The invitation was sent, but access setup was not confirmed. Review this user in Supabase Authentication, then use Configure existing user below. Do not send another invitation.",
   };
   return <>
-    <PageHeading section="Administration" title="Account Access" description="Review who can use the private workspace, choose their roles, and connect players to the correct athlete profile." />
+    <PageHeading section="Administration" title="Account Access" description="Review who can use the private workspace, choose their roles, and connect players to the correct athlete profile."><Link href="/admin/access/bulk" className="btn btn-primary">Invite Remaining Players</Link></PageHeading>
     {params.error && <p role="alert" className="notice notice-error mb-6">{params.error === "input"
       ? "Enter a valid Auth user ID, choose at least one role, and confirm the change."
       : "Access was not changed. Confirm that the Auth user exists, the athlete is not linked elsewhere, and you are not changing your own account."}</p>}

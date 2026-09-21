@@ -416,3 +416,6 @@ Review Home, roster, profile tabs, leaderboards, Import Center, Analytics, compa
 Movement screening tests cover range/rating/date/shape validation, source color precedence, source coordinates, accessible paired rendering, staff-only atomic imports, own-player RLS, anonymous/inactive denial and idempotent retries. PGlite verifies SQL behavior, not hosted Supabase API integration. Live imports require a verified ordinary-session database read-back.
 
 Ankle correction regression checks cover all four rating fields, reject degree-like and non-integer ankle values at both parser and SQL boundaries, and verify that only the shoulder/hip table renders degree symbols.
+
+
+Bulk invitations: `bulk-invitations.test.ts` checks recipient exclusions; `bulk-invitation-actions.test.ts` mocks all services and checks explicit approval, current admin checks, fixed Player provisioning and no retry after uncertainty; `bulk-invitation-database.test.ts` uses PGlite to exercise durable claims, exact roster eligibility/email, duplicate suppression and role/table boundaries. These checks send no email. Production QA stops before the review checkbox and Send button; actual sends remain the administrator's explicit action. PGlite is not an integration test of hosted Auth/email delivery.
