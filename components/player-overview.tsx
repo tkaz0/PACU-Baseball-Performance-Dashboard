@@ -1,3 +1,5 @@
+import { HittingTeamAverageLine } from "@/components/hitting-team-average";
+import { hittingTeamAverage, type HittingTeamAverage } from "@/lib/hitting-team-averages";
 import { profileMetricLabel } from "@/lib/profile-metric-label";
 import { formatSourceNumber } from "@/lib/measurement-display";
 import { pitchingPeriodLabel } from "@/lib/game-source";
@@ -44,12 +46,13 @@ function RelativeResults({ items, separate = false }: { items: OverviewInsight[]
     {item.game && <GameOpportunity source={item.game.source} metric={item.game.metric} count={item.game.opportunities}/>}
   </li>)}</ul>;
 }
-function TestingComparisons({ title, cards }: { title: string; cards: readonly PlayerMetricCard[] }) {
+function TestingComparisons({ title, cards, teamAverages=[] }: { title: string; cards: readonly PlayerMetricCard[]; teamAverages?:readonly HittingTeamAverage[] }) {
   if (!cards.length) return null;
   return <section aria-label={`${title} percentiles`} className={overview.panel}><h3 className="m-0 text-base font-bold">{title}</h3><ul className={`${styles.rows} ${styles.overviewRows}`}>{cards.map(card => {
     const reading = card.latest, p = card.percentile;
+    const average=reading&&card.metric.group==="hitting"?hittingTeamAverage(teamAverages,card.metric.key,reading.unit,reading.source):undefined;
     const valid = reading && card.percentileStatus === "available" && p && p.sampleSize >= 5 && Number.isFinite(p.value) && p.value >= 0 && p.value <= 100 && p.unit === reading.unit && p.period === reading.period;
-    return <li className={styles.row} key={card.metric.key} data-overview-metric={card.metric.key}><div><h3>{profileMetricLabel(card.metric.key,leaderboardMetricLabel(card.metric),reading?.source)}<StatInfo metric={card.metric.key} label={leaderboardMetricLabel(card.metric)}/></h3><span className="mr-2 font-bold tabular-nums">{reading ? `${formatSourceNumber(reading.value, reading.source, reading.unit === "s" ? reading.value.toFixed(2) : String(reading.value))} ${reading.unit === "ratio" ? "" : reading.unit}` : "—"}</span><MeasurementChange change={playerRenphoChange(card)} metric={card.metric.key}/>{reading && <p className={styles.meta}>Last Tested: <time dateTime={reading.measuredAt}>{leaderboardTestDate(reading.measuredAt)}</time></p>}</div><div>{valid ? <><PercentileBar value={p.value} sampleSize={p.sampleSize} label={card.metric.label} descriptive={card.metric.direction === "neutral"}/><p className={styles.meta}>n={p.sampleSize}{card.metric.direction === "neutral" ? " · Descriptive rank" : ""}</p></> : <p className={styles.meta}>{reading ? "Percentile appears after 5 comparable results." : "Not Yet Tested"}</p>}</div></li>;
+    return <li className={styles.row} key={card.metric.key} data-overview-metric={card.metric.key}><div><h3>{profileMetricLabel(card.metric.key,leaderboardMetricLabel(card.metric),reading?.source)}<StatInfo metric={card.metric.key} label={leaderboardMetricLabel(card.metric)}/></h3><span className="mr-2 font-bold tabular-nums">{reading ? `${formatSourceNumber(reading.value, reading.source, reading.unit === "s" ? reading.value.toFixed(2) : String(reading.value))} ${reading.unit === "ratio" ? "" : reading.unit}` : "—"}</span><MeasurementChange change={playerRenphoChange(card)} metric={card.metric.key}/>{reading && <p className={styles.meta}>Last Tested: <time dateTime={reading.measuredAt}>{leaderboardTestDate(reading.measuredAt)}</time></p>}{average&&<HittingTeamAverageLine average={average}/>}</div><div>{valid ? <><PercentileBar value={p.value} sampleSize={p.sampleSize} label={card.metric.label} descriptive={card.metric.direction === "neutral"}/><p className={styles.meta}>n={p.sampleSize}{card.metric.direction === "neutral" ? " · Descriptive rank" : ""}</p></> : <p className={styles.meta}>{reading ? "Percentile appears after 5 comparable results." : "Not Yet Tested"}</p>}</div></li>;
   })}</ul></section>;
 }
 function GameComparisons({ metrics }: { metrics: GameOverviewMetric[] }) {
@@ -66,7 +69,7 @@ function compactNumber(value: number): string {
   return value.toLocaleString("en-US", { maximumFractionDigits: 1 });
 }
 
-export function PlayerOverview({ cards, gameStats = [], gameComparisons = [], showMethods = true, twoWay = false }: { twoWay?: boolean; cards: readonly PlayerMetricCard[]; gameStats?: readonly SharedGameStat[]; gameComparisons?: readonly GameComparison[]; showMethods?: boolean }) {
+export function PlayerOverview({ cards, gameStats = [], gameComparisons = [], showMethods = true, twoWay = false, teamAverages=[] }: { teamAverages?:readonly HittingTeamAverage[]; twoWay?: boolean; cards: readonly PlayerMetricCard[]; gameStats?: readonly SharedGameStat[]; gameComparisons?: readonly GameComparison[]; showMethods?: boolean }) {
   const physicality = ["muscle_mass", "body_score", "body_fat_pct"].flatMap(key => cards.filter(card => card.metric.key === key));
   const testing = cards.filter(card => card.metric.group !== "body");
   const insights = getPlayerInsights(testing);
@@ -103,11 +106,11 @@ export function PlayerOverview({ cards, gameStats = [], gameComparisons = [], sh
     {!comparableCount && <p className="m-0 max-w-3xl text-xs leading-6 text-[var(--text-secondary)]">Highlights appear once at least five players have comparable testing or game results. Your recorded measurements are available in the tabs above.</p>}
     <div className={styles.percentileSections} aria-label="Pacific percentiles"><div className={overview.sectionHeading}><h2 className="mb-2 mt-0 text-lg font-bold">Pacific Percentiles</h2><PercentileLegend/></div>
       <div className={overview.testingSections}>
-      <TestingComparisons title="Physicality" cards={physicality}/>
-      <TestingComparisons title="Hitting · Testing" cards={testing.filter(c => c.metric.group === "hitting" && !isTimedMetric(c.metric.key) && c.latest)}/>
-      <TestingComparisons title="Athletic Testing" cards={testing.filter(c => isTimedMetric(c.metric.key) && c.latest)}/>
-      <TestingComparisons title="Position Throwing · Testing" cards={testing.filter(c => c.metric.group === "throwing" && c.latest)}/>
-      <TestingComparisons title="Pitching · Testing" cards={testing.filter(c => c.metric.group === "pitching" && c.latest)}/>
+      <TestingComparisons teamAverages={teamAverages} title="Physicality" cards={physicality}/>
+      <TestingComparisons teamAverages={teamAverages} title="Hitting · Testing" cards={testing.filter(c => c.metric.group === "hitting" && !isTimedMetric(c.metric.key) && c.latest)}/>
+      <TestingComparisons teamAverages={teamAverages} title="Athletic Testing" cards={testing.filter(c => isTimedMetric(c.metric.key) && c.latest)}/>
+      <TestingComparisons teamAverages={teamAverages} title="Position Throwing · Testing" cards={testing.filter(c => c.metric.group === "throwing" && c.latest)}/>
+      <TestingComparisons teamAverages={teamAverages} title="Pitching · Testing" cards={testing.filter(c => c.metric.group === "pitching" && c.latest)}/>
       </div>
       <GameComparisons metrics={games}/>
     </div>

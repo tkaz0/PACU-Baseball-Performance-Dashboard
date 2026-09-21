@@ -1,3 +1,5 @@
+import { HittingTeamAverageLine } from "@/components/hitting-team-average";
+import { hittingTeamAverage, type HittingTeamAverage } from "@/lib/hitting-team-averages";
 import { BlastPracticeReports } from "@/components/blast-practice-reports";
 import type { Measurement } from "@/lib/imports/engine";
 import { profileMetricLabel } from "@/lib/profile-metric-label";
@@ -24,7 +26,7 @@ import type { getPlayerPerformance, PlayerMetricCard, PlayerMetricReading } from
 export type PlayerPerformanceProfileProps = {
   athlete: RosterAthlete; performance: ReturnType<typeof getPlayerPerformance>; season?: AthleteSeason | null;
   overviewGameStats?: SharedGameStat[]; gameComparisons?: GameComparison[];
-  blastReadings?: readonly Measurement[]; pitchResults?: ReactNode; practicePitchResults?: ReactNode; simplified?: boolean; fictional?: boolean; action?: ReactNode; muscleBalance?: ReactNode; physicalityDetails?: ReactNode; history?: ReactNode; gameStats?: ReactNode;
+  teamAverages?: readonly HittingTeamAverage[]; blastReadings?: readonly Measurement[]; pitchResults?: ReactNode; practicePitchResults?: ReactNode; simplified?: boolean; fictional?: boolean; action?: ReactNode; muscleBalance?: ReactNode; physicalityDetails?: ReactNode; history?: ReactNode; gameStats?: ReactNode;
 };
 function measurementDate(value: string) {
   const date = new Date(`${value.slice(0, 10)}T12:00:00Z`);
@@ -45,11 +47,12 @@ function Percentile({ card }: { card: PlayerMetricCard }) {
     <PercentileBar value={percentile.value} sampleSize={percentile.sampleSize} label={card.metric.label} descriptive={neutral} testId="player-percentile-bar" />
   </div>;
 }
-function MetricCard({ card }: { card: PlayerMetricCard }) {
+function MetricCard({ card, teamAverages=[] }: { card: PlayerMetricCard; teamAverages?: readonly HittingTeamAverage[] }) {
   const reading = card.latest;
   return <li className={`performance-metric-card flex min-w-0 flex-col rounded-lg border border-[var(--line-subtle)] p-3 sm:p-4 ${reading ? "bg-[var(--surface-panel)]" : "border-dashed bg-[var(--surface-page)]"}`} data-testid="player-metric" data-metric-key={card.metric.key} data-value={reading?.value} data-unit={reading?.unit} data-date={reading?.measuredAt}>
     <h3 className="m-0 min-h-7 text-sm font-semibold leading-5 text-[var(--text-secondary)]">{profileMetricLabel(card.metric.key,card.metric.key === "bat_speed" ? "Bat Speed (Unspecified)" : card.metric.label,reading?.source)}<StatInfo metric={card.metric.key} label={card.metric.label} /></h3>
     <div className="mt-2 text-2xl leading-tight tracking-tight text-[var(--text-primary)] sm:text-3xl">{reading ? <><span className="mr-2 inline-block">{card.timedTrials && <span className="mr-2 text-xs font-medium text-[var(--text-secondary)]">Best</span>}<ReadingValue reading={reading} /></span><MeasurementChange change={playerRenphoChange(card)} metric={card.metric.key}/></> : <span className="font-medium text-[var(--text-secondary)]" aria-label="Not yet tested">—</span>}</div>
+    {reading && card.metric.group === "hitting" && /^Full Swing · (Game|Intrasquad|Practice|Hitting)$/.test(reading.source) && <HittingTeamAverageLine average={hittingTeamAverage(teamAverages,card.metric.key,reading.unit,reading.source)}/>}
     {!reading && <p className="mb-0 mt-3 text-[11px] text-[var(--text-secondary)]">Not Yet Tested</p>}
     {card.timedTrials && <p className="mb-0 mt-2 text-sm text-[var(--text-secondary)]">Average <strong className="tabular-nums text-[var(--text-primary)]">{card.timedTrials.average.toFixed(2)} s</strong><span className="ml-2 text-xs">{card.timedTrials.count} {card.timedTrials.count === 1 ? "trial" : "trials"} · Fall 2026</span></p>}
     {reading && card.metric.group !== "body" && <p className="mb-0 mt-2 text-xs font-semibold text-[var(--text-secondary)]">{reading.source}</p>}
@@ -58,11 +61,11 @@ function MetricCard({ card }: { card: PlayerMetricCard }) {
     <Percentile card={card} />
   </li>;
 }
-function MetricGroup({ id, title, cards }: { id: string; title: string; cards: PlayerMetricCard[] }) {
+function MetricGroup({ id, title, cards, teamAverages=[] }: { id: string; title: string; cards: PlayerMetricCard[]; teamAverages?: readonly HittingTeamAverage[] }) {
   if (!cards.length) return null;
-  return <section id={id} aria-labelledby={`${id}-heading`} className="min-w-0"><div className="mb-4 flex items-center gap-3"><h2 id={`${id}-heading`} className="m-0 shrink-0 text-lg font-bold tracking-tight">{title}</h2><span className="h-px flex-1 bg-[var(--line-subtle)]" aria-hidden="true" /></div><ul className={`m-0 grid list-none grid-cols-1 gap-3 p-0 min-[360px]:grid-cols-2 sm:gap-4 ${cards.length === 3 ? "min-[360px]:[&>li:last-child]:col-span-2 xl:[&>li:last-child]:col-span-1" : ""} ${cards.length === 2 ? "xl:grid-cols-2" : cards.length === 4 ? "xl:grid-cols-4" : "xl:grid-cols-3"}`}>{cards.map(card => <MetricCard key={`${card.metric.key}:${card.latest?.source}:${card.latest?.unit}`} card={card} />)}</ul></section>;
+  return <section id={id} aria-labelledby={`${id}-heading`} className="min-w-0"><div className="mb-4 flex items-center gap-3"><h2 id={`${id}-heading`} className="m-0 shrink-0 text-lg font-bold tracking-tight">{title}</h2><span className="h-px flex-1 bg-[var(--line-subtle)]" aria-hidden="true" /></div><ul className={`m-0 grid list-none grid-cols-1 gap-3 p-0 ${cards.length === 1 ? "" : "min-[360px]:grid-cols-2"} sm:gap-4 ${cards.length === 3 ? "min-[360px]:[&>li:last-child]:col-span-2 xl:[&>li:last-child]:col-span-1" : ""} ${cards.length === 1 ? "xl:grid-cols-1" : cards.length === 2 ? "xl:grid-cols-2" : cards.length === 4 ? "xl:grid-cols-4" : "xl:grid-cols-3"}`}>{cards.map(card => <MetricCard key={`${card.metric.key}:${card.latest?.source}:${card.latest?.unit}`} card={card} teamAverages={teamAverages} />)}</ul></section>;
 }
-function SessionMeasurements({ performance, season, context, hasBlast=false }: { performance: ReturnType<typeof getPlayerPerformance>; season?: AthleteSeason | null; context: "in_game" | "practice"; hasBlast?: boolean }) {
+function SessionMeasurements({ performance, season, context, hasBlast=false, teamAverages=[] }: { teamAverages?:readonly HittingTeamAverage[]; performance: ReturnType<typeof getPlayerPerformance>; season?: AthleteSeason | null; context: "in_game" | "practice"; hasBlast?: boolean }) {
   const layout = getPlayerProfileLayout(getSessionPerformance(performance, context), season);
   const hitting = layout.showHitting ? [...layout.hitting, ...layout.otherHitting] : [];
   const throwing = [...layout.fieldThrowing, ...layout.pitching];
@@ -71,13 +74,13 @@ function SessionMeasurements({ performance, season, context, hasBlast=false }: {
   return <section className="space-y-5" aria-label={context === "in_game" ? "In-Game measurements" : "Practice measurements"}>
     <div><h2 className="m-0 text-xl font-bold">{context === "in_game" ? "Games & Intrasquad" : (hasBlast ? "Other Practice & Testing" : "Practice & Testing")}</h2><p className="muted mb-0 mt-1 text-sm">{context === "in_game" ? "Recorded session measurements. Cumulative game statistics remain separate below." : "Latest recorded results for each source. Games and intrasquads appear in In-Game."}</p></div>
     {!hasData && <p className="rounded-lg border border-dashed border-[var(--line-subtle)] p-5 text-sm text-[var(--text-secondary)]">{context === "in_game" ? "No game or intrasquad session measurements recorded yet." : "No practice measurements recorded yet."}</p>}
-    <MetricGroup id={`${context}-hitting`} title="Hitting" cards={hitting} />
+    <MetricGroup id={`${context}-hitting`} title="Hitting" cards={hitting} teamAverages={teamAverages} />
     <MetricGroup id={`${context}-field`} title="Position Throwing" cards={layout.fieldThrowing} />
     <MetricGroup id={`${context}-pitching`} title="Pitching" cards={layout.pitching} />
     <ProfileTrendChart series={profileTrends([...hitting, ...throwing])} />
   </section>;
 }
-export function PlayerPerformanceProfile({ athlete, performance, season, blastReadings, pitchResults, practicePitchResults, fictional = false, simplified = false, action, muscleBalance, physicalityDetails, history, gameStats, overviewGameStats = [], gameComparisons = [] }: PlayerPerformanceProfileProps) {
+export function PlayerPerformanceProfile({ athlete, performance, season, blastReadings, teamAverages=[], pitchResults, practicePitchResults, fictional = false, simplified = false, action, muscleBalance, physicalityDetails, history, gameStats, overviewGameStats = [], gameComparisons = [] }: PlayerPerformanceProfileProps) {
   const hasBlast = !!blastReadings?.some(r=>parseBlastSource(r.source));
   const displayPerformance = hasBlast ? withoutWeeklyBlastCards(performance) : performance;
   const bodyScoreCard = performance.body.find(card => card.metric.key === "body_score" && card.latest);
@@ -91,7 +94,7 @@ export function PlayerPerformanceProfile({ athlete, performance, season, blastRe
   const latestBlast = layout.showHitting ? blastReadings?.flatMap(r => { const period=parseBlastSource(r.source); return period?[period]:[]; }).sort((a,b)=>b.end.localeCompare(a.end))[0] : undefined;
   const newerReport = latestBlast && latestBlast.end > (lastTested ?? "") ? latestBlast : null;
   const tabs: ProfileTab[] = [
-    { id: "overview", label: "Overview", content: <><PlayerOverview twoWay={selectedSeason?.player_type?.trim().toLowerCase() === "two_way"} showMethods={!simplified} cards={[...cards, ...(bodyScoreCard ? [bodyScoreCard] : [])]} gameStats={overviewGameStats} gameComparisons={gameComparisons} />{layout.showHitting && hasBlast && <BlastPracticeReports readings={blastReadings!} compact/>}</> },
+    { id: "overview", label: "Overview", content: <><PlayerOverview teamAverages={teamAverages} twoWay={selectedSeason?.player_type?.trim().toLowerCase() === "two_way"} showMethods={!simplified} cards={[...cards, ...(bodyScoreCard ? [bodyScoreCard] : [])]} gameStats={overviewGameStats} gameComparisons={gameComparisons} />{layout.showHitting && hasBlast && <BlastPracticeReports teamAverages={teamAverages} readings={blastReadings!} compact/>}</> },
     { id: "physicality", label: "Physicality", content: <>
       {bodyScore && <RenphoBodyScore reading={bodyScore} change={bodyScoreCard ? playerRenphoChange(bodyScoreCard) : null}/>}
       {!layout.physicality.length && !layout.additionalBody.length && !bodyScore && <p className="muted text-sm">No physicality measurements recorded yet.</p>}
@@ -102,8 +105,8 @@ export function PlayerPerformanceProfile({ athlete, performance, season, blastRe
       {!simplified && physicalityDetails}
       {!!layout.speedAgility.length && <MetricGroup id="speed-agility" title="Speed & Agility" cards={layout.speedAgility} />}
     </> },
-    { id: "in-game", label: "In-Game", content: <><SessionMeasurements performance={performance} season={selectedSeason} context="in_game" />{pitchResults}{gameStats && <section aria-label="Cumulative game statistics" className="space-y-4 border-t border-[var(--line-subtle)] pt-6"><h2 className="m-0 text-xl font-bold">Cumulative Game Stats · Fall 2026</h2>{gameStats}</section>}</> },
-    { id: "practice", label: "Practice", content: <>{layout.showHitting && hasBlast && <BlastPracticeReports readings={blastReadings!}/>}<SessionMeasurements performance={displayPerformance} season={selectedSeason} context="practice" hasBlast={hasBlast && layout.showHitting} />{practicePitchResults}</> },
+    { id: "in-game", label: "In-Game", content: <><SessionMeasurements teamAverages={teamAverages} performance={performance} season={selectedSeason} context="in_game" />{pitchResults}{gameStats && <section aria-label="Cumulative game statistics" className="space-y-4 border-t border-[var(--line-subtle)] pt-6"><h2 className="m-0 text-xl font-bold">Cumulative Game Stats · Fall 2026</h2>{gameStats}</section>}</> },
+    { id: "practice", label: "Practice", content: <>{layout.showHitting && hasBlast && <BlastPracticeReports teamAverages={teamAverages} readings={blastReadings!}/>}<SessionMeasurements teamAverages={teamAverages} performance={displayPerformance} season={selectedSeason} context="practice" hasBlast={hasBlast && layout.showHitting} />{practicePitchResults}</> },
   ];
   return <div className="min-w-0 space-y-4 sm:space-y-5" data-testid="player-performance-profile">
     <section className="player-identity-card" aria-label="Player profile">

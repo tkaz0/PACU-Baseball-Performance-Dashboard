@@ -4,9 +4,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Role, RosterAthlete } from "@/lib/types";
 import type { Measurement } from "@/lib/imports/engine";
 
-const fake = vi.hoisted(() => ({ access: vi.fn(), from: vi.fn(), select: vi.fn(), eq: vi.fn(), single: vi.fn(), load: vi.fn(), charts: vi.fn(), games: vi.fn(), comparisons: vi.fn(), logs: vi.fn() }));
+const fake = vi.hoisted(() => ({ access: vi.fn(), from: vi.fn(), select: vi.fn(), eq: vi.fn(), single: vi.fn(), load: vi.fn(), charts: vi.fn(), games: vi.fn(), comparisons: vi.fn(), logs: vi.fn(), team: vi.fn() }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/auth", () => ({ requireAccess: fake.access }));
+vi.mock("@/lib/hitting-team-server", () => ({ loadHittingTeamAverages: fake.team }));
 vi.mock("@/lib/performance-server", () => ({ loadAthletePerformance: fake.load }));
 vi.mock("@/lib/game-comparison-server", () => ({ loadGameComparisons: fake.comparisons }));
 vi.mock("@/lib/game-log-server", () => ({ loadGameLogs: fake.logs }));
@@ -33,7 +34,7 @@ function access(roles: Role[] = ["player"], athleteId: string | null = ownId, pr
     user: { id: "fictional-user", email: "private-login@example.com" }, supabase: { from: fake.from } };
 }
 beforeEach(() => {
-  vi.resetAllMocks(); fake.comparisons.mockResolvedValue([]);
+  vi.resetAllMocks(); fake.comparisons.mockResolvedValue([]); fake.team.mockResolvedValue([]);
   const chain = { select: fake.select, eq: fake.eq, maybeSingle: fake.single };
   fake.from.mockReturnValue(chain); fake.select.mockReturnValue(chain); fake.eq.mockReturnValue(chain);
   fake.single.mockResolvedValue({ data: athlete, error: null });
@@ -75,6 +76,7 @@ describe("protected profile route authorization and integration", () => {
     expect(fake.load).toHaveBeenCalledExactlyOnceWith(trusted, athlete);
     expect(fake.games).toHaveBeenCalledExactlyOnceWith(trusted, athlete.id);
     expect(fake.logs).not.toHaveBeenCalled();
+    expect(fake.team).toHaveBeenCalledExactlyOnceWith(trusted);
     expect(html).toContain("Game Stats");
     expect(html).toContain("Fictional Profile"); expect(html).toContain('data-metric-key="max_exit_velocity"');
     expect(html).toContain('data-value="10"'); expect(html).toContain("Jersey Number");
@@ -129,4 +131,10 @@ describe("protected profile route authorization and integration", () => {
     await expect(Profile({ params: Promise.resolve({ id: ownId }) })).rejects.toThrow("Fictional performance unavailable");
     expect(fake.charts).not.toHaveBeenCalled();
   });
+});
+it("renders aggregate hitting comparisons on an own-player profile without peer queries",async()=>{
+ fake.load.mockResolvedValueOnce({measurements:[reading({source:"Full Swing · Intrasquad"})],batches:[],percentileOverrides:[]});
+ fake.team.mockResolvedValueOnce([{metricKey:"max_exit_velocity",unit:"mph",source:"full swing · intrasquad",method:"player_mean",value:75.25,athleteCount:8,swingCount:null,firstDate:"2026-09-11",lastDate:"2026-09-20"}]);
+ const html=renderToStaticMarkup(await Profile({params:Promise.resolve({id:ownId})}));
+ expect(html).toContain("Team Average");expect(html).toContain("75.3");expect(fake.from).toHaveBeenCalledExactlyOnceWith("athletes");expect(fake.eq).toHaveBeenCalledExactlyOnceWith("id",ownId);
 });

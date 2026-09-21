@@ -146,3 +146,6 @@ Practice profiles now focus on five Blast measurements with cumulative Fall aver
 
 
 Launch design: signed-in Home now offers role-scoped Fall coverage, recent source updates, game snapshots and useful shortcuts. Hitting displays use five Blast cards with Fall averages and separately labeled weekly P95. Shared navigation, profiles, tables and sign-in styling are refreshed across light/dark/mobile layouts. Ordinary role/RLS checks, import review and invitation settings are unchanged.
+
+
+September 20 hitting team averages: profile cards and Overview show source/unit-specific Full Swing comparisons (mean of each eligible player’s latest Fall result, including for maximum metrics). The five main Blast Practice comparisons pool non-overlapping average reports weighted by swing count, excluding incomplete player-metric rollups and paired P95 reports. Sample players/swings and covered dates are available under each comparison. The aggregate-only `hitting_team_averages` RPC checks active Player/Coach/Admin access and returns no identities or raw observations. Apply additive migration `202609200003_hitting_team_averages.sql` before deploying the consuming profile page. Tests cover context/unit separation, latest selection, weighted samples, negative angles, incomplete/overlapping periods, cohort eligibility and own-player RLS.

@@ -1,9 +1,11 @@
+import { HittingTeamAverageLine } from "@/components/hitting-team-average";
+import { hittingTeamAverage, type HittingTeamAverage } from "@/lib/hitting-team-averages";
 import { blastPeriodLabel, blastUnit, formatBlastValue } from "@/lib/blast-metrics";
 import { blastFallSummary } from "@/lib/blast-fall";
 import type { Measurement } from "@/lib/imports/engine";
 import { StatInfo } from "@/components/stat-info";
 import styles from "./blast-reports.module.css";
-export function BlastPracticeReports({readings,compact=false}:{readings:readonly Measurement[];compact?:boolean}) {
+export function BlastPracticeReports({readings,compact=false,teamAverages=[]}:{readings:readonly Measurement[];compact?:boolean;teamAverages?:readonly HittingTeamAverage[]}) {
   const summary=blastFallSummary(readings);
   if(!summary)return null;
   const period=summary.firstDate&&summary.lastDate?blastPeriodLabel(summary.firstDate,summary.lastDate):null;
@@ -18,6 +20,7 @@ export function BlastPracticeReports({readings,compact=false}:{readings:readonly
         <h4>{m.label} <StatInfo metric={m.key} label={m.label}/></h4>
         <p className={styles.primaryValue}><strong>{m.average===null?"—":formatBlastValue(m.average,m.unit)}</strong><span>{blastUnit(m.unit)}</span></p>
         <p className={styles.averageLabel}>Fall Average</p>
+        <HittingTeamAverageLine average={hittingTeamAverage(teamAverages,m.key,m.unit,"blast_fall")}/>
         {m.missingReports>0&&<p className={styles.coverage}>Missing from {m.missingReports} {m.missingReports===1?"average report":"average reports"}</p>}
         {!compact&&<div className={styles.peakValue}><span>Latest Week<span>Peak · 95th</span></span><strong>{m.peak===null?"—":`${formatBlastValue(m.peak,m.unit)} ${blastUnit(m.unit)}`}</strong></div>}
       </article>)}

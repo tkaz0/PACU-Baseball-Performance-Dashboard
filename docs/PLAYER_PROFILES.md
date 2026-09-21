@@ -166,3 +166,6 @@ Apply `202609200002_blast_period_guard.sql` after the compatible app. It blocks 
 
 
 Launch layout: the five Blast metrics use individual cards in Overview/Practice. Each prominently shows the weighted Fall average and unit; expanded Practice cards place the latest-week Peak (95th) separately below a divider with its report dates. Unsupported Fall peaks/percentiles remain absent. The signed-in Home is now an entry point; My Profile still opens the complete authorized player card.
+
+
+September 20 hitting team averages: profile cards and Overview show source/unit-specific Full Swing comparisons (mean of each eligible player’s latest Fall result, including for maximum metrics). The five main Blast Practice comparisons pool non-overlapping average reports weighted by swing count, excluding incomplete player-metric rollups and paired P95 reports. Sample players/swings and covered dates are available under each comparison. The aggregate-only `hitting_team_averages` RPC checks active Player/Coach/Admin access and returns no identities or raw observations. Apply additive migration `202609200003_hitting_team_averages.sql` before deploying the consuming profile page. Tests cover context/unit separation, latest selection, weighted samples, negative angles, incomplete/overlapping periods, cohort eligibility and own-player RLS.
