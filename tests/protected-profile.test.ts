@@ -4,8 +4,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Role, RosterAthlete } from "@/lib/types";
 import type { Measurement } from "@/lib/imports/engine";
 
-const fake = vi.hoisted(() => ({ access: vi.fn(), from: vi.fn(), select: vi.fn(), eq: vi.fn(), single: vi.fn(), load: vi.fn(), charts: vi.fn(), games: vi.fn(), comparisons: vi.fn(), logs: vi.fn(), team: vi.fn() }));
+const fake = vi.hoisted(() => ({ access: vi.fn(), from: vi.fn(), select: vi.fn(), eq: vi.fn(), single: vi.fn(), load: vi.fn(), charts: vi.fn(), games: vi.fn(), comparisons: vi.fn(), logs: vi.fn(), team: vi.fn(), movement: vi.fn() }));
 vi.mock("server-only", () => ({}));
+vi.mock("@/lib/movement-server", () => ({ loadMovementScreening: fake.movement }));
 vi.mock("@/lib/auth", () => ({ requireAccess: fake.access }));
 vi.mock("@/lib/hitting-team-server", () => ({ loadHittingTeamAverages: fake.team }));
 vi.mock("@/lib/performance-server", () => ({ loadAthletePerformance: fake.load }));
@@ -34,7 +35,7 @@ function access(roles: Role[] = ["player"], athleteId: string | null = ownId, pr
     user: { id: "fictional-user", email: "private-login@example.com" }, supabase: { from: fake.from } };
 }
 beforeEach(() => {
-  vi.resetAllMocks(); fake.comparisons.mockResolvedValue([]); fake.team.mockResolvedValue([]);
+  vi.resetAllMocks(); fake.movement.mockResolvedValue(null); fake.comparisons.mockResolvedValue([]); fake.team.mockResolvedValue([]);
   const chain = { select: fake.select, eq: fake.eq, maybeSingle: fake.single };
   fake.from.mockReturnValue(chain); fake.select.mockReturnValue(chain); fake.eq.mockReturnValue(chain);
   fake.single.mockResolvedValue({ data: athlete, error: null });
@@ -48,16 +49,16 @@ describe("protected profile route authorization and integration", () => {
   it("requires authentication before querying any profile or performance data", async () => {
     fake.access.mockRejectedValueOnce(new Error("REDIRECT:/login"));
     await expect(Profile({ params: Promise.resolve({ id: ownId }) })).rejects.toThrow("REDIRECT:/login");
-    expect(fake.from).not.toHaveBeenCalled(); expect(fake.load).not.toHaveBeenCalled(); expect(fake.games).not.toHaveBeenCalled(); expect(fake.logs).not.toHaveBeenCalled();
+    expect(fake.movement).not.toHaveBeenCalled(); expect(fake.from).not.toHaveBeenCalled(); expect(fake.load).not.toHaveBeenCalled(); expect(fake.games).not.toHaveBeenCalled(); expect(fake.logs).not.toHaveBeenCalled();
   });
   it.each([otherId, "LOCAL-0001", "", "../../admin/access", ownId + "\n"])("rejects malformed or another player's ID %# before the profile query", async id => {
     await expect(Profile({ params: Promise.resolve({ id }) })).rejects.toThrow("NOT_FOUND");
-    expect(fake.from).not.toHaveBeenCalled(); expect(fake.load).not.toHaveBeenCalled(); expect(fake.games).not.toHaveBeenCalled(); expect(fake.logs).not.toHaveBeenCalled();
+    expect(fake.movement).not.toHaveBeenCalled(); expect(fake.from).not.toHaveBeenCalled(); expect(fake.load).not.toHaveBeenCalled(); expect(fake.games).not.toHaveBeenCalled(); expect(fake.logs).not.toHaveBeenCalled();
   });
   it("does not fall back to actual admin authority during a player preview", async () => {
     fake.access.mockResolvedValueOnce(access(["player"], ownId, true));
     await expect(Profile({ params: Promise.resolve({ id: otherId }) })).rejects.toThrow("NOT_FOUND");
-    expect(fake.from).not.toHaveBeenCalled(); expect(fake.load).not.toHaveBeenCalled(); expect(fake.games).not.toHaveBeenCalled(); expect(fake.logs).not.toHaveBeenCalled();
+    expect(fake.movement).not.toHaveBeenCalled(); expect(fake.from).not.toHaveBeenCalled(); expect(fake.load).not.toHaveBeenCalled(); expect(fake.games).not.toHaveBeenCalled(); expect(fake.logs).not.toHaveBeenCalled();
   });
   it("denies unlinked players and missing/error profile results without loading measurements", async () => {
     fake.access.mockResolvedValueOnce(access(["player"], null));
@@ -77,6 +78,7 @@ describe("protected profile route authorization and integration", () => {
     expect(fake.games).toHaveBeenCalledExactlyOnceWith(trusted, athlete.id);
     expect(fake.logs).not.toHaveBeenCalled();
     expect(fake.team).toHaveBeenCalledExactlyOnceWith(trusted);
+    expect(fake.movement).toHaveBeenCalledExactlyOnceWith(trusted,athlete.id,athlete.athlete_code);
     expect(html).toContain("Game Stats");
     expect(html).toContain("Fictional Profile"); expect(html).toContain('data-metric-key="max_exit_velocity"');
     expect(html).toContain('data-value="10"'); expect(html).toContain("Jersey Number");

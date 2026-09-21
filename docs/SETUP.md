@@ -382,3 +382,6 @@ September 20 hitting team averages: profile cards and Overview show source/unit-
 ## Current source-check schedule
 
 As of September 20, the configured Codex check is once weekly on Monday at 9 p.m. America/Los_Angeles for QPA Fall, Pitching Fall and Player Metrics. Scheduled roster/RENPHO-ID scanning remains off. Earlier daily references document past operation. This schedule change does not create a cloud polling service or change save authorization.
+
+### Capstone screening deployment
+Apply `202609210001_movement_screenings.sql` before deploying the consuming app. It adds an own-player/staff RLS table and bounded staff import RPC; it changes no existing role or account links. Use `/imports/movement` with a private reviewed source file. Match labels, retain original source rows and explicit source colors, and confirm dates/units before preparation. Review every match/result and verify the database read-back receipt after saving. Repeated identical payloads are safe; changed source values or identities require separate review. The source workbook remains read-only, and Capstone is not added to scheduled syncing.

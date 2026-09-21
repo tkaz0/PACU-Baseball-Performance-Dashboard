@@ -26,7 +26,7 @@ import type { getPlayerPerformance, PlayerMetricCard, PlayerMetricReading } from
 export type PlayerPerformanceProfileProps = {
   athlete: RosterAthlete; performance: ReturnType<typeof getPlayerPerformance>; season?: AthleteSeason | null;
   overviewGameStats?: SharedGameStat[]; gameComparisons?: GameComparison[];
-  teamAverages?: readonly HittingTeamAverage[]; blastReadings?: readonly Measurement[]; pitchResults?: ReactNode; practicePitchResults?: ReactNode; simplified?: boolean; fictional?: boolean; action?: ReactNode; muscleBalance?: ReactNode; physicalityDetails?: ReactNode; history?: ReactNode; gameStats?: ReactNode;
+  teamAverages?: readonly HittingTeamAverage[]; blastReadings?: readonly Measurement[]; pitchResults?: ReactNode; practicePitchResults?: ReactNode; simplified?: boolean; fictional?: boolean; action?: ReactNode; muscleBalance?: ReactNode; movementScreening?: ReactNode; physicalityDetails?: ReactNode; history?: ReactNode; gameStats?: ReactNode;
 };
 function measurementDate(value: string) {
   const date = new Date(`${value.slice(0, 10)}T12:00:00Z`);
@@ -79,7 +79,7 @@ function SessionMeasurements({ performance, season, context, hasBlast=false, tea
     <ProfileTrendChart series={profileTrends([...hitting, ...throwing])} />
   </section>;
 }
-export function PlayerPerformanceProfile({ athlete, performance, season, blastReadings, teamAverages=[], pitchResults, practicePitchResults, fictional = false, simplified = false, action, muscleBalance, physicalityDetails, history, gameStats, overviewGameStats = [], gameComparisons = [] }: PlayerPerformanceProfileProps) {
+export function PlayerPerformanceProfile({ athlete, performance, season, blastReadings, teamAverages=[], pitchResults, practicePitchResults, fictional = false, simplified = false, action, muscleBalance, movementScreening, physicalityDetails, history, gameStats, overviewGameStats = [], gameComparisons = [] }: PlayerPerformanceProfileProps) {
   const hasBlast = !!blastReadings?.some(r=>parseBlastSource(r.source));
   const displayPerformance = hasBlast ? withoutWeeklyBlastCards(performance) : performance;
   const bodyScoreCard = performance.body.find(card => card.metric.key === "body_score" && card.latest);
@@ -101,6 +101,7 @@ export function PlayerPerformanceProfile({ athlete, performance, season, blastRe
       {!!layout.additionalBody.length && <MetricGroup id="body-composition" title="Body Composition" cards={layout.additionalBody} />}
       <ProfileTrendChart series={profileTrends([...layout.physicality, ...layout.additionalBody, ...(bodyScoreCard ? [bodyScoreCard] : []), ...layout.speedAgility])} />
       {muscleBalance}
+      {movementScreening}
       {!simplified && physicalityDetails}
       {!!layout.speedAgility.length && <MetricGroup id="speed-agility" title="Speed & Agility" cards={layout.speedAgility} />}
     </> },

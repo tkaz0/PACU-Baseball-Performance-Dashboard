@@ -412,3 +412,5 @@ September 20 hitting team averages: profile cards and Overview show source/unit-
 ## September 20 showing polish
 
 Review Home, roster, profile tabs, leaderboards, Import Center, Analytics, comparisons and settings at desktop and phone widths. Use fictional local fixtures for screenshots; keep live verification count-only. Player-only game snapshots should fill the available row. Missing-percentile guidance appears once per metric group. Import screens describe Monday 9 p.m. Pacific checks, with roster/RENPHO scanning off. Profile pitch-table dates use the same readable date format as other results. No metric definitions, permissions or saved measurements change.
+
+Movement screening tests cover range/rating/date/shape validation, source color precedence, source coordinates, accessible paired rendering, staff-only atomic imports, own-player RLS, anonymous/inactive denial and idempotent retries. PGlite verifies SQL behavior, not hosted Supabase API integration. Live imports require a verified ordinary-session database read-back.
