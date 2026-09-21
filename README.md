@@ -141,3 +141,5 @@ The September 19 visual refresh adds the complete Pacific Boxer mark to the rost
 
 
 Blast Motion supports weekly Average Performance and Peak (95th Percentile) CSV reports with reviewed dates/player matching and side-by-side Practice summaries. See `docs/INFORMATION_IMPORTS.md` and the September 20 migration in `docs/SETUP.md`.
+
+Practice profiles now focus on five Blast measurements with cumulative Fall averages weighted by reported swing counts. Weekly P95 results remain separately labeled. Use weekly exports of new swings with non-overlapping date ranges.

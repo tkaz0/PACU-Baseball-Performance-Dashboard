@@ -400,3 +400,5 @@ Visual QA uses temporary local fixtures only, removed before deployment. Checked
 
 
 Blast weekly reports: `tests/blast-performance.test.ts` checks exact export headers, split-name matching/exclusion, original coordinates, full-precision values, negative angles, missing values, sample counts, dates, distinct Average/P95 cards and shared-validation bounds. `tests/blast-performance-database.test.ts` runs all migrations in PGlite and checks ordinary staff saves, negative-value scope, mode/provenance conflicts, repeat-export rejection, idempotency and nonstaff denial. Test browser imports with fictional exports only; verify mobile layout, period retention between files, final review gating and Average/P95 tables. PGlite does not replace live Supabase Auth/API verification.
+
+`tests/blast-fall.test.ts` verifies weighted Fall means, distinct-source isolation, single-count paired exports, latest-week P95, negative angles, duplicate/overlap/count guards, missing metric coverage, the five main metrics and profile context labels. The Blast database suite also tests overlap rejection with valid paired and subsequent-week imports.

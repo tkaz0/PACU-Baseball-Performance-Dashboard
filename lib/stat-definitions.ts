@@ -5,6 +5,7 @@ import { PLAYER_METRICS, normalizePlayerMetric } from "@/lib/player-performance"
 // Short descriptions of recorded measures, not targets or medical interpretations.
 export const STAT_DEFINITIONS: Readonly<Record<string, string>> = {
   ...Object.fromEntries(BLAST_ALL_METRICS.map(m=>[m.key,m.description])),
+  blast_peak_hand_speed: "Hand speed uses Blast’s per-swing Peak Hand Speed metric. The Fall average weights each non-overlapping weekly average by its reported swing count. Latest Week Peak shows the vendor’s weekly 95th percentile, not a Fall maximum.",
   p95_bat_speed: "The 95th-percentile bat speed reported by Blast for the selected week, not the fastest swing. A PACU percentile bar separately compares this weekly result with the same report period for teammates.",
   classified_avg_velocity: "Average velocity of recorded pitches assigned to this pitch type by staff, within the player’s latest comparable session. In-game and Practice results remain separate; missing readings are excluded.",
   classified_max_velocity: "Highest recorded velocity among pitches assigned to this pitch type in the player’s latest comparable session. Each pitch type and session context is ranked separately.",

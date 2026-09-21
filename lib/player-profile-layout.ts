@@ -54,3 +54,14 @@ export function getSessionPerformance(performance: PlayerPerformance, context: "
   };
   return { body: [], hitting: filter(performance.hitting), pitching: filter(performance.pitching), throwing: filter(performance.throwing) };
 }
+
+/** Weekly Blast cards are replaced by the dedicated cumulative practice summary on profiles. */
+export function withoutWeeklyBlastCards(performance: PlayerPerformance): PlayerPerformance {
+  const filter=(cards: PlayerMetricCard[])=>cards.map(card=>{
+    const sources=(card.sourceCards??[card]).filter(c=>!c.latest||!parseBlastSource(c.latest.source));
+    const latest=[...sources].filter(c=>c.latest).sort((a,b)=>b.latest!.measuredAt.localeCompare(a.latest!.measuredAt))[0];
+    if(!card.sourceCards && (!card.latest || !parseBlastSource(card.latest.source)))return card;
+    return {...(latest??card),latest:latest?.latest??null,sourceCards:sources,history:latest?.history??[],percentile:latest?.percentile??null};
+  });
+  return {...performance,hitting:filter(performance.hitting)};
+}

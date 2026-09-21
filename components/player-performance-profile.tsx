@@ -1,3 +1,6 @@
+import { BlastPracticeReports } from "@/components/blast-practice-reports";
+import type { Measurement } from "@/lib/imports/engine";
+import { profileMetricLabel } from "@/lib/profile-metric-label";
 import { parseBlastSource, blastPeriodLabel, formatBlastValue } from "@/lib/blast-metrics";
 import { ProfileTrendChart } from "@/components/profile-trend-chart";
 import { profileTrends } from "@/lib/profile-trends";
@@ -14,14 +17,14 @@ import { ProfileTabs, type ProfileTab } from "@/components/profile-tabs";
 import { PlayerOverview } from "@/components/player-overview";
 import { ArrowDown, ArrowUp, ChevronDown } from "lucide-react";
 import { athleteName, display, type AthleteSeason, type RosterAthlete } from "@/lib/types";
-import { getPlayerProfileLayout, getSessionPerformance } from "@/lib/player-profile-layout";
+import { getPlayerProfileLayout, getSessionPerformance, withoutWeeklyBlastCards } from "@/lib/player-profile-layout";
 import { formatHeight, formatSourceNumber } from "@/lib/measurement-display";
 import type { getPlayerPerformance, PlayerMetricCard, PlayerMetricReading } from "@/lib/player-performance";
 
 export type PlayerPerformanceProfileProps = {
   athlete: RosterAthlete; performance: ReturnType<typeof getPlayerPerformance>; season?: AthleteSeason | null;
   overviewGameStats?: SharedGameStat[]; gameComparisons?: GameComparison[];
-  blastResults?: ReactNode; pitchResults?: ReactNode; practicePitchResults?: ReactNode; simplified?: boolean; fictional?: boolean; action?: ReactNode; muscleBalance?: ReactNode; physicalityDetails?: ReactNode; history?: ReactNode; gameStats?: ReactNode;
+  blastReadings?: readonly Measurement[]; pitchResults?: ReactNode; practicePitchResults?: ReactNode; simplified?: boolean; fictional?: boolean; action?: ReactNode; muscleBalance?: ReactNode; physicalityDetails?: ReactNode; history?: ReactNode; gameStats?: ReactNode;
 };
 function measurementDate(value: string) {
   const date = new Date(`${value.slice(0, 10)}T12:00:00Z`);
@@ -45,7 +48,7 @@ function Percentile({ card }: { card: PlayerMetricCard }) {
 function MetricCard({ card }: { card: PlayerMetricCard }) {
   const reading = card.latest;
   return <li className={`performance-metric-card flex min-w-0 flex-col rounded-lg border border-[var(--line-subtle)] p-3 sm:p-4 ${reading ? "bg-[var(--surface-panel)]" : "border-dashed bg-[var(--surface-page)]"}`} data-testid="player-metric" data-metric-key={card.metric.key} data-value={reading?.value} data-unit={reading?.unit} data-date={reading?.measuredAt}>
-    <h3 className="m-0 min-h-7 text-sm font-semibold leading-5 text-[var(--text-secondary)]">{card.metric.key === "bat_speed" ? "Bat Speed (Unspecified)" : card.metric.label}<StatInfo metric={card.metric.key} label={card.metric.label} /></h3>
+    <h3 className="m-0 min-h-7 text-sm font-semibold leading-5 text-[var(--text-secondary)]">{profileMetricLabel(card.metric.key,card.metric.key === "bat_speed" ? "Bat Speed (Unspecified)" : card.metric.label,reading?.source)}<StatInfo metric={card.metric.key} label={card.metric.label} /></h3>
     <div className="mt-2 text-2xl leading-tight tracking-tight text-[var(--text-primary)] sm:text-3xl">{reading ? <><span className="mr-2 inline-block">{card.timedTrials && <span className="mr-2 text-xs font-medium text-[var(--text-secondary)]">Best</span>}<ReadingValue reading={reading} /></span><MeasurementChange change={playerRenphoChange(card)} metric={card.metric.key}/></> : <span className="font-medium text-[var(--text-secondary)]" aria-label="Not yet tested">—</span>}</div>
     {!reading && <p className="mb-0 mt-3 text-[11px] text-[var(--text-secondary)]">Not Yet Tested</p>}
     {card.timedTrials && <p className="mb-0 mt-2 text-sm text-[var(--text-secondary)]">Average <strong className="tabular-nums text-[var(--text-primary)]">{card.timedTrials.average.toFixed(2)} s</strong><span className="ml-2 text-xs">{card.timedTrials.count} {card.timedTrials.count === 1 ? "trial" : "trials"} · Fall 2026</span></p>}
@@ -59,13 +62,14 @@ function MetricGroup({ id, title, cards }: { id: string; title: string; cards: P
   if (!cards.length) return null;
   return <section id={id} aria-labelledby={`${id}-heading`} className="min-w-0"><div className="mb-4 flex items-center gap-3"><h2 id={`${id}-heading`} className="m-0 shrink-0 text-lg font-bold tracking-tight">{title}</h2><span className="h-px flex-1 bg-[var(--line-subtle)]" aria-hidden="true" /></div><ul className={`m-0 grid list-none grid-cols-1 gap-3 p-0 min-[360px]:grid-cols-2 sm:gap-4 ${cards.length === 3 ? "min-[360px]:[&>li:last-child]:col-span-2 xl:[&>li:last-child]:col-span-1" : ""} ${cards.length === 2 ? "xl:grid-cols-2" : cards.length === 4 ? "xl:grid-cols-4" : "xl:grid-cols-3"}`}>{cards.map(card => <MetricCard key={`${card.metric.key}:${card.latest?.source}:${card.latest?.unit}`} card={card} />)}</ul></section>;
 }
-function SessionMeasurements({ performance, season, context }: { performance: ReturnType<typeof getPlayerPerformance>; season?: AthleteSeason | null; context: "in_game" | "practice" }) {
+function SessionMeasurements({ performance, season, context, hasBlast=false }: { performance: ReturnType<typeof getPlayerPerformance>; season?: AthleteSeason | null; context: "in_game" | "practice"; hasBlast?: boolean }) {
   const layout = getPlayerProfileLayout(getSessionPerformance(performance, context), season);
   const hitting = layout.showHitting ? [...layout.hitting, ...layout.otherHitting] : [];
   const throwing = [...layout.fieldThrowing, ...layout.pitching];
   const hasData = hitting.length + throwing.length > 0;
+  if(hasBlast && !hasData)return null;
   return <section className="space-y-5" aria-label={context === "in_game" ? "In-Game measurements" : "Practice measurements"}>
-    <div><h2 className="m-0 text-xl font-bold">{context === "in_game" ? "Games & Intrasquad" : "Practice & Testing"}</h2><p className="muted mb-0 mt-1 text-sm">{context === "in_game" ? "Recorded session measurements. Cumulative game statistics remain separate below." : "Latest recorded results for each source. Games and intrasquads appear in In-Game."}</p></div>
+    <div><h2 className="m-0 text-xl font-bold">{context === "in_game" ? "Games & Intrasquad" : (hasBlast ? "Other Practice & Testing" : "Practice & Testing")}</h2><p className="muted mb-0 mt-1 text-sm">{context === "in_game" ? "Recorded session measurements. Cumulative game statistics remain separate below." : "Latest recorded results for each source. Games and intrasquads appear in In-Game."}</p></div>
     {!hasData && <p className="rounded-lg border border-dashed border-[var(--line-subtle)] p-5 text-sm text-[var(--text-secondary)]">{context === "in_game" ? "No game or intrasquad session measurements recorded yet." : "No practice measurements recorded yet."}</p>}
     <MetricGroup id={`${context}-hitting`} title="Hitting" cards={hitting} />
     <MetricGroup id={`${context}-field`} title="Position Throwing" cards={layout.fieldThrowing} />
@@ -73,17 +77,19 @@ function SessionMeasurements({ performance, season, context }: { performance: Re
     <ProfileTrendChart series={profileTrends([...hitting, ...throwing])} />
   </section>;
 }
-export function PlayerPerformanceProfile({ athlete, performance, season, blastResults, pitchResults, practicePitchResults, fictional = false, simplified = false, action, muscleBalance, physicalityDetails, history, gameStats, overviewGameStats = [], gameComparisons = [] }: PlayerPerformanceProfileProps) {
+export function PlayerPerformanceProfile({ athlete, performance, season, blastReadings, pitchResults, practicePitchResults, fictional = false, simplified = false, action, muscleBalance, physicalityDetails, history, gameStats, overviewGameStats = [], gameComparisons = [] }: PlayerPerformanceProfileProps) {
+  const hasBlast = !!blastReadings?.some(r=>parseBlastSource(r.source));
+  const displayPerformance = hasBlast ? withoutWeeklyBlastCards(performance) : performance;
   const bodyScoreCard = performance.body.find(card => card.metric.key === "body_score" && card.latest);
   const bodyScore = bodyScoreCard?.latest ?? null;
   const selectedSeason = season ?? [...athlete.athlete_seasons].sort((a, b) => b.season.localeCompare(a.season))[0];
   const position = [selectedSeason?.primary_position, selectedSeason?.secondary_position].filter((value, index, values) => value && values.indexOf(value) === index).join(" / ");
-  const layout = getPlayerProfileLayout(performance, selectedSeason);
+  const layout = getPlayerProfileLayout(displayPerformance, selectedSeason);
   const cards = [...layout.physicality, ...layout.additionalBody, ...layout.speedAgility, ...(layout.showHitting ? [...layout.hitting, ...layout.otherHitting] : []), ...layout.fieldThrowing, ...layout.pitching];
   const sourcedCards = [...cards.flatMap(card => card.sourceCards ?? [card]), ...performance.body.filter(card => card.metric.key === "body_score")].filter(card => card.latest);
   const lastTested = sourcedCards.map(card => card.timedTrials?.lastTested ?? card.latest!.measuredAt).sort().at(-1);
   const tabs: ProfileTab[] = [
-    { id: "overview", label: "Overview", content: <PlayerOverview twoWay={selectedSeason?.player_type?.trim().toLowerCase() === "two_way"} showMethods={!simplified} cards={[...cards, ...(bodyScoreCard ? [bodyScoreCard] : [])]} gameStats={overviewGameStats} gameComparisons={gameComparisons} /> },
+    { id: "overview", label: "Overview", content: <><PlayerOverview twoWay={selectedSeason?.player_type?.trim().toLowerCase() === "two_way"} showMethods={!simplified} cards={[...cards, ...(bodyScoreCard ? [bodyScoreCard] : [])]} gameStats={overviewGameStats} gameComparisons={gameComparisons} />{layout.showHitting && hasBlast && <BlastPracticeReports readings={blastReadings!} compact/>}</> },
     { id: "physicality", label: "Physicality", content: <>
       {bodyScore && <RenphoBodyScore reading={bodyScore} change={bodyScoreCard ? playerRenphoChange(bodyScoreCard) : null}/>}
       {!layout.physicality.length && !layout.additionalBody.length && !bodyScore && <p className="muted text-sm">No physicality measurements recorded yet.</p>}
@@ -95,7 +101,7 @@ export function PlayerPerformanceProfile({ athlete, performance, season, blastRe
       {!!layout.speedAgility.length && <MetricGroup id="speed-agility" title="Speed & Agility" cards={layout.speedAgility} />}
     </> },
     { id: "in-game", label: "In-Game", content: <><SessionMeasurements performance={performance} season={selectedSeason} context="in_game" />{pitchResults}{gameStats && <section aria-label="Cumulative game statistics" className="space-y-4 border-t border-[var(--line-subtle)] pt-6"><h2 className="m-0 text-xl font-bold">Cumulative Game Stats · Fall 2026</h2>{gameStats}</section>}</> },
-    { id: "practice", label: "Practice", content: <><SessionMeasurements performance={performance} season={selectedSeason} context="practice" />{practicePitchResults}{layout.showHitting && blastResults}</> },
+    { id: "practice", label: "Practice", content: <>{layout.showHitting && hasBlast && <BlastPracticeReports readings={blastReadings!}/>}<SessionMeasurements performance={displayPerformance} season={selectedSeason} context="practice" hasBlast={hasBlast && layout.showHitting} />{practicePitchResults}</> },
   ];
   return <div className="min-w-0 space-y-4 sm:space-y-5" data-testid="player-performance-profile">
     <section className="player-identity-card" aria-label="Player profile">
@@ -117,7 +123,7 @@ export function PlayerPerformanceProfile({ athlete, performance, season, blastRe
         <p className="m-0">Baseball performance window: September 1–December 31, 2026. Body comparisons use separate June 1–August 31 and September 1–December 31 testing periods. Each reading carries its recorded test date. Height displays in feet and inches, rounded to one tenth of an inch. Original values and units remain below; different units are never mixed in a percentile. Calculated values marked ≈ are rounded to one decimal in the snapshot; the full result and formula appear below.</p>
         {sourcedCards.length > 0 ? <div className="overflow-x-auto"><table><caption className="sr-only">Sources for the performance snapshot</caption><thead><tr><th>Measurement</th><th>Test Date</th><th>Value</th><th>Source / Method</th></tr></thead><tbody>{sourcedCards.map(card => {
           const reading = card.latest!;
-          return <tr key={`${card.metric.key}:${reading.source}:${reading.unit}`}><td className="font-semibold">{card.metric.label}<StatInfo metric={card.metric.key} label={card.metric.label} /></td><td className="whitespace-nowrap">{reading.measuredAt}</td><td className="whitespace-nowrap">{formatSourceNumber(reading.value, reading.source)} {reading.unit}</td><td className="min-w-52 max-w-sm break-words">{reading.derived && reading.derivation && <p className="mb-1 mt-0">{reading.derivation}</p>}<span>{reading.source}</span>{reading.provenance.map(source => <span className="mt-1 block" key={source.id}>{source.source_file} · {source.source_sheet || "File"} · Row {source.source_row}</span>)}</td></tr>;
+          return <tr key={`${card.metric.key}:${reading.source}:${reading.unit}`}><td className="font-semibold">{profileMetricLabel(card.metric.key,card.metric.label,reading.source)}<StatInfo metric={card.metric.key} label={card.metric.label} /></td><td className="whitespace-nowrap">{reading.measuredAt}</td><td className="whitespace-nowrap">{formatSourceNumber(reading.value, reading.source)} {reading.unit}</td><td className="min-w-52 max-w-sm break-words">{reading.derived && reading.derivation && <p className="mb-1 mt-0">{reading.derivation}</p>}<span>{reading.source}</span>{reading.provenance.map(source => <span className="mt-1 block" key={source.id}>{source.source_file} · {source.source_sheet || "File"} · Row {source.source_row}</span>)}</td></tr>;
         })}</tbody></table></div> : <p className="m-0">Source details appear with the first reviewed measurements.</p>}
       </div>
     </details>}

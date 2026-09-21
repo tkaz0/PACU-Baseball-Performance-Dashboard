@@ -154,3 +154,12 @@ The In-game tab includes **Pitch Types · Velocity & Spin** from reviewed Full S
 
 
 Classified pitch tables now respect their recorded Game/Intrasquad versus Practice source and appear only in the corresponding tab. Team leaderboards use the same context boundary; regular Hitting/Pitching/Blast testing stays Practice. Four-seam and two-seam fastballs retain distinct pitch types rather than being pooled under a generic fastball average.
+
+
+## Fall Practice Summaries — September 20 Update
+
+The owner chose a cumulative Fall Practice view, with bat speed, hand speed (the export’s Peak Hand Speed metric), attack angle, early connection and vertical bat angle as the five main measures. Weekly exports should contain only new swings with non-overlapping dates. `lib/blast-fall.ts` computes a display-only weighted average: sum of weekly average × reported swing count, divided by included swing counts. It never pools Full Swing with Blast, counts the paired P95 export again, or averages percentiles. Missing a metric in any included average report withholds that metric’s Fall average. Missing counts, duplicate reports, mixed athletes or overlapping average periods withhold the rollup for review. Original observations remain unchanged.
+
+Own-player Overview shows five compact Fall-average cards. Practice shows those five cumulative averages beside the latest available week’s P95 values, with the peak reporting dates explicit. A Fall P95 cannot be reconstructed from weekly P95 summaries. Other Blast measurements remain saved for staff history but are no longer main profile cards. Weekly Blast percentile cards are replaced on profiles by the cumulative summary; no unverified cumulative team percentile is inferred from a weekly percentile. Existing leaderboard source partitions remain weekly reports. In-game and Practice bat-speed labels are explicit in profile cards, overview comparisons, highlights and trend labels.
+
+Apply `202609200002_blast_period_guard.sql` after the compatible app. It blocks new overlapping report ranges for the same athlete and summary type via the existing ordinary staff save. Average and P95 paired ranges are allowed; identical retries keep existing behavior. It creates no account grants and changes no stored measurements. Dates are inclusive: the next report after September 13–20 should start September 21 or later.

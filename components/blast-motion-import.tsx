@@ -47,7 +47,7 @@ export function BlastMotionImport({roster,saveAction}:{roster:RosterAthlete[];sa
   }
   if(custom)return <div className="space-y-4"><button type="button" className="btn btn-secondary" onClick={()=>setCustom(false)}>Back to Weekly Blast Reports</button><FullSwingImport vendor="Blast Motion" category="hitting" roster={roster} saveAction={saveAction}/></div>;
   return <section className="card space-y-5">
-    <header><p className={styles.eyebrow}>Practice · Hitting</p><h2>Blast Motion Reports</h2><p className="muted">Upload the weekly average and 95th-percentile CSVs separately.</p></header>
+    <header><p className={styles.eyebrow}>Practice · Hitting</p><h2>Blast Motion Reports</h2><p className="muted">Upload weekly reports containing only new practice swings. Average and 95th-percentile CSVs are reviewed separately.</p></header>
     {receipt?<><ImportConfirmation receipt={receipt}/><button className="btn btn-primary" onClick={()=>{setReceipt(null);setLocked(false);setFile(null);setTable(null);setKind("");invalidate();}}>Import Next Report</button></>:<>
       <FileDropZone label="Drop in a Blast Performance CSV" description="Average Performance or Peak (95th Percentile) · CSV" accept=".csv" disabled={busy||locked} onFile={choose}/>
       {file&&<fieldset disabled={busy||locked} className="space-y-5">
@@ -67,7 +67,7 @@ export function BlastMotionImport({roster,saveAction}:{roster:RosterAthlete[];sa
           const rows=review.rows.filter(r=>r.athlete_code===p.athlete!.athlete_code),speed=rows.find(r=>r.unit==="mph"),count=rows.find(r=>r.unit==="count");
           return <details key={p.identity} className={styles.reviewPlayer}><summary><span>{athleteName(p.athlete!)}</span><span className={styles.reviewSummary}>{count?.value??"—"} Swings · {speed?`${formatBlastValue(speed.value,speed.unit)} mph`:"—"} Bat Speed</span></summary><div className={styles.tableWrap}><table><thead><tr><th>Measurement</th><th>{kind==="average"?"Average":"95th Percentile"}</th></tr></thead><tbody>{rows.map(row=><tr key={row.id}><th scope="row">{row.metric}</th><td>{formatBlastValue(row.value,row.unit)} {blastUnit(row.unit)}</td></tr>)}</tbody></table></div><Link href={`/athletes/${p.athlete!.id}`}>View Profile</Link></details>;
         })}</div>
-        <label className={styles.confirm}><input type="checkbox" checked={confirmed} disabled={busy||locked} onChange={e=>setConfirmed(e.target.checked)}/><span>I checked the report type, dates, player matches and measurements against this export. This weekly report has not already been imported under another file.</span></label>
+        <label className={styles.confirm}><input type="checkbox" checked={confirmed} disabled={busy||locked} onChange={e=>setConfirmed(e.target.checked)}/><span>I checked the report type, dates, player matches and measurements against this export. This report contains only new swings, its dates do not overlap an earlier report of the same type, and it has not already been imported under another file.</span></label>
         <button type="button" className="btn btn-primary" disabled={!confirmed||busy} onClick={save}>{busy?"Saving…":locked?"Retry Reviewed Report":"Save to Profiles"}</button>
         {locked&&!receipt&&<p className="muted">This review is locked for an identical retry. Reload only after checking whether the report was saved.</p>}
       </div>}

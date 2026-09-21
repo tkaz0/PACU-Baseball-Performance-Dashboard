@@ -1,3 +1,4 @@
+import { profileMetricLabel } from "@/lib/profile-metric-label";
 import type { PlayerMetricCard } from "@/lib/player-performance";
 
 export type ProfileTrend = { key: string; label: string; unit: string; source: string; period: string; points: { date: string; value: number }[] };
@@ -14,7 +15,7 @@ export function profileTrends(cards: readonly PlayerMetricCard[]): ProfileTrend[
       dates.set(reading.measuredAt, reading.value);
     }
     if (dates.size < 2) return [];
-    return [{ key: card.metric.key, label: card.metric.label, unit: latest.unit, source: latest.source, period: latest.period === "fall_2026" ? "Fall 2026" : "June–August 2026", points: [...dates].sort(([a], [b]) => a.localeCompare(b)).map(([date, value]) => ({ date, value })) }];
+    return [{ key: card.metric.key, label: profileMetricLabel(card.metric.key,card.metric.label,latest.source), unit: latest.unit, source: latest.source, period: latest.period === "fall_2026" ? "Fall 2026" : "June–August 2026", points: [...dates].sort(([a], [b]) => a.localeCompare(b)).map(([date, value]) => ({ date, value })) }];
   });
 }
 /** Preserve original scale; invalid and unbounded ratios never become progress bars. */

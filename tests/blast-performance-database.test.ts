@@ -18,3 +18,12 @@ it("rejects negative non-angle values, source spoofing, wrong columns and invali
 it("rejects remapping a source coordinate or importing another export for the same period",async()=>{await asUser(admin,async()=>{await save([observation(3,"avg_bat_speed",60,"mph")]);await expect(save([observation(3,"p95_bat_speed",60,"mph","Blast Motion · P95 · 2026-09-13:2026-09-20")])).rejects.toThrow();await expect(save([observation(3,"avg_bat_speed",60,"mph",undefined,"f".repeat(64))])).rejects.toThrow();expect((await save([observation(3,"p95_bat_speed",70,"mph","Blast Motion · P95 · 2026-09-13:2026-09-20","f".repeat(64))])).rows[0].data.created).toBe(1);});});
 it.each([null,player])("denies saving for nonstaff %s",async id=>{await asUser(id,async()=>{await expect(save([observation()])).rejects.toThrow();});});
 it("rechecks account activity",async()=>{await db.query("update public.app_accounts set is_active=false where user_id=$1",[coach]);await asUser(coach,async()=>{await expect(save([observation()])).rejects.toThrow();});});
+
+it("rejects overlapping weekly dates while allowing the paired peak report and a new distinct week",async()=>{await asUser(admin,async()=>{
+ await save([observation()]);
+ const make=(start:string,end:string,kind="Average")=>{const source=`Blast Motion · ${kind} · ${start}:${end}`;return {...observation(9,"blast_vertical_bat_angle",-25,"deg",source,"f".repeat(64)),measured_at:end};};
+ await expect(save([make("2026-09-20","2026-09-27")])).rejects.toThrow("overlap");
+ expect((await save([make("2026-09-13","2026-09-20","P95")])).rows[0].data.created).toBe(1);
+ const next=make("2026-09-21","2026-09-27");next.file_hash="b".repeat(64);next.observation_id=`observation:${JSON.stringify([next.file_hash,"CSV",2,9])}`;
+ expect((await save([next])).rows[0].data.created).toBe(1);
+});});
