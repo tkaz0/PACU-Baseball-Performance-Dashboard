@@ -261,7 +261,7 @@ export function ImportCenter() {
   return (
     <div className="space-y-6">
       <div className="panel flex flex-wrap items-center justify-between gap-4 border-l-4 border-l-pacu-red p-5">
-        <div><p className="mb-1 flex items-center gap-2 font-semibold"><HardDrive size={18} />Saved in this browser</p><p className="muted mb-0 text-sm">Your imports stay on this device. Use the shared Information Imports page to update team profiles.</p></div>
+        <div><p className="mb-1 flex items-center gap-2 font-semibold"><HardDrive size={18} />Saved in this browser</p><p className="muted mb-0 text-sm">Your imports stay on this device. Use the shared Import Center page to update team profiles.</p></div>
         {workspace.canManage && <button type="button" className="btn btn-secondary" disabled={!workspace.ready || Boolean(busy)} onClick={() => { try { workspace.exportBackup(); } catch (error) { setError(message(error)); } }}><Download size={16} />Export backup</button>}
       </div>
       {!workspace.ready && <p role="status" className="notice">Opening your browser workspace…</p>}

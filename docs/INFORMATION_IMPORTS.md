@@ -1,5 +1,7 @@
 # Information imports
 
+> Current schedule (September 20): all scheduled QPA Fall, Pitching Fall, and Player Metrics workbook checks run once weekly on Monday at 9 p.m. America/Los_Angeles. Roster and RENPHO-ID scanning remain off. This supersedes historical daily-schedule wording below; source validation and ordinary-session save requirements are unchanged.
+
 Open **Information Imports** at `/imports` while signed in as an active Admin or Coach. This page reads the live 2026–27 roster. Reviewed numerical readings save directly to the shared, private player profiles. Players have no import access. Admin View as Coach includes working performance imports; Player View as remains read-only. Every save is attributed to the real signed-in account.
 
 For a result without a file, open **Testing → Enter Results**. The staff checklist shows which players still need each Fall test. See [TESTING_WORKFLOW](TESTING_WORKFLOW.md).

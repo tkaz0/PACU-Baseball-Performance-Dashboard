@@ -72,7 +72,7 @@ it("renders linked names, neutral first tests, readable comparison values and me
  const d=data([reading(150,"2026-08-01"),reading(156,today),reading(145,today,{athleteId:b.id})]);
  const html=renderToStaticMarkup(createElement(TeamProgress,{data:d,today}));expect(html).toContain("+4.0%");expect(html).toContain("First Test");expect(html).toContain(`/athletes/${a.id}`);
  const comparison=renderToStaticMarkup(createElement(PlayerComparison,{data:d,today}));expect(comparison).toContain("156 lb");expect(comparison).toContain("145 lb");expect(comparison).toContain('aria-haspopup="dialog"');expect(comparison).toContain('>Player A</span>');
- const empty=renderToStaticMarkup(createElement(TeamProgress,{data:data([]),today}));expect(empty).toContain("Ready for");expect(empty).toContain("Information Imports");
+ const empty=renderToStaticMarkup(createElement(TeamProgress,{data:data([]),today}));expect(empty).toContain("Ready for");expect(empty).toContain("Import Center");
 });
 
 it("searches the full supplied roster without requiring measurements or exact display labels",()=>{

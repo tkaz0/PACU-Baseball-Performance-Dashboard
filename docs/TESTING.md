@@ -408,3 +408,7 @@ Launch design validation includes Home distinct-player/Fall scope, empty states,
 
 
 September 20 hitting team averages: profile cards and Overview show source/unit-specific Full Swing comparisons (mean of each eligible player’s latest Fall result, including for maximum metrics). The five main Blast Practice comparisons pool non-overlapping average reports weighted by swing count, excluding incomplete player-metric rollups and paired P95 reports. Sample players/swings and covered dates are available under each comparison. The aggregate-only `hitting_team_averages` RPC checks active Player/Coach/Admin access and returns no identities or raw observations. Apply additive migration `202609200003_hitting_team_averages.sql` before deploying the consuming profile page. Tests cover context/unit separation, latest selection, weighted samples, negative angles, incomplete/overlapping periods, cohort eligibility and own-player RLS.
+
+## September 20 showing polish
+
+Review Home, roster, profile tabs, leaderboards, Import Center, Analytics, comparisons and settings at desktop and phone widths. Use fictional local fixtures for screenshots; keep live verification count-only. Player-only game snapshots should fill the available row. Missing-percentile guidance appears once per metric group. Import screens describe Monday 9 p.m. Pacific checks, with roster/RENPHO scanning off. Profile pitch-table dates use the same readable date format as other results. No metric definitions, permissions or saved measurements change.

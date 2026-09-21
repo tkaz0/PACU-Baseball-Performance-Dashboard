@@ -141,5 +141,5 @@ export function useLocalWorkspace() {
 
 export function WorkspaceBanner() {
   const { mode, ready, error, canManage } = useLocalWorkspace();
-  return <div className="bg-pacu-red px-6 py-3 text-sm font-semibold text-white lg:px-10" role="status">{error || (!ready ? "Opening your workspace…" : mode === "sample" ? "Sample roster · Fictional athletes · Staff import workspace" : canManage ? "Saved in this browser · Export a backup to keep or transfer your data" : "Saved in this browser · Use Information Imports to update shared profiles")}</div>;
+  return <div className="bg-pacu-red px-6 py-3 text-sm font-semibold text-white lg:px-10" role="status">{error || (!ready ? "Opening your workspace…" : mode === "sample" ? "Sample roster · Fictional athletes · Staff import workspace" : canManage ? "Saved in this browser · Export a backup to keep or transfer your data" : "Saved in this browser · Use Import Center to update shared profiles")}</div>;
 }
