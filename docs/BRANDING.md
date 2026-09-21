@@ -29,3 +29,7 @@ No external image request is required to display the brand assets; they are serv
 ## September 19 visual refresh
 
 The complete official Boxer/dragon university mark now appears on the roster header and sidebar, with more room on the sign-in screen. The athletics P remains the home-navigation and player-profile mark. Artwork is unchanged. The shared presentation stylesheet uses Boxer Red (#B51217), charcoal identity cards, consistent rounded panels, restrained table dividers, and explicit light/dark tokens. Main headings have a small red rule; profile tabs stay on one row on narrow phones. In-Game is consistently capitalized as a navigation label. Keep the independent-project disclosure alongside the branded workspace.
+
+## Browser tab icon
+
+At the owner’s request, `app/icon.svg` uses the complete Boxer dragon portion of the existing university SVG without its wordmark. This icon-specific separation preserves all eleven dragon paths, their proportions and original red. A white rounded background keeps it visible in light and dark browser tabs. The full source logos remain unchanged. Next.js generates the icon metadata and versioned URL.
