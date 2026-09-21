@@ -143,3 +143,6 @@ The September 19 visual refresh adds the complete Pacific Boxer mark to the rost
 Blast Motion supports weekly Average Performance and Peak (95th Percentile) CSV reports with reviewed dates/player matching and side-by-side Practice summaries. See `docs/INFORMATION_IMPORTS.md` and the September 20 migration in `docs/SETUP.md`.
 
 Practice profiles now focus on five Blast measurements with cumulative Fall averages weighted by reported swing counts. Weekly P95 results remain separately labeled. Use weekly exports of new swings with non-overlapping date ranges.
+
+
+Launch design: signed-in Home now offers role-scoped Fall coverage, recent source updates, game snapshots and useful shortcuts. Hitting displays use five Blast cards with Fall averages and separately labeled weekly P95. Shared navigation, profiles, tables and sign-in styling are refreshed across light/dark/mobile layouts. Ordinary role/RLS checks, import review and invitation settings are unchanged.

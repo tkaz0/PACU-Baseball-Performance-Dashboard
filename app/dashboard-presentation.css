@@ -97,3 +97,55 @@ body { -webkit-font-smoothing: antialiased; }
   .team-roster-table .roster-player-name { font-size: 12px; }
   .login-brand-footer p { font-size: 9px; }
 }
+
+/* Launch edition: consistent surfaces, calmer navigation, and more room for the data. */
+.workspace-shell { background: var(--surface-page); }
+.workspace-main { max-width: 1540px; padding-inline: clamp(20px, 3vw, 46px); }
+.workspace-topbar { background: var(--surface-panel); border-color: var(--line-subtle); padding-inline: clamp(20px, 3vw, 46px); }
+.baseball-sidebar { background: linear-gradient(175deg,#191b22,#101217); }
+.baseball-sidebar .nav-link { border: 1px solid transparent; border-radius: 10px; padding-block: 11px; }
+.baseball-sidebar .nav-link[aria-current="page"] { background: #b5121729; border-color: #f2687333; color: #fff; box-shadow: inset 3px 0 #e44653; }
+.baseball-sidebar .nav-link[aria-current="page"] svg { color: #f2848e; }
+.baseball-sidebar .nav-link:hover { border-color: #ffffff12; }
+.sidebar-rule { background: #ffffff10; }
+.workspace-nav-group { color: #9197a6; letter-spacing: .16em; }
+.workspace-shell .page-head { border-bottom: 0; padding-bottom: 8px; margin-bottom: 25px; }
+.page-heading-copy { padding-left: 0; border-left: 0; }
+.workspace-shell .page-head .eyebrow { color: var(--accent-readable); letter-spacing: .12em; }
+.workspace-shell .page-title { font-size: clamp(28px,3vw,38px); }
+.workspace-shell .page-description { font-size: 13px; max-width: 670px; }
+.workspace-shell .panel { border-radius: 18px; border-color: var(--line-subtle); background: var(--surface-panel); box-shadow: 0 4px 18px #00000003; }
+.workspace-shell .btn { border-radius: 10px; font-weight: 650; min-height: 42px; }
+.workspace-shell .btn-secondary { background: var(--surface-panel); border-color: var(--line-subtle); color: var(--text-primary); }
+.workspace-shell .btn-secondary:hover { background: var(--surface-raised); }
+.workspace-shell table { font-size: 13px; }
+.workspace-shell th { text-transform: none; letter-spacing: .025em; font-size: 11px; padding-block: 14px; }
+.workspace-shell td { padding-top: 15px; padding-bottom: 15px; }
+.workspace-shell .table-wrap { border-radius: 13px; }
+.workspace-shell .leaderboard-card { border-top-width: 1px; border-radius: 18px; overflow: hidden; }
+.leaderboard-card-heading { border-bottom: 1px solid var(--line-subtle); padding-bottom: 16px; }
+.leaderboard-navigation { padding: 6px; background: var(--surface-panel); border: 1px solid var(--line-subtle); }
+.performance-metric-card { padding: 20px; border-radius: 16px; box-shadow: 0 4px 18px #00000004; }
+.performance-metric-card h3 { color: var(--text-primary); min-height: 2.4em; line-height: 1.5; }
+.performance-metric-card>div:nth-child(2) { font-weight: 750; letter-spacing: -.035em; }
+.profile-tab-navigation { padding: 5px; border: 1px solid var(--line-subtle); background: var(--surface-panel); box-shadow: none; }
+.profile-tab-navigation [role="tab"] { min-height: 44px; border-radius: 9px; }
+.player-identity-card { border-radius: 20px; background: radial-gradient(ellipse at 95% 5%,#76212b44,transparent 55%),#191b21; border-top-width: 1px; padding: 27px; }
+.workspace-footer { padding-block: 22px; color: var(--text-secondary); }
+.login-brand { background: radial-gradient(ellipse at 90% 15%,#7c1d2b66,transparent 53%),#15171e; padding-top: 40px; }
+.login-statement { padding: 50px 0; }
+.login-quote { font-size: clamp(44px,4.8vw,74px); line-height: 1.04; }
+.login-quote>span:last-child { color: #f4b6be; }
+.login-description { max-width: 430px; }
+.login-features { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; margin-top: 36px; }
+.login-features>div { display: flex; align-items: flex-start; flex-direction: column; gap: 10px; border-top: 1px solid #ffffff24; padding-top: 18px; min-width: 0; }
+.login-features svg { color: #ef929d; }
+.login-features strong { font-size: 12px; line-height: 1.5; }
+.login-features span { color: #b5bac6; font-size: 10px; line-height: 1.7; }
+.login-form-content { max-width: 400px; }
+.login-form-content input { border-radius: 11px; }
+.login-form-content .btn-primary { border-radius: 11px; min-height: 52px; }
+.login-title { font-size: 36px; }
+@media(max-width:900px){.workspace-main{padding-inline:24px}.workspace-topbar{padding-inline:24px}.login-statement{padding:34px 0}.login-features{margin-top:24px}.login-brand{padding-top:28px}.baseball-sidebar .nav-link{padding-block:12px}}
+@media(max-width:600px){.workspace-main{padding:22px 16px 32px}.workspace-topbar{padding-inline:16px}.workspace-shell .page-head{gap:14px}.workspace-shell .page-title{font-size:28px}.player-identity-card{padding:20px 17px;border-radius:16px}.performance-metric-card{padding:16px}.login-features{display:none}.login-brand-footer{display:none}.login-quote{font-size:44px}.login-brand{padding:24px}.login-statement{padding:25px 0 0}.login-kicker{display:none}.login-accent{margin:18px 0 12px}.login-form-panel{padding:32px 24px}.profile-tab-navigation [role="tab"]{min-height:42px}}
+@media(max-width:600px){.login-brand-footer{display:flex;margin-top:22px;padding-top:14px}.login-brand-footer .pacific-logo{display:none}.login-brand-footer p{font-size:9px}}

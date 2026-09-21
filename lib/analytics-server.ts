@@ -1,3 +1,5 @@
+import { validBlastObservation } from "@/lib/blast-metrics";
+import { buildHomeSummary } from "@/lib/home-summary";
 import { buildDataCoverage } from "@/lib/data-coverage";
 import { pacificTestingDate } from "@/lib/testing-checklist";
 import { loadGameStats } from "@/lib/game-server";
@@ -29,7 +31,7 @@ async function loadTeamSource(includeFullRoster=false, includeGames=true){
   if(new Set(players.map(p=>p.id)).size!==players.length)return fail();
   const readings:AnalyticsReading[]=[];
   for(let start=0;start<eligible.length;start+=100){const ids=eligible.slice(start,start+100).map(p=>p.id);const page=await analyticsPages((from,to)=>supabase.from("performance_measurements").select("observation_id,athlete_id,metric_key,metric,unit,value,measured_at,source,imported_at",{count:"exact"}).in("athlete_id",ids).gte("measured_at","2026-06-01").lte("measured_at","2026-12-31").order("observation_id").range(from,to),row=>{
-    if(!object(row)||!text(row.observation_id,2000)||!text(row.athlete_id)||!ids.includes(row.athlete_id)||!text(row.metric_key)||!text(row.metric,300)||!text(row.unit,80)||!text(row.source,100)||typeof row.value!=="number"||!Number.isFinite(row.value)||row.value<0||!text(row.measured_at)||!/^2026-\d{2}-\d{2}$/.test(row.measured_at)||!Number.isFinite(Date.parse(row.measured_at))||new Date(row.measured_at).toISOString().slice(0,10)!==row.measured_at||!text(row.imported_at)||!Number.isFinite(Date.parse(row.imported_at)))return fail();
+    if(!object(row)||!text(row.observation_id,2000)||!text(row.athlete_id)||!ids.includes(row.athlete_id)||!text(row.metric_key)||!text(row.metric,300)||!text(row.unit,80)||!text(row.source,100)||typeof row.value!=="number"||!Number.isFinite(row.value)||(row.value<0&&!validBlastObservation(row.metric_key,row.value,row.unit,row.source,row.measured_at as string))||!text(row.measured_at)||!/^2026-\d{2}-\d{2}$/.test(row.measured_at)||!Number.isFinite(Date.parse(row.measured_at))||new Date(row.measured_at).toISOString().slice(0,10)!==row.measured_at||!text(row.imported_at)||!Number.isFinite(Date.parse(row.imported_at)))return fail();
     return {id:row.observation_id,athleteId:row.athlete_id,metric:row.metric_key,label:row.metric,unit:row.unit,value:row.value,date:row.measured_at,source:row.source,importedAt:row.imported_at};
   },20000);readings.push(...page);if(readings.length>20000)return fail();}
   if(new Set(readings.map(r=>r.id)).size!==readings.length)return fail();
@@ -55,4 +57,10 @@ export async function loadComparisonData(){
 export async function loadDataCoverage(){
   const data=await loadTeamSource(false, false);
   return buildDataCoverage(data.players, data.readings, pacificTestingDate());
+}
+
+/** Same fresh staff guard; only aggregated coverage and source freshness leave the server. */
+export async function loadStaffHomeSummary(){
+  const data=await loadTeamSource();
+  return buildHomeSummary(data.players.map(p=>p.id),data.readings,data.games,pacificTestingDate());
 }

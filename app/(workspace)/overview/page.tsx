@@ -1,17 +1,11 @@
-import { redirect } from "next/navigation";
 import { requireAccess } from "@/lib/auth";
-import { PageHeading } from "@/components/page-heading";
+import { canImportPresentedAccess } from "@/lib/access-preview";
 import { AccessPreviewNotice } from "@/components/access-preview-notice";
-import { workspaceHome, workspacePreviewQuery } from "@/lib/workspace-home";
+import { DashboardHome } from "@/components/dashboard-home";
+import { loadHomeSummary } from "@/lib/home-server";
 
-/** Keep existing bookmarks and authentication redirects working after retiring Team Overview. */
-export default async function Overview({ searchParams }: { searchParams: Promise<{ preview?: string }> }) {
-  const access = await requireAccess();
-  const params = await searchParams;
-  const destination = workspaceHome(access);
-  if (destination !== "/overview") redirect(`${destination}${workspacePreviewQuery(params.preview)}`);
-  return <>
-    <AccessPreviewNotice status={params.preview} isPreview={!!access.preview} />
-    <PageHeading section="Your workspace" title="Your profile is being connected" description="Your administrator will link your account to the correct player profile." />
-  </>;
+export default async function Overview({searchParams}:{searchParams:Promise<{preview?:string}>}) {
+  const access=await requireAccess();
+  const [params,summary]=await Promise.all([searchParams,loadHomeSummary(access)]);
+  return <><AccessPreviewNotice status={params.preview} isPreview={!!access.preview}/><DashboardHome staff={canImportPresentedAccess(access)} athleteId={access.athleteId} summary={summary}/></>;
 }

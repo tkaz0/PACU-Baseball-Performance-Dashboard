@@ -372,3 +372,6 @@ The September 19 presentation refresh needs only the normal app deployment. Bran
 Blast weekly reports: deploy the September 20 compatible app, then apply `202609200001_blast_performance_reports.sql` through the existing database migration workflow. This adds the Blast metric catalog and signed-angle support without changing account access. Verify the Average/Peak review in Imports → Blast Motion before saving any real matches.
 
 Fall practice rollups require the compatible app and additive `202609200002_blast_period_guard.sql`. Weekly report periods are inclusive and must not overlap another report of the same type for the same athlete. No data backfill or account changes are needed.
+
+
+September 20 launch Home/design update is app-only; no migration, account changes or new credentials. Deploy through the existing Vercel project after checks. Verify `/` opens the scoped `/overview`, Home navigation works, signed-out access still leads to login, and Player View never calls the staff loader.
