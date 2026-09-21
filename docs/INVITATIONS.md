@@ -13,7 +13,7 @@ The Admin-only **Team account preparation** page (`/admin/rollout`) lists `2026-
 The private **Account access** page shows **Invite a player or coach**. Sending is available only when the server has both `SUPABASE_AUTH_ADMIN_SECRET` and `PACU_INVITATIONS_ENABLED=true`. Leave the flag false until the migration, custom sender and email templates are verified. The separate browser-local Access & views page cannot send invitations or grant accounts.
 
 1. Sign in as an active administrator and exit any Coach/Player preview.
-2. Enter one person's verified sign-in email. It may differ from their roster contact email; do not infer ownership from a roster email alone.
+2. Choose Player and select the exact player profile. The email saved on the dashboard roster fills automatically and remains editable; verify the recipient before sending. Selecting a different player replaces the email and clears approval. A player with no saved email leaves the field blank. Switching between Player and Coach clears the email and approval; enter coach emails manually. No Google Sheet is read by this form.
 3. Choose Coach or Player. Coach receives full roster/profile access with no athlete link. Player requires the exact unlinked private athlete, identified by permanent code and name. Admin invitations and multiple-role invitations are not offered; use the separate existing-account editor for deliberately reviewed later changes.
 4. Review the recipient, role and profile, then approve **Send approved invitation**. Editing any choice clears approval.
 
@@ -61,3 +61,6 @@ Keep `PACU_INVITATIONS_ENABLED=false` while setting up the migration, sender, Si
 Separate logins use the protected Supabase workspace. Invitation acceptance does not transfer browser-local roster or RENPHO data. Import the private roster and explicitly approve the numerical **Shared measurements** workflow after applying its migration; see [PLAYER_PROFILES](PLAYER_PROFILES.md). Do not distribute a complete browser backup to give players their own accounts.
 
 Focused tests use fictional tokens and mocked Auth responses for confirmation and invitation actions. Embedded PostgreSQL tests execute the new RPC with separate fictional subjects and verify role/link constraints, existing-account preservation, rollback, grants and lock order. They do not prove email delivery, actual concurrent hosted transactions, or a completed hosted invitation/password cycle. Verify those separately with an explicitly approved recipient, keeping tokens and passwords out of logs, screenshots, source, and reports. See [TESTING](TESTING.md).
+
+
+September 20 pilot preparation: the existing Production-only sending flag was enabled and redeployed at the owner’s request. The selected pilot invitation was then explicitly left prepared; no invitation was sent and no new access was granted. That hold remains in force. Player selection now fills the editable contact email already saved in the dashboard roster; it does not send an invitation or establish inbox ownership.

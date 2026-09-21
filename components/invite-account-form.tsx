@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import { MailPlus } from "lucide-react";
 
-type InviteAthlete = { id: string; code: string; name: string };
+type InviteAthlete = { id: string; code: string; name: string; email: string | null };
 type InviteAccountFormProps = {
   enabled: boolean;
   athletes: InviteAthlete[];
@@ -38,16 +38,11 @@ function InviteFields({ athletes }: { athletes: InviteAthlete[] }) {
   return <fieldset disabled={pending} className="min-w-0 space-y-5 border-0 p-0">
     <div className="grid min-w-0 gap-5 lg:grid-cols-2">
       <div className="min-w-0 space-y-5">
-        <label htmlFor="invite-email">Sign-in email
-          <input id="invite-email" name="email" type="email" value={email} required maxLength={254} autoComplete="off" autoCapitalize="none" spellCheck={false} aria-describedby="invite-email-help"
-            onChange={event => { setEmail(event.target.value); setConfirmed(false); }} />
-        </label>
-        <p id="invite-email-help" className="muted -mt-3 text-xs">Use an address this person can open. It may differ from their roster email; you must verify the recipient and choose the correct player profile.</p>
-
         <label htmlFor="invite-role">Account access
           <select id="invite-role" name="role" value={role} aria-describedby="invite-role-help" onChange={event => {
             setRole(event.target.value === "coach" ? "coach" : "player");
             setAthleteId("");
+            setEmail("");
             setConfirmed(false);
           }}>
             <option value="player">Player</option>
@@ -58,7 +53,11 @@ function InviteFields({ athletes }: { athletes: InviteAthlete[] }) {
 
         {role === "player" ? <>
           <label htmlFor="invite-athlete">Player profile
-            <select id="invite-athlete" name="athlete_id" value={athleteId} required aria-describedby="invite-athlete-help" onChange={event => { setAthleteId(event.target.value); setConfirmed(false); }}>
+            <select id="invite-athlete" name="athlete_id" value={athleteId} required aria-describedby="invite-athlete-help" onChange={event => {
+              setAthleteId(event.target.value);
+              setEmail(athletes.find(item => item.id === event.target.value)?.email?.trim() ?? "");
+              setConfirmed(false);
+            }}>
               <option value="">Choose the exact player</option>
               {athletes.map(item => <option key={item.id} value={item.id}>{item.code} · {item.name}</option>)}
             </select>
@@ -66,6 +65,12 @@ function InviteFields({ athletes }: { athletes: InviteAthlete[] }) {
           <p id="invite-athlete-help" className="muted -mt-3 text-xs">Only profiles without an account link are listed. Check both the permanent code and player name.</p>
           {athletes.length === 0 && <p className="notice">No unlinked player profiles are available. Import the roster or review existing account links before inviting a player.</p>}
         </> : <input type="hidden" name="athlete_id" value="" />}
+
+        <label htmlFor="invite-email">Sign-in email
+          <input id="invite-email" name="email" type="email" value={email} required maxLength={254} autoComplete="off" autoCapitalize="none" spellCheck={false} aria-describedby="invite-email-help"
+            onChange={event => { setEmail(event.target.value); setConfirmed(false); }} />
+        </label>
+        <p id="invite-email-help" className="muted -mt-3 text-xs">{role === "player" ? athlete && !athlete.email?.trim() ? "No roster email is saved for this player. Enter their sign-in email." : "Choosing a player fills their roster email. You can edit it before sending." : "Enter the coach’s sign-in email."}</p>
       </div>
 
       <div className="min-w-0 rounded-md bg-gray-50 p-4 sm:p-5">

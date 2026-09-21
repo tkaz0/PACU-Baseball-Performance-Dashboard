@@ -17,15 +17,17 @@ export default async function AccessPage({ searchParams }: { searchParams: Promi
   const params = await searchParams;
   const [accountResult, athleteResult] = await Promise.all([
     supabase.from("app_accounts").select("user_id,is_active,account_roles(role),account_athletes(athlete_id)").order("created_at"),
-    supabase.from("athletes").select("id,athlete_code,first_name,preferred_name,last_name,athlete_seasons!inner(season)").eq("athlete_seasons.season", "2026-27").order("last_name").limit(1000),
+    supabase.from("athletes").select("id,athlete_code,first_name,preferred_name,last_name,pacific_email,athlete_seasons!inner(season)").eq("athlete_seasons.season", "2026-27").order("last_name").limit(1000),
   ]);
   if (accountResult.error || athleteResult.error) throw new Error("Unable to load account access.");
   const accounts: ConfiguredAccount[] = ((accountResult.data ?? []) as AccountRow[]).map(account => {
     const link = Array.isArray(account.account_athletes) ? account.account_athletes[0] : account.account_athletes;
     return { userId: account.user_id, active: account.is_active, roles: account.account_roles.map(item => item.role), athleteId: link?.athlete_id ?? null };
   });
-  const athletes = ((athleteResult.data ?? []) as Pick<Athlete, "id" | "athlete_code" | "first_name" | "preferred_name" | "last_name">[])
-    .map(athlete => ({ id: athlete.id, code: athlete.athlete_code, name: athleteName(athlete) }));
+  const roster = (athleteResult.data ?? []) as Pick<Athlete, "id" | "athlete_code" | "first_name" | "preferred_name" | "last_name" | "pacific_email">[];
+  const athletes = roster.map(athlete => ({ id: athlete.id, code: athlete.athlete_code, name: athleteName(athlete) }));
+  const inviteAthletes = roster.filter(athlete => !accounts.some(account => account.athleteId === athlete.id))
+    .map(athlete => ({ id: athlete.id, code: athlete.athlete_code, name: athleteName(athlete), email: athlete.pacific_email }));
 
   const invitationNotices: Record<string, string> = {
     sent: "Invitation sent and access configured. The recipient can open the email and choose their own password.",
@@ -44,7 +46,7 @@ export default async function AccessPage({ searchParams }: { searchParams: Promi
       : "Access was not changed. Confirm that the Auth user exists, the athlete is not linked elsewhere, and you are not changing your own account."}</p>}
     {params.saved && <p role="status" className="notice notice-success mb-6">Account access saved and audited.</p>}
     {params.invite && Object.hasOwn(invitationNotices, params.invite) && <p role={params.invite === "sent" ? "status" : "alert"} className={`notice mb-6 ${params.invite === "sent" ? "notice-success" : "notice-error"}`}>{invitationNotices[params.invite]}</p>}
-    <InviteAccountForm enabled={invitationsEnabled()} athletes={athletes.filter(athlete => !accounts.some(account => account.athleteId === athlete.id))} inviteAction={inviteAccount} />
+    <InviteAccountForm enabled={invitationsEnabled()} athletes={inviteAthletes} inviteAction={inviteAccount} />
     <AccessManager accounts={accounts} athletes={athletes} currentUserId={user.id} configureAction={configureAccount} />
   </>;
 }
