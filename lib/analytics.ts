@@ -9,7 +9,7 @@ export type AnalyticsPoint = { player: AnalyticsPlayer; x: AnalyticsReading; y: 
 export type ColorGroup = "academicClass" | "position" | "playerType" | "bats" | "throws" | "team";
 export const COLOR_GROUPS: { key: ColorGroup; label: string }[] = [{key:"academicClass",label:"Class"},{key:"position",label:"Primary Position"},{key:"playerType",label:"Player Type"},{key:"bats",label:"Bats"},{key:"throws",label:"Throws"},{key:"team",label:"Team"}];
 const body = new Set([...RENPHO_SEGMENTS.map(segment => segment.key),"body_fat_mass","bone_mass","protein_mass","body_water_mass","skeletal_muscle_mass","bmi","bmr","fat_free_mass","subcutaneous_fat_pct","skeletal_muscle_pct","body_water_pct","protein_pct","metabolic_age","visceral_fat","smi","whr","bone_mass_pct",...PLAYER_METRICS.filter(m=>m.group==="body").map(m=>m.key)]);
-export const ANALYTICS_PHYSICALITY = new Set(["height", "weight", "body_score", "muscle_mass", "body_fat_pct"]);
+export const ANALYTICS_PHYSICALITY = new Set(["height", "weight", "body_score", "muscle_mass", "body_fat_pct", "grip_strength", "grip_dominant", "grip_non_dominant"]);
 export const analyticsMetricVisible = (metric: string) => !body.has(metric) || ANALYTICS_PHYSICALITY.has(metric);
 export const analyticsReadingVisible = (row: Pick<AnalyticsReading,"metric"|"source">) => analyticsMetricVisible(row.metric) && !(row.metric === "height" && row.source.trim().toLowerCase().startsWith("manual testing"));
 export const variableKey = (row: AnalyticsReading) => JSON.stringify([row.metric,row.unit,row.source.trim().toLowerCase().replace(/\s+/g," ")]);
