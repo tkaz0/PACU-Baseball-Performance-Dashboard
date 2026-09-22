@@ -16,3 +16,12 @@ export function formatSourceNumber(value: number, source?: string, fallback = St
     ? value.toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1, useGrouping: false })
     : fallback;
 }
+
+/** Bat speed has one display precision across vendors; calculation and stored precision stay exact. */
+export function isBatSpeedMetric(metric: string): boolean {
+  return /(?:^|_)bat_speed$/i.test(metric) || /\bbat speed\b/i.test(metric) || /^batspeed$/i.test(metric);
+}
+
+export function formatMetricNumber(value: number, metric: string, source?: string, fallback = String(value)): string {
+  return isBatSpeedMetric(metric) ? value.toFixed(1) : formatSourceNumber(value, source, fallback);
+}

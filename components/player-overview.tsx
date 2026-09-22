@@ -1,7 +1,7 @@
 import { HittingTeamAverageLine } from "@/components/hitting-team-average";
 import { hittingTeamAverage, type HittingTeamAverage } from "@/lib/hitting-team-averages";
 import { profileMetricLabel } from "@/lib/profile-metric-label";
-import { formatSourceNumber } from "@/lib/measurement-display";
+import { formatMetricNumber } from "@/lib/measurement-display";
 import { pitchingPeriodLabel } from "@/lib/game-source";
 import { ProfileTrendChart } from "@/components/profile-trend-chart";
 import { profileTrends } from "@/lib/profile-trends";
@@ -23,7 +23,7 @@ import { leaderboardMetricLabel, leaderboardTestDate } from "@/lib/leaderboards"
 
 type OverviewInsight = { key: string; metric: string; label: string; value: string; percentile: number; sampleSize: number; discipline: string; game?: GameOverviewMetric };
 function testingInsight(item: PlayerRelativeInsight): OverviewInsight {
-  return { key: `test:${item.metric.key}`, metric: item.metric.key, label: profileMetricLabel(item.metric.key,leaderboardMetricLabel(item.metric),item.latest.source), value: `${formatSourceNumber(item.latest.value, item.latest.source, item.latest.unit === "s" ? item.latest.value.toFixed(2) : String(item.latest.value))} ${item.latest.unit === "ratio" ? "" : item.latest.unit}`, percentile: item.percentile.value, sampleSize: item.percentile.sampleSize, discipline: testingDiscipline(item.metric) };
+  return { key: `test:${item.metric.key}`, metric: item.metric.key, label: profileMetricLabel(item.metric.key,leaderboardMetricLabel(item.metric),item.latest.source), value: `${formatMetricNumber(item.latest.value, item.metric.key, item.latest.source, item.latest.unit === "s" ? item.latest.value.toFixed(2) : String(item.latest.value))} ${item.latest.unit === "ratio" ? "" : item.latest.unit}`, percentile: item.percentile.value, sampleSize: item.percentile.sampleSize, discipline: testingDiscipline(item.metric) };
 }
 function gameInsight(item: GameOverviewMetric): OverviewInsight {
   return { key: `game:${item.source}:${item.metric}`, metric: item.metric, label: item.label, value: gameValue(item.value, item.unit), percentile: item.comparison!.percentile!, sampleSize: item.comparison!.sampleSize, discipline: item.source === "qpa_fall_2026" ? "Hitting" : "Pitching", game: item };
@@ -52,7 +52,7 @@ function TestingComparisons({ title, cards, teamAverages=[] }: { title: string; 
     const reading = card.latest, p = card.percentile;
     const average=reading&&card.metric.group==="hitting"?hittingTeamAverage(teamAverages,card.metric.key,reading.unit,reading.source):undefined;
     const valid = reading && card.percentileStatus === "available" && p && p.sampleSize >= 5 && Number.isFinite(p.value) && p.value >= 0 && p.value <= 100 && p.unit === reading.unit && p.period === reading.period;
-    return <li className={styles.row} key={card.metric.key} data-overview-metric={card.metric.key}><div><h3>{profileMetricLabel(card.metric.key,leaderboardMetricLabel(card.metric),reading?.source)}<StatInfo metric={card.metric.key} label={leaderboardMetricLabel(card.metric)}/></h3><span className="mr-2 font-bold tabular-nums">{reading ? `${formatSourceNumber(reading.value, reading.source, reading.unit === "s" ? reading.value.toFixed(2) : String(reading.value))} ${reading.unit === "ratio" ? "" : reading.unit}` : "—"}</span><MeasurementChange change={playerRenphoChange(card)} metric={card.metric.key}/>{reading && <p className={styles.meta}>Last Tested: <time dateTime={reading.measuredAt}>{leaderboardTestDate(reading.measuredAt)}</time></p>}{average&&<HittingTeamAverageLine average={average}/>}</div><div>{valid ? <><PercentileBar value={p.value} sampleSize={p.sampleSize} label={card.metric.label} descriptive={card.metric.direction === "neutral"}/><p className={styles.meta}>n={p.sampleSize}{card.metric.direction === "neutral" ? " · Descriptive rank" : ""}</p></> : <p className={styles.meta}>{reading ? "Percentile appears after 5 comparable results." : "Not Yet Tested"}</p>}</div></li>;
+    return <li className={styles.row} key={card.metric.key} data-overview-metric={card.metric.key}><div><h3>{profileMetricLabel(card.metric.key,leaderboardMetricLabel(card.metric),reading?.source)}<StatInfo metric={card.metric.key} label={leaderboardMetricLabel(card.metric)}/></h3><span className="mr-2 font-bold tabular-nums">{reading ? `${formatMetricNumber(reading.value,card.metric.key,reading.source,reading.unit === "s" ? reading.value.toFixed(2) : String(reading.value))} ${reading.unit === "ratio" ? "" : reading.unit}` : "—"}</span><MeasurementChange change={playerRenphoChange(card)} metric={card.metric.key}/>{reading && <p className={styles.meta}>Last Tested: <time dateTime={reading.measuredAt}>{leaderboardTestDate(reading.measuredAt)}</time></p>}{average&&<HittingTeamAverageLine average={average}/>}</div><div>{valid ? <><PercentileBar value={p.value} sampleSize={p.sampleSize} label={card.metric.label} descriptive={card.metric.direction === "neutral"}/><p className={styles.meta}>n={p.sampleSize}{card.metric.direction === "neutral" ? " · Descriptive rank" : ""}</p></> : <p className={styles.meta}>{reading ? "Percentile appears after 5 comparable results." : "Not Yet Tested"}</p>}</div></li>;
   })}</ul></section>;
 }
 function GameComparisons({ metrics }: { metrics: GameOverviewMetric[] }) {
@@ -98,7 +98,7 @@ export function PlayerOverview({ cards, gameStats = [], gameComparisons = [], sh
           {twoWay && <p className={overview.disciplineLabel}>{testingDiscipline(item.metric)}</p>}
           <h3 className="m-0 text-sm font-bold">{profileMetricLabel(item.metric.key,leaderboardMetricLabel(item.metric),item.latest.source)}<StatInfo metric={item.metric.key} label={leaderboardMetricLabel(item.metric)} /></h3>
           <p className={overview.jumpValue} title={`Relative improvement: ${item.relativeImprovementPercent}%`}>{compactNumber(item.relativeImprovementPercent)}% <span className="text-xs font-semibold">improvement</span></p>
-          <p className={overview.jumpReadings} title={`Exact change: ${item.change} ${item.changeUnit === "pp" ? "percentage points" : item.changeUnit}`}>{String(item.previous.value)} → {String(item.latest.value)} {item.latest.unit === "ratio" ? "" : item.latest.unit}</p>
+          <p className={overview.jumpReadings} title={`Change: ${formatMetricNumber(item.change,item.metric.key)} ${item.changeUnit === "pp" ? "percentage points" : item.changeUnit}`}>{formatMetricNumber(item.previous.value,item.metric.key,item.previous.source)} → {formatMetricNumber(item.latest.value,item.metric.key,item.latest.source)} {item.latest.unit === "ratio" ? "" : item.latest.unit}</p>
           <p className="muted mb-0 text-[11px]"><time dateTime={item.previous.measuredAt}>{leaderboardTestDate(item.previous.measuredAt)}</time> → <time dateTime={item.latest.measuredAt}>{leaderboardTestDate(item.latest.measuredAt)}</time></p>
         </li>)}</ul> : <p className="m-0 text-xs leading-5 text-[var(--text-secondary)]">Repeat testing will highlight your largest gains.</p>}
       </section>

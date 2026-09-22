@@ -21,7 +21,7 @@ import { PlayerOverview } from "@/components/player-overview";
 import { ArrowDown, ArrowUp, ChevronDown } from "lucide-react";
 import { athleteName, display, type AthleteSeason, type RosterAthlete } from "@/lib/types";
 import { getPlayerProfileLayout, getSessionPerformance, withoutWeeklyBlastCards } from "@/lib/player-profile-layout";
-import { formatHeight, formatSourceNumber } from "@/lib/measurement-display";
+import { formatHeight, formatMetricNumber } from "@/lib/measurement-display";
 import type { getPlayerPerformance, PlayerMetricCard, PlayerMetricReading } from "@/lib/player-performance";
 
 export type PlayerPerformanceProfileProps = {
@@ -36,7 +36,7 @@ function measurementDate(value: string) {
 function ReadingValue({ reading }: { reading: PlayerMetricReading }) {
   const height = reading.metricKey === "height" ? formatHeight(reading.value, reading.unit) : null;
   if (height) return <span className="font-extrabold tabular-nums" title={`Recorded: ${reading.value} ${reading.unit}`}>{height}</span>;
-  const value = parseBlastSource(reading.source) ? formatBlastValue(reading.value,reading.unit) : formatSourceNumber(reading.value, reading.source, reading.unit === "s" ? reading.value.toFixed(2) : reading.derived ? `≈${reading.value.toFixed(1)}` : String(reading.value));
+  const value = parseBlastSource(reading.source) ? formatBlastValue(reading.value,reading.unit) : formatMetricNumber(reading.value, reading.metricKey, reading.source, reading.unit === "s" ? reading.value.toFixed(2) : reading.derived ? `≈${reading.value.toFixed(1)}` : String(reading.value));
   return <><span className="break-all font-extrabold tabular-nums">{value}</span><span className="ml-1.5 text-sm font-medium tracking-normal text-[var(--text-secondary)]">{reading.unit}</span></>;
 }
 function Percentile({ card }: { card: PlayerMetricCard }) {
@@ -131,7 +131,7 @@ export function PlayerPerformanceProfile({ athlete, performance, season, blastRe
         <p className="m-0">Baseball performance window: September 1–December 31, 2026. Body comparisons use separate June 1–August 31 and September 1–December 31 testing periods. Each reading carries its recorded test date. Height displays in feet and inches, rounded to one tenth of an inch. Original values and units remain below; different units are never mixed in a percentile. Calculated values marked ≈ are rounded to one decimal in the snapshot; the full result and formula appear below.</p>
         {sourcedCards.length > 0 ? <div className="overflow-x-auto"><table><caption className="sr-only">Sources for the performance snapshot</caption><thead><tr><th>Measurement</th><th>Test Date</th><th>Value</th><th>Source / Method</th></tr></thead><tbody>{sourcedCards.map(card => {
           const reading = card.latest!;
-          return <tr key={`${card.metric.key}:${reading.source}:${reading.unit}`}><td className="font-semibold">{profileMetricLabel(card.metric.key,card.metric.label,reading.source)}<StatInfo metric={card.metric.key} label={card.metric.label} /></td><td className="whitespace-nowrap">{reading.measuredAt}</td><td className="whitespace-nowrap">{formatSourceNumber(reading.value, reading.source)} {reading.unit}</td><td className="min-w-52 max-w-sm break-words">{reading.derived && reading.derivation && <p className="mb-1 mt-0">{reading.derivation}</p>}<span>{reading.source}</span>{reading.provenance.map(source => <span className="mt-1 block" key={source.id}>{source.source_file} · {source.source_sheet || "File"} · Row {source.source_row}</span>)}</td></tr>;
+          return <tr key={`${card.metric.key}:${reading.source}:${reading.unit}`}><td className="font-semibold">{profileMetricLabel(card.metric.key,card.metric.label,reading.source)}<StatInfo metric={card.metric.key} label={card.metric.label} /></td><td className="whitespace-nowrap">{reading.measuredAt}</td><td className="whitespace-nowrap">{formatMetricNumber(reading.value,card.metric.key,reading.source)} {reading.unit}</td><td className="min-w-52 max-w-sm break-words">{reading.derived && reading.derivation && <p className="mb-1 mt-0">{reading.derivation}</p>}<span>{reading.source}</span>{reading.provenance.map(source => <span className="mt-1 block" key={source.id}>{source.source_file} · {source.source_sheet || "File"} · Row {source.source_row}</span>)}</td></tr>;
         })}</tbody></table></div> : <p className="m-0">Source details appear with the first reviewed measurements.</p>}
       </div>
     </details>}

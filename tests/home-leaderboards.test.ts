@@ -22,4 +22,9 @@ describe("home leaderboard cards", () => {
     expect(board.rows[1].value).toBe(".300");
     expect(board.yourRank).toBe(2);
   });
+  it("formats featured practice bat speed with the same one-decimal rule", () => {
+    const bat = { ...comparison, metricKey: "avg_bat_speed" as const, source: "blast motion · hitting", unit: "mph" };
+    const board = homeMeasurementBoard("bat", "Hitting · Practice", "Average Bat Speed", "/leaderboards?group=hitting&session=practice", [{ ...measurement(1, null), value: 72.347, source: bat.source }], bat, null);
+    expect(board.rows[0].value).toBe("72.3 mph");
+  });
 });

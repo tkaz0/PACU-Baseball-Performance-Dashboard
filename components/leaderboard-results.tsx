@@ -2,7 +2,7 @@ import { StatInfo } from "@/components/stat-info";
 import Link from "next/link";
 import { leaderboardMetricLabel, pitchLeaderboardLabel, isPitchLeaderboardMetric, leaderboardOrderLabel, leaderboardSourceLabel, leaderboardTestDate, type LeaderboardMetricDefinition, type LeaderboardRow } from "@/lib/leaderboards";
 import { isTimedMetric, type PlayerPerformancePeriod } from "@/lib/player-performance";
-import { formatHeight, formatSourceNumber } from "@/lib/measurement-display";
+import { formatHeight, formatMetricNumber } from "@/lib/measurement-display";
 import styles from "./leaderboard.module.css";
 
 function ResultValue({ row, metric, unit }: { row: LeaderboardRow; metric: LeaderboardMetricDefinition; unit: string }) {
@@ -11,7 +11,7 @@ function ResultValue({ row, metric, unit }: { row: LeaderboardRow; metric: Leade
   if (height) return <span className="whitespace-nowrap" title={`Recorded: ${String(row.value)} ${unit}`}>{height}</span>;
   return <>{row.derived
     ? <span title={`Exact calculated value: ${String(row.value)} ${unit}; calculated from same-report muscle and weight`}>≈{row.value.toLocaleString("en-US", { maximumFractionDigits: 1 })}</span>
-    : <span className="break-all">{formatSourceNumber(row.value, row.source, unit === "s" ? row.value.toFixed(2) : String(row.value))}</span>}{unit !== "ratio" && <span className={styles.unit}>{unit}</span>}</>;
+    : <span className="break-all">{formatMetricNumber(row.value,metric.key,row.source,unit === "s" ? row.value.toFixed(2) : String(row.value))}</span>}{unit !== "ratio" && <span className={styles.unit}>{unit}</span>}</>;
 }
 
 function RankingTable({ rows, metric, unit, continued = false, tiedRanks, barMax }: { rows: LeaderboardRow[]; metric: LeaderboardMetricDefinition; unit: string; continued?: boolean; tiedRanks: ReadonlySet<number>; barMax?: number }) {
