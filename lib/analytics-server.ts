@@ -2,6 +2,7 @@ import { validBlastObservation } from "@/lib/blast-metrics";
 import { buildHomeSummary } from "@/lib/home-summary";
 import { buildDataCoverage } from "@/lib/data-coverage";
 import { pacificTestingDate } from "@/lib/testing-checklist";
+import { coachUpdateDigest } from "@/lib/coach-update-digest";
 import { loadGameStats } from "@/lib/game-server";
 import { qpaAnalytics, pitchingAnalytics } from "@/lib/game-analytics";
 import "server-only";
@@ -62,5 +63,6 @@ export async function loadDataCoverage(){
 /** Same fresh staff guard; only aggregated coverage and source freshness leave the server. */
 export async function loadStaffHomeSummary(){
   const data=await loadTeamSource();
-  return buildHomeSummary(data.players.map(p=>p.id),data.readings,data.games,pacificTestingDate());
+  const today=pacificTestingDate();
+  return {...buildHomeSummary(data.players.map(p=>p.id),data.readings,data.games,today),coachDigest:coachUpdateDigest({players:data.players,readings:data.readings.filter(coachingReadingVisible),games:coachingGames(data.games)},today)};
 }

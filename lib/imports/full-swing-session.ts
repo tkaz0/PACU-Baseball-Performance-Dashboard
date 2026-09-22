@@ -15,7 +15,7 @@ export type FullSwingSession = {
   table: ImportTable; date: string; eventCount: number; pitcherCount: number; batterCount: number;
   players: { identity: string; role: "Pitcher" | "Batter"; eventCount: number; values: string[] }[];
   pitches: { identity: string; velocity: number | null; spin: number | null; sourceRow: number; pitchNumber: number }[];
-  contacts: { identity: string; exitVelocity: number; launchAngle: number; sourceRow: number; pitchNumber: number }[];
+  contacts: { identity: string; exitVelocity: number; launchAngle: number; direction: number | null; distance: number | null; sourceRow: number; pitchNumber: number }[];
   samples: { identity: string; role: string; metric: string; count: number; sourceRows: number[] }[];
 };
 export const looksLikeFullSwingSession = (headers: readonly string[]) => headers.includes("PitchNo") && headers.includes("PitcherId") && headers.includes("BatterId");
@@ -77,7 +77,14 @@ export function summarizeFullSwingSession(input: ImportTable): FullSwingSession 
       if (!rawExit || rawExit === "null" || !rawAngle || rawAngle === "null") continue;
       if (!/^-?\d+(?:\.\d+)?$/.test(rawAngle) || !Number.isFinite(Number(rawAngle)) || Math.abs(Number(rawAngle)) > 90)
         throw new Error(`Row ${row}: review Angle; expected a launch angle from -90 to 90 degrees.`);
-      contacts.push({ identity: group.identity, exitVelocity: Number(rawExit), launchAngle: Number(rawAngle), sourceRow: row, pitchNumber: Number(cells[index("PitchNo")]) });
+      const rawDirection=cells[index("Direction")].trim(), rawDistance=cells[index("Distance")].trim();
+      // Keep both spatial readings on the exact contact row; never pair separate pitches.
+      const direction=/^-?\d+(?:\.\d+)?$/.test(rawDirection) ? Number(rawDirection) : null;
+      const distance=/^\d+(?:\.\d+)?$/.test(rawDistance) ? Number(rawDistance) : null;
+      contacts.push({ identity: group.identity, exitVelocity: Number(rawExit), launchAngle: Number(rawAngle),
+        direction: direction!==null && distance!==null && Math.abs(direction)<=90 && distance>=0 && distance<=1000 ? direction : null,
+        distance: direction!==null && distance!==null && Math.abs(direction)<=90 && distance>=0 && distance<=1000 ? distance : null,
+        sourceRow: row, pitchNumber: Number(cells[index("PitchNo")]) });
     }
     if (values.some(Boolean)) { table.rows.push([group.identity, date, ...values]); table.rowNumbers.push(table.rows.length + 1); }
   }

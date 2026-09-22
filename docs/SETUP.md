@@ -381,6 +381,8 @@ September 20 hitting team averages: profile cards and Overview show source/unit-
 
 Hitter contact maps require additive migrations `202609220002_full_swing_contacts.sql` and `202609220003_full_swing_contact_file_consistency.sql` before deploying the consuming app. They create a separate immutable paired-event table, staff-only reviewed import RPC, own-player/staff read policy and a source-file consistency guard. They do not convert or backfill past Full Swing summary imports; staff must reopen an original reviewed CSV, confirm matched batters and source pairs, then save its contact readings separately. No new credential or peer-detail access is added.
 
+The Spray View requires additive migration `202609220004_full_swing_spray.sql` before deploying the updated contact reader. It adds nullable paired Direction/Distance columns and permits staff to enrich an existing contact row by re-reviewing the identical original CSV. It does not automatically infer or backfill spatial values from aggregate measurements. The staff-only What Changed page reads approved database measurements and current Fall game snapshots with the existing authorization; it does not initiate source scraping.
+
 ## Current source-check schedule
 
 As of September 20, the configured Codex check is once weekly on Monday at 9 p.m. America/Los_Angeles for QPA Fall, Pitching Fall and Player Metrics. Scheduled roster/RENPHO-ID scanning remains off. Earlier daily references document past operation. This schedule change does not create a cloud polling service or change save authorization.

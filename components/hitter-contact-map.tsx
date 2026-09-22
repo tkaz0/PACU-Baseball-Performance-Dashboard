@@ -1,6 +1,8 @@
 "use client";
 import { useState } from "react";
 import type { SavedContact } from "@/lib/full-swing-contacts-server";
+import { contactQuality } from "@/lib/contact-quality";
+import { HitterSprayMap } from "@/components/hitter-spray-map";
 
 const fmt = (n: number) => n.toFixed(1);
 const shortDate = (value: string) => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${value}T12:00:00Z`));
@@ -21,8 +23,10 @@ export function HitterContactMap({ contacts, context }: { contacts: readonly Sav
   const sessions = [...new Map(eligible.map(row => [row.fileHash, { hash: row.fileHash, date: row.playedOn, name: row.sourceFile, category: row.category }])).values()]
     .sort((a,b) => b.date.localeCompare(a.date) || a.name.localeCompare(b.name));
   const [selected, setSelected] = useState("all");
+  const [chart,setChart] = useState<"contact"|"spray">("contact");
   if (!sessions.length) return null;
   const plotted = selected === "all" ? eligible : eligible.filter(row => row.fileHash === selected);
+  const quality=contactQuality(plotted);
   const [minX,maxX] = bounds(plotted.map(row => row.exitVelocity),10,0);
   const [minY,maxY] = bounds(plotted.map(row => row.launchAngle),10,-90,true);
   const x = (n:number) => 66 + (n-minX)/(maxX-minX)*564;
@@ -31,7 +35,14 @@ export function HitterContactMap({ contacts, context }: { contacts: readonly Sav
   return <section className="rounded-xl border border-[var(--line-subtle)] bg-[var(--surface-panel)] p-4 sm:p-5" aria-label={`${context === "practice" ? "Practice" : "In-game"} hitter contact map`}>
     <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="m-0 text-xl font-bold">Hitter Contact Map</h2><p className="muted mb-0 mt-1 text-sm">Measured exit velocity vs. launch angle · {plotted.length} paired {plotted.length === 1 ? "ball" : "balls"}</p></div>
       <label className="text-sm font-semibold">Session<select aria-label="Contact map session" value={selected} onChange={event => setSelected(event.target.value)}><option value="all">All Fall {context === "practice" ? "practice" : "games & intrasquads"}</option>{sessions.map(session => <option key={session.hash} value={session.hash}>{shortDate(session.date)} · {session.name.replace(/\.csv$/i, "")}</option>)}</select></label></div>
-    <div className="mt-4 overflow-x-auto"><svg viewBox="0 0 700 328" role="img" aria-label={`Scatter plot of ${plotted.length} batted ${plotted.length === 1 ? "ball" : "balls"} with exit velocity in miles per hour on the horizontal axis and launch angle in degrees on the vertical axis`} className="min-w-[540px] w-full">
+    <div className="mt-4 grid gap-2 sm:grid-cols-3" aria-label="Contact quality summary">
+      <div className="rounded-xl border border-[var(--line-subtle)] bg-[var(--surface-raised)] p-3"><p className="m-0 text-xs font-semibold text-[var(--text-secondary)]">Recorded Contact</p><strong className="mt-1 block text-2xl tabular-nums">{quality.count}</strong><p className="muted m-0 text-xs">Paired EV and angle</p></div>
+      <div className="rounded-xl border border-[var(--line-subtle)] bg-[var(--surface-raised)] p-3"><p className="m-0 text-xs font-semibold text-[var(--text-secondary)]">Hard Hit · MLB Reference</p><strong className="mt-1 block text-2xl tabular-nums">{quality.hardHitPct===null?`${quality.hardHit} balls`:`${quality.hardHitPct.toFixed(1)}%`}</strong><p className="muted m-0 text-xs">95+ mph · {quality.hardHit} of {quality.count}</p></div>
+      <div className="rounded-xl border border-[var(--line-subtle)] bg-[var(--surface-raised)] p-3"><p className="m-0 text-xs font-semibold text-[var(--text-secondary)]">Sweet Spot · MLB Reference</p><strong className="mt-1 block text-2xl tabular-nums">{quality.sweetSpotPct===null?`${quality.sweetSpot} balls`:`${quality.sweetSpotPct.toFixed(1)}%`}</strong><p className="muted m-0 text-xs">8–32° launch · {quality.sweetSpot} of {quality.count}</p></div>
+    </div>
+    {!quality.rateReady&&<p className="muted mb-0 mt-2 text-xs">Percentages appear after 10 paired batted balls in this view. {10-quality.count} more {10-quality.count===1?"ball":"balls"} needed.</p>}
+    <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label="Batted-ball chart"><button type="button" onClick={()=>setChart("contact")} aria-pressed={chart==="contact"} className={`rounded-full border px-3 py-1.5 text-xs font-bold ${chart==="contact"?"border-[var(--accent-readable)] bg-[var(--accent-readable)] text-white":"border-[var(--line-subtle)]"}`}>EV / Launch</button><button type="button" onClick={()=>setChart("spray")} aria-pressed={chart==="spray"} className={`rounded-full border px-3 py-1.5 text-xs font-bold ${chart==="spray"?"border-[var(--accent-readable)] bg-[var(--accent-readable)] text-white":"border-[var(--line-subtle)]"}`}>Spray View</button></div>
+    {chart==="spray"?<HitterSprayMap contacts={plotted}/>:<><div className="mt-4 overflow-x-auto"><svg viewBox="0 0 700 328" role="img" aria-label={`Scatter plot of ${plotted.length} batted ${plotted.length === 1 ? "ball" : "balls"} with exit velocity in miles per hour on the horizontal axis and launch angle in degrees on the vertical axis`} className="min-w-[540px] w-full">
       {ticks.map(fraction => { const ev=minX+(maxX-minX)*fraction, angle=minY+(maxY-minY)*fraction;
         return <g key={fraction}><line x1={x(ev)} x2={x(ev)} y1="50" y2="266" stroke="var(--line-subtle)"/><text x={x(ev)} y="284" textAnchor="middle" fill="var(--text-secondary)" fontSize="11">{Math.round(ev)}</text><line x1="66" x2="630" y1={y(angle)} y2={y(angle)} stroke="var(--line-subtle)"/><text x="57" y={y(angle)+4} textAnchor="end" fill="var(--text-secondary)" fontSize="11">{Math.round(angle)}°</text></g>; })}
       <line x1="66" x2="630" y1="266" y2="266" stroke="var(--text-secondary)"/>
@@ -40,8 +51,8 @@ export function HitterContactMap({ contacts, context }: { contacts: readonly Sav
       <text transform="translate(16 158) rotate(-90)" textAnchor="middle" fill="var(--text-secondary)" fontSize="13">Launch angle (°)</text>
       {plotted.map(row => <circle key={`${row.fileHash}:${row.sourceRow}`} cx={x(row.exitVelocity)} cy={y(row.launchAngle)} r="5.5" fill={color(row.exitVelocity)} fillOpacity=".83" stroke="var(--surface-panel)" strokeWidth="1"><title>{`${shortDate(row.playedOn)} · Pitch ${row.pitchNumber}: ${fmt(row.exitVelocity)} mph, ${fmt(row.launchAngle)}°`}</title></circle>)}
     </svg></div>
-    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--text-secondary)]"><span><span className="mr-2 inline-block h-2.5 w-2.5 rounded-full bg-[#3979b7]"/>Lower exit speed</span><span><span className="mr-2 inline-block h-2.5 w-2.5 rounded-full bg-[#bb2634]"/>Higher exit speed</span><span>Color compares exit speed within a fixed 50–120 mph display scale.</span></div>
-    <details className="mt-4"><summary className="cursor-pointer text-sm font-semibold text-[var(--accent-readable)]">View exact batted-ball readings</summary><div className="table-wrap mt-3 max-h-72"><table><thead><tr><th>Date</th><th>Session</th><th>Pitch #</th><th>Exit Velocity</th><th>Launch Angle</th></tr></thead><tbody>{plotted.map(row => <tr key={`${row.fileHash}:${row.sourceRow}`}><td>{shortDate(row.playedOn)}</td><td>{row.sourceFile.replace(/\.csv$/i, "")}</td><td>{row.pitchNumber}</td><td>{fmt(row.exitVelocity)} mph</td><td>{fmt(row.launchAngle)}°</td></tr>)}</tbody></table></div></details>
-    <p className="muted mb-0 mt-3 text-xs">Each dot is one batted ball with both values recorded on the same reviewed Full Swing CSV row. Missing pairs, excluded players and unreviewed files are omitted. The export does not identify hit outcomes.</p>
+    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--text-secondary)]"><span><span className="mr-2 inline-block h-2.5 w-2.5 rounded-full bg-[#3979b7]"/>Lower exit speed</span><span><span className="mr-2 inline-block h-2.5 w-2.5 rounded-full bg-[#bb2634]"/>Higher exit speed</span><span>Color compares exit speed within a fixed 50–120 mph display scale.</span></div></>}
+    <details className="mt-4"><summary className="cursor-pointer text-sm font-semibold text-[var(--accent-readable)]">View exact batted-ball readings</summary><div className="table-wrap mt-3 max-h-72"><table><thead><tr><th>Date</th><th>Session</th><th>Pitch #</th><th>Exit Velocity</th><th>Launch Angle</th><th>Direction</th><th>Distance</th></tr></thead><tbody>{plotted.map(row => <tr key={`${row.fileHash}:${row.sourceRow}`}><td>{shortDate(row.playedOn)}</td><td>{row.sourceFile.replace(/\.csv$/i, "")}</td><td>{row.pitchNumber}</td><td>{fmt(row.exitVelocity)} mph</td><td>{fmt(row.launchAngle)}°</td><td>{row.direction===null?"—":`${fmt(row.direction)}°`}</td><td>{row.distance===null?"—":`${fmt(row.distance)} ft`}</td></tr>)}</tbody></table></div></details>
+    <p className="muted mb-0 mt-3 text-xs">Each dot is one batted ball with both values recorded on the same reviewed Full Swing CSV row. Missing pairs, excluded players and unreviewed files are omitted. The export does not identify hit outcomes. Hard-hit and sweet-spot cuts are <a href="https://baseballsavant.mlb.com/statcast_field" target="_blank" rel="noreferrer">MLB hard-hit</a> and <a href="https://www.mlb.com/glossary/statcast/sweet-spot" target="_blank" rel="noreferrer">MLB sweet-spot</a> references, not Pacific grades.</p>
   </section>;
 }

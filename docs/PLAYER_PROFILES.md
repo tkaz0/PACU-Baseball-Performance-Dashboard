@@ -159,6 +159,10 @@ Classified pitch tables now respect their recorded Game/Intrasquad versus Practi
 
 The Hitter Contact Map in the In-Game and Practice tabs plots reviewed individual Full Swing batted balls as paired exit velocity (mph) and launch angle (degrees). A session selector can show an individual file or all Fall files within that tab's context. The color scale represents measured exit velocity, and an expandable table exposes the exact pairs. Pitcher-only profiles omit the map. No hit outcomes, optimal launch-angle targets, or peer raw events are inferred or exposed. This requires `202609220002_full_swing_contacts.sql`; existing summary cards and percentiles remain unchanged.
 
+The contact section now has compact sample cards and a chart switch. The cards count recorded balls; hard-hit (95+ mph) and sweet-spot (8–32°) are labeled MLB reference definitions, not Pacific grades, and show percentages only after 10 valid paired balls in the selected view. The Spray View uses the same reviewed row's Direction and Distance (feet) when both are present. Positive Direction points toward first base per the owner's export confirmation; the field lines are a visual reference, not a measured ballpark or hit outcome. It requires `202609220004_full_swing_spray.sql`. Previously saved contact rows can be enriched only by reviewing and saving the original unchanged file again.
+
+The Progress tab follows the five priority Blast weekly averages and staff-classified pitch velocity/spin by pitch type and session. In-Game and Practice stay separate. Each point exposes its date and recorded sample count. Overlapping or conflicting Blast reports are withheld, and weekly P95 summaries are never treated as maximums or added to swing counts.
+
 
 ## Fall Practice Summaries — September 20 Update
 

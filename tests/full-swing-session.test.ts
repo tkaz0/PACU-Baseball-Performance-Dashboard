@@ -81,12 +81,16 @@ it("preserves exact row-paired batted balls and excludes incomplete pairs and un
   event({PitchNo:"3",Batter:"Fictional Guest",BatterId:"fictional-guest",Angle:"22",ExitSpeed:"81"}),
  ]));
  expect(session.contacts).toEqual([
-  {identity:name,exitVelocity:94.321,launchAngle:-12.5,sourceRow:2,pitchNumber:1},
-  {identity:"Fictional Guest",exitVelocity:81,launchAngle:22,sourceRow:4,pitchNumber:3},
+  {identity:name,exitVelocity:94.321,launchAngle:-12.5,direction:null,distance:null,sourceRow:2,pitchNumber:1},
+  {identity:"Fictional Guest",exitVelocity:81,launchAngle:22,direction:null,distance:null,sourceRow:4,pitchNumber:3},
  ]);
  const rows=prepareFullSwingContacts(session,{fileHash:"a".repeat(64),fileName:"fictional.csv",date:session.date,category:"intrasquad",matches:[{identity:name,athleteCode:"PAC-0001"}]});
- expect(rows).toEqual([{athleteCode:"PAC-0001",fileHash:"a".repeat(64),sourceFile:"fictional.csv",sourceRow:2,pitchNumber:1,playedOn:"2026-09-11",category:"intrasquad",exitVelocity:94.321,launchAngle:-12.5}]);
+ expect(rows).toEqual([{athleteCode:"PAC-0001",fileHash:"a".repeat(64),sourceFile:"fictional.csv",sourceRow:2,pitchNumber:1,playedOn:"2026-09-11",category:"intrasquad",exitVelocity:94.321,launchAngle:-12.5,direction:null,distance:null}]);
  expect(()=>summarizeFullSwingSession(table([event({Angle:"120"})]))).toThrow("Angle");
+});
+it("keeps direction and feet on the same contact row without inferring incomplete spatial pairs",()=>{
+ const report=summarizeFullSwingSession(table([event({Angle:"19",Direction:"-14.5",Distance:"245"}),event({PitchNo:"2",Angle:"25",Direction:"11",Distance:"null"})]));
+ expect(report.contacts.map(row=>[row.direction,row.distance])).toEqual([[-14.5,245],[null,null]]);
 });
 
 it("groups nearby velocities across old boundaries until a 3 mph gap, preserving pitcher/spin/missing partitions",()=>{

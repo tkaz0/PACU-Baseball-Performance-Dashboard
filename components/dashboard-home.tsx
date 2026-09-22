@@ -5,6 +5,7 @@ import { StatInfo } from "@/components/stat-info";
 import { formatTeamGameMetric, type TeamGameSummary } from "@/lib/team-game-stats";
 import { formatInnings } from "@/lib/pitching-stats";
 import type { HomeSummary } from "@/lib/home-summary";
+import type { coachUpdateDigest } from "@/lib/coach-update-digest";
 import type { HomeLeaderboard, HomeRank } from "@/lib/home-leaderboards";
 import styles from "./dashboard-home.module.css";
 const date=(value:string,withYear=false)=>new Date(value.length===10?`${value}T12:00:00Z`:value).toLocaleDateString("en-US",{month:"short",day:"numeric",...(withYear?{year:"numeric" as const}:{}),timeZone:value.length===10?"UTC":"America/Los_Angeles"});
@@ -18,7 +19,7 @@ function GameSnapshot({summary,kind}:{summary:TeamGameSummary;kind:"Hitting"|"Pi
 }
 function RankRows({rows}:{rows:HomeRank[]}) { return <ol className={styles.rankList}>{rows.map(row=><li key={row.code} className={row.isYou?styles.yourRow:undefined}><span className={styles.rankNumber}>{String(row.rank).padStart(2,"0")}</span><span className={styles.rankName}>{row.profileId?<Link prefetch={false} href={`/athletes/${row.profileId}`}>{row.name}</Link>:row.name}{row.isYou&&<small>You</small>}</span><strong className={styles.rankValue}>{row.value}</strong></li>)}</ol>; }
 function HomeRankCard({board}:{board:HomeLeaderboard}) { return <article className={styles.rankCard} aria-label={`${board.title} team leaderboard`}><div className={styles.rankCardHead}><div><p className={styles.kicker}>{board.category}</p><h3>{board.title}</h3></div><span className={styles.rankBadge}><Trophy size={15} aria-hidden="true"/></span></div><RankRows rows={board.rows.slice(0,3)}/>{board.yourRank!==null&&board.yourRank>3&&<p className={styles.yourPlace}>Your place <strong>#{board.yourRank}</strong></p>}{board.rows.length>3&&<details className={styles.moreRanks}><summary>Show all {board.total} players</summary><RankRows rows={board.rows.slice(3)}/></details>}<Link prefetch={false} href={board.href} className={styles.rankFooter}>Open full leaderboard<ArrowUpRight size={15} aria-hidden="true"/></Link></article>; }
-export function DashboardHome({staff,athleteId,summary,leaderboards=[]}:{staff:boolean;athleteId:string|null;summary:HomeSummary|null;leaderboards?:HomeLeaderboard[]}) {
+export function DashboardHome({staff,athleteId,summary,leaderboards=[]}:{staff:boolean;athleteId:string|null;summary:(HomeSummary & {coachDigest?:ReturnType<typeof coachUpdateDigest>})|null;leaderboards?:HomeLeaderboard[]}) {
   const profile=athleteId?`/athletes/${athleteId}`:null;
   const actions=staff?[
     {href:"/roster",title:"Roster",detail:"Open player profiles",icon:UsersRound},
@@ -51,9 +52,10 @@ export function DashboardHome({staff,athleteId,summary,leaderboards=[]}:{staff:b
         </section>
         <section className={styles.panel} aria-label="Recent data updates">
           <div className={styles.sectionTitle}><div><p className={styles.kicker}>Fresh from the Field</p><h2>Recent Updates</h2></div><Clock3 size={21} className={styles.subtleIcon}/></div>
+          {staff&&summary.coachDigest&&<div className={styles.coachPulse} aria-label="Weekly coaching pulse"><div><strong>{summary.coachDigest.updatedPlayers.length}</strong><span>Players updated</span></div><div><strong>{summary.coachDigest.changes.length}</strong><span>Measured changes</span></div><div><strong>{summary.coachDigest.stale.length}</strong><span>Testing follow-up</span></div></div>}
           {summary.updates.length?<ol className={styles.updates}>{summary.updates.slice(0,4).map(u=><li key={u.key}><span className={styles.updateDot}/><div><strong>{u.label}</strong><p>{u.kind} to the dashboard</p></div><time dateTime={u.date}>{date(u.date)}</time></li>)}</ol>:<p className={styles.empty}>Updates appear when Fall measurements or game stats are saved.</p>}
           {staff&&<div className={styles.nextStep}><ClipboardCheck size={21}/><div><strong>Ready for the next report?</strong><p>Review player matches and test dates before sharing new results.</p></div></div>}
-          <Link prefetch={false} href={staff?"/game-stats/review":profile??"/settings"} className={styles.panelLink}>{staff?"Open Data Review":"Open My Profile"}<ArrowRight size={15}/></Link>
+          <Link prefetch={false} href={staff?"/testing/changes":profile??"/settings"} className={styles.panelLink}>{staff?"See What Changed":"Open My Profile"}<ArrowRight size={15}/></Link>
         </section>
       </div>
       <section aria-label="Fall game summary"><div className={styles.gameHeader}><div><p className={styles.kicker}>Competition</p><h2>{staff?"Team Game Snapshot":"My Game Snapshot"}</h2><p className={styles.caption}>Fall 2026 · Cumulative{staff?" · Matched rostered players":""}</p></div><Link prefetch={false} href="/game-stats" className={styles.panelLink}>All Game Stats<ArrowRight size={15}/></Link></div><div className={styles.gameGrid}>{(staff||summary.batting.entries>0)&&<GameSnapshot summary={summary.batting} kind="Hitting"/>}{(staff||summary.pitching.entries>0)&&<GameSnapshot summary={summary.pitching} kind="Pitching"/>}{!staff&&!summary.batting.entries&&!summary.pitching.entries&&<p className={styles.empty}>Your game stats will appear after your first verified Fall update.</p>}</div></section>

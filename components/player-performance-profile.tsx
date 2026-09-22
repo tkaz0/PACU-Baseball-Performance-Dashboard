@@ -6,6 +6,8 @@ import type { Measurement } from "@/lib/imports/engine";
 import { profileMetricLabel } from "@/lib/profile-metric-label";
 import { parseBlastSource, blastPeriodLabel, formatBlastValue } from "@/lib/blast-metrics";
 import { ProfileTrendChart } from "@/components/profile-trend-chart";
+import { SessionProgress } from "@/components/session-progress";
+import { blastProgress, pitchProgress } from "@/lib/session-progress";
 import { profileTrends } from "@/lib/profile-trends";
 import type { SharedGameStat } from "@/lib/game-server";
 import type { GameComparison } from "@/lib/game-metrics";
@@ -110,6 +112,7 @@ export function PlayerPerformanceProfile({ athlete, performance, season, blastRe
     </> },
     { id: "in-game", label: "In-Game", content: <><SessionMeasurements teamAverages={teamAverages} performance={performance} season={selectedSeason} context="in_game" />{layout.showHitting && contactResults}{pitchResults}{gameStats && <section aria-label="Cumulative game statistics" className="space-y-4 border-t border-[var(--line-subtle)] pt-6"><h2 className="m-0 text-xl font-bold">Cumulative Game Stats · Fall 2026</h2>{gameStats}</section>}</> },
     { id: "practice", label: "Practice", content: <>{layout.showHitting && hasBlast && <BlastPracticeReports teamAverages={teamAverages} readings={blastReadings!}/>}<SessionMeasurements teamAverages={teamAverages} performance={displayPerformance} season={selectedSeason} context="practice" hasBlast={hasBlast && layout.showHitting} />{layout.showHitting && practiceContactResults}{practicePitchResults}</> },
+    { id: "progress", label: "Progress", content: <SessionProgress blast={layout.showHitting ? blastProgress(blastReadings ?? []) : []} pitchingGame={pitchProgress(blastReadings ?? [],"in_game")} pitchingPractice={pitchProgress(blastReadings ?? [],"practice")} /> },
   ];
   return <div className={`min-w-0 space-y-4 sm:space-y-5 ${presentation.profile}`} data-testid="player-performance-profile">
     <section className="player-identity-card" aria-label="Player profile">

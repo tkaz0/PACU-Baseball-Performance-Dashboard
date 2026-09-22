@@ -8,7 +8,7 @@ const player="33333333-3333-4333-8333-333333333333", own="aaaaaaaa-aaaa-4aaa-8aa
 const one=()=>({athleteCode:"PAC-0001",fileHash:"a".repeat(64),sourceFile:"fictional-session.csv",sourceRow:2,pitchNumber:1,playedOn:"2026-09-11",category:"intrasquad",exitVelocity:94.321,launchAngle:-12.5});
 beforeAll(async()=>{
   await db.exec("create role anon nologin;create role authenticated nologin;create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema public,auth to anon,authenticated;grant execute on function auth.uid() to anon,authenticated;");
-  for(const file of ["202609040001_identity_and_access.sql","202609220002_full_swing_contacts.sql","202609220003_full_swing_contact_file_consistency.sql"])
+  for(const file of ["202609040001_identity_and_access.sql","202609220002_full_swing_contacts.sql","202609220003_full_swing_contact_file_consistency.sql","202609220004_full_swing_spray.sql"])
     await db.exec(readFileSync(new URL(`../supabase/migrations/${file}`,import.meta.url),"utf8"));
   for(const [id,role] of [[admin,"admin"],[coach,"coach"],[player,"player"]]) {
     await db.query("insert into auth.users values($1)",[id]);
@@ -20,17 +20,20 @@ beforeAll(async()=>{
 });
 afterAll(()=>db.close());
 async function as<T>(id:string|null,fn:()=>Promise<T>){await db.exec(`set role ${id?"authenticated":"anon"}`);await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id??""]);try{return await fn();}finally{await db.exec("reset role");}}
-async function save(rows:unknown){return (await db.query<{result:{created:number;unchanged:number}}>("select public.staff_import_full_swing_contacts($1::jsonb) result",[JSON.stringify(rows)])).rows[0].result;}
+async function save(rows:unknown){return (await db.query<{result:{created:number;unchanged:number;spatial_enriched:number}}>("select public.staff_import_full_swing_contacts($1::jsonb) result",[JSON.stringify(rows)])).rows[0].result;}
 
 it("saves paired events for staff, supports identical retries, and never moves a source row",async()=>{
-  expect(await as(coach,()=>save([one()]))).toEqual({created:1,unchanged:0});
-  expect(await as(admin,()=>save([one()]))).toEqual({created:0,unchanged:1});
+  expect(await as(coach,()=>save([one()]))).toEqual({created:1,unchanged:0,spatial_enriched:0});
+  expect(await as(admin,()=>save([one()]))).toEqual({created:0,unchanged:1,spatial_enriched:0});
+  expect(await as(admin,()=>save([{...one(),direction:15,distance:225}]))).toEqual({created:0,unchanged:1,spatial_enriched:1});
+  expect(await as(admin,()=>save([{...one(),direction:15,distance:225}]))).toEqual({created:0,unchanged:1,spatial_enriched:0});
+  await as(admin,async()=>{await expect(save([{...one(),direction:-15,distance:225}])).rejects.toThrow("changed");});
   await as(admin,async()=>{await expect(save([{...one(),athleteCode:"PAC-0002"}])).rejects.toThrow("changed");});
   await as(coach,async()=>{await expect(save([{...one(),launchAngle:5}])).rejects.toThrow("changed");});
 });
 it("allows only own-player reads and blocks player and anonymous imports",async()=>{
   await as(player,async()=>{
-    expect((await db.query("select launch_angle from public.full_swing_contacts")).rows).toHaveLength(1);
+    expect((await db.query("select launch_angle,direction,distance from public.full_swing_contacts")).rows).toEqual([{launch_angle:-12.5,direction:15,distance:225}]);
     await expect(save([one()])).rejects.toThrow("Active staff");
     await expect(db.exec("delete from public.full_swing_contacts")).rejects.toThrow("permission denied");
   });
@@ -49,5 +52,5 @@ it("keeps one date and category for an original file across additive saves",asyn
   const next={...one(),sourceRow:3,pitchNumber:2};
   await as(admin,async()=>{await expect(save([{...next,category:"practice"}])).rejects.toThrow("category");});
   await as(admin,async()=>{await expect(save([{...next,playedOn:"2026-09-12"}])).rejects.toThrow("date");});
-  expect(await as(admin,()=>save([next]))).toEqual({created:1,unchanged:0});
+  expect(await as(admin,()=>save([next]))).toEqual({created:1,unchanged:0,spatial_enriched:0});
 });
