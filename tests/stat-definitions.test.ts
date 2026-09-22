@@ -13,3 +13,11 @@ it("distinguishes strikeouts, strikes, total muscle mass and skeletal muscle",()
 });
 
 it("resolves original report labels to the same definitions",()=>{expect(statDefinition("Body Fat Percentage")).toBe(statDefinition("body_fat_pct"));expect(statDefinition("Max Exit Velocity")).toBe(statDefinition("max_exit_velocity"));});
+
+it("explains correlation and chart scope without confusing hitter and pitcher contact rules",()=>{
+  expect(statDefinition("pearson_r")).toContain("−1");
+  expect(statDefinition("r_squared")).toContain("Y variable");
+  expect(statDefinition("spray_chart")).toContain("150-foot");
+  expect(statDefinition("pitch_arsenal_chart")).toContain("staff-classified");
+  expect(statDefinition("pitching_contact_chart")).toContain("not the hitter chart’s 90 mph");
+});

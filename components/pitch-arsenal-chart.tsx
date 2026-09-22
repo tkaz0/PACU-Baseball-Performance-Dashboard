@@ -1,6 +1,7 @@
 import type { ArsenalPitch } from "@/lib/pitch-arsenal";
 import { PITCH_TYPES } from "@/lib/imports/pitch-assignments";
 import { formatSourceNumber } from "@/lib/measurement-display";
+import { StatInfo } from "@/components/stat-info";
 import styles from "./pitch-arsenal-chart.module.css";
 
 const colors = ["#bb2634", "#3979b7", "#d39630", "#69976e", "#8567ae", "#3a9a9a", "#ad475f", "#6f83c5", "#a1773f", "#558ba5", "#986d90", "#637688", "#845e51"];
@@ -23,7 +24,7 @@ function ArsenalScatter({ pitches }: { pitches: readonly ArsenalPitch[] }) {
   const x = (value: number) => 62 + (value - xMin) / (xMax - xMin) * 340;
   const y = (value: number) => 210 - (value - yMin) / (yMax - yMin) * 174;
   return <figure className={styles.figure}>
-    <figcaption><h4>Pitch Arsenal</h4><p>Average velocity vs. average spin by reviewed pitch type</p></figcaption>
+    <figcaption><h4>Pitch Arsenal<StatInfo metric="pitch_arsenal_chart" label="Pitch Arsenal chart"/></h4><p>Average velocity vs. average spin by reviewed pitch type</p></figcaption>
     <div className={styles.plotScroll}><svg viewBox="0 0 460 275" role="img" aria-label={`Pitch arsenal chart for ${points.length} classified pitch types. Velocity in miles per hour, spin in revolutions per minute.`}>
       {[0, .5, 1].map(fraction => {
         const spin = yMin + fraction * (yMax - yMin), speed = xMin + fraction * (xMax - xMin);
@@ -53,7 +54,7 @@ function ArsenalMix({ pitches }: { pitches: readonly ArsenalPitch[] }) {
   if (remaining) shown.push({label:"Other classified types",count:remaining});
   const circumference = 2 * Math.PI * 68;
   return <figure className={styles.figure}>
-    <figcaption><h4>Classified Pitch Mix</h4><p>Share of reviewed, classified pitches in this session</p></figcaption>
+    <figcaption><h4>Classified Pitch Mix<StatInfo metric="pitch_mix_chart" label="Classified Pitch Mix chart"/></h4><p>Share of reviewed, classified pitches in this session</p></figcaption>
     <div className={styles.mixLayout}><svg viewBox="0 0 220 220" role="img" aria-label={`${total} classified pitches across ${counted.length} pitch types`}>
       <circle cx="110" cy="110" r="68" fill="none" stroke="var(--line-subtle)" strokeWidth="23"/>
       {shown.map((item,index)=>{

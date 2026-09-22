@@ -16,6 +16,8 @@ it("renders paired game points separately from practice and exposes exact readin
   expect(game).toContain("-12.5°");
   expect(game).toContain("90+ mph");
   expect(game).toContain("Both Thresholds");
+  expect(game).toContain('aria-label="About Hitter Contact Map"');
+  expect(game).toContain('aria-label="About EV / Launch chart"');
   expect(game).not.toContain("fictional-practice.csv");
   expect(practice).toContain("88.4 mph");
   expect(practice).not.toContain("fictional-intrasquad.csv");
