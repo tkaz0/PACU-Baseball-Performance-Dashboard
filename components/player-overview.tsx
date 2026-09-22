@@ -4,6 +4,7 @@ import { profileMetricLabel } from "@/lib/profile-metric-label";
 import { formatMetricNumber } from "@/lib/measurement-display";
 import { pitchingPeriodLabel } from "@/lib/game-source";
 import { ProfileTrendChart } from "@/components/profile-trend-chart";
+import { PhysicalityRadar } from "@/components/physicality-radar";
 import { profileTrends } from "@/lib/profile-trends";
 import { MeasurementChange } from "@/components/measurement-change";
 import { playerRenphoChange } from "@/lib/measurement-change";
@@ -104,6 +105,7 @@ export function PlayerOverview({ cards, gameStats = [], gameComparisons = [], sh
       </section>
     </div>
     {!comparableCount && <p className="m-0 max-w-3xl text-xs leading-6 text-[var(--text-secondary)]">Highlights appear once at least five players have comparable testing or game results. Your recorded measurements are available in the tabs above.</p>}
+    <PhysicalityRadar cards={physicality}/>
     <div className={styles.percentileSections} aria-label="Pacific percentiles"><div className={overview.sectionHeading}><h2 className="mb-2 mt-0 text-lg font-bold">Pacific Percentiles</h2><PercentileLegend/></div>
       <div className={overview.testingSections}>
       <TestingComparisons teamAverages={teamAverages} title="Physicality" cards={physicality}/>

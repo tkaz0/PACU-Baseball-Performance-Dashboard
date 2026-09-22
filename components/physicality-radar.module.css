@@ -1,0 +1,13 @@
+.panel { margin:0; min-width:0; border:1px solid var(--line-subtle); border-radius:14px; background:var(--surface-panel); padding:16px; }
+.panel figcaption h3 { margin:0; font-size:16px; font-weight:750; }
+.panel figcaption p { margin:4px 0 0; color:var(--text-secondary); font-size:12px; }
+.layout { display:grid; grid-template-columns:minmax(0,300px) minmax(0,1fr); gap:12px; align-items:center; }
+.layout svg { display:block; max-width:300px; width:100%; margin:auto; }
+.layout ol { list-style:none; padding:0; margin:0; display:grid; gap:8px; }
+.layout li { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:baseline; column-gap:12px; padding:8px 0; border-bottom:1px solid var(--line-subtle); font-size:13px; }
+.layout li > span { font-weight:650; }
+.layout li > strong { color:var(--accent-readable); font-size:21px; font-variant-numeric:tabular-nums; }
+.layout li > strong small { font-size:10px; }
+.layout li > small { grid-column:1/-1; color:var(--text-secondary); font-size:11px; }
+.note { margin:0; color:var(--text-secondary); font-size:11px; line-height:1.6; }
+@media(max-width:680px) { .layout { grid-template-columns:1fr; } .layout svg { max-width:260px; } }

@@ -29,6 +29,7 @@ it("combines dated pitching events and binds only a cumulative comparison", () =
 });
 it("populates strengths and weaknesses from verified game rates with sample-size context", () => {
   const html=renderToStaticMarkup(createElement(PlayerOverview,{cards:[],gameStats:stats,gameComparisons:[c,{...c,metric:'batting_k_pct',value:20,percentile:10},{...c,metric:'pumps',value:1,percentile:100}]}));
+  expect(html).not.toContain('aria-label="Physicality percentile radar"');
   const strengths=html.split('aria-label="Strengths"')[1].split('aria-label="Weaknesses"')[0];
   const weaknesses=html.split('aria-label="Weaknesses"')[1].split('aria-label="Biggest jumps"')[0];
   expect(strengths).toContain('AVG'); expect(strengths).toContain('8 AB'); expect(strengths).toContain('Limited sample'); expect(strengths).not.toContain('>HR<');
@@ -42,6 +43,8 @@ it("shows only the requested physicality trio in Overview while keeping body ran
   const html=renderToStaticMarkup(createElement(PlayerOverview,{cards:performance.body}));
   for(const key of ['muscle_mass','body_score','body_fat_pct'])expect(html).toContain(`data-overview-metric="${key}"`);
   for(const key of ['weight','height'])expect(html).not.toContain(`data-overview-metric="${key}"`);
+  expect(html).toContain('aria-label="Physicality percentile radar"');
+  expect(html).toContain('Lower body fat ranks higher');
   expect(html).toContain('Descriptive rank');expect(html.split('aria-label="Strengths"')[1].split('aria-label="Weaknesses"')[0]).not.toContain('role="meter"');
 });
 it("removes standalone batting Hits and AB cards but retains AVG denominator", () => {

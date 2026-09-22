@@ -6,6 +6,7 @@ import { prepareClassifiedPitchResults, type PitchResultContext } from "@/lib/im
 import type { FullSwingSession } from "@/lib/imports/full-swing-session";
 import type { PitchAssignment } from "@/lib/imports/pitch-assignments";
 import { prepareReviewedPerformanceRows } from "@/lib/performance-import";
+import { arsenalPitches } from "@/lib/pitch-arsenal";
 
 const context:PitchResultContext={fileName:"Fictional session.csv",fileHash:"a".repeat(64),date:"2026-09-11",category:"intrasquad",matches:[{identity:"Fictional Pitcher",athleteCode:"SYN-001"}]};
 const session:FullSwingSession={date:context.date,eventCount:6,pitcherCount:2,batterCount:0,players:[],samples:[],table:{headers:[],rows:[],rowNumbers:[]},pitches:[
@@ -56,6 +57,18 @@ it("renders four one-decimal results, sample sizes and separate sessions for the
  const html=renderToStaticMarkup(createElement(ClassifiedPitchResults,{readings:[...rows,...earlier]}));
  for(const text of ["81.3","82.5","2050.3","2100.5","n=2","Fastball","Slider"])expect(html).toContain(text);
  expect(html).not.toContain("82.456");expect(html).not.toContain("Old fictional");expect(html).not.toContain("Fictional Excluded");
+ expect(html).toContain("Pitch Arsenal");expect(html).toContain("Classified Pitch Mix");
+ expect(html).toContain("Average velocity (mph)");expect(html).toContain("Average spin (RPM)");
+ expect(html).toContain("View exact pitch results");
+});
+it("uses reviewed per-type summaries for chart marks and omits ambiguous duplicate values",()=>{
+ const rows=prepareClassifiedPitchResults(session,labels,context);
+ const pitches=arsenalPitches(rows);
+ expect(pitches.map(p=>[p.pitchType,p.count,p.velocityReadings,p.spinReadings])).toEqual([["Fastball",3,2,2],["Slider",1,1,1]]);
+ expect(pitches[0].averageVelocity).toBe((80.123+82.456)/2);
+ expect(pitches[0].averageSpin).toBe((2000.123+2100.456)/2);
+ const duplicate={...rows.find(r=>r.metric==="Pitch Type Average Velocity")!,id:"fictional-duplicate",value:99};
+ expect(arsenalPitches([...rows,duplicate]).find(p=>p.pitchType==="Fastball")?.averageVelocity).toBeNull();
 });
 it("keeps Practice pitch readings out of In-game profiles and preserves the original observation coordinates",()=>{
  const game=prepareClassifiedPitchResults(session,labels,context);

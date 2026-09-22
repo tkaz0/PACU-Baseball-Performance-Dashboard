@@ -12,6 +12,8 @@ September 22 Home and Analytics presentation: player and staff Home use the exis
 
 Bat speed presentation: show recorded, average, maximum and weekly 95th-percentile bat speed to one decimal on every dashboard surface, including profile cards/history/highlights, team rankings, comparisons, charts, Home and import previews. Keep raw readings and full precision for calculations, sorting, percentiles and saved data. Other metric precision remains source-specific.
 
+September 22 visual profile update: the own-player classified Full Swing result section may show an average-velocity/average-spin pitch chart and a classified-count mix for each latest-date file separately, with a collapsible exact average/max/sample table. Never infer pitch type, pool in-game with practice, or include unassigned/excluded pitches in the donut denominator. Physicality Overview radar uses only the existing valid Fall total-muscle-mass, RENPHO body-score, and reversed body-fat team percentiles when all three have at least five comparable players. It is descriptive, not a composite or health score. Do not expand player access to peer profiles or raw readings for visualizations.
+
 # PACU project rules
 
 This is Trevor Kazahaya's independently owned personal project for Pacific Baseball players and coaches. It is not an official university application. Preserve existing work and keep changes within the explicitly requested phase.
