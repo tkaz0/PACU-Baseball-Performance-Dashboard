@@ -18,13 +18,13 @@ function extent(values: number[], step: number): [number, number] {
 
 function ArsenalScatter({ pitches }: { pitches: readonly ArsenalPitch[] }) {
   const points = pitches.filter(p => p.averageVelocity !== null && p.averageSpin !== null);
-  if (!points.length) return <p className={styles.empty}>Velocity and spin were not both recorded for any classified pitch type in this session.</p>;
+  if (!points.length) return <p className={styles.empty}>No pitch type has both a speed and spin reading for this session yet.</p>;
   const [xMin, xMax] = extent(points.map(p => p.averageVelocity!), 2);
   const [yMin, yMax] = extent(points.map(p => p.averageSpin!), 100);
   const x = (value: number) => 62 + (value - xMin) / (xMax - xMin) * 340;
   const y = (value: number) => 210 - (value - yMin) / (yMax - yMin) * 174;
   return <figure className={styles.figure}>
-    <figcaption><h4>Pitch Arsenal<StatInfo metric="pitch_arsenal_chart" label="Pitch Arsenal chart"/></h4><p>Average velocity vs. average spin by reviewed pitch type</p></figcaption>
+    <figcaption><h4>Pitch Arsenal<StatInfo metric="pitch_arsenal_chart" label="Pitch Arsenal chart"/></h4><p>Each pitch type by average speed and spin</p></figcaption>
     <div className={styles.plotScroll}><svg viewBox="0 0 460 275" role="img" aria-label={`Pitch arsenal chart for ${points.length} classified pitch types. Velocity in miles per hour, spin in revolutions per minute.`}>
       {[0, .5, 1].map(fraction => {
         const spin = yMin + fraction * (yMax - yMin), speed = xMin + fraction * (xMax - xMin);
@@ -40,8 +40,8 @@ function ArsenalScatter({ pitches }: { pitches: readonly ArsenalPitch[] }) {
         return <g key={pitch.source} data-pitch-type={pitch.pitchType}><title>{`${pitch.pitchType}: ${formatSourceNumber(pitch.averageVelocity!,pitch.source)} mph, ${formatSourceNumber(pitch.averageSpin!,pitch.source)} RPM; velocity n=${pitch.velocityReadings ?? "unknown"}, spin n=${pitch.spinReadings ?? "unknown"}`}</title>{shape==="circle"?<circle cx={cx} cy={cy} r="7" fill={color} stroke="var(--surface-panel)" strokeWidth="2"/>:shape==="square"?<rect x={cx-7} y={cy-7} width="14" height="14" rx="2" fill={color} stroke="var(--surface-panel)" strokeWidth="2"/>:<path d={`M ${cx} ${cy-9} L ${cx+9} ${cy} L ${cx} ${cy+9} L ${cx-9} ${cy} Z`} fill={color} stroke="var(--surface-panel)" strokeWidth="2"/>}</g>;
       })}
     </svg></div>
-    <ul className={styles.legend}>{points.map(pitch=><li key={pitch.source}><span style={{backgroundColor:pitchColor(pitch.pitchType)}} aria-hidden="true"/><strong>{pitch.pitchType}</strong><small>Avg / max: {formatSourceNumber(pitch.averageVelocity!,pitch.source)} / {pitch.maxVelocity===null?"—":formatSourceNumber(pitch.maxVelocity,pitch.source)} mph · {formatSourceNumber(pitch.averageSpin!,pitch.source)} / {pitch.maxSpin===null?"—":formatSourceNumber(pitch.maxSpin,pitch.source)} RPM</small></li>)}</ul>
-    <p className={styles.note}>Velocity and spin averages use their separately available readings; sample sizes appear in the results table.</p>
+    <ul className={styles.legend}>{points.map(pitch=><li key={pitch.source}><span style={{backgroundColor:pitchColor(pitch.pitchType)}} aria-hidden="true"/><strong>{pitch.pitchType}</strong><small>Average / high: {formatSourceNumber(pitch.averageVelocity!,pitch.source)} / {pitch.maxVelocity===null?"—":formatSourceNumber(pitch.maxVelocity,pitch.source)} mph · {formatSourceNumber(pitch.averageSpin!,pitch.source)} / {pitch.maxSpin===null?"—":formatSourceNumber(pitch.maxSpin,pitch.source)} RPM</small></li>)}</ul>
+    <p className={styles.note}>Speed and spin can be recorded on different pitches. See the results table for how many readings went into each average.</p>
   </figure>;
 }
 
@@ -54,7 +54,7 @@ function ArsenalMix({ pitches }: { pitches: readonly ArsenalPitch[] }) {
   if (remaining) shown.push({label:"Other classified types",count:remaining});
   const circumference = 2 * Math.PI * 68;
   return <figure className={styles.figure}>
-    <figcaption><h4>Classified Pitch Mix<StatInfo metric="pitch_mix_chart" label="Classified Pitch Mix chart"/></h4><p>Share of reviewed, classified pitches in this session</p></figcaption>
+    <figcaption><h4>Pitch Mix<StatInfo metric="pitch_mix_chart" label="Pitch Mix chart"/></h4><p>How often each assigned pitch type was thrown</p></figcaption>
     <div className={styles.mixLayout}><svg viewBox="0 0 220 220" role="img" aria-label={`${total} classified pitches across ${counted.length} pitch types`}>
       <circle cx="110" cy="110" r="68" fill="none" stroke="var(--line-subtle)" strokeWidth="23"/>
       {shown.map((item,index)=>{
@@ -62,9 +62,9 @@ function ArsenalMix({ pitches }: { pitches: readonly ArsenalPitch[] }) {
         const offset=shown.slice(0,index).reduce((sum,previous)=>sum+previous.count,0)/total*circumference;
         return <circle key={item.label} cx="110" cy="110" r="68" fill="none" stroke={item.label==="Other classified types"?"#7d8692":pitchColor(item.label)} strokeWidth="23" strokeDasharray={`${length} ${circumference-length}`} strokeDashoffset={-offset} transform="rotate(-90 110 110)"><title>{`${item.label}: ${item.count} of ${total} classified pitches`}</title></circle>;
       })}
-      <text x="110" y="105" textAnchor="middle" fill="var(--text-primary)" fontSize="28" fontWeight="800">{total}</text><text x="110" y="124" textAnchor="middle" fill="var(--text-secondary)" fontSize="11">classified</text>
+      <text x="110" y="105" textAnchor="middle" fill="var(--text-primary)" fontSize="28" fontWeight="800">{total}</text><text x="110" y="124" textAnchor="middle" fill="var(--text-secondary)" fontSize="11">assigned</text>
     </svg><ul className={styles.mixLegend}>{shown.map(item=><li key={item.label}><span style={{backgroundColor:item.label==="Other classified types"?"#7d8692":pitchColor(item.label)}} aria-hidden="true"/><span>{item.label}</span><strong>{item.count} · {(item.count/total*100).toFixed(0)}%</strong></li>)}</ul></div>
-    <p className={styles.note}>Unassigned and excluded pitches are outside this total.</p>
+    <p className={styles.note}>Pitches without a staff-assigned type are left out of this chart.</p>
   </figure>;
 }
 

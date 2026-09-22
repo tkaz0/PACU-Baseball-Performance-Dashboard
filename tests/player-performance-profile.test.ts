@@ -19,14 +19,14 @@ describe("player profile tabs and presentation",()=>{
   for(const label of ["Overview","Physicality","In-Game","Practice","Progress"])expect(html).toContain(label);
   expect(html).not.toContain(athlete.pacific_email);expect(html).not.toContain(athlete.renpho_id);expect(html).not.toContain("Eligibility year");expect(html).toContain("Avery Northstar");expect(html).toContain("PAC ID");expect(html).toMatch(/Jersey Number<\/dt><dd[^>]*>0<\/dd>/);
  expect(html).not.toContain('role="meter"');expect(html).not.toContain('data-value="0"');expect(html).not.toContain("Pacific n=0");expect(html).not.toContain("Need 5 comparable players");expect(html).not.toContain("Team comparison not available");expect(html).not.toMatch(/<details[^>]*\sopen(?:[ =>])/);
-  expect(html).not.toContain("Available Metrics");
+  expect(html).not.toContain("Stats Available");
  });
  it("summarizes only available snapshot metrics and points body-only profiles to Physicality",()=>{
   const performance=model([measurement("Weight",172,"lb","2026-09-02"),measurement("Height",70,"in","2026-09-03")]);
   const html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete:fictionalAthlete("position"),performance}));
   const overview=html.split('role="tabpanel"')[1];
-  expect(overview).toContain("Your body measurements are ready in Physicality");
-  expect(overview).toMatch(/Available Metrics<\/dt><dd[^>]*>2<\/dd>/);
+  expect(overview).toContain("Your body results are in Physicality");
+  expect(overview).toMatch(/Stats Available<\/dt><dd[^>]*>2<\/dd>/);
   expect(overview).toContain('dateTime="2026-09-03"');
   expect(overview).not.toContain('dateTime="2026-09-02"');
   expect(overview).not.toContain('role="meter"');
@@ -73,11 +73,11 @@ describe("player profile tabs and presentation",()=>{
   expect(html).toContain('>In-Game</button>');expect(html).toContain('>Practice</button>');expect((html.match(/role="tab"/g)??[])).toHaveLength(5);
   const overview=html.split('role="tabpanel"')[1];expect(overview.includes("Max Exit Velocity")).toBe(hitting);expect(overview.includes("Home to 1st")).toBe(hitting);
   expect(html.includes("Speed &amp; Agility")).toBe(hitting);expect(html.includes('data-metric-key="home_to_first"')).toBe(hitting);expect(html.includes("Sep 4, 2026")).toBe(hitting);
-  expect(overview).toContain("Strengths");expect(overview).toContain("Weaknesses");expect(overview).toContain("Biggest Jumps");
+  expect(overview).toContain("Strengths");expect(overview).toContain("Areas to Work On");expect(overview).toContain("Biggest Jumps");
  });
  it("shows eligible percentile bars without transmitting another athlete's raw provenance",()=>{
   const readings=Array.from({length:5},(_,i)=>measurement("Weight",170+i,"lb","2026-09-03",`SYN-00${i+1}`));const performance=getPlayerPerformance({readings,athleteCode:"SYN-001",cohortAthleteCodes:readings.map(r=>r.athlete_code)}),html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete:fictionalAthlete("position"),performance}));
-  expect(html).toContain('role="meter"');expect(html).toContain('data-percentile="0"');expect(html).toContain("Pacific n=5");expect(html).toContain('data-direction="neutral"');expect(html).not.toContain("fictional-SYN-002.csv");
+  expect(html).toContain('role="meter"');expect(html).toContain('data-percentile="0"');expect(html).toContain("5 teammates");expect(html).toContain('data-direction="neutral"');expect(html).not.toContain("fictional-SYN-002.csv");
  });
 });
 

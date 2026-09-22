@@ -59,7 +59,7 @@ test("player snapshot shows exact own readings and team percentiles without peer
   await expect(max).toHaveAttribute("data-value", "90");
   await expect(max).toHaveAttribute("data-unit", "mph");
   await expect(max).toHaveAttribute("data-date", "2026-09-03");
-  await expect(max).toContainText("Pacific n=6");
+  await expect(max).toContainText("6 teammates");
   await expect(max.getByRole("meter")).toHaveAttribute("aria-valuenow", "0");
   const average = profile.getByTestId("player-metric").filter({ has: page.locator('h3', { hasText: /^Average EV$/ }) });
   await expect(average).toHaveAttribute("data-value", "80");

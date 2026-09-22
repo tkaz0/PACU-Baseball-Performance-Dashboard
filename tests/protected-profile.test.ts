@@ -117,7 +117,7 @@ describe("protected profile route authorization and integration", () => {
       period: "fall_2026", unit: "mph", source: "Fictional hitting test", direction: "higher",
     }] });
     const html = renderToStaticMarkup(await Profile({ params: Promise.resolve({ id: ownId }) }));
-    expect(html).toContain("Pacific n=5"); expect(html).toContain('data-percentile="50"');
+    expect(html).toContain("5 teammates"); expect(html).toContain('data-percentile="50"');
     expect(html).not.toContain("Summer-only metric"); expect(html).not.toContain("Old-only metric");
     expect(fake.load).toHaveBeenCalledTimes(1);
   });

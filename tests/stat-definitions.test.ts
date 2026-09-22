@@ -16,8 +16,8 @@ it("resolves original report labels to the same definitions",()=>{expect(statDef
 
 it("explains correlation and chart scope without confusing hitter and pitcher contact rules",()=>{
   expect(statDefinition("pearson_r")).toContain("−1");
-  expect(statDefinition("r_squared")).toContain("Y variable");
+  expect(statDefinition("r_squared")).toContain("second stat");
   expect(statDefinition("spray_chart")).toContain("150-foot");
-  expect(statDefinition("pitch_arsenal_chart")).toContain("staff-classified");
-  expect(statDefinition("pitching_contact_chart")).toContain("not the hitter chart’s 90 mph");
+  expect(statDefinition("pitch_arsenal_chart")).toContain("assigned by the staff");
+  expect(statDefinition("pitching_contact_chart")).toContain("do not use the hitter chart’s 90 mph");
 });

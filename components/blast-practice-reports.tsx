@@ -25,7 +25,7 @@ export function BlastPracticeReports({readings,compact=false,teamAverages=[]}:{r
         {!compact&&<div className={styles.peakValue}><span>Latest Week<span>Peak · 95th</span></span><strong>{m.peak===null?"—":`${formatBlastValue(m.peak,m.unit)} ${blastUnit(m.unit)}`}</strong></div>}
       </article>)}
     </div>
-    {!compact&&summary.peakPeriod&&<p className={styles.count}>Peak report: {blastPeriodLabel(summary.peakPeriod.start,summary.peakPeriod.end)}. Weekly 95th percentiles; not Fall peaks or maximums.</p>}
+    {!compact&&summary.peakPeriod&&<p className={styles.count}>Strong-swing report: {blastPeriodLabel(summary.peakPeriod.start,summary.peakPeriod.end)}. Weekly 95th-percentile results, not the fastest swings of the Fall.</p>}
     <p className={styles.count}>Fall averages are weighted by each report’s swing count. Each swing is counted once.</p>
   </section>;
 }

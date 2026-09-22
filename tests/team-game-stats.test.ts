@@ -55,7 +55,7 @@ it("combines pitching appearances without averaging strike percentages or mixing
 });
 it("renders the coach summary, linked player breakdown, empty pitching and review state", () => {
   const html = renderToStaticMarkup(createElement(TeamGameStats, { stats: rows("fictional-a", { ...counts, pa: 4 }), names: new Map([["fictional-a", "Example Player"]]) }));
-  for (const text of ["Team Batting", "Team Pitching", "Player Breakdown", "No recorded pitching results yet", "Counts need review", "/athletes/fictional-a", "Open Data Review"]) expect(html).toContain(text);
+  for (const text of ["Team Batting", "Team Pitching", "Player Breakdown", "No pitching stats yet", "Counts need review", "/athletes/fictional-a", "Open Data Review"]) expect(html).toContain(text);
   expect(html).not.toContain('role="meter"'); expect(html).not.toContain("Game Log");
 });
 

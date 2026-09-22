@@ -57,10 +57,10 @@ it("renders four one-decimal results, sample sizes and separate sessions for the
  const html=renderToStaticMarkup(createElement(ClassifiedPitchResults,{readings:[...rows,...earlier]}));
  for(const text of ["81.3","82.5","2050.3","2100.5","n=2","Fastball","Slider"])expect(html).toContain(text);
  expect(html).not.toContain("82.456");expect(html).not.toContain("Old fictional");expect(html).not.toContain("Fictional Excluded");
- expect(html).toContain("Pitch Arsenal");expect(html).toContain("Classified Pitch Mix");
- expect(html).toContain('aria-label="About Pitch Arsenal chart"');expect(html).toContain('aria-label="About Classified Pitch Mix chart"');
+ expect(html).toContain("Pitch Arsenal");expect(html).toContain("Pitch Mix");
+ expect(html).toContain('aria-label="About Pitch Arsenal chart"');expect(html).toContain('aria-label="About Pitch Mix chart"');
  expect(html).toContain("Average velocity (mph)");expect(html).toContain("Average spin (RPM)");
- expect(html).toContain("View exact pitch results");
+ expect(html).toContain("See Every Pitch Type");
 });
 it("uses reviewed per-type summaries for chart marks and omits ambiguous duplicate values",()=>{
  const rows=prepareClassifiedPitchResults(session,labels,context);

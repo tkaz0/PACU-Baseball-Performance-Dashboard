@@ -9,5 +9,5 @@ export function PercentileBar({ value, sampleSize, label, descriptive = false, t
   </div>;
 }
 export function PercentileLegend() {
-  return <div className={styles.legend}><span>0 · Lower percentile</span><span className={styles.key} aria-hidden="true" /><span>Higher percentile · 100</span><span>Midpoint: 50</span></div>;
+  return <div className={styles.legend}><span>0 · Lower team rank</span><span className={styles.key} aria-hidden="true" /><span>Higher team rank · 100</span><span>Middle of team: 50</span></div>;
 }

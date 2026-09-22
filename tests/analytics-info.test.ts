@@ -7,6 +7,6 @@ it("puts accessible explanations beside both correlation scores even before resu
   const html = renderToStaticMarkup(createElement(AnalyticsExplorer, { data: { players: [], readings: [] } }));
   expect(html).toContain('aria-label="About Pearson r"');
   expect(html).toContain('aria-label="About R²"');
-  expect(html).toContain("currently visible paired players");
-  expect(html).toContain("one-variable best-fit line");
+  expect(html).toContain("players shown");
+  expect(html).toContain("trend line");
 });

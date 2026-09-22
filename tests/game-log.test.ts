@@ -17,7 +17,7 @@ it("weights recent rates by opportunities and calculates supported power measure
  const missing={...b,batting:{ab:1}};expect(loggedBattingRates([a,missing])).toEqual([]);expect(loggedBattingRates([a,{...b,athleteId:"other"}])).toEqual([]);
 });
 it("labels samples at documented boundaries without changing data",()=>{
- for(const [count,pitching,shown]of [[19,false,true],[20,false,false],[49,true,true],[50,true,false],[0,false,false],[null,false,false]] as const)expect(renderToStaticMarkup(createElement(LimitedSample,{count,pitching})).includes("Limited sample")).toBe(shown);
+ for(const [count,pitching,shown]of [[19,false,true],[20,false,false],[49,true,true],[50,true,false],[0,false,false],[null,false,false]] as const)expect(renderToStaticMarkup(createElement(LimitedSample,{count,pitching})).includes("Early sample")).toBe(shown);
 });
 it("renders real dated games and an honest empty state",()=>{
  expect(renderToStaticMarkup(createElement(PlayerGameLog,{logs:[]}))).toContain("Your first recorded game");

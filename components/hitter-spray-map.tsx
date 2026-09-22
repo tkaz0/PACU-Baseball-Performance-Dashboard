@@ -4,7 +4,7 @@ import { INFIELD_DISTANCE_FEET, MIDDLE_DIRECTION_DEGREES, spraySummary } from "@
 /** Positive source Direction points toward first base, confirmed by the owner. */
 export function HitterSprayMap({ contacts, bats }: { contacts: readonly SavedContact[]; bats?: string | null }) {
   const rows=contacts.filter(row=>row.direction!==null&&row.distance!==null);
-  if(!rows.length)return <p className="rounded-xl border border-dashed border-[var(--line-subtle)] p-4 text-sm text-[var(--text-secondary)]">No reviewed direction-and-distance pairs are saved for this selection yet.</p>;
+  if(!rows.length)return <p className="rounded-xl border border-dashed border-[var(--line-subtle)] p-4 text-sm text-[var(--text-secondary)]">No batted balls with both direction and distance have been added here yet.</p>;
   const summary=spraySummary(contacts,bats);
   const radius=Math.max(400,Math.ceil(Math.max(...rows.map(row=>row.distance!))/100)*100);
   const scale=270/radius, originX=350,originY=330;
@@ -34,6 +34,6 @@ export function HitterSprayMap({ contacts, bats }: { contacts: readonly SavedCon
       </div>)}</div> : <p className="muted mb-0 text-xs">No plotted balls in this distance group.</p>}
     </div>)}
   </div>
-  <p className="muted mb-0 mt-2 text-xs">Infield/outfield uses the report’s recorded Distance with a {INFIELD_DISTANCE_FEET}-ft display cutoff; pull/middle/opposite uses Direction beyond ±{MIDDLE_DIRECTION_DEGREES}° and the rostered batting side. {summary.battingSide ? "" : "Batting side is unconfirmed for these swings, so field sides replace pull/opposite. "}{summary.missing ? `${summary.missing} batted ${summary.missing===1?"ball has":"balls have"} no paired Direction and Distance and ${summary.missing===1?"is":"are"} excluded from these percentages. ` : ""}These are batted balls, not confirmed hits or fielding locations.</p>
+  <p className="muted mb-0 mt-2 text-xs">Infield and outfield are divided at {INFIELD_DISTANCE_FEET} ft. Pull, middle, and opposite use ball direction beyond ±{MIDDLE_DIRECTION_DEGREES}° and the player’s batting side. {summary.battingSide ? "" : "Batting side is not confirmed, so this chart shows field sides instead. "}{summary.missing ? `${summary.missing} batted ${summary.missing===1?"ball has":"balls have"} no paired Direction and Distance and ${summary.missing===1?"is":"are"} excluded from these percentages. ` : ""}These are recorded ball flights, not confirmed hits or exact landing spots.</p>
   <p className="muted mb-0 mt-1 text-xs">Field lines are a visual reference, not a measured ballpark boundary. Points use Direction and Distance from the same CSV row.</p></div>;
 }
