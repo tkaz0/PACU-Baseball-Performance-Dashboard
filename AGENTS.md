@@ -121,4 +121,4 @@ September 21 bulk invitations: an active Admin outside View as can review remain
 
 September 22: the owner adds grip to Analytics. Permit generic, dominant and non-dominant grip as distinct saved variables alongside the five selected physicality metrics. Preserve sources, units, latest-result selection, date-gap filtering and staff-only authorization.
 
-September 22 Analytics display cleanup: show metric name plus `(In Game)` or `(Practice)` on selectors and chart labels. Hide Blast P95 summary rows from Analytics. Keep underlying metric/source/unit keys, dates, saved readings and existing pairing rules; do not show report dates or source titles in the Analytics chart/details.
+September 22 Analytics display cleanup: show metric name plus `(In Game)` or `(Practice)` on selectors and chart labels; classified pitch names include their actual pitch type. Hide Blast P95 summary rows from Analytics. Keep underlying metric/source/unit keys, dates, saved readings and existing pairing rules; do not show report dates or source titles in the Analytics chart/details.

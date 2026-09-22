@@ -1,4 +1,5 @@
 import { parseBlastSource } from "@/lib/blast-metrics";
+import { classifiedPitchSource } from "@/lib/imports/classified-pitch-results";
 import { RENPHO_SEGMENTS } from "@/lib/renpho-segments";
 import { isTimedMetric, PLAYER_METRICS } from "@/lib/player-performance";
 
@@ -20,9 +21,11 @@ export const analyticsReadingVisible = (row: Pick<AnalyticsReading,"metric"|"sou
   !/(?:^|_)p95(?:_|$)/i.test(row.metric) &&
   !/\b(?:p95|95th\s+percentile)\b/i.test(row.label);
 export function analyticsDisplayLabel(row: Pick<AnalyticsReading,"metric"|"label"|"source">): string {
-  const base=(PLAYER_METRICS.find(m=>m.key===row.metric)?.label??row.label)
+  const raw=(PLAYER_METRICS.find(m=>m.key===row.metric)?.label??row.label)
     .replace(/^(?:Game|Pitching)\s+/i, "")
     .replace(/\s*\((?:In[- ]Game|Practice)\)$/i, "");
+  const pitch=classifiedPitchSource(row.source);
+  const base=pitch ? `${pitch.pitchType} ${raw.replace(/^Pitch Type\s+/i, "")}` : raw;
   const inGame=/^(?:QPA|Pitching)(?:\s*·|$)/i.test(row.source.trim()) ||
     /^Full Swing\s*·\s*(?:Game|Intrasquad)(?:\s*·|$)/i.test(row.source.trim());
   return `${base} (${inGame ? "In Game" : "Practice"})`;
