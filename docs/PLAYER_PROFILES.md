@@ -157,6 +157,8 @@ The In-game tab includes **Pitch Types · Velocity & Spin** from reviewed Full S
 
 Classified pitch tables now respect their recorded Game/Intrasquad versus Practice source and appear only in the corresponding tab. Team leaderboards use the same context boundary; regular Hitting/Pitching/Blast testing stays Practice. Four-seam and two-seam fastballs retain distinct pitch types rather than being pooled under a generic fastball average.
 
+The Hitter Contact Map in the In-Game and Practice tabs plots reviewed individual Full Swing batted balls as paired exit velocity (mph) and launch angle (degrees). A session selector can show an individual file or all Fall files within that tab's context. The color scale represents measured exit velocity, and an expandable table exposes the exact pairs. Pitcher-only profiles omit the map. No hit outcomes, optimal launch-angle targets, or peer raw events are inferred or exposed. This requires `202609220002_full_swing_contacts.sql`; existing summary cards and percentiles remain unchanged.
+
 
 ## Fall Practice Summaries — September 20 Update
 

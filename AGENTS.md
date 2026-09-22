@@ -14,6 +14,8 @@ Bat speed presentation: show recorded, average, maximum and weekly 95th-percenti
 
 September 22 visual profile update: the own-player classified Full Swing result section may show an average-velocity/average-spin pitch chart and a classified-count mix for each latest-date file separately, with a collapsible exact average/max/sample table. Never infer pitch type, pool in-game with practice, or include unassigned/excluded pitches in the donut denominator. Physicality Overview radar uses only the existing valid Fall total-muscle-mass, RENPHO body-score, and reversed body-fat team percentiles when all three have at least five comparable players. It is descriptive, not a composite or health score. Do not expand player access to peer profiles or raw readings for visualizations.
 
+September 22 hitter contact map: only the exact reviewed Full Swing Field / Live at Bat CSV can supply paired per-row ExitSpeed (mph) and Angle (degrees). Staff review and save matched batters through the separate immutable `full_swing_contacts` table/RPC; exclude missing pairs and unmatched batters. Require migration `202609220002_full_swing_contacts.sql` before the consuming app. Display only on the matched athlete's own or staff-authorized profile, with Game/Intrasquad separated from Practice. Do not mix these events into summary metrics, team leaderboards, Analytics or peer-detail access, and do not invent hit outcomes or optimal-angle judgments.
+
 # PACU project rules
 
 This is Trevor Kazahaya's independently owned personal project for Pacific Baseball players and coaches. It is not an official university application. Preserve existing work and keep changes within the explicitly requested phase.

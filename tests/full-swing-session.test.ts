@@ -3,6 +3,7 @@ import { FULL_SWING_SESSION_HEADERS as headers, summarizeFullSwingSession } from
 import { previewFullSwingSummary } from "@/lib/imports/full-swing";
 import { getPreviewRoster } from "@/lib/preview-roster";
 import { groupPitchRanges, SESSION_METRICS } from "@/lib/imports/full-swing-session";
+import { prepareFullSwingContacts } from "@/lib/imports/full-swing-contacts";
 
 const player = getPreviewRoster()[0];
 const name = `${player.first_name} ${player.last_name}`;
@@ -71,6 +72,21 @@ it("bins velocity/spin by pitcher with exact boundaries and missing spin separat
 it("keeps unreadable spin out of numerical groups without blocking summary imports",()=>{
  const r=summarizeFullSwingSession(table([event({SpinRate:"broken"})]));
  expect(r.pitches[0].spin).toBeNull();expect(r.table.rows).toHaveLength(2);
+});
+
+it("preserves exact row-paired batted balls and excludes incomplete pairs and unmatched hitters", () => {
+ const session=summarizeFullSwingSession(table([
+  event({Angle:"-12.5",ExitSpeed:"94.321"}),
+  event({PitchNo:"2",Angle:"18",ExitSpeed:"null"}),
+  event({PitchNo:"3",Batter:"Fictional Guest",BatterId:"fictional-guest",Angle:"22",ExitSpeed:"81"}),
+ ]));
+ expect(session.contacts).toEqual([
+  {identity:name,exitVelocity:94.321,launchAngle:-12.5,sourceRow:2,pitchNumber:1},
+  {identity:"Fictional Guest",exitVelocity:81,launchAngle:22,sourceRow:4,pitchNumber:3},
+ ]);
+ const rows=prepareFullSwingContacts(session,{fileHash:"a".repeat(64),fileName:"fictional.csv",date:session.date,category:"intrasquad",matches:[{identity:name,athleteCode:"PAC-0001"}]});
+ expect(rows).toEqual([{athleteCode:"PAC-0001",fileHash:"a".repeat(64),sourceFile:"fictional.csv",sourceRow:2,pitchNumber:1,playedOn:"2026-09-11",category:"intrasquad",exitVelocity:94.321,launchAngle:-12.5}]);
+ expect(()=>summarizeFullSwingSession(table([event({Angle:"120"})]))).toThrow("Angle");
 });
 
 it("groups nearby velocities across old boundaries until a 3 mph gap, preserving pitcher/spin/missing partitions",()=>{

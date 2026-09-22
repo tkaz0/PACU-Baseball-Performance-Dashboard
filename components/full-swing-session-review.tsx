@@ -1,5 +1,7 @@
 "use client";
 import { PitchAssignmentReview, type PitchAssignmentStore } from "@/components/pitch-assignment-review";
+import { saveReviewedContacts } from "@/app/(workspace)/imports/actions";
+import { prepareFullSwingContacts } from "@/lib/imports/full-swing-contacts";
 import type { PitchResultContext } from "@/lib/imports/classified-pitch-results";
 import type { SaveImportAction } from "@/components/full-swing-import";
 import { useState } from "react";
@@ -11,10 +13,26 @@ export function FullSwingSessionReview({ session, fileHash, assignmentStore, inc
   const [velocityWidth, setVelocityWidth] = useState(3), [spinWidth, setSpinWidth] = useState(250);
   const [groupingMode, setGroupingMode] = useState<PitchGroupingMode>("gap");
   const [rpmConfirmed, setRpmConfirmed] = useState(false);
+  const [contactsApproved, setContactsApproved] = useState("");
+  const [contactsBusy, setContactsBusy] = useState(false);
+  const [contactsMessage, setContactsMessage] = useState("");
   const matches = (name: string) => (includedIdentities === undefined || includedIdentities.includes(name)) && name.toLowerCase().includes(search.trim().toLowerCase());
   const ranges = groupPitchRanges(session.pitches, velocityWidth, spinWidth, groupingMode).filter(r => matches(r.identity));
   const players = session.players.filter(p => matches(p.identity));
   const spinUnit = rpmConfirmed ? "RPM" : "export units";
+  const contactKey = resultContext ? JSON.stringify([resultContext.fileHash, resultContext.category, resultContext.matches]) : "";
+  let contactRows: ReturnType<typeof prepareFullSwingContacts> = [], contactError = "";
+  if (resultContext) try { contactRows = prepareFullSwingContacts(session, resultContext); } catch (error) { contactError = error instanceof Error ? error.message : "Review the contact readings."; }
+  const matchedBatters = resultContext?.matches.filter(match => session.players.some(player => player.role === "Batter" && player.identity === match.identity)) ?? [];
+  async function saveContacts() {
+    if (contactsBusy || contactsApproved !== contactKey || !contactRows.length || contactError) return;
+    setContactsBusy(true); setContactsMessage("");
+    try {
+      const result = await saveReviewedContacts(contactRows, true);
+      setContactsMessage("error" in result ? result.error : `${result.created} batted-ball ${result.created === 1 ? "reading" : "readings"} saved · ${result.unchanged} already saved. Open a matched player profile to see the map.`);
+    } catch { setContactsMessage("The save could not be confirmed. Check the player profiles before retrying the same file."); }
+    finally { setContactsBusy(false); }
+  }
   return <section className="my-6 space-y-5 rounded-xl border border-[var(--line-subtle)] p-4 sm:p-5" aria-label="Full Swing session review">
     <div><h3 className="m-0 text-lg font-bold">Roster Player Summaries</h3><p className="muted mb-0 text-sm">{session.date} · {session.eventCount} pitches in the source file. Only selected roster players appear below; — means no recorded value.</p></div>
     <label className="block max-w-md">Find a player<input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search export names" /></label>
@@ -27,6 +45,15 @@ export function FullSwingSessionReview({ session, fileHash, assignmentStore, inc
         return <td className="tabular-nums" key={m.key}>{raw ? number(Number(raw)) : "—"}{count !== undefined && <span className="muted block text-[11px]">n={count}</span>}</td>;
       })}</tr>)}</tbody></table></div></div>;
     })}
+    {resultContext && <div className="rounded-xl border border-[var(--line-subtle)] bg-[var(--surface-panel)] p-4" aria-label="Batted-ball contact review">
+      <h4 className="m-0 font-bold">Hitter Contact Map</h4>
+      <p className="muted mb-2 mt-1 text-sm">Save only paired measured ExitSpeed (mph) and Angle (degrees) from the same original CSV row. Unmatched hitters and rows missing either reading stay out.</p>
+      <p className="mb-2 text-sm font-semibold">{contactRows.length} paired batted balls · {matchedBatters.length} matched {matchedBatters.length === 1 ? "hitter" : "hitters"} · {session.date}</p>
+      {contactError && <p role="alert" className="notice notice-error">{contactError}</p>}
+      {contactRows.length > 0 && <details><summary className="cursor-pointer text-sm font-semibold text-[var(--accent-readable)]">Review paired source readings</summary><div className="table-wrap mt-3 max-h-72"><table><thead><tr><th>CSV Row</th><th>Pitch #</th><th>Matched Batter</th><th>Exit Velocity</th><th>Launch Angle</th></tr></thead><tbody>{contactRows.map(row => <tr key={row.sourceRow}><td>{row.sourceRow}</td><td>{row.pitchNumber}</td><td>{resultContext.matches.find(match => match.athleteCode === row.athleteCode)?.identity}</td><td>{row.exitVelocity.toFixed(1)} mph</td><td>{row.launchAngle.toFixed(1)}°</td></tr>)}</tbody></table></div></details>}
+      {contactRows.length > 0 && !contactError && <><label className="my-3 flex items-start gap-2 text-sm"><input type="checkbox" checked={contactsApproved === contactKey} onChange={event => setContactsApproved(event.target.checked ? contactKey : "")} /><span>I checked the batter matches, source rows, mph, angles and {resultContext.category} category against this CSV.</span></label><button type="button" className="btn btn-primary" disabled={contactsApproved !== contactKey || contactsBusy} onClick={() => void saveContacts()}>{contactsBusy ? "Saving…" : "Save Contact Map Readings"}</button></>}
+      {contactsMessage && <p role="status" className="notice mt-3 mb-0">{contactsMessage}</p>}
+    </div>}
     <details className="border-t border-[var(--line-subtle)] pt-4" open><summary className="cursor-pointer font-semibold">Pitch Velocity &amp; Spin Ranges</summary>
       <p className="muted text-sm">Grouped separately for each pitcher. Ranges organize similar readings. Review the suggested pitch types below. Pitch assignments save separately from player measurements.</p>
       <div className="flex flex-wrap gap-4"><label>Group pitches by<select value={groupingMode} onChange={e=>setGroupingMode(e.target.value as PitchGroupingMode)}><option value="gap">Gaps between velocities</option><option value="fixed">Fixed velocity ranges</option></select></label><label>{groupingMode === "gap" ? "Start a new group at" : "Velocity range"}<select value={velocityWidth} onChange={e => setVelocityWidth(Number(e.target.value))}>{[2,3,5,10].map(n => <option key={n} value={n}>{n} mph</option>)}</select></label><label>Spin range<select value={spinWidth} onChange={e => setSpinWidth(Number(e.target.value))}>{[100,250,500].map(n => <option key={n} value={n}>{n} {spinUnit}</option>)}</select></label></div>

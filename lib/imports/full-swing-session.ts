@@ -15,6 +15,7 @@ export type FullSwingSession = {
   table: ImportTable; date: string; eventCount: number; pitcherCount: number; batterCount: number;
   players: { identity: string; role: "Pitcher" | "Batter"; eventCount: number; values: string[] }[];
   pitches: { identity: string; velocity: number | null; spin: number | null; sourceRow: number; pitchNumber: number }[];
+  contacts: { identity: string; exitVelocity: number; launchAngle: number; sourceRow: number; pitchNumber: number }[];
   samples: { identity: string; role: string; metric: string; count: number; sourceRows: number[] }[];
 };
 export const looksLikeFullSwingSession = (headers: readonly string[]) => headers.includes("PitchNo") && headers.includes("PitcherId") && headers.includes("BatterId");
@@ -48,7 +49,7 @@ export function summarizeFullSwingSession(input: ImportTable): FullSwingSession 
   }
   if (dates.size !== 1) throw new Error("Use one dated Full Swing session per file.");
   const date = [...dates][0], table: ImportTable = { headers: ["Player", "Date", ...SESSION_METRICS.map(m => m.label)], rows: [], rowNumbers: [] }, samples: FullSwingSession["samples"] = [];
-  const players: FullSwingSession["players"] = [], pitchReadings: FullSwingSession["pitches"] = [];
+  const players: FullSwingSession["players"] = [], pitchReadings: FullSwingSession["pitches"] = [], contacts: FullSwingSession["contacts"] = [];
   for (const group of groups.values()) {
     const values = SESSION_METRICS.map(metric => {
       if (metric.role !== group.role) return "";
@@ -71,9 +72,16 @@ export function summarizeFullSwingSession(input: ImportTable): FullSwingSession 
       };
       pitchReadings.push({ identity: group.identity, velocity: numeric("RelSpeed"), spin: numeric("SpinRate"), sourceRow: row, pitchNumber: Number(cells[index("PitchNo")]) });
     }
+    if (group.role === "Batter") for (const { cells, row } of group.rows) {
+      const rawAngle = cells[index("Angle")].trim(), rawExit = cells[index("ExitSpeed")].trim();
+      if (!rawExit || rawExit === "null" || !rawAngle || rawAngle === "null") continue;
+      if (!/^-?\d+(?:\.\d+)?$/.test(rawAngle) || !Number.isFinite(Number(rawAngle)) || Math.abs(Number(rawAngle)) > 90)
+        throw new Error(`Row ${row}: review Angle; expected a launch angle from -90 to 90 degrees.`);
+      contacts.push({ identity: group.identity, exitVelocity: Number(rawExit), launchAngle: Number(rawAngle), sourceRow: row, pitchNumber: Number(cells[index("PitchNo")]) });
+    }
     if (values.some(Boolean)) { table.rows.push([group.identity, date, ...values]); table.rowNumbers.push(table.rows.length + 1); }
   }
-  return { table, date, eventCount: input.rows.length, pitcherCount: [...groups.values()].filter(g => g.role === "Pitcher").length, batterCount: [...groups.values()].filter(g => g.role === "Batter").length, players, pitches: pitchReadings, samples };
+  return { table, date, eventCount: input.rows.length, pitcherCount: [...groups.values()].filter(g => g.role === "Pitcher").length, batterCount: [...groups.values()].filter(g => g.role === "Batter").length, players, pitches: pitchReadings, contacts, samples };
 }
 
 export type PitchRange = { sourceRows: number[]; identity: string; velocityStart: number | null; velocityEnd: number | null; spinStart: number | null; count: number; averageVelocity: number | null; averageSpin: number | null };

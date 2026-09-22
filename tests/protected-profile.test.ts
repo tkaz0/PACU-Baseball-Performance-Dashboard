@@ -4,12 +4,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Role, RosterAthlete } from "@/lib/types";
 import type { Measurement } from "@/lib/imports/engine";
 
-const fake = vi.hoisted(() => ({ access: vi.fn(), from: vi.fn(), select: vi.fn(), eq: vi.fn(), single: vi.fn(), load: vi.fn(), charts: vi.fn(), games: vi.fn(), comparisons: vi.fn(), logs: vi.fn(), team: vi.fn(), movement: vi.fn() }));
+const fake = vi.hoisted(() => ({ access: vi.fn(), from: vi.fn(), select: vi.fn(), eq: vi.fn(), single: vi.fn(), load: vi.fn(), contacts: vi.fn(), charts: vi.fn(), games: vi.fn(), comparisons: vi.fn(), logs: vi.fn(), team: vi.fn(), movement: vi.fn() }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/movement-server", () => ({ loadMovementScreening: fake.movement }));
 vi.mock("@/lib/auth", () => ({ requireAccess: fake.access }));
 vi.mock("@/lib/hitting-team-server", () => ({ loadHittingTeamAverages: fake.team }));
 vi.mock("@/lib/performance-server", () => ({ loadAthletePerformance: fake.load }));
+vi.mock("@/lib/full-swing-contacts-server", () => ({ loadFullSwingContacts: fake.contacts }));
 vi.mock("@/lib/game-comparison-server", () => ({ loadGameComparisons: fake.comparisons }));
 vi.mock("@/lib/game-log-server", () => ({ loadGameLogs: fake.logs }));
 vi.mock("@/lib/game-server", () => ({ loadGameStats: fake.games }));
@@ -41,6 +42,7 @@ beforeEach(() => {
   fake.single.mockResolvedValue({ data: athlete, error: null });
   fake.access.mockResolvedValue(access());
   fake.load.mockResolvedValue({ measurements: [reading()], batches: [], percentileOverrides: [] });
+  fake.contacts.mockResolvedValue([]);
   fake.games.mockResolvedValue([]); fake.logs.mockResolvedValue([]);
   fake.charts.mockImplementation(() => createElement("p", null, "Fictional chart boundary"));
 });
@@ -75,6 +77,7 @@ describe("protected profile route authorization and integration", () => {
     expect(fake.from).toHaveBeenCalledExactlyOnceWith("athletes");
     expect(fake.eq).toHaveBeenCalledExactlyOnceWith("id", ownId.toUpperCase());
     expect(fake.load).toHaveBeenCalledExactlyOnceWith(trusted, athlete);
+    expect(fake.contacts).toHaveBeenCalledExactlyOnceWith(trusted, athlete.id);
     expect(fake.games).toHaveBeenCalledExactlyOnceWith(trusted, athlete.id);
     expect(fake.logs).not.toHaveBeenCalled();
     expect(fake.team).toHaveBeenCalledExactlyOnceWith(trusted);

@@ -9,7 +9,7 @@ import { prepareReviewedPerformanceRows } from "@/lib/performance-import";
 import { arsenalPitches } from "@/lib/pitch-arsenal";
 
 const context:PitchResultContext={fileName:"Fictional session.csv",fileHash:"a".repeat(64),date:"2026-09-11",category:"intrasquad",matches:[{identity:"Fictional Pitcher",athleteCode:"SYN-001"}]};
-const session:FullSwingSession={date:context.date,eventCount:6,pitcherCount:2,batterCount:0,players:[],samples:[],table:{headers:[],rows:[],rowNumbers:[]},pitches:[
+const session:FullSwingSession={date:context.date,eventCount:6,pitcherCount:2,batterCount:0,players:[],samples:[],contacts:[],table:{headers:[],rows:[],rowNumbers:[]},pitches:[
   {identity:"Fictional Pitcher",sourceRow:2,pitchNumber:1,velocity:80.123,spin:2000.123},
   {identity:"Fictional Pitcher",sourceRow:3,pitchNumber:2,velocity:82.456,spin:null},
   {identity:"Fictional Pitcher",sourceRow:4,pitchNumber:3,velocity:null,spin:2100.456},

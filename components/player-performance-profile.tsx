@@ -27,7 +27,7 @@ import type { getPlayerPerformance, PlayerMetricCard, PlayerMetricReading } from
 export type PlayerPerformanceProfileProps = {
   athlete: RosterAthlete; performance: ReturnType<typeof getPlayerPerformance>; season?: AthleteSeason | null;
   overviewGameStats?: SharedGameStat[]; gameComparisons?: GameComparison[];
-  teamAverages?: readonly HittingTeamAverage[]; blastReadings?: readonly Measurement[]; pitchResults?: ReactNode; practicePitchResults?: ReactNode; simplified?: boolean; fictional?: boolean; action?: ReactNode; muscleBalance?: ReactNode; movementScreening?: ReactNode; physicalityDetails?: ReactNode; history?: ReactNode; gameStats?: ReactNode;
+  teamAverages?: readonly HittingTeamAverage[]; blastReadings?: readonly Measurement[]; pitchResults?: ReactNode; practicePitchResults?: ReactNode; contactResults?: ReactNode; practiceContactResults?: ReactNode; simplified?: boolean; fictional?: boolean; action?: ReactNode; muscleBalance?: ReactNode; movementScreening?: ReactNode; physicalityDetails?: ReactNode; history?: ReactNode; gameStats?: ReactNode;
 };
 function measurementDate(value: string) {
   const date = new Date(`${value.slice(0, 10)}T12:00:00Z`);
@@ -80,7 +80,7 @@ function SessionMeasurements({ performance, season, context, hasBlast=false, tea
     <ProfileTrendChart series={profileTrends([...hitting, ...throwing])} />
   </section>;
 }
-export function PlayerPerformanceProfile({ athlete, performance, season, blastReadings, teamAverages=[], pitchResults, practicePitchResults, fictional = false, simplified = false, action, muscleBalance, movementScreening, physicalityDetails, history, gameStats, overviewGameStats = [], gameComparisons = [] }: PlayerPerformanceProfileProps) {
+export function PlayerPerformanceProfile({ athlete, performance, season, blastReadings, teamAverages=[], pitchResults, practicePitchResults, contactResults, practiceContactResults, fictional = false, simplified = false, action, muscleBalance, movementScreening, physicalityDetails, history, gameStats, overviewGameStats = [], gameComparisons = [] }: PlayerPerformanceProfileProps) {
   const hasBlast = !!blastReadings?.some(r=>parseBlastSource(r.source));
   const displayPerformance = hasBlast ? withoutWeeklyBlastCards(performance) : performance;
   const bodyScoreCard = performance.body.find(card => card.metric.key === "body_score" && card.latest);
@@ -108,8 +108,8 @@ export function PlayerPerformanceProfile({ athlete, performance, season, blastRe
       <ProfileTrendChart series={profileTrends([...layout.physicality, ...layout.additionalBody, ...(bodyScoreCard ? [bodyScoreCard] : []), ...layout.speedAgility])} />
       {!simplified && physicalityDetails}
     </> },
-    { id: "in-game", label: "In-Game", content: <><SessionMeasurements teamAverages={teamAverages} performance={performance} season={selectedSeason} context="in_game" />{pitchResults}{gameStats && <section aria-label="Cumulative game statistics" className="space-y-4 border-t border-[var(--line-subtle)] pt-6"><h2 className="m-0 text-xl font-bold">Cumulative Game Stats · Fall 2026</h2>{gameStats}</section>}</> },
-    { id: "practice", label: "Practice", content: <>{layout.showHitting && hasBlast && <BlastPracticeReports teamAverages={teamAverages} readings={blastReadings!}/>}<SessionMeasurements teamAverages={teamAverages} performance={displayPerformance} season={selectedSeason} context="practice" hasBlast={hasBlast && layout.showHitting} />{practicePitchResults}</> },
+    { id: "in-game", label: "In-Game", content: <><SessionMeasurements teamAverages={teamAverages} performance={performance} season={selectedSeason} context="in_game" />{layout.showHitting && contactResults}{pitchResults}{gameStats && <section aria-label="Cumulative game statistics" className="space-y-4 border-t border-[var(--line-subtle)] pt-6"><h2 className="m-0 text-xl font-bold">Cumulative Game Stats · Fall 2026</h2>{gameStats}</section>}</> },
+    { id: "practice", label: "Practice", content: <>{layout.showHitting && hasBlast && <BlastPracticeReports teamAverages={teamAverages} readings={blastReadings!}/>}<SessionMeasurements teamAverages={teamAverages} performance={displayPerformance} season={selectedSeason} context="practice" hasBlast={hasBlast && layout.showHitting} />{layout.showHitting && practiceContactResults}{practicePitchResults}</> },
   ];
   return <div className={`min-w-0 space-y-4 sm:space-y-5 ${presentation.profile}`} data-testid="player-performance-profile">
     <section className="player-identity-card" aria-label="Player profile">
