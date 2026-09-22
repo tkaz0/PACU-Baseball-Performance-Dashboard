@@ -3,7 +3,7 @@ import { FULL_SWING_SESSION_HEADERS as headers, summarizeFullSwingSession } from
 import { previewFullSwingSummary } from "@/lib/imports/full-swing";
 import { getPreviewRoster } from "@/lib/preview-roster";
 import { groupPitchRanges, SESSION_METRICS } from "@/lib/imports/full-swing-session";
-import { prepareFullSwingContacts } from "@/lib/imports/full-swing-contacts";
+import { prepareFullSwingContacts, REVIEWED_CONTACT_FIELDS } from "@/lib/imports/full-swing-contacts";
 
 const player = getPreviewRoster()[0];
 const name = `${player.first_name} ${player.last_name}`;
@@ -86,6 +86,7 @@ it("preserves exact row-paired batted balls and excludes incomplete pairs and un
  ]);
  const rows=prepareFullSwingContacts(session,{fileHash:"a".repeat(64),fileName:"fictional.csv",date:session.date,category:"intrasquad",matches:[{identity:name,athleteCode:"PAC-0001"}]});
  expect(rows).toEqual([{athleteCode:"PAC-0001",fileHash:"a".repeat(64),sourceFile:"fictional.csv",sourceRow:2,pitchNumber:1,playedOn:"2026-09-11",category:"intrasquad",exitVelocity:94.321,launchAngle:-12.5,direction:null,distance:null}]);
+ expect(Object.keys(rows[0]).sort()).toEqual(REVIEWED_CONTACT_FIELDS);
  expect(()=>summarizeFullSwingSession(table([event({Angle:"120"})]))).toThrow("Angle");
 });
 it("keeps direction and feet on the same contact row without inferring incomplete spatial pairs",()=>{

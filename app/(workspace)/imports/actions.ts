@@ -9,6 +9,7 @@ import type { Measurement } from "@/lib/imports/engine";
 import { importReviewedRenpho, lookupRenphoIdentity } from "@/lib/renpho-identity-server";
 import { importFullSwingContacts } from "@/lib/full-swing-contacts-server";
 import type { ReviewedContact } from "@/lib/imports/full-swing-contacts";
+import { REVIEWED_CONTACT_FIELDS } from "@/lib/imports/full-swing-contacts";
 
 export type SaveReviewedMeasurementsResult = PerformanceImportReceipt | { error: string };
 const measurementFields = new Set(["id", "athlete_code", "measured_at", "source", "metric", "value", "unit", "source_file", "source_sheet", "source_row", "file_hash"]);
@@ -44,7 +45,6 @@ export async function saveReviewedMeasurements(measurements: unknown, confirmed:
   return saveMeasurements(measurements, confirmed);
 }
 
-const contactFields = ["athleteCode", "category", "exitVelocity", "fileHash", "launchAngle", "pitchNumber", "playedOn", "sourceFile", "sourceRow"];
 export async function saveReviewedContacts(input: unknown, confirmed: boolean): Promise<{ created: number; unchanged: number } | { error: string }> {
   await requireImportAccess();
   if (confirmed !== true) return { error: "Review the batter matches and paired readings before saving." };
@@ -53,7 +53,7 @@ export async function saveReviewedContacts(input: unknown, confirmed: boolean): 
   const rows = input as ReviewedContact[];
   const first = rows[0], coordinates = new Set<number>(), pitches = new Set<number>();
   if (rows.some(row => !row || typeof row !== "object" || Array.isArray(row) ||
-    JSON.stringify(Object.keys(row).sort()) !== JSON.stringify(contactFields) ||
+    JSON.stringify(Object.keys(row).sort()) !== JSON.stringify(REVIEWED_CONTACT_FIELDS) ||
     !/^PAC-\d{4,6}$/.test(row.athleteCode) || !/^[a-f0-9]{64}$/.test(row.fileHash) ||
     typeof row.sourceFile !== "string" || !row.sourceFile || row.sourceFile.length > 300 || row.sourceFile !== row.sourceFile.trim() ||
     !/^2026-(09|10|11|12)-\d{2}$/.test(row.playedOn) || Number.isNaN(Date.parse(row.playedOn)) ||
@@ -61,6 +61,9 @@ export async function saveReviewedContacts(input: unknown, confirmed: boolean): 
     !Number.isSafeInteger(row.sourceRow) || row.sourceRow < 2 || !Number.isSafeInteger(row.pitchNumber) || row.pitchNumber < 1 ||
     !Number.isFinite(row.exitVelocity) || row.exitVelocity <= 0 || row.exitVelocity > 200 ||
     !Number.isFinite(row.launchAngle) || Math.abs(row.launchAngle) > 90 ||
+    (row.direction !== null && (typeof row.direction !== "number" || !Number.isFinite(row.direction) || Math.abs(row.direction)>90)) ||
+    (row.distance !== null && (typeof row.distance !== "number" || !Number.isFinite(row.distance) || row.distance<0 || row.distance>1000)) ||
+    (row.direction===null)!==(row.distance===null) ||
     row.fileHash !== first.fileHash || row.sourceFile !== first.sourceFile || row.playedOn !== first.playedOn || row.category !== first.category ||
     coordinates.has(row.sourceRow) || pitches.has(row.pitchNumber) ||
     (coordinates.add(row.sourceRow), pitches.add(row.pitchNumber), false)))

@@ -6,6 +6,7 @@ export type ReviewedContact = {
   pitchNumber: number; playedOn: string; category: "game" | "intrasquad" | "practice";
   exitVelocity: number; launchAngle: number; direction: number | null; distance: number | null;
 };
+export const REVIEWED_CONTACT_FIELDS = ["athleteCode", "category", "direction", "distance", "exitVelocity", "fileHash", "launchAngle", "pitchNumber", "playedOn", "sourceFile", "sourceRow"] as const;
 
 /** Preserve one batted ball per original CSV row; never combine unrelated summary readings. */
 export function prepareFullSwingContacts(session: FullSwingSession, context: PitchResultContext): ReviewedContact[] {
