@@ -36,7 +36,7 @@ export default async function RolloutPage({ searchParams }: { searchParams: Prom
 
   return <>
     <PageHeading section="Administration" title="Team Account Preparation" description="Review the 2026–27 player roster and save coach details before sending invitations.">
-      <Link href="/admin/access/bulk" className="btn btn-primary">Invite Remaining Players</Link><Link href="/admin/access" className="btn btn-secondary">Account Access</Link>
+      <Link href="/admin/access/status" className="btn btn-secondary">Invitation Status</Link><Link href="/admin/access/bulk" className="btn btn-primary">Invite Remaining Players</Link><Link href="/admin/access" className="btn btn-secondary">Account Access</Link>
     </PageHeading>
     {params.saved === "1" && <p className="notice notice-success mb-5" role="status">Coach details saved. Invitation not sent.</p>}
     {params.error && <p className="notice notice-error mb-5" role="alert">{params.error === "input" ? "Enter a coach name and valid email, then confirm the details." : "Coach details were not confirmed saved. Refresh the list before trying again."}</p>}

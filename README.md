@@ -156,3 +156,6 @@ Capstone movement screenings appear under Physicality with 1–5 ratings, source
 
 
 September 21 bulk invitations: an active Admin outside View as can review remaining eligible players at `/admin/access/bulk`, deselect recipients, explicitly confirm each displayed email/profile match as a batch, and start sequential individual invitations. This extends the individual-review interface; it does not authorize unattended sends. Exact live roster emails and eligibility are rechecked under locks. The Auth-only administrator client checks existing sign-ins and sends invites; ordinary-session RPCs reserve unique player/email attempts, configure fixed Player access and record completion. Uncertain attempts remain reserved and pause the batch without automatic resend. Loading the page sends nothing. Apply `202609210003_bulk_player_invitations.sql` before deploying the page. No accounts or emails are created by the migration.
+
+### Invitation status
+Admins can open Account Access → Invitation Status to search/filter configured accounts by acceptance, password setup, role and disabled access. Refresh Status reads current status without sending emails or changing access.

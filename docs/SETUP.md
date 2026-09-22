@@ -390,3 +390,6 @@ Apply `202609210002_ankle_screening_ratings.sql` for the owner-confirmed ankle 1
 
 
 September 21 bulk invitations: an active Admin outside View as can review remaining eligible players at `/admin/access/bulk`, deselect recipients, explicitly confirm each displayed email/profile match as a batch, and start sequential individual invitations. This extends the individual-review interface; it does not authorize unattended sends. Exact live roster emails and eligibility are rechecked under locks. The Auth-only administrator client checks existing sign-ins and sends invites; ordinary-session RPCs reserve unique player/email attempts, configure fixed Player access and record completion. Uncertain attempts remain reserved and pause the batch without automatic resend. Loading the page sends nothing. Apply `202609210003_bulk_player_invitations.sql` before deploying the page. No accounts or emails are created by the migration.
+
+### Invitation status deployment
+Apply `202609220001_account_setup_status.sql` before the consuming app. Its read-only, active-Admin-only RPC uses the ordinary signed-in session. No Auth admin secret or new account configuration is needed. Existing disabled accounts remain disabled.

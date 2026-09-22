@@ -419,3 +419,6 @@ Ankle correction regression checks cover all four rating fields, reject degree-l
 
 
 Bulk invitations: `bulk-invitations.test.ts` checks recipient exclusions; `bulk-invitation-actions.test.ts` mocks all services and checks explicit approval, current admin checks, fixed Player provisioning and no retry after uncertainty; `bulk-invitation-database.test.ts` uses PGlite to exercise durable claims, exact roster eligibility/email, duplicate suppression and role/table boundaries. These checks send no email. Production QA stops before the review checkbox and Send button; actual sends remain the administrator's explicit action. PGlite is not an integration test of hosted Auth/email delivery.
+
+### Invitation status checks
+Focused account-setup tests cover status distinctions, strict whitelisting, invalid responses, authorization before RPC, and generic failures. PGlite verifies Admin-only read access, anonymous/Coach/Player/revoked-Admin denial, configured-only results, password-presence booleans, disabled-state preservation, no returned credential material and no mutation. PGlite is not hosted Supabase integration; verify the installed RPC and live Admin page after deployment. Use fictional accounts for visual QA.
