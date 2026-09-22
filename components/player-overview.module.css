@@ -43,3 +43,13 @@
 .highlightList h3 { font-size:13px; }
 .highlightMeta { font-size:11px; }
 .testingSections { gap:16px; }
+.gameOverview { display:grid;gap:10px; }
+.gameOverview .sectionHeading { padding-top:0; }
+.moreTesting { min-width:0; border:1px solid var(--line-subtle);border-radius:14px;background:var(--surface-panel); }
+.moreTesting > summary { display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;padding:12px 16px;cursor:pointer;color:var(--text-primary);font-size:13px;font-weight:750;list-style:none; }
+.moreTesting > summary::-webkit-details-marker { display:none; }
+.moreTesting > summary svg { color:var(--text-secondary);transition:transform .15s; }
+.moreTesting[open] > summary { border-bottom:1px solid var(--line-subtle); }
+.moreTesting[open] > summary svg { transform:rotate(180deg); }
+.moreTesting > :not(summary) { margin:16px; }
+@media(prefers-reduced-motion:reduce){.moreTesting > summary svg{transition:none}}

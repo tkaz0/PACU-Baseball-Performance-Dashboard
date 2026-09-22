@@ -30,3 +30,16 @@
 .barTrack { display: block; height: 4px; margin-top: 7px; border-radius: 9px; background: var(--line-subtle); overflow: hidden; }
 .valueBar, .spinBar { display: block; height: 100%; border-radius: inherit; background: var(--accent-readable); }
 .spinBar { background: #5286cf; }
+
+/* Keep the full ranking available without making each card needlessly tall. */
+.heading { padding:12px 15px 10px; }
+.heading h2 { margin:6px 0 3px;font-size:18px; }
+.eyebrow { font-size:9px; }
+.tableWrap thead th { padding:7px 10px; }
+.tableWrap tbody td,.tableWrap tbody th { padding:7px 10px; }
+.tableWrap tbody td:first-child { padding-left:10px; }
+.rank { width:24px;height:25px;font-size:12px; }
+.playerMeta { margin-top:2px;font-size:9px;line-height:1.3; }
+.tableWrap tbody .result { padding-right:15px;font-size:17px;min-width:72px; }
+.barTrack { margin-top:4px;height:3px; }
+.more summary { padding:10px 15px; }

@@ -4,7 +4,7 @@ import { profileMetricLabel } from "@/lib/profile-metric-label";
 import { formatMetricNumber } from "@/lib/measurement-display";
 import { pitchingPeriodLabel } from "@/lib/game-source";
 import { ProfileTrendChart } from "@/components/profile-trend-chart";
-import { PhysicalityRadar } from "@/components/physicality-radar";
+import { PhysicalityRadar, physicalityRadarPoints } from "@/components/physicality-radar";
 import { profileTrends } from "@/lib/profile-trends";
 import { MeasurementChange } from "@/components/measurement-change";
 import { playerRenphoChange } from "@/lib/measurement-change";
@@ -83,6 +83,9 @@ export function PlayerOverview({ cards, gameStats = [], gameComparisons = [], sh
   const comparisonCards = availableCards.filter(card => card.percentile && card.percentile.sampleSize >= 5 && Number.isFinite(card.percentile.value) && card.percentile.value >= 0 && card.percentile.value <= 100);
   const lastTested = availableCards.map(card => card.timedTrials?.lastTested ?? card.latest!.measuredAt).sort().at(-1);
   const bodyResultsOnly = availableCards.length > 0 && availableCards.every(card => card.metric.group === "body");
+  const hasPhysicalityRadar = physicalityRadarPoints(physicality).length === 3;
+  const testingComparisons = testing.filter(card => card.latest && (card.metric.group === "hitting" || card.metric.group === "pitching" || card.metric.group === "throwing" || isTimedMetric(card.metric.key)));
+  const trends = profileTrends([...physicality, ...testing]);
   return <section aria-label="Player overview" className={styles.overview} data-testid="player-overview">
     <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-4"><div className="max-w-xl"><h2 className="m-0 text-xl font-bold tracking-tight">Performance Snapshot</h2><p className="mb-0 mt-1.5 text-sm leading-6 text-[var(--text-secondary)]">{games.length ? "Your latest testing and Fall game results, compared with Pacific players." : bodyResultsOnly ? comparisonCards.length ? "Your latest measurements and Pacific team comparisons. Performance highlights will build as testing continues." : "Your body measurements are ready in Physicality. Performance highlights will build as testing continues." : "Strengths, areas to improve, and progress from your latest testing."}</p></div>{(lastTested || games.length > 0) && <dl className="m-0 flex flex-wrap gap-6 rounded-lg bg-[var(--surface-raised)] px-4 py-3 text-xs"><div><dt className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Available Metrics</dt><dd className="m-0 mt-1 font-bold tabular-nums">{availableCards.length + games.length}</dd></div>{lastTested && <div><dt className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Last Tested</dt><dd className="m-0 mt-1 font-semibold"><time dateTime={lastTested}>{leaderboardTestDate(lastTested)}</time></dd></div>}{games.length > 0 && <div><dt className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Game Stats Updated</dt><dd className="m-0 mt-1 font-semibold">{leaderboardTestDate(gameDate(games.map(g=>g.updatedAt).sort().at(-1)!))}</dd></div>}</dl>}</div>
     <div className={styles.insights}>
@@ -105,18 +108,14 @@ export function PlayerOverview({ cards, gameStats = [], gameComparisons = [], sh
       </section>
     </div>
     {!comparableCount && <p className="m-0 max-w-3xl text-xs leading-6 text-[var(--text-secondary)]">Highlights appear once at least five players have comparable testing or game results. Your recorded measurements are available in the tabs above.</p>}
-    <PhysicalityRadar cards={physicality}/>
-    <div className={styles.percentileSections} aria-label="Pacific percentiles"><div className={overview.sectionHeading}><h2 className="mb-2 mt-0 text-lg font-bold">Pacific Percentiles</h2><PercentileLegend/></div>
-      <div className={overview.testingSections}>
-      <TestingComparisons teamAverages={teamAverages} title="Physicality" cards={physicality}/>
+    {hasPhysicalityRadar ? <PhysicalityRadar cards={physicality}/> : <TestingComparisons teamAverages={teamAverages} title="Physicality" cards={physicality.filter(card => card.latest)}/>}
+    <div aria-label="Pacific percentiles" className={overview.gameOverview}><div className={overview.sectionHeading}><h2 className="mb-2 mt-0 text-lg font-bold">Game Comparisons</h2><PercentileLegend/></div><GameComparisons metrics={games}/></div>
+    {(testingComparisons.length > 0 || trends.length > 0) && <details className={overview.moreTesting}><summary>More Testing Detail <ChevronDown size={16} aria-hidden="true"/></summary><div className={styles.percentileSections} aria-label="Testing percentiles">
       <TestingComparisons teamAverages={teamAverages} title="Hitting · Testing" cards={testing.filter(c => c.metric.group === "hitting" && !isTimedMetric(c.metric.key) && c.latest)}/>
       <TestingComparisons teamAverages={teamAverages} title="Athletic Testing" cards={testing.filter(c => isTimedMetric(c.metric.key) && c.latest)}/>
       <TestingComparisons teamAverages={teamAverages} title="Position Throwing · Testing" cards={testing.filter(c => c.metric.group === "throwing" && c.latest)}/>
       <TestingComparisons teamAverages={teamAverages} title="Pitching · Testing" cards={testing.filter(c => c.metric.group === "pitching" && c.latest)}/>
-      </div>
-      <GameComparisons metrics={games}/>
-    </div>
-    <ProfileTrendChart series={profileTrends([...physicality, ...testing])} />
+    </div><ProfileTrendChart series={trends}/></details>}
     {showMethods && <details className="group border-t border-[var(--line-subtle)] pt-4 text-xs text-[var(--text-secondary)]"><summary className="flex min-h-8 w-fit cursor-pointer list-none items-center gap-2 font-semibold">How This Overview Works<ChevronDown size={14} className="transition-transform group-open:rotate-180" aria-hidden="true" /></summary>
       <div className="mt-3 max-w-3xl space-y-2 leading-relaxed">
         <p>Strengths are at or above the 75th Pacific percentile; weaknesses are at or below the 25th. Testing comparisons use the same test, source, unit and period; game comparisons use the same current cumulative QPA or pitching snapshot, with at least five comparable players. Game highlights use batting rates and pitching K/9, BB/9, Runs/9 and Strike %, with opportunity counts and limited-sample labels. Lower batting K % is favorable. Raw game totals do not determine strengths or weaknesses. Up to three results appear in each section.</p>

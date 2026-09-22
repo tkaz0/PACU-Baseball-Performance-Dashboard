@@ -48,3 +48,29 @@
 .panelIntro{font-size:12px;color:var(--text-secondary);margin:13px 0 24px}.mainGrid{grid-template-columns:1fr 1fr}.panel,.gameCard{padding:23px}.coverageList{gap:13px}.coverageRow{border-bottom:1px solid var(--line-subtle);padding-bottom:12px}.coverageRow:last-child{border:0;padding:0}.coverageRow>div{font-size:12px}.coverageRow p{display:none}.updates{margin:13px 0}.updates li{padding:11px 0}.nextStep{padding:12px}.nextStep p{margin-top:3px}.gameGrid{gap:14px}
 @media(max-width:1300px){.rankGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.welcome{padding:29px;min-height:0}.welcome h1{font-size:38px}.pulseStrip{grid-template-columns:1fr 1fr}.pulseStrip>div{padding:15px 17px}.pulseStrip>div:nth-child(2){border-right:0}.pulseStrip>div:last-child{grid-column:1/-1;border-top:1px solid var(--line-subtle)}.rankGrid{grid-template-columns:1fr}.blockHeading{align-items:start}.blockHeading .panelLink{font-size:11px}.rankEmpty{display:grid;justify-items:start}.rankEmpty a{margin:0}.mainGrid{grid-template-columns:1fr}}
+
+/* Put results ahead of shortcuts so the useful part of Home appears immediately. */
+.home{gap:18px}
+.welcome{min-height:178px;padding:24px 30px;gap:24px}
+.welcome h1{font-size:clamp(31px,3.2vw,44px);line-height:1.07}
+.intro{margin-top:9px;font-size:12px;line-height:1.55}
+.heroActions{margin-top:14px;gap:18px}
+.homeMark{flex-basis:140px}
+.homeMark img{width:105px}
+.homeMark span{font-size:8px;padding:5px 10px}
+.pulseStrip>div{padding:12px 20px}
+.pulseStrip span{margin-bottom:4px}
+.pulseStrip strong{font-size:22px}
+.pulseStrip .pulseDate{font-size:14px;padding-top:2px}
+.pulseDetail{display:block;max-width:100%;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px!important}
+.blockHeading{margin-bottom:12px}
+.quickLinks>a{padding:12px 15px}
+.actionIcon{width:32px;height:32px}
+@media(max-width:700px){
+  .home{gap:16px}
+  .welcome{min-height:0;padding:22px}
+  .welcome h1{font-size:34px}
+  .homeMark{display:none}
+  .pulseStrip>div{padding:11px 13px}
+  .pulseStrip>div:last-child{grid-column:1/-1}
+}

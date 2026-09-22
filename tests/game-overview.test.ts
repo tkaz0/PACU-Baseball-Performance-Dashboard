@@ -41,11 +41,12 @@ it("shows only the requested physicality trio in Overview while keeping body ran
   const readings=codes.flatMap((code,i)=>[['Weight',180+i,'lb'],['Height',70+i,'in'],['Muscle Mass',140+i,'lb'],['RENPHO Body Score',80+i,'points'],['Body Fat Percentage',18+i,'%']].map(([metric,value,unit])=>({id:`${code}-${metric}`,athlete_code:code,metric:String(metric),value:Number(value),unit:String(unit),measured_at:'2026-09-13',source:'RENPHO',source_file:'fictional.png',source_sheet:'RENPHO report · Page 1',source_row:2,file_hash:'a'.repeat(64)})));
   const performance=getPlayerPerformance({readings,athleteCode:codes[0],cohortAthleteCodes:codes});
   const html=renderToStaticMarkup(createElement(PlayerOverview,{cards:performance.body}));
-  for(const key of ['muscle_mass','body_score','body_fat_pct'])expect(html).toContain(`data-overview-metric="${key}"`);
+  for(const label of ['Muscle mass','Body score','Body fat %'])expect(html).toContain(label);
   for(const key of ['weight','height'])expect(html).not.toContain(`data-overview-metric="${key}"`);
   expect(html).toContain('aria-label="Physicality percentile radar"');
+  expect(html).not.toContain('aria-label="Physicality percentiles"');
   expect(html).toContain('Lower body fat ranks higher');
-  expect(html).toContain('Descriptive rank');expect(html.split('aria-label="Strengths"')[1].split('aria-label="Weaknesses"')[0]).not.toContain('role="meter"');
+  expect(html).toContain('ranks are descriptive');expect(html.split('aria-label="Strengths"')[1].split('aria-label="Weaknesses"')[0]).not.toContain('role="meter"');
 });
 it("removes standalone batting Hits and AB cards but retains AVG denominator", () => {
   const html=renderToStaticMarkup(createElement(AthleteGameStats,{stats,comparisons:[c]}));

@@ -60,6 +60,14 @@ describe("workspace navigation and preview notices", () => {
     expect(html).toContain('href="/imports"'); expect(html).toContain('href="/testing/coverage"'); expect(html).not.toContain('href="/admin/access"');
     expect(html).not.toContain('href="/admin/rollout"');
   });
+  it("keeps secondary staff links available in a compact disclosure", () => {
+    const html = renderToStaticMarkup(createElement(Sidebar, { roles: ["admin"], athleteId: null }));
+    expect(html).toContain('<summary>More Staff Tools');
+    expect(html).toContain('href="/testing/changes"');
+    expect(html).toContain('href="/testing/coverage"');
+    expect(html).toContain('<summary>Administration');
+    expect(html).toContain('href="/admin/access"');
+  });
   it("keeps Player view import navigation absent", () => {
     const html = renderToStaticMarkup(createElement(Sidebar, { roles: ["player"], athleteId, isPreview: true }));
     expect(html).not.toContain('href="/imports"'); expect(html).not.toContain('href="/testing/coverage"'); expect(html).not.toContain('href="/admin/access"');

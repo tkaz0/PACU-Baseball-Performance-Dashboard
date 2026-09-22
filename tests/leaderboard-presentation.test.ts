@@ -65,7 +65,7 @@ describe("automatic ranking boards", () => {
     const output = renderToStaticMarkup(createElement(LeaderboardBoard, { group: "physicality", panels: [{ comparison: weight, rows: [{ ...row, source: "renpho", value: 180, measuredAt: "2026-08-09" }] }] }));
     expect(output).toContain('aria-label="Leaderboard group"');
     expect(output).toContain('href="/leaderboards?group=hitting"');
-    expect(output).toContain("Last Tested Aug 9, 2026");
+    expect(output).toContain('<time dateTime="2026-08-09">Aug 9, 2026</time>');
     expect(output).toContain("RENPHO");
     expect(output).not.toContain("Awaiting Testing");
     for (const unwanted of ["<form", "<select", "Show Results", "summer baseline"]) expect(output).not.toContain(unwanted);

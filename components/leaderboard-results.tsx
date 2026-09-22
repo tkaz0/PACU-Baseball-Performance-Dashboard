@@ -30,7 +30,6 @@ function RankingTable({ rows, metric, unit, continued = false, tiedRanks, barMax
 }
 
 export function LeaderboardResults({ rows, metric, unit, source, period }: { rows: LeaderboardRow[]; metric: LeaderboardMetricDefinition; unit: string; source?: string; period?: PlayerPerformancePeriod }) {
-  const latestDate = rows.reduce((latest, row) => row.measuredAt > latest ? row.measuredAt : latest, "");
   const showBars = isPitchLeaderboardMetric(metric.key) || (metric.group === "hitting" && !isTimedMetric(metric.key)) || metric.key === "infield_velocity" || metric.key === "outfield_velocity";
   const barMax = showBars ? Math.max(0, ...rows.map(row => row.value)) : undefined;
   const rankCounts = new Map<number, number>();
@@ -40,7 +39,7 @@ export function LeaderboardResults({ rows, metric, unit, source, period }: { row
     <header className={styles.heading}>
       <div className={styles.eyebrow}><span>{source ? leaderboardSourceLabel(isPitchLeaderboardMetric(metric.key) ? source.split(" · ").slice(0, -1).join(" · ") : source) : "Team Testing"}{period ? ` · ${period === "fall_2026" ? "Fall 2026" : "Jun–Aug 2026"}` : ""}</span><span>{rows.length} {rows.length === 1 ? "Player" : "Players"}</span></div>
       <h2>{isPitchLeaderboardMetric(metric.key) && source ? pitchLeaderboardLabel(metric, source) : leaderboardMetricLabel(metric)}<StatInfo metric={metric.key} label={isPitchLeaderboardMetric(metric.key) && source ? pitchLeaderboardLabel(metric, source) : leaderboardMetricLabel(metric)} /></h2>
-      <p title={isTimedMetric(metric.key) ? "Fastest comparable Fall trial per athlete; equal values share a rank." : metric.direction === "neutral" ? "Numerical comparisons, not a health or performance rating." : "Latest comparable result per athlete; equal values share a rank."}>{leaderboardOrderLabel(metric)}{rows.length > 0 && <span> · {isTimedMetric(metric.key) ? "Best Recorded" : "Last Tested"} {leaderboardTestDate(latestDate)}</span>}</p>
+      <p title={isTimedMetric(metric.key) ? "Fastest comparable Fall trial per athlete; equal values share a rank." : metric.direction === "neutral" ? "Numerical comparisons, not a health or performance rating." : "Latest comparable result per athlete; equal values share a rank."}>{leaderboardOrderLabel(metric)}</p>
     </header>
     {rows.length ? <><RankingTable rows={rows.slice(0, 5)} metric={metric} unit={unit} tiedRanks={tiedRanks} barMax={barMax} />{rows.length > 5 && <details className={styles.more}><summary>Show {rows.length - 5} More</summary><RankingTable rows={rows.slice(5)} metric={metric} unit={unit} tiedRanks={tiedRanks} barMax={barMax} continued /></details>}</>
       : <p className="muted m-0 p-6 text-sm">Results will appear after testing data is added.</p>}
