@@ -4,8 +4,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Role } from "@/lib/types";
 import { workspaceHome, workspacePreviewQuery } from "@/lib/workspace-home";
 
-const fake = vi.hoisted(() => ({ access: vi.fn(), from: vi.fn(), home: vi.fn() }));
+const fake = vi.hoisted(() => ({ access: vi.fn(), from: vi.fn(), home: vi.fn(), leaderboards: vi.fn() }));
 vi.mock("@/lib/home-server", () => ({loadHomeSummary: fake.home}));
+vi.mock("@/lib/home-leaderboards-server", () => ({loadHomeLeaderboards: fake.leaderboards}));
 vi.mock("@/lib/auth", () => ({ requireAccess: fake.access }));
 vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw new Error(`REDIRECT:${path}`); }, usePathname: () => "/roster" }));
 vi.mock("next/link", () => ({ default: ({ href, children, ...props }: { href: string; children: ReactNode }) => createElement("a", { href, ...props }, children) }));
@@ -18,14 +19,14 @@ const access = (roles: Role[], linked: string | null = athleteId, preview = fals
   roles, athleteId: linked, actualRoles: preview ? ["admin"] : roles,
   preview: preview ? { role: roles[0], athleteId: linked } : null, supabase: { from: fake.from },
 });
-beforeEach(() => { vi.resetAllMocks(); });
+beforeEach(() => { vi.resetAllMocks(); fake.leaderboards.mockResolvedValue([]); });
 
 describe("role-aware dashboard landing", () => {
   it.each(["admin","coach","player"] as Role[])("opens Home for %s while preserving presented scope",async role=>{
     const current=access([role],athleteId,role==="player");fake.access.mockResolvedValue(current);fake.home.mockResolvedValue(null);
     expect(workspaceHome(current)).toBe("/overview");
     const html=renderToStaticMarkup(await Overview({searchParams:Promise.resolve({})}));
-    expect(fake.home).toHaveBeenCalledWith(current);expect(html).toContain(role==="player"?"Your Season. Your Progress.":"The Clubhouse");
+    expect(fake.home).toHaveBeenCalledWith(current);expect(fake.leaderboards).toHaveBeenCalledWith(current);expect(html).toContain(role==="player"?"Your Baseball Home.":"The Team, at a Glance.");
     expect(html.includes('href="/imports"')).toBe(role!=="player");expect(fake.from).not.toHaveBeenCalled();
   });
   it("keeps the connection message for an unlinked player",async()=>{
@@ -35,7 +36,7 @@ describe("role-aware dashboard landing", () => {
   });
   it.each(["/login","/access-denied","/access-preview-unavailable"])("preserves access denial to %s before reading data",async destination=>{
     fake.access.mockRejectedValue(new Error(`REDIRECT:${destination}`));
-    await expect(Overview({searchParams:Promise.resolve({})})).rejects.toThrow(`REDIRECT:${destination}`);expect(fake.home).not.toHaveBeenCalled();
+    await expect(Overview({searchParams:Promise.resolve({})})).rejects.toThrow(`REDIRECT:${destination}`);expect(fake.home).not.toHaveBeenCalled();expect(fake.leaderboards).not.toHaveBeenCalled();
   });
   it("shows the recognized preview notice on Home",async()=>{
     fake.access.mockResolvedValue(access(["player"],athleteId,true));fake.home.mockResolvedValue(null);

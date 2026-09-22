@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { analyticsDisplayLabel, analyticsVariables, latestAnalyticsReadings, linearFit, pairAnalytics, readingsForPeriod, variableKey, pointGroup, type AnalyticsPlayer, type AnalyticsReading } from "@/lib/analytics";
+import { analyticsDisplayLabel, analyticsVariableGroup, analyticsVariables, latestAnalyticsReadings, linearFit, pairAnalytics, readingsForPeriod, variableKey, pointGroup, type AnalyticsPlayer, type AnalyticsReading } from "@/lib/analytics";
 const player=(id:string):AnalyticsPlayer=>({id,code:`SYN-${id}`,name:`Fictional Player ${id}`,academicClass:"freshman",position:"OF",playerType:"position",bats:"R",throws:"R"});
 const row=(overrides:Partial<AnalyticsReading>={}):AnalyticsReading=>({id:"obs-1",athleteId:"1",metric:"weight",label:"Weight",unit:"lb",source:"Fictional Scale",date:"2026-09-06",value:180,importedAt:"2026-09-06T20:00:00Z",...overrides});
 describe("analytics measurement pairing",()=>{
@@ -10,6 +10,12 @@ describe("analytics measurement pairing",()=>{
   const data=[row({id:"avg",metric:"avg_bat_speed",label:"Average Bat Speed",source:average}),row({id:"p95",metric:"p95_bat_speed",label:"Peak Bat Speed (95th)",source:peak}),row({id:"angle",metric:"blast_attack_angle",label:"Attack Angle",source:peak})];
   expect(readingsForPeriod(data,"fall").map(r=>r.id)).toEqual(["avg"]);
   expect(analyticsVariables(data).map(v=>v.label)).toEqual(["Average Bat Speed (Practice)"]);
+ });
+ it("groups axes by baseball category and omits pitch count fields",()=>{
+  const data=[row({metric:"body_score",label:"Body Score",source:"RENPHO"}),row({id:"2",metric:"avg_bat_speed",label:"Average Bat Speed",source:"Blast Motion · Average · 2026-09-13:2026-09-20"}),row({id:"3",metric:"batting_avg",label:"Game AVG",source:"QPA · Fall cumulative (snapshot date)"}),row({id:"4",metric:"classified_avg_spin",label:"Pitch Type Average Spin",source:"Full Swing · Intrasquad · Slider"}),...(["classified_pitch_count","classified_velocity_count","classified_spin_count","pitches"] as const).map((metric,i)=>row({id:`count-${i}`,metric,label:"Pitches",source:"Full Swing · Intrasquad · Slider"}))];
+  const options=analyticsVariables(data);
+  expect(options.map(analyticsVariableGroup)).toEqual(["Hitting · Practice","Hitting · In Game","Physicality","Pitching · In Game"]);
+  expect(options.some(v=>v.label.includes("Count")||v.label==="Pitches (In Game)")).toBe(false);
  });
  it("uses short context labels without changing source or unit identity",()=>{
   const examples=[row({metric:"batting_avg",label:"Game AVG",source:"QPA · Fall cumulative (snapshot date)"}),row({metric:"strike_pct",label:"Pitching Strike %",source:"Pitching · Fall 2026 cumulative (snapshot date)"}),row({metric:"max_exit_velocity",label:"Max Exit Velocity",source:"Full Swing · Intrasquad"}),row({metric:"max_exit_velocity",label:"Max Exit Velocity",source:"Full Swing · Practice"}),row({metric:"grip_dominant",label:"GRIP (DOM)",source:"Player Metrics"})];

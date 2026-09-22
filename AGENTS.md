@@ -8,6 +8,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
+September 22 Home and Analytics presentation: player and staff Home use the existing validated signed-in team leaderboard readers for featured Fall rankings. Player View may show team leaderboard names and ranks but must strip peer profile links and keep full profile/game data own-player only. Keep unlinked players from querying team boards. Analytics category subtitles are native grouped axis options; hide pitch-count choices without deleting stored readings or changing imported source partitions.
+
 # PACU project rules
 
 This is Trevor Kazahaya's independently owned personal project for Pacific Baseball players and coaches. It is not an official university application. Preserve existing work and keep changes within the explicitly requested phase.

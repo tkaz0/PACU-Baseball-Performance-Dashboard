@@ -7,6 +7,7 @@ export type AnalyticsPlayer = { id: string; code: string; name: string; academic
 export type AnalyticsReading = { id: string; athleteId: string; metric: string; label: string; unit: string; source: string; date: string; value: number; importedAt: string };
 export type AnalyticsDataset = { players: AnalyticsPlayer[]; readings: AnalyticsReading[] };
 export type AnalyticsVariable = { key: string; metric: string; label: string; unit: string; source: string; count: number };
+export const ANALYTICS_GROUPS = ["Physicality", "Speed & Agility", "Hitting · In Game", "Hitting · Practice", "Pitching · In Game", "Pitching · Practice", "Throwing · In Game", "Throwing · Practice"] as const;
 export type AnalyticsPoint = { player: AnalyticsPlayer; x: AnalyticsReading; y: AnalyticsReading; gap: number };
 export type ColorGroup = "academicClass" | "position" | "playerType" | "bats" | "throws" | "team";
 export const COLOR_GROUPS: { key: ColorGroup; label: string }[] = [{key:"academicClass",label:"Class"},{key:"position",label:"Primary Position"},{key:"playerType",label:"Player Type"},{key:"bats",label:"Bats"},{key:"throws",label:"Throws"},{key:"team",label:"Team"}];
@@ -16,6 +17,7 @@ export const analyticsMetricVisible = (metric: string) => !body.has(metric) || A
 /** A P95 export is a separate summary, not another practice average. */
 export const analyticsReadingVisible = (row: Pick<AnalyticsReading,"metric"|"source"|"label">) =>
   analyticsMetricVisible(row.metric) &&
+  !["classified_pitch_count", "classified_velocity_count", "classified_spin_count", "pitches"].includes(row.metric) &&
   !(row.metric === "height" && row.source.trim().toLowerCase().startsWith("manual testing")) &&
   parseBlastSource(row.source)?.kind !== "p95" &&
   !/(?:^|_)p95(?:_|$)/i.test(row.metric) &&
@@ -29,6 +31,16 @@ export function analyticsDisplayLabel(row: Pick<AnalyticsReading,"metric"|"label
   const inGame=/^(?:QPA|Pitching)(?:\s*·|$)/i.test(row.source.trim()) ||
     /^Full Swing\s*·\s*(?:Game|Intrasquad)(?:\s*·|$)/i.test(row.source.trim());
   return `${base} (${inGame ? "In Game" : "Practice"})`;
+}
+export function analyticsVariableGroup(row: Pick<AnalyticsVariable,"metric"|"source">): typeof ANALYTICS_GROUPS[number] {
+  if (ANALYTICS_PHYSICALITY.has(row.metric)) return "Physicality";
+  if (["home_to_first", "home_to_second", "steal_break", "boxer_t", "steal_start_12ft", "steal_reaction", "steal_12_42ft"].includes(row.metric)) return "Speed & Agility";
+  const kind = row.metric.startsWith("qpa_game_") || row.metric.startsWith("batting_") || row.source.startsWith("QPA") ? "Hitting" :
+    row.metric.startsWith("classified_") || row.metric.startsWith("pitching_") || row.source.startsWith("Pitching") ? "Pitching" :
+    PLAYER_METRICS.find(metric => metric.key === row.metric)?.group === "throwing" ? "Throwing" :
+    PLAYER_METRICS.find(metric => metric.key === row.metric)?.group === "pitching" ? "Pitching" : "Hitting";
+  const session = analyticsDisplayLabel({ ...row, label: row.metric }).endsWith("(In Game)") ? "In Game" : "Practice";
+  return `${kind} · ${session}` as typeof ANALYTICS_GROUPS[number];
 }
 export const variableKey = (row: AnalyticsReading) => JSON.stringify([row.metric,row.unit,row.source.trim().toLowerCase().replace(/\s+/g," ")]);
 export const prettyGroup = (value: string) => value.replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase());

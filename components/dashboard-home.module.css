@@ -19,3 +19,31 @@
 
 /* A player with one recorded game discipline gets a full-width snapshot. */
 .gameGrid > :only-child { grid-column: 1 / -1; }
+
+/* The home surface is an editorial overview; detail stays one click away. */
+.home{gap:28px}
+.welcome{min-height:278px;padding:39px 44px;border-color:#4a252c;background:radial-gradient(circle at 83% 47%,#a1283638 0 16%,transparent 41%),linear-gradient(122deg,#17191f 0%,#26191e 62%,#441e27 100%);box-shadow:0 18px 48px #100b0d17}
+.welcome:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(143deg,transparent 0 47px,#ffffff06 48px,transparent 49px);pointer-events:none}
+.welcome>div{position:relative;z-index:1}
+.welcome h1{font-size:clamp(38px,4.3vw,62px);max-width:670px;line-height:1.02}
+.welcome .kicker{color:#f0b6ba;font-size:11px;letter-spacing:.18em}
+.intro{font-size:14px;max-width:540px}
+.homeMark{flex-basis:205px;align-self:stretch;align-content:center;border-left:1px solid #ffffff23}
+.homeMark img{width:145px}.homeMark span{font-weight:800;border:1px solid #ffffff48;border-radius:999px;padding:7px 13px;color:#fff;background:#ffffff16}
+.pulseStrip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;background:var(--surface-panel);border:1px solid var(--line-subtle);border-radius:16px;overflow:hidden}
+.pulseStrip>div{padding:19px 27px;border-right:1px solid var(--line-subtle);min-width:0}.pulseStrip>div:last-child{border-right:0}
+.pulseStrip span{display:block;color:var(--text-secondary);font-size:10px;text-transform:uppercase;letter-spacing:.1em;font-weight:750;margin-bottom:7px}
+.pulseStrip strong{display:block;font-size:25px;letter-spacing:-.04em;line-height:1.1;font-variant-numeric:tabular-nums}.pulseStrip small{color:var(--text-secondary);font-weight:500;font-size:16px}.pulseStrip .pulseDate{font-size:16px;letter-spacing:-.02em;padding-top:4px}
+.quickLinks>a{padding:17px 20px;border-radius:14px}.actionIcon{background:color-mix(in srgb,var(--accent-readable) 10%,var(--surface-panel));width:38px;height:38px}
+.blockHeading{display:flex;align-items:end;justify-content:space-between;gap:18px;margin-bottom:17px}.blockHeading .kicker{margin-bottom:6px}.blockHeading>div>p:last-child{color:var(--text-secondary);font-size:12px;margin:6px 0 0}.blockHeading .panelLink{margin:0;white-space:nowrap}
+.rankGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;align-items:start}
+.rankCard{background:var(--surface-panel);border:1px solid var(--line-subtle);border-radius:17px;overflow:hidden;min-width:0;box-shadow:0 8px 24px #00000006}
+.rankCardHead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:19px 19px 15px;background:linear-gradient(135deg,color-mix(in srgb,var(--accent-readable) 10%,var(--surface-panel)),var(--surface-panel) 68%);border-bottom:1px solid var(--line-subtle)}
+.rankCardHead .kicker{font-size:9px;margin:0 0 7px}.rankCardHead h3{font-size:17px;line-height:1.2}.rankBadge{width:29px;height:29px;border-radius:9px;display:grid;place-items:center;color:var(--accent-readable);background:var(--surface-panel);border:1px solid var(--line-subtle);flex-shrink:0}
+.rankList{list-style:none;padding:4px 18px;margin:0}.rankList li{display:grid;grid-template-columns:27px minmax(0,1fr) auto;align-items:center;gap:9px;min-height:47px;border-bottom:1px solid var(--line-subtle);font-size:12px}.rankList li:last-child{border-bottom:0}.rankNumber{font-weight:850;color:var(--accent-readable);font-variant-numeric:tabular-nums}.rankName{font-weight:650;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rankName a{color:inherit;text-decoration:none}.rankName a:hover{text-decoration:underline}.rankName small{font-size:9px;font-weight:800;margin-left:5px;color:var(--accent-readable);text-transform:uppercase}.rankValue{font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap}.yourRow{background:color-mix(in srgb,var(--accent-readable) 8%,var(--surface-panel))}.yourPlace{margin:0;padding:7px 18px;color:var(--text-secondary);font-size:11px}.yourPlace strong{color:var(--accent-readable)}
+.moreRanks{border-top:1px solid var(--line-subtle)}.moreRanks summary{cursor:pointer;padding:10px 18px;color:var(--accent-readable);font-size:11px;font-weight:750}.moreRanks[open] summary{background:var(--surface-raised)}.moreRanks .rankList{max-height:285px;overflow-y:auto}
+.rankFooter{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--line-subtle);padding:13px 19px;color:var(--accent-readable);font-size:11px;font-weight:750;text-decoration:none}.rankFooter:hover{background:var(--surface-raised)}
+.rankEmpty{border:1px dashed var(--line-subtle);background:var(--surface-panel);border-radius:16px;padding:25px;display:flex;align-items:center;gap:13px;color:var(--text-secondary);font-size:12px}.rankEmpty p{margin:0}.rankEmpty a{margin-left:auto;display:inline-flex;align-items:center;gap:5px;color:var(--accent-readable);font-weight:700;text-decoration:none}
+.panelIntro{font-size:12px;color:var(--text-secondary);margin:13px 0 24px}.mainGrid{grid-template-columns:1fr 1fr}.panel,.gameCard{padding:23px}.coverageList{gap:13px}.coverageRow{border-bottom:1px solid var(--line-subtle);padding-bottom:12px}.coverageRow:last-child{border:0;padding:0}.coverageRow>div{font-size:12px}.coverageRow p{display:none}.updates{margin:13px 0}.updates li{padding:11px 0}.nextStep{padding:12px}.nextStep p{margin-top:3px}.gameGrid{gap:14px}
+@media(max-width:1300px){.rankGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.welcome{padding:29px;min-height:0}.welcome h1{font-size:38px}.pulseStrip{grid-template-columns:1fr 1fr}.pulseStrip>div{padding:15px 17px}.pulseStrip>div:nth-child(2){border-right:0}.pulseStrip>div:last-child{grid-column:1/-1;border-top:1px solid var(--line-subtle)}.rankGrid{grid-template-columns:1fr}.blockHeading{align-items:start}.blockHeading .panelLink{font-size:11px}.rankEmpty{display:grid;justify-items:start}.rankEmpty a{margin:0}.mainGrid{grid-template-columns:1fr}}
