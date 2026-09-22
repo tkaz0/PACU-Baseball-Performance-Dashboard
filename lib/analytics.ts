@@ -1,3 +1,4 @@
+import { parseBlastSource } from "@/lib/blast-metrics";
 import { RENPHO_SEGMENTS } from "@/lib/renpho-segments";
 import { isTimedMetric, PLAYER_METRICS } from "@/lib/player-performance";
 
@@ -11,7 +12,21 @@ export const COLOR_GROUPS: { key: ColorGroup; label: string }[] = [{key:"academi
 const body = new Set([...RENPHO_SEGMENTS.map(segment => segment.key),"body_fat_mass","bone_mass","protein_mass","body_water_mass","skeletal_muscle_mass","bmi","bmr","fat_free_mass","subcutaneous_fat_pct","skeletal_muscle_pct","body_water_pct","protein_pct","metabolic_age","visceral_fat","smi","whr","bone_mass_pct",...PLAYER_METRICS.filter(m=>m.group==="body").map(m=>m.key)]);
 export const ANALYTICS_PHYSICALITY = new Set(["height", "weight", "body_score", "muscle_mass", "body_fat_pct", "grip_strength", "grip_dominant", "grip_non_dominant"]);
 export const analyticsMetricVisible = (metric: string) => !body.has(metric) || ANALYTICS_PHYSICALITY.has(metric);
-export const analyticsReadingVisible = (row: Pick<AnalyticsReading,"metric"|"source">) => analyticsMetricVisible(row.metric) && !(row.metric === "height" && row.source.trim().toLowerCase().startsWith("manual testing"));
+/** A P95 export is a separate summary, not another practice average. */
+export const analyticsReadingVisible = (row: Pick<AnalyticsReading,"metric"|"source"|"label">) =>
+  analyticsMetricVisible(row.metric) &&
+  !(row.metric === "height" && row.source.trim().toLowerCase().startsWith("manual testing")) &&
+  parseBlastSource(row.source)?.kind !== "p95" &&
+  !/(?:^|_)p95(?:_|$)/i.test(row.metric) &&
+  !/\b(?:p95|95th\s+percentile)\b/i.test(row.label);
+export function analyticsDisplayLabel(row: Pick<AnalyticsReading,"metric"|"label"|"source">): string {
+  const base=(PLAYER_METRICS.find(m=>m.key===row.metric)?.label??row.label)
+    .replace(/^(?:Game|Pitching)\s+/i, "")
+    .replace(/\s*\((?:In[- ]Game|Practice)\)$/i, "");
+  const inGame=/^(?:QPA|Pitching)(?:\s*·|$)/i.test(row.source.trim()) ||
+    /^Full Swing\s*·\s*(?:Game|Intrasquad)(?:\s*·|$)/i.test(row.source.trim());
+  return `${base} (${inGame ? "In Game" : "Practice"})`;
+}
 export const variableKey = (row: AnalyticsReading) => JSON.stringify([row.metric,row.unit,row.source.trim().toLowerCase().replace(/\s+/g," ")]);
 export const prettyGroup = (value: string) => value.replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase());
 export const pointGroup = (player: AnalyticsPlayer, group: ColorGroup) => group === "team" ? "Pacific" : prettyGroup(player[group] || "Not listed");
@@ -26,7 +41,7 @@ export function latestAnalyticsReadings(readings: readonly AnalyticsReading[]): 
 }
 export function analyticsVariables(readings: readonly AnalyticsReading[]): AnalyticsVariable[] {
   const variables=new Map<string,AnalyticsVariable>();
-  for(const row of latestAnalyticsReadings(readings.filter(row=>analyticsReadingVisible(row)))){const key=variableKey(row),old=variables.get(key);if(old)old.count++;else variables.set(key,{key,metric:row.metric,label:PLAYER_METRICS.find(m=>m.key===row.metric)?.label??row.label,unit:row.unit,source:row.source,count:1});}
+  for(const row of latestAnalyticsReadings(readings.filter(row=>analyticsReadingVisible(row)))){const key=variableKey(row),old=variables.get(key);if(old)old.count++;else variables.set(key,{key,metric:row.metric,label:analyticsDisplayLabel(row),unit:row.unit,source:row.source,count:1});}
   return [...variables.values()].sort((a,b)=>a.label.localeCompare(b.label)||a.unit.localeCompare(b.unit)||a.source.localeCompare(b.source));
 }
 export function pairAnalytics(players: readonly AnalyticsPlayer[], readings: readonly AnalyticsReading[], xKey: string, yKey: string, maxGap: number) {
