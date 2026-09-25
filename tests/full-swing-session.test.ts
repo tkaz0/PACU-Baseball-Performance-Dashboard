@@ -4,6 +4,7 @@ import { previewFullSwingSummary } from "@/lib/imports/full-swing";
 import { getPreviewRoster } from "@/lib/preview-roster";
 import { groupPitchRanges, SESSION_METRICS } from "@/lib/imports/full-swing-session";
 import { prepareFullSwingContacts, REVIEWED_CONTACT_FIELDS } from "@/lib/imports/full-swing-contacts";
+import { fullSwingValueKey, inspectFullSwingReadings, omitFullSwingReadings, summarizeReviewedFullSwingSession } from "@/lib/imports/full-swing-misreads";
 
 const player = getPreviewRoster()[0];
 const name = `${player.first_name} ${player.last_name}`;
@@ -103,4 +104,43 @@ it("groups nearby velocities across old boundaries until a 3 mph gap, preserving
  expect(groups.reduce((sum,g)=>sum+g.count,0)).toBe(6);expect(r.pitches).toEqual(before);
  expect(groupPitchRanges([...r.pitches].reverse())).toEqual(groups);
  expect(groupPitchRanges(r.pitches,3,250,"fixed").length).toBeGreaterThan(groups.length);
+});
+
+it("flags a high tracking value and excludes only that CSV cell from every derived view",()=>{
+ const source=table([
+  event({PitchNo:"1",RelSpeed:"80",ExitSpeed:"89",Angle:"20"}),
+  event({PitchNo:"2",RelSpeed:"81",ExitSpeed:"90",Angle:"21"}),
+  event({PitchNo:"3",RelSpeed:"82",ExitSpeed:"91",Angle:"22"}),
+  event({PitchNo:"4",RelSpeed:"80",ExitSpeed:"92",Angle:"23"}),
+  event({PitchNo:"5",RelSpeed:"81",ExitSpeed:"93",Angle:"24"}),
+  event({PitchNo:"6",RelSpeed:"150",ExitSpeed:"180",Angle:"25"}),
+ ]);
+ const readings=inspectFullSwingReadings(source);
+ expect(readings.find(row=>row.key===fullSwingValueKey(7,"RelSpeed"))?.reason).toMatch(/high/);
+ expect(readings.find(row=>row.key===fullSwingValueKey(7,"ExitSpeed"))?.reason).toMatch(/high/);
+ const excluded=new Set([fullSwingValueKey(7,"RelSpeed"),fullSwingValueKey(7,"ExitSpeed")]);
+ const reviewed=summarizeReviewedFullSwingSession(source,readings,excluded);
+ expect(reviewed.pitches.find(p=>p.sourceRow===7)?.velocity).toBeNull();
+ expect(reviewed.pitches.find(p=>p.sourceRow===7)?.spin).toBe(1800);
+ expect(reviewed.contacts.some(contact=>contact.sourceRow===7)).toBe(false);
+ expect(reviewed.table.rows.find(row=>row[7])?.[8]).toBe("80.8");
+ expect(reviewed.samples.find(sample=>sample.metric==="Average EV")?.count).toBe(5);
+ expect(source.rows[5][source.headers.indexOf("RelSpeed")]).toBe("150");
+ expect(()=>omitFullSwingReadings(source,readings,new Set(["99:RelSpeed"]))).toThrow("no longer matches");
+});
+
+it("requires explicit removal of invalid readings and keeps later summary coordinates stable",()=>{
+ const source=table([
+  event({PitchNo:"1",ExitSpeed:"-10",BatSpeed:"60",Distance:"250"}),
+  event({PitchNo:"2",Batter:"Fictional Other",BatterId:"fictional-other",ExitSpeed:"90",BatSpeed:"62",Distance:"240"}),
+ ]);
+ const readings=inspectFullSwingReadings(source);
+ expect(readings.find(row=>row.key===fullSwingValueKey(2,"ExitSpeed"))?.blocking).toBe(true);
+ expect(()=>summarizeReviewedFullSwingSession(source,readings,new Set())).toThrow("invalid");
+ const base=summarizeReviewedFullSwingSession(source,readings,new Set([fullSwingValueKey(2,"ExitSpeed")]));
+ const excluded=new Set([fullSwingValueKey(2,"ExitSpeed"),fullSwingValueKey(2,"BatSpeed"),fullSwingValueKey(2,"Distance")]);
+ const reviewed=summarizeReviewedFullSwingSession(source,readings,excluded);
+ expect(reviewed.table.rowNumbers.at(-1)).toBe(base.table.rowNumbers.at(-1));
+ expect(reviewed.players.find(player=>player.identity===name&&player.role==="Batter")?.values.every(value=>!value)).toBe(true);
+ expect(reviewed.table.rows.some(row=>row[0]===name&&row[2])).toBe(false);
 });

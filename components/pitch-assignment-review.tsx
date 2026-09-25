@@ -15,7 +15,7 @@ function TypeSelect({ value, label, onChange }: { value: string; label: string; 
     <option value="">Unassigned</option>{PITCH_TYPES.map(type=><option key={type} value={type}>{type}</option>)}
   </select>;
 }
-export function PitchAssignmentReview({ session, ranges, fileHash, store, search, spinUnit, rpmConfirmed, includedIdentities, resultContext, saveResults }: { session: FullSwingSession; resultContext?: PitchResultContext; saveResults?: SaveImportAction; includedIdentities?: string[]; ranges: PitchRange[]; fileHash?: string; store?: PitchAssignmentStore; search: string; spinUnit: string; rpmConfirmed: boolean }) {
+export function PitchAssignmentReview({ session, ranges, fileHash, store, search, spinUnit, rpmConfirmed, includedIdentities, resultContext, saveResults, onResultsSaved }: { session: FullSwingSession; resultContext?: PitchResultContext; saveResults?: SaveImportAction; includedIdentities?: string[]; ranges: PitchRange[]; fileHash?: string; store?: PitchAssignmentStore; search: string; spinUnit: string; rpmConfirmed: boolean; onResultsSaved?: () => void }) {
   const [resultApproval, setResultApproval] = useState("");
   const [resultMessage, setResultMessage] = useState("");
   const [assignments,setAssignments]=useState<PitchAssignment[]>([]), [saved,setSaved]=useState<PitchAssignment[]>([]);
@@ -60,6 +60,7 @@ export function PitchAssignmentReview({ session, ranges, fileHash, store, search
     try {
       const rows=prepareClassifiedPitchResults(session,assignments,resultContext);
       if(!rows.length) throw new Error("No matched pitchers have reviewed pitch labels yet.");
+      onResultsSaved?.();
       const receipt=await saveResults(rows);
       setResultMessage(`${receipt.created} pitch-type readings saved · ${receipt.unchanged} already saved. View them under ${resultContext.category === "practice" ? "Practice" : "In-Game"} on each pitcher’s profile.`);
       setResultApproval("");

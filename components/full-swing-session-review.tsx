@@ -8,7 +8,7 @@ import { useState } from "react";
 import { groupPitchRanges, SESSION_METRICS, type FullSwingSession, type PitchGroupingMode } from "@/lib/imports/full-swing-session";
 
 const number = (value: number | null) => value === null ? "—" : value.toFixed(1);
-export function FullSwingSessionReview({ session, fileHash, assignmentStore, includedIdentities, resultContext, saveResults }: { session: FullSwingSession; resultContext?: PitchResultContext; saveResults?: SaveImportAction; includedIdentities?: string[]; fileHash?: string; assignmentStore?: PitchAssignmentStore }) {
+export function FullSwingSessionReview({ session, fileHash, assignmentStore, includedIdentities, resultContext, saveResults, onResultsSaved }: { session: FullSwingSession; resultContext?: PitchResultContext; saveResults?: SaveImportAction; includedIdentities?: string[]; fileHash?: string; assignmentStore?: PitchAssignmentStore; onResultsSaved?: () => void }) {
   const [search, setSearch] = useState("");
   const [velocityWidth, setVelocityWidth] = useState(3), [spinWidth, setSpinWidth] = useState(250);
   const [groupingMode, setGroupingMode] = useState<PitchGroupingMode>("gap");
@@ -28,6 +28,7 @@ export function FullSwingSessionReview({ session, fileHash, assignmentStore, inc
     if (contactsBusy || contactsApproved !== contactKey || !contactRows.length || contactError) return;
     setContactsBusy(true); setContactsMessage("");
     try {
+      onResultsSaved?.();
       const result = await saveReviewedContacts(contactRows, true);
       setContactsMessage("error" in result ? result.error : `${result.created} batted-ball ${result.created === 1 ? "reading" : "readings"} saved · ${result.unchanged} already saved. Open a matched player profile to see the map.`);
     } catch { setContactsMessage("The save could not be confirmed. Check the player profiles before retrying the same file."); }
@@ -64,6 +65,6 @@ export function FullSwingSessionReview({ session, fileHash, assignmentStore, inc
       })}</tbody></table></div>
       <p className="muted mb-0 text-xs">{groupingMode === "gap" ? `A gap of ${velocityWidth} mph or more starts a new group within each pitcher’s spin band. Nearby speeds stay together, so a group can span more than ${velocityWidth} mph. Review every group before assigning a pitch type.` : "Fixed ranges include the lower number and exclude the upper number."} Percentages use all pitches thrown by that pitcher; missing spin stays separate.</p>
     </details>
-    <PitchAssignmentReview key={fileHash} session={session} resultContext={resultContext} saveResults={saveResults} includedIdentities={includedIdentities} ranges={ranges} search={search} spinUnit={spinUnit} rpmConfirmed={rpmConfirmed} fileHash={fileHash} store={assignmentStore} />
+    <PitchAssignmentReview key={fileHash} session={session} resultContext={resultContext} saveResults={saveResults} includedIdentities={includedIdentities} ranges={ranges} search={search} spinUnit={spinUnit} rpmConfirmed={rpmConfirmed} fileHash={fileHash} store={assignmentStore} onResultsSaved={onResultsSaved} />
   </section>;
 }

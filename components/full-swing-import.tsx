@@ -3,9 +3,10 @@ import { formatMetricNumber, isBatSpeedMetric } from "@/lib/measurement-display"
 
 import type { PitchAssignmentStore } from "@/components/pitch-assignment-review";
 import { FullSwingSessionReview } from "@/components/full-swing-session-review";
+import { FullSwingMisreadReview } from "@/components/full-swing-misread-review";
 import { ImportConfirmation } from "@/components/import-confirmation";
 import { buildImportConfirmation, type ReadingsSaved, type ImportConfirmationData } from "@/lib/import-confirmation";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Check, LoaderCircle, Plus, Trash2 } from "lucide-react";
 import styles from "./import-presentation.module.css";
@@ -14,7 +15,8 @@ import { readImportFile } from "@/lib/imports/files";
 import { selectTable, type DateFormat, type Measurement, type MeasurementMapping, type MeasurementPreview } from "@/lib/imports/engine";
 import { FULL_SWING_LABELS, fullSwingMetrics, previewFullSwingSummary, type FullSwingCategory } from "@/lib/imports/full-swing";
 import { BLAST_MOTION_METRICS, previewBlastMotionSummary } from "@/lib/imports/blast-motion";
-import { looksLikeFullSwingSession, summarizeFullSwingSession, SESSION_METRICS, type FullSwingSession } from "@/lib/imports/full-swing-session";
+import { looksLikeFullSwingSession, SESSION_METRICS } from "@/lib/imports/full-swing-session";
+import { inspectFullSwingReadings, summarizeReviewedFullSwingSession } from "@/lib/imports/full-swing-misreads";
 import { selectRosterSummaries } from "@/lib/imports/roster-selection";
 import { StatInfo } from "@/components/stat-info";
 import { athleteName, type RosterAthlete } from "@/lib/types";
@@ -31,7 +33,10 @@ function ColumnSelect({ label, headers, value, onChange }: { label: string; head
 export function FullSwingImport({ category, roster, saveAction, assignmentStore, vendor = "Full Swing" }: { assignmentStore?: PitchAssignmentStore; vendor?: "Full Swing" | "Blast Motion"; category: FullSwingCategory; roster: RosterAthlete[]; saveAction: SaveImportAction }) {
   const [file, setFile] = useState<FileData | null>(null);
   const [headerRow, setHeaderRow] = useState(0);
-  const [session, setSession] = useState<FullSwingSession | null>(null);
+  const [sessionSource, setSessionSource] = useState<ReturnType<typeof selectTable> | null>(null);
+  const [removedValues, setRemovedValues] = useState<string[]>([]);
+  const [misreadsApproved, setMisreadsApproved] = useState(false);
+  const [misreadsLocked, setMisreadsLocked] = useState(false);
   const [identityKind, setIdentityKind] = useState<MeasurementMapping["identityKind"]>("name");
   const [identityColumn, setIdentityColumn] = useState(-1);
   const [excluded, setExcluded] = useState<string[]>([]);
@@ -51,9 +56,18 @@ export function FullSwingImport({ category, roster, saveAction, assignmentStore,
   const [receipt, setReceipt] = useState<ImportConfirmationData | null>(null);
   const blast = vendor === "Blast Motion";
   const definitions = blast ? BLAST_MOTION_METRICS : fullSwingMetrics(category);
+  const misreadReadings = useMemo(() => sessionSource ? inspectFullSwingReadings(sessionSource) : [], [sessionSource]);
+  const removedSet = useMemo(() => new Set(removedValues), [removedValues]);
+  const sessionResult = useMemo(() => {
+    if (!sessionSource) return { session: null, error: "" };
+    try { return { session: summarizeReviewedFullSwingSession(sessionSource, misreadReadings, removedSet), error: "" }; }
+    catch (error) { return { session: null, error: errorText(error) }; }
+  }, [sessionSource, misreadReadings, removedSet]);
+  const session = sessionResult.session;
+  const needsMisreadReview = removedValues.length > 0 || misreadReadings.some(row => row.reason);
   let table: ReturnType<typeof selectTable> | null = null;
   let tableError = "";
-  if (file) { try { table = session?.table ?? selectTable(file.sheets[0].matrix, headerRow); } catch (error) { tableError = errorText(error); } }
+  if (file) { try { table = sessionSource ? session?.table ?? null : selectTable(file.sheets[0].matrix, headerRow); tableError = sessionResult.error; } catch (error) { tableError = errorText(error); } }
   let selection: ReturnType<typeof selectRosterSummaries> | null = null;
   let selectionError = "";
   if (table && identityColumn >= 0) {
@@ -63,7 +77,7 @@ export function FullSwingImport({ category, roster, saveAction, assignmentStore,
   const invalidate = () => { setReviewed(null); setConfirmed(false); setError(""); setReceipt(null); };
   async function chooseFile(next?: File) {
     const version = ++request.current;
-    invalidate(); setFile(null); setSession(null); setHeaderRow(0); setIdentityColumn(-1); setOverrides({}); setExcluded([]); setDateColumn(-1); setSummaryConfirmed(false);
+    invalidate(); setFile(null); setSessionSource(null); setRemovedValues([]); setMisreadsApproved(false); setMisreadsLocked(false); setHeaderRow(0); setIdentityColumn(-1); setOverrides({}); setExcluded([]); setDateColumn(-1); setSummaryConfirmed(false);
     setMetrics([{ id: nextId.current++, column: -1, key: "", unit: "" }]);
     if (!next) return;
     setBusy(true);
@@ -74,8 +88,8 @@ export function FullSwingImport({ category, roster, saveAction, assignmentStore,
         if (!blast && looksLikeFullSwingSession(loaded.sheets[0].matrix[0].map(cell => cell.trim()))) {
           const original = selectTable(loaded.sheets[0].matrix, 0);
           if (category !== "game" && category !== "intrasquad" && category !== "practice") throw new Error("Choose Games / Intrasquad for a Live at Bat session containing hitters and pitchers.");
-          const parsed = summarizeFullSwingSession(original);
-          setSession(parsed); setIdentityKind("name"); setIdentityColumn(0); setDateMode("column"); setDateColumn(1); setDateFormat("ISO");
+          inspectFullSwingReadings(original);
+          setSessionSource(original); setIdentityKind("name"); setIdentityColumn(0); setDateMode("column"); setDateColumn(1); setDateFormat("ISO");
           setMetrics(SESSION_METRICS.map((m, i) => ({ id: nextId.current++, column: i + 2, key: m.key, unit: m.unit })));
         }
         setFile(loaded);
@@ -87,6 +101,7 @@ export function FullSwingImport({ category, roster, saveAction, assignmentStore,
     invalidate();
     if (!table || !file) return;
     try {
+      if (sessionSource && needsMisreadReview && !misreadsApproved) throw new Error("Check the flagged Full Swing readings before reviewing this import.");
       const mapping: MeasurementMapping = {
         identityKind, identityColumn, identityOverrides: overrides,
         ...(dateMode === "fixed" ? { fixedDate: date } : { dateColumn }), dateFormat: dateMode === "fixed" ? "ISO" : dateFormat,
@@ -107,12 +122,18 @@ export function FullSwingImport({ category, roster, saveAction, assignmentStore,
         return count ? [{ label: definitions.find(item => item.key === metric.key)!.label, reason: `${count} blank ${count === 1 ? "cell was" : "cells were"} skipped.` }] : [];
       });
       if (selection?.skipped.length) skipped.push({ label: "Excluded players", reason: `${selection.skipped.length} unmatched or excluded export names were not imported.` });
+      if (sessionSource) setMisreadsLocked(true);
       const result = await saveAction(reviewed.candidateMeasurements);
       setReceipt(buildImportConfirmation(reviewed.candidateMeasurements, roster, result, skipped));
       setReviewed(null); setConfirmed(false);
     }
     catch (error) { setError(errorText(error)); }
     finally { setBusy(false); }
+  }
+  function toggleMisread(key: string) {
+    if (misreadsLocked) return;
+    invalidate(); setSummaryConfirmed(false); setMisreadsApproved(false);
+    setRemovedValues(current => current.includes(key) ? current.filter(value => value !== key) : [...current, key]);
   }
   return <div className="space-y-6">
     <section className={`panel p-5 sm:p-7 ${styles.uploadPanel}`}>
@@ -127,8 +148,9 @@ export function FullSwingImport({ category, roster, saveAction, assignmentStore,
       <section className="panel p-5 sm:p-7">
         <h2 className={styles.stepTitle}><span className={styles.stepNumber}>2.</span>{" "}Match Players and Columns</h2>
         <p className={`${styles.sectionLead} break-words`}>{file.fileName}</p>
-        {session && <div className="notice mb-5"><p className="font-semibold">Live at Bat · {session.date}</p><p>Source file: {session.eventCount} pitches · {session.pitcherCount} {session.pitcherCount === 1 ? "pitcher" : "pitchers"} · {session.batterCount} {session.batterCount === 1 ? "batter" : "batters"}. Summaries use only recorded values; nulls are skipped.</p><p className="mb-0 text-sm">The export has no pitch labels or outcomes. Review pitch assignments below to add velocity and spin by type; strike, K, and BB percentages remain unavailable. Potential exit speed is not measured exit velocity.</p></div>}
-        {!session && <details className="mb-5 rounded-lg border border-[var(--line-subtle)] p-4"><summary className="cursor-pointer text-sm font-semibold">File Layout</summary><label className="mt-4 max-w-xs">Header row<select value={headerRow} onChange={event => { invalidate(); setHeaderRow(Number(event.target.value)); setIdentityColumn(-1); setDateColumn(-1); setOverrides({}); setExcluded([]); setMetrics([{ id: nextId.current++, column: -1, key: "", unit: "" }]); }}>{file.sheets[0].matrix.slice(0, 20).map((_, index) => <option value={index} key={index}>Row {index + 1}</option>)}</select></label></details>}
+        {sessionSource && <FullSwingMisreadReview readings={misreadReadings} excluded={removedSet} toggle={toggleMisread} reviewed={misreadsApproved} setReviewed={setMisreadsApproved} locked={misreadsLocked} />}
+        {session && <div className="notice mb-5"><p className="font-semibold">Live at Bat · {session.date}</p><p>Source file: {session.eventCount} pitches · {session.pitcherCount} {session.pitcherCount === 1 ? "pitcher" : "pitchers"} · {session.batterCount} {session.batterCount === 1 ? "batter" : "batters"}. Summaries use only included readings; {removedValues.length} {removedValues.length === 1 ? "value was" : "values were"} removed from this import.</p><p className="mb-0 text-sm">The export has no pitch labels or outcomes. Review pitch assignments below to add velocity and spin by type; strike, K, and BB percentages remain unavailable. Potential exit speed is not measured exit velocity.</p></div>}
+        {!sessionSource && <details className="mb-5 rounded-lg border border-[var(--line-subtle)] p-4"><summary className="cursor-pointer text-sm font-semibold">File Layout</summary><label className="mt-4 max-w-xs">Header row<select value={headerRow} onChange={event => { invalidate(); setHeaderRow(Number(event.target.value)); setIdentityColumn(-1); setDateColumn(-1); setOverrides({}); setExcluded([]); setMetrics([{ id: nextId.current++, column: -1, key: "", unit: "" }]); }}>{file.sheets[0].matrix.slice(0, 20).map((_, index) => <option value={index} key={index}>Row {index + 1}</option>)}</select></label></details>}
         {tableError && <p role="alert" className="notice notice-error">{tableError}</p>}
         {table && <>
           {!session && <div className="grid gap-5 md:grid-cols-2">
@@ -147,7 +169,7 @@ export function FullSwingImport({ category, roster, saveAction, assignmentStore,
               setOverrides(current => { const next = { ...current }; if (value && value !== "__exclude__") next[player.identity] = value; else delete next[player.identity]; return next; });
             }}><option value="">Auto-match; skip if unmatched</option><option value="__exclude__">No player / Skip these stats</option>{roster.map(athlete => <option key={athlete.id} value={athlete.athlete_code}>{athleteName(athlete)} · {athlete.athlete_code}</option>)}</select></label>)}</div></details>
           </div>}
-          {session ? <FullSwingSessionReview key={file.fileHash} session={session} resultContext={{ fileName: file.fileName, fileHash: file.fileHash, date: session.date, category: category === "game" ? "game" : category === "practice" ? "practice" : "intrasquad", matches: (selection?.players ?? []).filter(player => player.included).map(player => ({ identity: player.identity, athleteCode: player.athlete!.athlete_code })) }} saveResults={saveAction} includedIdentities={selection?.includedIdentities ?? []} fileHash={file.fileHash} assignmentStore={assignmentStore} /> : selection && <details className="mb-6 rounded-lg border border-[var(--line-subtle)] p-4"><summary className="cursor-pointer text-sm font-semibold">View Matched Summaries · {selection.table.rows.length} Rows</summary><div className="table-wrap mt-4 max-h-[32rem] overflow-auto"><table><thead><tr><th>Row</th>{table.headers.map((header, index) => <th key={index}>{header}</th>)}</tr></thead><tbody>{selection.table.rows.map((row, index) => <tr key={index}><td>{selection!.table.rowNumbers[index]}</td>{row.map((cell, column) => <td key={column}>{cell && Number.isFinite(Number(cell)) && (isBatSpeedMetric(table.headers[column] ?? "") || (!blast && metrics.some(metric => metric.column === column))) ? formatMetricNumber(Number(cell),table.headers[column] ?? "",blast ? "Blast Motion" : "Full Swing") : cell || "—"}</td>)}</tr>)}</tbody></table></div></details>}
+          {session && (!needsMisreadReview || misreadsApproved) ? <FullSwingSessionReview key={`${file.fileHash}:${removedValues.join(",")}`} session={session} resultContext={{ fileName: file.fileName, fileHash: file.fileHash, date: session.date, category: category === "game" ? "game" : category === "practice" ? "practice" : "intrasquad", matches: (selection?.players ?? []).filter(player => player.included).map(player => ({ identity: player.identity, athleteCode: player.athlete!.athlete_code })) }} saveResults={saveAction} includedIdentities={selection?.includedIdentities ?? []} fileHash={file.fileHash} assignmentStore={assignmentStore} onResultsSaved={() => setMisreadsLocked(true)} /> : !sessionSource && selection && <details className="mb-6 rounded-lg border border-[var(--line-subtle)] p-4"><summary className="cursor-pointer text-sm font-semibold">View Matched Summaries · {selection.table.rows.length} Rows</summary><div className="table-wrap mt-4 max-h-[32rem] overflow-auto"><table><thead><tr><th>Row</th>{table.headers.map((header, index) => <th key={index}>{header}</th>)}</tr></thead><tbody>{selection.table.rows.map((row, index) => <tr key={index}><td>{selection!.table.rowNumbers[index]}</td>{row.map((cell, column) => <td key={column}>{cell && Number.isFinite(Number(cell)) && (isBatSpeedMetric(table.headers[column] ?? "") || (!blast && metrics.some(metric => metric.column === column))) ? formatMetricNumber(Number(cell),table.headers[column] ?? "",blast ? "Blast Motion" : "Full Swing") : cell || "—"}</td>)}</tr>)}</tbody></table></div></details>}
           {session && <details className="mt-5"><summary className="cursor-pointer font-semibold">Measurement Sample Sizes</summary><div className="table-wrap mt-3"><table><thead><tr><th>Export Player</th><th>Role</th><th>Measurement</th><th>Recorded Readings</th><th>CSV Rows</th></tr></thead><tbody>{session.samples.filter(sample => selection?.includedIdentities.includes(sample.identity)).map((sample, i) => <tr key={i}><td>{sample.identity}</td><td>{sample.role}</td><td>{sample.metric}</td><td>{sample.count}</td><td className="max-w-64 break-words text-xs">{sample.sourceRows.join(", ")}</td></tr>)}</tbody></table></div></details>}
           <h3 className="mb-2 mt-7 font-bold">Measurements</h3>
           <p className="muted text-sm">{session ? "Calculated from this session in mph and feet." : "Match each column to a measurement and its original unit."}</p>

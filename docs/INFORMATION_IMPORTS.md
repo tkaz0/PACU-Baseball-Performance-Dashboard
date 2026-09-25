@@ -85,6 +85,12 @@ Session Type now offers Practice for the already-reviewed Field / Live at Bat CS
 
 Pitch grouping defaults to gaps: adjacent velocities within one pitcher/spin band stay together until a gap of at least 3 mph. A connected group may span more than 3 mph. Fixed bins (including 3 mph) remain selectable; missing velocity/spin stay separate and original CSV coordinates never change. Classification still requires staff review. Player Matches opens visibly and offers No player / Skip these stats; exclusion removes any prior manual match from the current preview, summary and classified-result payload while preserving known opponents’ recorded events. Skip affects this import only; already saved mistaken CSV results use the Admin profile’s Correct CSV Assignments tool.
 
+### Full Swing tracking-misread review
+
+Before a reviewed Field / Live at Bat file is saved, staff see advisory flags for unusually high/low pitch velocity, spin, exit velocity, bat speed, launch angle and distance. Speed/spin values also receive a pitcher- or batter-specific median/MAD check when at least five comparable readings exist. These are deliberately broad review hints, not automatic deletions or baseball quality grades. The complete reading list can be searched by player, pitch or original CSV row, so staff may remove an unflagged misread too. Invalid numerical cells must be explicitly removed before the session can be summarized. A separate checkbox confirms flagged values were checked against the original export.
+
+Removal replaces only the chosen numeric cell with a missing value in the open review. Pitch number, identities, file hash and CSV coordinates remain intact; a bad exit speed can be removed without dropping the pitcher's velocity on that row. Player averages/maxima, sample counts, pitch velocity/spin groups and contact-map points are rebuilt from included cells. Staff must repeat the final import review after changing exclusions. Once any derived results are saved, the open review locks its exclusion choices. The original CSV is never edited. These choices are not a post-save row-deletion mechanism; an already-saved file needs a separate correction and re-import review to keep its aggregates consistent.
+
 
 ## Blast Weekly Performance Reports — September 20
 
