@@ -8,6 +8,7 @@ import { LEADERBOARD_METRICS, isPitchLeaderboardMetric, leaderboardOrder, type L
 type Access = Awaited<ReturnType<typeof requireAccess>>;
 const optionFields = ["athleteCount", "metricKey", "period", "source", "unit"].sort().join(",");
 const resultFields = ["rank", "athleteCode", "name", "jerseyNumber", "position", "profileId", "value", "measuredAt", "source", "derived"].sort().join(",");
+const resultWithSamples = [...resultFields.split(","), "sampleCount", "sampleUnit"].sort().join(",");
 const positions = new Set(["P", "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "OF", "IF", "DH", "UT"]);
 const canonicalSource = (source: unknown): source is string => typeof source === "string" && source.length > 0 && source.length <= 100 && !/[\u0000-\u001f\u007f]/.test(source) && source === source.trim().toLowerCase().replace(/\s+/g, " ");
 function permitted(access: Access) {
@@ -39,7 +40,10 @@ export async function loadLeaderboard(access: Access, selection: LeaderboardSele
   const seen = new Set<string>(); let previous: LeaderboardRow | undefined;
   return data.map((item, index) => {
     const fail = () => { throw new Error("Leaderboard results could not be verified."); };
-    if (!item || typeof item !== "object" || Array.isArray(item) || Object.keys(item).sort().join(",") !== resultFields) return fail();
+    if (!item || typeof item !== "object" || Array.isArray(item) || ![resultFields,resultWithSamples].includes(Object.keys(item).sort().join(","))) return fail();
+    if ("sampleCount" in item && (item.sampleCount !== null && (!Number.isSafeInteger(item.sampleCount) || item.sampleCount < 1 || item.sampleCount > 1000000)
+      || item.sampleUnit !== null && !["swings","pitches","trials"].includes(item.sampleUnit)
+      || (item.sampleCount === null) !== (item.sampleUnit === null))) return fail();
     if (typeof item.athleteCode !== "string" || !/^[A-Z0-9][A-Z0-9_-]{2,39}$/.test(item.athleteCode) || seen.has(item.athleteCode) ||
       typeof item.name !== "string" || !item.name.trim() || item.name.length > 201 || /[\u0000-\u001f\u007f]/.test(item.name) ||
       (item.jerseyNumber !== null && (!Number.isSafeInteger(item.jerseyNumber) || item.jerseyNumber < 0 || item.jerseyNumber > 99)) ||

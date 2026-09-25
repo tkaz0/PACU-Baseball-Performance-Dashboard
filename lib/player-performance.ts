@@ -83,6 +83,9 @@ export type PlayerPerformanceInput = {
 
 export const TIMED_METRIC_KEYS = ["home_to_first", "home_to_second", "steal_break", "boxer_t", "steal_start_12ft", "steal_reaction", "steal_12_42ft"] as const;
 export const isTimedMetric = (key: string) => (TIMED_METRIC_KEYS as readonly string[]).includes(key);
+/** Max/best measurements represent the best saved Fall result within one source and unit. */
+export const FALL_BEST_METRIC_KEYS = ["max_exit_velocity", "max_bat_speed", "max_distance", "max_pitch_velocity", "infield_velocity", "outfield_velocity", "classified_max_velocity", "classified_max_spin"] as const;
+export const isFallBestMetric = (key: string) => (FALL_BEST_METRIC_KEYS as readonly string[]).includes(key);
 export const HIDDEN_PROFILE_METRICS = ["steal_break", "steal_reaction", "steal_12_42ft"] as const;
 export const isVisibleProfileMetric = (key: string) => !(HIDDEN_PROFILE_METRICS as readonly string[]).includes(key);
 const definitions = new Map(PLAYER_METRICS.map(metric => [metric.key, metric]));

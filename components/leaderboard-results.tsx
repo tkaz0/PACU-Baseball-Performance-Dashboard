@@ -1,7 +1,7 @@
 import { StatInfo } from "@/components/stat-info";
 import Link from "next/link";
 import { leaderboardMetricLabel, pitchLeaderboardLabel, isPitchLeaderboardMetric, leaderboardOrderLabel, leaderboardSourceLabel, leaderboardTestDate, type LeaderboardMetricDefinition, type LeaderboardRow } from "@/lib/leaderboards";
-import { isTimedMetric, type PlayerPerformancePeriod } from "@/lib/player-performance";
+import { isFallBestMetric, isTimedMetric, type PlayerPerformancePeriod } from "@/lib/player-performance";
 import { formatHeight, formatMetricNumber } from "@/lib/measurement-display";
 import styles from "./leaderboard.module.css";
 
@@ -24,7 +24,7 @@ function RankingTable({ rows, metric, unit, continued = false, tiedRanks, barMax
         <span className={styles.playerMeta}>{row.jerseyNumber !== null ? `#${row.jerseyNumber}` : row.athleteCode}{row.position ? ` · ${row.position}` : ""}<span className={styles.date}><time dateTime={row.measuredAt}>{leaderboardTestDate(row.measuredAt)}</time></span></span>
         {barMax !== undefined && <span aria-hidden="true" className={styles.barTrack}><span className={unit === "rpm" ? styles.spinBar : styles.valueBar} style={{ width: `${barMax > 0 ? Math.max(0, Math.min(100, row.value / barMax * 100)) : 0}%` }} /></span>}
       </th>
-      <td className={styles.result}><ResultValue row={row} metric={metric} unit={unit} /></td>
+      <td className={styles.result}><ResultValue row={row} metric={metric} unit={unit} />{row.sampleCount && row.sampleUnit ? <span className="muted mt-1 block whitespace-nowrap text-[11px] font-medium">{row.sampleCount} {row.sampleUnit}</span> : row.source.startsWith("full swing") && metric.group === "hitting" ? <span className="muted mt-1 block text-[11px] font-medium">Swing count not saved</span> : null}</td>
     </tr>)}</tbody>
   </table></div>;
 }
@@ -39,7 +39,7 @@ export function LeaderboardResults({ rows, metric, unit, source, period }: { row
     <header className={styles.heading}>
       <div className={styles.eyebrow}><span>{source ? leaderboardSourceLabel(isPitchLeaderboardMetric(metric.key) ? source.split(" · ").slice(0, -1).join(" · ") : source) : "Team Testing"}{period ? ` · ${period === "fall_2026" ? "Fall 2026" : "Jun–Aug 2026"}` : ""}</span><span>{rows.length} {rows.length === 1 ? "Player" : "Players"}</span></div>
       <h2>{isPitchLeaderboardMetric(metric.key) && source ? pitchLeaderboardLabel(metric, source) : leaderboardMetricLabel(metric)}<StatInfo metric={metric.key} label={isPitchLeaderboardMetric(metric.key) && source ? pitchLeaderboardLabel(metric, source) : leaderboardMetricLabel(metric)} /></h2>
-      <p title={isTimedMetric(metric.key) ? "Fastest comparable Fall trial per athlete; equal values share a rank." : metric.direction === "neutral" ? "Numerical comparisons, not a health or performance rating." : "Latest comparable result per athlete; equal values share a rank."}>{leaderboardOrderLabel(metric)}</p>
+      <p title={isTimedMetric(metric.key) ? "Fastest comparable Fall trial per athlete; equal values share a rank." : isFallBestMetric(metric.key) ? "Best recorded Fall result within this source and session type; equal values share a rank." : metric.direction === "neutral" ? "Numerical comparisons, not a health or performance rating." : "Latest comparable result per athlete; equal values share a rank."}>{isFallBestMetric(metric.key) ? `Fall Best · ${leaderboardOrderLabel(metric)}` : leaderboardOrderLabel(metric)}</p>
     </header>
     {rows.length ? <><RankingTable rows={rows.slice(0, 5)} metric={metric} unit={unit} tiedRanks={tiedRanks} barMax={barMax} />{rows.length > 5 && <details className={styles.more}><summary>Show {rows.length - 5} More</summary><RankingTable rows={rows.slice(5)} metric={metric} unit={unit} tiedRanks={tiedRanks} barMax={barMax} continued /></details>}</>
       : <p className="muted m-0 p-6 text-sm">Results will appear after testing data is added.</p>}

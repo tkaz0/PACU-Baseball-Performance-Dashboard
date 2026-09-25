@@ -52,6 +52,7 @@ describe("explicit minimal team leaderboard access", () => {
       row(1,{metric_key:"classified_avg_velocity",source:"Full Swing · Intrasquad · Curveball",value:65},2),
       row(1,{metric_key:"classified_max_spin",source:"Full Swing · Intrasquad · Curveball",value:2500.123,unit:"rpm"},3),
       row(1,{metric_key:"classified_pitch_count",source:"Full Swing · Intrasquad · Curveball",value:15,unit:"count"},4),
+      row(1,{metric_key:"classified_spin_count",source:"Full Swing · Intrasquad · Curveball",value:12,unit:"count"},6),
       row(1,{metric_key:"classified_avg_velocity",source:"Unreviewed pitch source",value:100},5),
       row(3,{metric_key:"classified_avg_velocity",source:"Full Swing · Intrasquad · Four-Seam Fastball",value:82.456},0),
       row(6,{metric_key:"classified_avg_velocity",source:"Full Swing · Intrasquad · Four-Seam Fastball",value:99},0),
@@ -63,7 +64,7 @@ describe("explicit minimal team leaderboard access", () => {
       expect(rows.map(r=>[r.value,r.rank])).toEqual([[82.456,1],[82.456,1],[81.234,3]]);
       expect(rows.map(r=>r.profileId)).toEqual([null,null,athlete(1)]);
       expect(await board({metricKey:"classified_avg_velocity",source:"full swing · practice · four-seam fastball"})).toEqual([expect.objectContaining({value:95})]);
-      expect(await board({metricKey:"classified_max_spin",source:"full swing · intrasquad · curveball",unit:"rpm"})).toEqual([expect.objectContaining({value:2500.123})]);
+      expect(await board({metricKey:"classified_max_spin",source:"full swing · intrasquad · curveball",unit:"rpm"})).toEqual([expect.objectContaining({value:2500.123,sampleCount:12,sampleUnit:"pitches"})]);
       expect(JSON.stringify(rows)).not.toMatch(/file_hash|source_file|email|source_row/);
     });
   });
@@ -88,7 +89,7 @@ describe("explicit minimal team leaderboard access", () => {
   });
   it("returns only the exact minimal projection and preserves jersey zero and preferred names", async () => {
     await save(); const data = await asUser(users.player, () => board());
-    expect(Object.keys(data[0]).sort()).toEqual(["rank", "athleteCode", "name", "jerseyNumber", "position", "profileId", "value", "measuredAt", "source", "derived"].sort());
+    expect(Object.keys(data[0]).sort()).toEqual(["rank", "athleteCode", "name", "jerseyNumber", "position", "profileId", "value", "measuredAt", "source", "derived", "sampleCount", "sampleUnit"].sort());
     expect(data[0]).toMatchObject({ name: "Preferred Fictional Player 1", jerseyNumber: 0, position: "P", measuredAt: "2026-09-12" });
     for (const excluded of ["example.com", "fictional-private-report.csv", "Fictional sheet", "observation:", users.admin]) expect(JSON.stringify(data)).not.toContain(excluded);
   });
@@ -108,17 +109,17 @@ describe("explicit minimal team leaderboard access", () => {
   });
 });
 describe("comparable latest results and numerical places", () => {
-  it("takes the latest result instead of historical best, with stable competition ties", async () => {
+  it("takes the best Fall max across saved sessions in the same source, with stable competition ties", async () => {
     await save([row(1, { value: 20 }), row(2, { value: 20 }), row(3, { value: 10 }), row(1, { value: 999, measured_at: "2026-09-01", file_hash: "e".repeat(64) })]);
     const data = await asUser(users.player, () => board());
-    expect(data.map(row => [row.athleteCode, row.value, row.rank])).toEqual([[code(1), 20, 1], [code(2), 20, 1], [code(3), 10, 3]]);
+    expect(data.map(row => [row.athleteCode, row.value, row.rank])).toEqual([[code(1), 999, 1], [code(2), 20, 2], [code(3), 10, 3]]);
   });
-  it("uses millisecond import ties then hash and observation identity consistently", async () => {
-    await save([row(1, { value: 10, file_hash: "a".repeat(64) }), row(1, { value: 20, file_hash: "b".repeat(64) })]);
+  it("still uses millisecond import ties for average metrics", async () => {
+    await save([row(1, { metric_key:"avg_exit_velocity", value: 10, file_hash: "a".repeat(64) }), row(1, { metric_key:"avg_exit_velocity", value: 20, file_hash: "b".repeat(64) })]);
     await db.exec("update public.performance_measurements set imported_at=case when value=10 then '2026-09-15T12:00:00.123100Z'::timestamptz else '2026-09-15T12:00:00.123900Z'::timestamptz end");
-    expect((await asUser(users.player, () => board()))[0].value).toBe(10);
+    expect((await asUser(users.player, () => board({metricKey:"avg_exit_velocity"})))[0].value).toBe(10);
     await db.exec("update public.performance_measurements set imported_at='2026-09-15T12:00:00.124000Z' where value=20");
-    expect((await asUser(users.player, () => board()))[0].value).toBe(20);
+    expect((await asUser(users.player, () => board({metricKey:"avg_exit_velocity"})))[0].value).toBe(20);
   });
   it("orders timed tests lower first and counts only measured eligible roster members", async () => {
     await save(Array.from({ length: 7 }, (_, i) => row(i + 1, { metric_key: "home_to_first", value: i + 1, unit: "s" })));

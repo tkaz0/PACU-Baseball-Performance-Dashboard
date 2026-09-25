@@ -19,7 +19,7 @@ export const LEADERBOARD_GROUPS = ["physicality", "hitting", "pitching", "throwi
 export type LeaderboardGroup = (typeof LEADERBOARD_GROUPS)[number];
 export type LeaderboardComparison = { metricKey: LeaderboardMetricKey; source: string; unit: string; period: PlayerPerformancePeriod; athleteCount: number };
 export type LeaderboardSelection = Omit<LeaderboardComparison, "athleteCount">;
-export type LeaderboardRow = { rank: number; athleteCode: string; name: string; jerseyNumber: number | null; position: string | null; profileId: string | null; value: number; measuredAt: string; source: string; derived: boolean };
+export type LeaderboardRow = { rank: number; athleteCode: string; name: string; jerseyNumber: number | null; position: string | null; profileId: string | null; value: number; measuredAt: string; source: string; derived: boolean; sampleCount?: number | null; sampleUnit?: "swings" | "pitches" | "trials" | null };
 export const leaderboardGroupLabels: Record<LeaderboardGroup, string> = { physicality: "Physicality", hitting: "Hitting", pitching: "Pitching", throwing: "Position Throwing" };
 const physicality = new Set(["skeletal_muscle_mass", "body_score", "height", "weight", "grip_strength", "grip_dominant", "grip_non_dominant", "body_fat_pct", "muscle_mass_pct", "muscle_mass", ...TIMED_METRIC_KEYS]);
 export function leaderboardGroup(metric: LeaderboardMetricDefinition): LeaderboardGroup {
