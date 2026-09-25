@@ -9,16 +9,18 @@ const FIELDS: { field: Field; label: string; unit: string; actor: "Pitcher" | "B
   { field: "Angle", label: "Launch angle", unit: "°", actor: "Batter", low: -50, high: 65, floor: 0 },
   { field: "Direction", label: "Field direction", unit: "°", actor: "Batter", low: -90, high: 90, floor: 0 },
   { field: "BatSpeed", label: "Bat speed", unit: "mph", actor: "Batter", low: 25, high: 95, floor: 12 },
-  { field: "Distance", label: "Distance", unit: "ft", actor: "Batter", low: 0, high: 500, floor: 0 },
+  { field: "Distance", label: "Distance", unit: "ft", actor: "Batter", low: 0, high: 500, floor: 180 },
 ];
-const RELATIVE_FIELDS = new Set<Field>(["RelSpeed", "SpinRate", "ExitSpeed", "BatSpeed"]);
+const RELATIVE_FIELDS = new Set<Field>(["RelSpeed", "SpinRate", "ExitSpeed", "BatSpeed", "Distance"]);
+const HITTER_RELATIVE_MINIMUM = 3;
+const PITCHER_RELATIVE_MINIMUM = 5;
 const numeric = /^-?\d+(?:\.\d+)?$/;
 const median = (values: readonly number[]) => {
   const sorted = [...values].sort((a, b) => a - b), mid = Math.floor(sorted.length / 2);
   return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 };
 export type FullSwingReadingReview = {
-  key: string; sourceRow: number; pitchNumber: string; identity: string; field: Field;
+  key: string; sourceRow: number; pitchNumber: string; identity: string; actor: "Pitcher" | "Batter"; field: Field;
   label: string; unit: string; raw: string; value: number | null;
   reason: string | null; blocking: boolean;
 };
@@ -38,16 +40,16 @@ export function inspectFullSwingReadings(table: ImportTable): FullSwingReadingRe
       const value = numeric.test(raw) && Number.isFinite(Number(raw)) ? Number(raw) : null;
       const blocking = value === null || (spec.field === "Distance" ? value < 0 || value > 1000 : spec.field === "Angle" || spec.field === "Direction" ? Math.abs(value) > 90 : value <= 0 || (spec.field === "ExitSpeed" && value > 200));
       const reason = blocking ? "Invalid or outside the supported measurement range" : value < spec.low ? "Unusually low — check the source" : value > spec.high ? "Unusually high — check the source" : null;
-      rows.push({ key: fullSwingValueKey(sourceRow, spec.field), sourceRow, pitchNumber: cells[0].trim(), identity: cells[spec.actorColumn].trim(), field: spec.field, label: spec.label, unit: spec.unit, raw, value, reason, blocking });
+      rows.push({ key: fullSwingValueKey(sourceRow, spec.field), sourceRow, pitchNumber: cells[0].trim(), identity: cells[spec.actorColumn].trim(), actor: spec.actor, field: spec.field, label: spec.label, unit: spec.unit, raw, value, reason, blocking });
     }
   }
   const groups = new Map<string, FullSwingReadingReview[]>();
   for (const row of rows) if (row.value !== null && !row.blocking && RELATIVE_FIELDS.has(row.field)) {
-    const key = JSON.stringify([row.identity.toLowerCase(), row.field]);
+    const key = JSON.stringify([row.actor, row.identity.toLowerCase(), row.field]);
     groups.set(key, [...(groups.get(key) ?? []), row]);
   }
   for (const group of groups.values()) {
-    if (group.length < 5) continue;
+    if (group.length < (group[0].actor === "Batter" ? HITTER_RELATIVE_MINIMUM : PITCHER_RELATIVE_MINIMUM)) continue;
     const center = median(group.map(row => row.value!));
     const spread = median(group.map(row => Math.abs(row.value! - center)));
     const floor = FIELDS.find(spec => spec.field === group[0].field)!.floor;

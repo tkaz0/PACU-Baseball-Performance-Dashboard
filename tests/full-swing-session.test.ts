@@ -129,6 +129,23 @@ it("flags a high tracking value and excludes only that CSV cell from every deriv
  expect(()=>omitFullSwingReadings(source,readings,new Set(["99:RelSpeed"]))).toThrow("no longer matches");
 });
 
+it("reviews hitter outliers from a short session without changing valid pitcher results",()=>{
+ const source=table([
+  event({PitchNo:"1",RelSpeed:"80",ExitSpeed:"70",BatSpeed:"60",Distance:"100"}),
+  event({PitchNo:"2",RelSpeed:"81",ExitSpeed:"72",BatSpeed:"61",Distance:"120"}),
+  event({PitchNo:"3",RelSpeed:"90",ExitSpeed:"115",BatSpeed:"85",Distance:"490"}),
+ ]);
+ const readings=inspectFullSwingReadings(source);
+ for(const field of ["ExitSpeed","BatSpeed","Distance"] as const)
+  expect(readings.find(row=>row.key===fullSwingValueKey(4,field))).toMatchObject({actor:"Batter",reason:"Much higher than this player's other readings"});
+ expect(readings.find(row=>row.key===fullSwingValueKey(4,"RelSpeed"))).toMatchObject({actor:"Pitcher",reason:null});
+ const excluded=new Set([fullSwingValueKey(4,"ExitSpeed"),fullSwingValueKey(4,"BatSpeed"),fullSwingValueKey(4,"Distance")]);
+ const reviewed=summarizeReviewedFullSwingSession(source,readings,excluded);
+ expect(reviewed.table.rows.find(row=>row[2])?.slice(2,7)).toEqual(["72","71","61","60.5","120"]);
+ expect(reviewed.table.rows.find(row=>row[7])?.slice(7)).toEqual(["90","83.66666666666667"]);
+ expect(reviewed.contacts.some(contact=>contact.sourceRow===4)).toBe(false);
+});
+
 it("requires explicit removal of invalid readings and keeps later summary coordinates stable",()=>{
  const source=table([
   event({PitchNo:"1",ExitSpeed:"-10",BatSpeed:"60",Distance:"250"}),
