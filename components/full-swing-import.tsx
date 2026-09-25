@@ -16,6 +16,7 @@ import { selectTable, type DateFormat, type Measurement, type MeasurementMapping
 import { FULL_SWING_LABELS, fullSwingMetrics, previewFullSwingSummary, type FullSwingCategory } from "@/lib/imports/full-swing";
 import { BLAST_MOTION_METRICS, previewBlastMotionSummary } from "@/lib/imports/blast-motion";
 import { looksLikeFullSwingSession, SESSION_METRICS } from "@/lib/imports/full-swing-session";
+import { fullSwingSamplesForImport, type ReviewedFullSwingSample } from "@/lib/imports/full-swing-samples";
 import { inspectFullSwingReadings, summarizeReviewedFullSwingSession } from "@/lib/imports/full-swing-misreads";
 import { selectRosterSummaries } from "@/lib/imports/roster-selection";
 import { StatInfo } from "@/components/stat-info";
@@ -30,7 +31,7 @@ function ColumnSelect({ label, headers, value, onChange }: { label: string; head
   return <label>{label}<select value={value} onChange={event => onChange(Number(event.target.value))}><option value={-1}>Choose a column…</option>{headers.map((header, index) => <option key={index} value={index}>{index + 1}. {header}</option>)}</select></label>;
 }
 
-export function FullSwingImport({ category, roster, saveAction, assignmentStore, vendor = "Full Swing" }: { assignmentStore?: PitchAssignmentStore; vendor?: "Full Swing" | "Blast Motion"; category: FullSwingCategory; roster: RosterAthlete[]; saveAction: SaveImportAction }) {
+export function FullSwingImport({ category, roster, saveAction, saveSamples, assignmentStore, vendor = "Full Swing" }: { assignmentStore?: PitchAssignmentStore; vendor?: "Full Swing" | "Blast Motion"; category: FullSwingCategory; roster: RosterAthlete[]; saveAction: SaveImportAction; saveSamples?: (rows: ReviewedFullSwingSample[]) => Promise<{ created: number; unchanged: number } | { error: string }> }) {
   const [file, setFile] = useState<FileData | null>(null);
   const [headerRow, setHeaderRow] = useState(0);
   const [sessionSource, setSessionSource] = useState<ReturnType<typeof selectTable> | null>(null);
@@ -54,6 +55,7 @@ export function FullSwingImport({ category, roster, saveAction, assignmentStore,
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [receipt, setReceipt] = useState<ImportConfirmationData | null>(null);
+  const [sampleReceipt, setSampleReceipt] = useState("");
   const blast = vendor === "Blast Motion";
   const definitions = blast ? BLAST_MOTION_METRICS : fullSwingMetrics(category);
   const misreadReadings = useMemo(() => sessionSource ? inspectFullSwingReadings(sessionSource) : [], [sessionSource]);
@@ -74,7 +76,7 @@ export function FullSwingImport({ category, roster, saveAction, assignmentStore,
     try { selection = selectRosterSummaries(table, { identityKind, identityColumn, identityOverrides: overrides }, roster, excluded, session?.players.map(player => player.identity)); }
     catch (error) { selectionError = errorText(error); }
   }
-  const invalidate = () => { setReviewed(null); setConfirmed(false); setError(""); setReceipt(null); };
+  const invalidate = () => { setReviewed(null); setConfirmed(false); setError(""); setReceipt(null); setSampleReceipt(""); };
   async function chooseFile(next?: File) {
     const version = ++request.current;
     invalidate(); setFile(null); setSessionSource(null); setRemovedValues([]); setMisreadsApproved(false); setMisreadsLocked(false); setHeaderRow(0); setIdentityColumn(-1); setOverrides({}); setExcluded([]); setDateColumn(-1); setSummaryConfirmed(false);
@@ -124,10 +126,36 @@ export function FullSwingImport({ category, roster, saveAction, assignmentStore,
       if (selection?.skipped.length) skipped.push({ label: "Excluded players", reason: `${selection.skipped.length} unmatched or excluded export names were not imported.` });
       if (sessionSource) setMisreadsLocked(true);
       const result = await saveAction(reviewed.candidateMeasurements);
+      if (session && saveSamples) {
+        const counts = fullSwingSamplesForImport(session,
+          (selection?.players ?? []).filter(player => player.included).map(player => ({ identity: player.identity, athleteCode: player.athlete!.athlete_code })),
+          reviewed.candidateMeasurements);
+        if (counts.length) {
+          try {
+            const savedCounts = await saveSamples(counts);
+            if ("error" in savedCounts) setError(`The readings were saved, but ${savedCounts.error}`);
+          } catch { setError("The readings were saved, but their sample counts were not confirmed. Reopen the same CSV and retry the reviewed import."); }
+        }
+      }
       setReceipt(buildImportConfirmation(reviewed.candidateMeasurements, roster, result, skipped));
       setReviewed(null); setConfirmed(false);
     }
     catch (error) { setError(errorText(error)); }
+    finally { setBusy(false); }
+  }
+  async function saveExistingCounts() {
+    if (!reviewed?.canApply || !confirmed || !session || !saveSamples || busy) return;
+    setBusy(true); setError(""); setSampleReceipt("");
+    try {
+      const counts = fullSwingSamplesForImport(session,
+        (selection?.players ?? []).filter(player => player.included).map(player => ({ identity: player.identity, athleteCode: player.athlete!.athlete_code })),
+        reviewed.candidateMeasurements);
+      if (!counts.length) throw new Error("No reviewed session counts are available.");
+      const result = await saveSamples(counts);
+      if ("error" in result) throw new Error(result.error);
+      setSampleReceipt(`Verified sample counts for ${result.created + result.unchanged} saved measurements. ${result.created} added, ${result.unchanged} already recorded.`);
+      setReviewed(null); setConfirmed(false);
+    } catch (error) { setError(errorText(error)); }
     finally { setBusy(false); }
   }
   function toggleMisread(key: string) {
@@ -191,11 +219,13 @@ export function FullSwingImport({ category, roster, saveAction, assignmentStore,
         {!!selection?.skipped.length && <p className="notice text-sm">{selection.skipped.length} unmatched or excluded export names will be skipped. Only the readings below will be saved.</p>}
         {!!reviewed.issues.length && <div role="alert" className="notice notice-error"><p className="font-semibold">Fix these rows before saving.</p><ul className="mb-0 list-disc pl-5">{reviewed.issues.slice(0, 30).map((issue, index) => <li key={index}>Row {issue.row}: {issue.message}</li>)}</ul>{reviewed.issues.length > 30 && <p>{reviewed.issues.length - 30} additional issues remain.</p>}</div>}
         <div className="table-wrap"><table><caption className="sr-only">All reviewed readings</caption><thead><tr><th>Player</th><th>Date</th><th>Measurement</th><th>Value</th><th>Source Row</th></tr></thead><tbody>{reviewed.candidateMeasurements.map(row => <tr key={row.id}><td><Link className="font-semibold underline underline-offset-2" prefetch={false} href={`/athletes/${roster.find(athlete => athlete.athlete_code === row.athlete_code)!.id}`}>{athleteName(roster.find(athlete => athlete.athlete_code === row.athlete_code)!)}</Link><span className="muted block text-xs">{row.athlete_code}</span></td><td className="whitespace-nowrap">{row.measured_at}</td><td>{row.metric}<StatInfo metric={row.metric} /></td><td className="whitespace-nowrap">{formatMetricNumber(row.value,row.metric,row.source)} {row.unit}</td><td>{row.source_row}</td></tr>)}</tbody></table></div>
-        <label className="my-5 flex items-start gap-3"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} /><span>I checked every player match, date, measurement, and unit. Save these readings to the team’s private profiles.</span></label>
-        <button type="button" className="btn btn-primary" disabled={!reviewed.canApply || !reviewed.candidateMeasurements.length || !confirmed} onClick={() => { void save(); }}><Check size={17} />Save to Player Profiles</button>
+        <label className="my-5 flex items-start gap-3"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} /><span>I checked every player match, date, measurement, and unit. I confirm this is the original reviewed file.</span></label>
+        <div className="flex flex-wrap gap-3"><button type="button" className="btn btn-primary" disabled={!reviewed.canApply || !reviewed.candidateMeasurements.length || !confirmed || busy} onClick={() => { void save(); }}><Check size={17} />Save to Player Profiles</button>
+          {session && saveSamples && <button type="button" className="btn btn-secondary" disabled={!reviewed.canApply || !reviewed.candidateMeasurements.length || !confirmed || busy} onClick={() => { void saveExistingCounts(); }}>Add Counts to Existing Import</button>}</div>
       </section>}
     </fieldset>}
     {error && <p role="alert" className="notice notice-error">{error}</p>}
+    {sampleReceipt && <p role="status" className="notice">{sampleReceipt}</p>}
     {receipt && <ImportConfirmation receipt={receipt} />}
   </div>;
 }

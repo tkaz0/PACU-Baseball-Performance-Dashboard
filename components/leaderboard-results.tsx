@@ -5,11 +5,13 @@ import { isFallBestMetric, isTimedMetric, type PlayerPerformancePeriod } from "@
 import { formatHeight, formatMetricNumber } from "@/lib/measurement-display";
 import styles from "./leaderboard.module.css";
 
+const fallAverageKeys = new Set(["avg_exit_velocity", "avg_bat_speed", "avg_pitch_velocity", "classified_avg_velocity", "classified_avg_spin"]);
+
 function ResultValue({ row, metric, unit }: { row: LeaderboardRow; metric: LeaderboardMetricDefinition; unit: string }) {
   if (metric.key === "body_score") return <><span>{row.value}</span><span className={styles.unit}>/100</span></>;
   const height = metric.key === "height" ? formatHeight(row.value, unit) : null;
   if (height) return <span className="whitespace-nowrap" title={`Recorded: ${String(row.value)} ${unit}`}>{height}</span>;
-  return <>{row.derived
+  return <>{row.derived && metric.key === "muscle_mass_pct"
     ? <span title={`Exact calculated value: ${String(row.value)} ${unit}; calculated from same-report muscle and weight`}>≈{row.value.toLocaleString("en-US", { maximumFractionDigits: 1 })}</span>
     : <span className="break-all">{formatMetricNumber(row.value,metric.key,row.source,unit === "s" ? row.value.toFixed(2) : String(row.value))}</span>}{unit !== "ratio" && <span className={styles.unit}>{unit}</span>}</>;
 }
@@ -24,7 +26,7 @@ function RankingTable({ rows, metric, unit, continued = false, tiedRanks, barMax
         <span className={styles.playerMeta}>{row.jerseyNumber !== null ? `#${row.jerseyNumber}` : row.athleteCode}{row.position ? ` · ${row.position}` : ""}<span className={styles.date}><time dateTime={row.measuredAt}>{leaderboardTestDate(row.measuredAt)}</time></span></span>
         {barMax !== undefined && <span aria-hidden="true" className={styles.barTrack}><span className={unit === "rpm" ? styles.spinBar : styles.valueBar} style={{ width: `${barMax > 0 ? Math.max(0, Math.min(100, row.value / barMax * 100)) : 0}%` }} /></span>}
       </th>
-      <td className={styles.result}><ResultValue row={row} metric={metric} unit={unit} />{row.sampleCount && row.sampleUnit ? <span className="muted mt-1 block whitespace-nowrap text-[11px] font-medium">{row.sampleCount} {row.sampleUnit}</span> : row.source.startsWith("full swing") && metric.group === "hitting" ? <span className="muted mt-1 block text-[11px] font-medium">Swing count not saved</span> : null}</td>
+      <td className={styles.result}><ResultValue row={row} metric={metric} unit={unit} />{row.derived && fallAverageKeys.has(metric.key) ? <span className="muted mt-1 block text-[11px] font-medium">Fall average</span> : null}{row.sampleCount && row.sampleUnit ? <span className="muted mt-1 block whitespace-nowrap text-[11px] font-medium">{row.sampleCount} {row.sampleUnit}</span> : row.source.startsWith("full swing") && metric.group === "hitting" ? <span className="muted mt-1 block text-[11px] font-medium">Swing count not saved</span> : null}</td>
     </tr>)}</tbody>
   </table></div>;
 }
@@ -33,6 +35,7 @@ export function LeaderboardResults({ rows, metric, unit, source, period }: { row
   // The extended leaderboard response is deployed with the Fall-best database migration.
   // Keep the heading accurate while an older database response is still active.
   const fallBestActive = isFallBestMetric(metric.key) && rows.length > 0 && "sampleCount" in rows[0];
+  const fallAverageActive = fallAverageKeys.has(metric.key) && rows.some(row => row.derived);
   const showBars = isPitchLeaderboardMetric(metric.key) || (metric.group === "hitting" && !isTimedMetric(metric.key)) || metric.key === "infield_velocity" || metric.key === "outfield_velocity";
   const barMax = showBars ? Math.max(0, ...rows.map(row => row.value)) : undefined;
   const rankCounts = new Map<number, number>();
@@ -42,7 +45,7 @@ export function LeaderboardResults({ rows, metric, unit, source, period }: { row
     <header className={styles.heading}>
       <div className={styles.eyebrow}><span>{source ? leaderboardSourceLabel(isPitchLeaderboardMetric(metric.key) ? source.split(" · ").slice(0, -1).join(" · ") : source) : "Team Testing"}{period ? ` · ${period === "fall_2026" ? "Fall 2026" : "Jun–Aug 2026"}` : ""}</span><span>{rows.length} {rows.length === 1 ? "Player" : "Players"}</span></div>
       <h2>{isPitchLeaderboardMetric(metric.key) && source ? pitchLeaderboardLabel(metric, source) : leaderboardMetricLabel(metric)}<StatInfo metric={metric.key} label={isPitchLeaderboardMetric(metric.key) && source ? pitchLeaderboardLabel(metric, source) : leaderboardMetricLabel(metric)} /></h2>
-      <p title={isTimedMetric(metric.key) ? "Fastest comparable Fall trial per athlete; equal values share a rank." : fallBestActive ? "Best recorded Fall result within this source and session type; equal values share a rank." : metric.direction === "neutral" ? "Numerical comparisons, not a health or performance rating." : "Latest comparable result per athlete; equal values share a rank."}>{fallBestActive ? `Fall Best · ${leaderboardOrderLabel(metric)}` : leaderboardOrderLabel(metric)}</p>
+      <p title={isTimedMetric(metric.key) ? "Fastest comparable Fall trial per athlete; equal values share a rank." : fallBestActive ? "Best recorded Fall result within this source and session type; equal values share a rank." : fallAverageActive ? "Reading-count-weighted average across saved Fall sessions when every session has a verified count; otherwise the latest session." : metric.direction === "neutral" ? "Numerical comparisons, not a health or performance rating." : "Latest comparable result per athlete; equal values share a rank."}>{fallBestActive ? `Fall Best · ${leaderboardOrderLabel(metric)}` : fallAverageActive ? `Fall Average · ${leaderboardOrderLabel(metric)}` : leaderboardOrderLabel(metric)}</p>
     </header>
     {rows.length ? <><RankingTable rows={rows.slice(0, 5)} metric={metric} unit={unit} tiedRanks={tiedRanks} barMax={barMax} />{rows.length > 5 && <details className={styles.more}><summary>Show {rows.length - 5} More</summary><RankingTable rows={rows.slice(5)} metric={metric} unit={unit} tiedRanks={tiedRanks} barMax={barMax} continued /></details>}</>
       : <p className="muted m-0 p-6 text-sm">Results will appear after testing data is added.</p>}

@@ -4,6 +4,7 @@ import { CLASSIFIED_METRICS, classifiedPitchSource } from "@/lib/imports/classif
 import { formatSourceNumber } from "@/lib/measurement-display";
 import { arsenalPitches } from "@/lib/pitch-arsenal";
 import { PitchArsenalChart } from "@/components/pitch-arsenal-chart";
+import { fullSwingFileLabel } from "@/lib/full-swing-file-label";
 
 /** Own-athlete readings supplied by the authorized profile route, never a peer lookup. */
 export function ClassifiedPitchResults({ readings, context = "in_game" }: { readings: readonly Measurement[]; context?: "in_game" | "practice" }) {
@@ -15,7 +16,7 @@ export function ClassifiedPitchResults({ readings, context = "in_game" }: { read
   return <section aria-label="Velocity and spin by pitch type" className="space-y-4">
     <header><h2 className="m-0 text-xl font-bold">Pitch Types · Velocity &amp; Spin</h2><p className="muted mb-0 mt-1 text-sm">{context === "practice" ? "Practice" : "In-Game"} · Last Tested: <time dateTime={latest}>{leaderboardTestDate(latest)}</time> · Pitch types assigned by staff</p></header>
     {sessions.map(rows => <div className="rounded-xl border border-[var(--line-subtle)] p-4" key={rows[0].file_hash}>
-      <h3 className="m-0 mb-3 text-sm font-semibold">{rows[0].source_file.replace(/\.csv$/i, "")}</h3>
+      <h3 className="m-0 mb-3 text-sm font-semibold">{fullSwingFileLabel(rows[0].source_file,rows[0].source,rows[0].measured_at)}</h3>
       <PitchArsenalChart pitches={arsenalPitches(rows)}/>
       <details><summary className="cursor-pointer text-sm font-semibold text-[var(--accent-readable)]">See Every Pitch Type</summary><div className="table-wrap mt-3"><table><caption className="sr-only">Maximum and average velocity and spin by pitch type</caption><thead><tr><th>Pitch Type</th><th>Pitches</th><th>Avg Velocity <span className="block text-xs">mph</span></th><th>Max Velocity <span className="block text-xs">mph</span></th><th>Avg Spin <span className="block text-xs">RPM</span></th><th>Max Spin <span className="block text-xs">RPM</span></th></tr></thead><tbody>{arsenalPitches(rows).map(pitch => {
         const show=(value:number|null)=>value===null?"—":formatSourceNumber(value,pitch.source);

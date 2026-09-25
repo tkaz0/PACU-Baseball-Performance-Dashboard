@@ -5,6 +5,8 @@ import { getPreviewRoster } from "@/lib/preview-roster";
 import { groupPitchRanges, SESSION_METRICS } from "@/lib/imports/full-swing-session";
 import { prepareFullSwingContacts, REVIEWED_CONTACT_FIELDS } from "@/lib/imports/full-swing-contacts";
 import { fullSwingValueKey, inspectFullSwingReadings, LOW_EXIT_VELOCITY_REVIEW_MPH, omitFullSwingReadings, summarizeReviewedFullSwingSession } from "@/lib/imports/full-swing-misreads";
+import { fullSwingSamplesForImport } from "@/lib/imports/full-swing-samples";
+import { fullSwingFileLabel } from "@/lib/full-swing-file-label";
 
 const player = getPreviewRoster()[0];
 const name = `${player.first_name} ${player.last_name}`;
@@ -31,6 +33,12 @@ describe("reviewed Full Swing Live at Bat session", () => {
     expect(new Set(preview.candidateMeasurements.map(m => m.id)).size).toBe(7);
     expect(preview.candidateMeasurements.every(m => m.source === "Full Swing · Intrasquad" && [2, 3].includes(m.source_row))).toBe(true);
     expect(preview.candidateMeasurements.some(m => /Spin|Strike|Smash|Potential/.test(m.metric))).toBe(false);
+    const counts = fullSwingSamplesForImport(session, [{ identity: name, athleteCode: player.athlete_code }], preview.candidateMeasurements);
+    expect(counts).toHaveLength(7);
+    expect(counts.find(c => c.metricKey === "avg_bat_speed")?.sampleCount).toBe(2);
+    expect(counts.find(c => c.metricKey === "avg_exit_velocity")?.sampleCount).toBe(1);
+    expect(counts.find(c => c.metricKey === "avg_bat_speed")?.expectedValue).toBe(65);
+    expect(counts.every(c => c.fileHash === "a".repeat(64) && [2, 3].includes(c.sourceRow))).toBe(true);
   });
   it.each(["0", "-3", "Infinity", "80 mph"])("rejects malformed speed %s", RelSpeed => expect(() => summarizeFullSwingSession(table([event({ RelSpeed })]))).toThrow("RelSpeed"));
   it("retains recorded zero distance and withholds missing hitting readings", () => {
@@ -49,6 +57,13 @@ describe("reviewed Full Swing Live at Bat session", () => {
     expect(() => summarizeFullSwingSession(table([event(), event({ PitchNo: "2", BatterId: "another-fictional-id" })]))).toThrow("conflicting");
     expect(() => summarizeFullSwingSession(table([event({ Batter: "null" })]))).toThrow("identity");
   });
+});
+
+it("shows BDL only for September 11 Full Swing files while preserving other dates", () => {
+  expect(fullSwingFileLabel("Session_2026-09-11_example.csv", "Full Swing · Intrasquad")).toBe("BDL (September 11th)");
+  expect(fullSwingFileLabel("another.csv", "Full Swing · Intrasquad", "2026-09-11")).toBe("BDL (September 11th)");
+  expect(fullSwingFileLabel("Session_2026-09-23_example.csv", "Full Swing · Intrasquad", "2026-09-23")).toBe("Session_2026-09-23_example");
+  expect(fullSwingFileLabel("Session_2026-09-11_example.csv", "Blast Motion · Hitting", "2026-09-11")).toBe("Session_2026-09-11_example");
 });
 
 it("keeps every export identity in review, including batters without measurements", () => {

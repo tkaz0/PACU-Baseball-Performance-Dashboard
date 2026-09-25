@@ -21,7 +21,7 @@ export function LeaderboardBoard({ group, panels, session = "in_game", pitches =
     <LeaderboardNavigation group={group} />
     {group !== "physicality" && <nav aria-label="Leaderboard session" className="leaderboard-navigation mb-5">{(["in_game", "practice"] as const).map(kind => <Link key={kind} href={`/leaderboards?group=${group}&session=${kind}${group === "pitching" && selectedPitch ? `&pitch=${encodeURIComponent(selectedPitch)}` : ""}`} aria-current={session === kind ? "page" : undefined}>{kind === "in_game" ? "In-Game" : "Practice"}</Link>)}</nav>}
     {group === "pitching" && selectedPitch && pitches.length > 0 && <header className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-      <div><h2 className="m-0 text-xl font-bold">Velocity &amp; Spin</h2><p className="muted mb-0 mt-1 text-sm">Average and max · Latest session per player</p></div>
+      <div><h2 className="m-0 text-xl font-bold">Velocity &amp; Spin</h2><p className="muted mb-0 mt-1 text-sm">Fall best max · Average across verified sessions</p></div>
       <LeaderboardPitchSelector key={`${session}:${selectedPitch}`} pitches={pitches} selectedPitch={selectedPitch} session={session} />
     </header>}
     {populated.length > 0 ? <div className="space-y-8">

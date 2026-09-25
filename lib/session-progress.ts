@@ -2,6 +2,7 @@ import type { Measurement } from "@/lib/imports/engine";
 import { blastPracticeReports } from "@/lib/blast-metrics";
 import { BLAST_MAIN_METRICS, blastFallSummary } from "@/lib/blast-fall";
 import { classifiedPitchSource } from "@/lib/imports/classified-pitch-results";
+import { fullSwingFileLabel } from "@/lib/full-swing-file-label";
 
 export type ProgressPoint = { key: string; date: string; label: string; value: number; count: number | null };
 export type ProgressSeries = { key: string; label: string; unit: string; context: "practice" | "in_game"; points: ProgressPoint[] };
@@ -50,7 +51,7 @@ export function pitchProgress(readings: readonly Measurement[], context: "practi
       if (values.length !== 1 || counts.length !== 1 || !Number.isSafeInteger(counts[0].value) || counts[0].value < 1) continue;
       const key = `${pitch.pitchType}:${definition.metric}`;
       const item = series.get(key) ?? { key, label: `${pitch.pitchType} · ${definition.label}`, unit: definition.unit, context, points: [] };
-      item.points.push({ key: values[0].id, date: values[0].measured_at, label: values[0].source_file.replace(/\.csv$/i,""), value: values[0].value, count: counts[0].value });
+      item.points.push({ key: values[0].id, date: values[0].measured_at, label: fullSwingFileLabel(values[0].source_file,values[0].source,values[0].measured_at), value: values[0].value, count: counts[0].value });
       series.set(key, item);
     }
   }

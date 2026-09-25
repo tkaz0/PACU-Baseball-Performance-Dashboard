@@ -10,6 +10,7 @@ import { importReviewedRenpho, lookupRenphoIdentity } from "@/lib/renpho-identit
 import { importFullSwingContacts } from "@/lib/full-swing-contacts-server";
 import type { ReviewedContact } from "@/lib/imports/full-swing-contacts";
 import { REVIEWED_CONTACT_FIELDS } from "@/lib/imports/full-swing-contacts";
+import type { ReviewedFullSwingSample } from "@/lib/imports/full-swing-samples";
 
 export type SaveReviewedMeasurementsResult = PerformanceImportReceipt | { error: string };
 const measurementFields = new Set(["id", "athlete_code", "measured_at", "source", "metric", "value", "unit", "source_file", "source_sheet", "source_row", "file_hash"]);
@@ -43,6 +44,29 @@ async function saveMeasurements(measurements: unknown, confirmed: boolean, ident
 
 export async function saveReviewedMeasurements(measurements: unknown, confirmed: boolean): Promise<SaveReviewedMeasurementsResult> {
   return saveMeasurements(measurements, confirmed);
+}
+
+export async function saveReviewedFullSwingSamples(input: unknown): Promise<{ created: number; unchanged: number } | { error: string }> {
+  const { supabase } = await requireImportAccess();
+  const fields = ["athleteCode", "expectedValue", "fileHash", "metricKey", "sampleCount", "sourceRow", "unit"].join(",");
+  if (!Array.isArray(input) || input.length < 1 || input.length > 500 ||
+    new TextEncoder().encode(JSON.stringify(input)).byteLength > 1048576 || input.some(row =>
+      !row || typeof row !== "object" || Array.isArray(row) || Object.keys(row).sort().join(",") !== fields ||
+      typeof row.athleteCode !== "string" || !/^[A-Z0-9][A-Z0-9_-]{2,39}$/.test(row.athleteCode) ||
+      typeof row.fileHash !== "string" || !/^[a-f0-9]{64}$/.test(row.fileHash) ||
+      typeof row.metricKey !== "string" || !["max_exit_velocity", "avg_exit_velocity", "max_bat_speed", "avg_bat_speed", "max_distance", "max_pitch_velocity", "avg_pitch_velocity"].includes(row.metricKey) ||
+      !["mph", "ft"].includes(row.unit) || !Number.isSafeInteger(row.sourceRow) || row.sourceRow < 2 || row.sourceRow > 1000000 ||
+      !Number.isSafeInteger(row.sampleCount) || row.sampleCount < 1 || row.sampleCount > 100000 ||
+      !Number.isFinite(row.expectedValue) || Math.abs(row.expectedValue) > 10000))
+    return { error: "Review the session sample counts and player matches." };
+  try {
+    const { data, error } = await supabase.rpc("save_full_swing_session_samples", { p_rows: input as ReviewedFullSwingSample[] });
+    if (error || !data || typeof data !== "object" || Object.keys(data).sort().join(",") !== "created,unchanged" ||
+      !Number.isSafeInteger(data.created) || !Number.isSafeInteger(data.unchanged) || data.created + data.unchanged !== input.length)
+      throw new Error("Unverified sample receipt");
+    revalidatePath("/leaderboards");
+    return data as { created: number; unchanged: number };
+  } catch { return { error: "Sample counts were not confirmed. Review the original CSV and saved measurements before retrying." }; }
 }
 
 export async function saveReviewedContacts(input: unknown, confirmed: boolean): Promise<{ created: number; unchanged: number } | { error: string }> {

@@ -40,7 +40,7 @@ beforeAll(async () => {
   await db.query("insert into public.account_athletes(user_id,athlete_id) values($1,$2)", [users.player, athlete(1)]);
 });
 beforeEach(async () => {
-  await db.exec("delete from public.performance_measurements;delete from public.performance_imports;delete from public.audit_events where event_type='performance_imported';reset extra_float_digits");
+  await db.exec("delete from private.full_swing_session_samples;delete from public.performance_measurements;delete from public.performance_imports;delete from public.audit_events where event_type='performance_imported';reset extra_float_digits");
 });
 afterAll(async () => { await db.close(); });
 describe("explicit minimal team leaderboard access", () => {
@@ -109,6 +109,36 @@ describe("explicit minimal team leaderboard access", () => {
   });
 });
 describe("comparable latest results and numerical places", () => {
+  it("uses Fall best max and exact count-weighted Full Swing averages across saved files", async () => {
+    const first = "a".repeat(64), second = "b".repeat(64);
+    const shared = { source: "Full Swing · Intrasquad", source_sheet: "CSV · Full Swing session summaries v1", source_row: 2 };
+    await save([
+      row(1,{ ...shared, metric_key:"max_exit_velocity",value:100,file_hash:first },2),
+      row(1,{ ...shared, metric_key:"avg_exit_velocity",value:90,file_hash:first },3),
+      row(1,{ ...shared, metric_key:"max_exit_velocity",value:95,file_hash:second,measured_at:"2026-09-13" },2),
+      row(1,{ ...shared, metric_key:"avg_exit_velocity",value:70,file_hash:second,measured_at:"2026-09-13" },3),
+    ]);
+    const source = "full swing · intrasquad";
+    expect((await asUser(users.player, () => board({ metricKey:"avg_exit_velocity",source })))[0].value).toBe(70);
+    const samples = [
+      { athleteCode:code(1),fileHash:first,metricKey:"max_exit_velocity",unit:"mph",sourceRow:2,sampleCount:1,expectedValue:100 },
+      { athleteCode:code(1),fileHash:first,metricKey:"avg_exit_velocity",unit:"mph",sourceRow:2,sampleCount:1,expectedValue:90 },
+      { athleteCode:code(1),fileHash:second,metricKey:"max_exit_velocity",unit:"mph",sourceRow:2,sampleCount:3,expectedValue:95 },
+      { athleteCode:code(1),fileHash:second,metricKey:"avg_exit_velocity",unit:"mph",sourceRow:2,sampleCount:3,expectedValue:70 },
+    ];
+    await asUser(users.admin, () => db.query("select public.save_full_swing_session_samples($1::jsonb)", [JSON.stringify(samples.slice(0,2))]));
+    expect((await asUser(users.player, () => board({ metricKey:"avg_exit_velocity",source })))[0].value).toBe(70);
+    await asUser(users.coach, () => db.query("select public.save_full_swing_session_samples($1::jsonb)", [JSON.stringify(samples.slice(2))]));
+    const averages = await asUser(users.player, () => board({ metricKey:"avg_exit_velocity",source }));
+    expect(averages[0]).toMatchObject({value:75,sampleCount:4,sampleUnit:"swings"});
+    expect((await asUser(users.player, () => board({source})))[0]).toMatchObject({value:100,sampleCount:4,sampleUnit:"swings"});
+    await asUser(users.admin, async () => {
+      await expect(db.query("select public.save_full_swing_session_samples($1::jsonb)", [JSON.stringify([{...samples[0],expectedValue:999}])])).rejects.toThrow("no unique saved");
+    });
+    await asUser(users.player, async () => {
+      await expect(db.query("select public.save_full_swing_session_samples($1::jsonb)", [JSON.stringify(samples.slice(0,1))])).rejects.toThrow("Active staff");
+    });
+  });
   it("takes the best Fall max across saved sessions in the same source, with stable competition ties", async () => {
     await save([row(1, { value: 20 }), row(2, { value: 20 }), row(3, { value: 10 }), row(1, { value: 999, measured_at: "2026-09-01", file_hash: "e".repeat(64) })]);
     const data = await asUser(users.player, () => board());
