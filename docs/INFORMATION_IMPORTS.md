@@ -91,6 +91,8 @@ Before a reviewed Field / Live at Bat file is saved, staff see advisory flags fo
 
 Hitting and pitching flags are shown separately. Hitter exit velocity, bat speed and distance use a within-hitter comparison when at least three readings exist; pitcher velocity and spin retain their five-reading minimum. This helps flag a single tracking spike in a short at-bat session without judging normal variation in launch angle or spray direction. The complete reading list opens on Hitting and can be switched to Pitching or All.
 
+Measured exit velocity below 72 mph gets an additional review flag even with fewer than three readings. This is only an owner-selected low-70s review mark: soft contact may be real and remains included unless staff remove that exact value before saving. A reading of 72 mph or more can still be flagged by the within-hitter comparison if it is an outlier.
+
 Removal replaces only the chosen numeric cell with a missing value in the open review. Pitch number, identities, file hash and CSV coordinates remain intact; a bad exit speed can be removed without dropping the pitcher's velocity on that row. Player averages/maxima, sample counts, pitch velocity/spin groups and contact-map points are rebuilt from included cells. Staff must repeat the final import review after changing exclusions. Once any derived results are saved, the open review locks its exclusion choices. The original CSV is never edited. These choices are not a post-save row-deletion mechanism; an already-saved file needs a separate correction and re-import review to keep its aggregates consistent.
 
 

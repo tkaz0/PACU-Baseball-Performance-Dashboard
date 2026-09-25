@@ -2,10 +2,11 @@ import { FULL_SWING_SESSION_HEADERS, summarizeFullSwingSession, type FullSwingSe
 import type { ImportTable } from "@/lib/imports/engine";
 
 type Field = "RelSpeed" | "SpinRate" | "ExitSpeed" | "Angle" | "Direction" | "BatSpeed" | "Distance";
+export const LOW_EXIT_VELOCITY_REVIEW_MPH = 72;
 const FIELDS: { field: Field; label: string; unit: string; actor: "Pitcher" | "Batter"; low: number; high: number; floor: number }[] = [
   { field: "RelSpeed", label: "Pitch velocity", unit: "mph", actor: "Pitcher", low: 40, high: 110, floor: 8 },
   { field: "SpinRate", label: "Pitch spin", unit: "rpm", actor: "Pitcher", low: 700, high: 3500, floor: 750 },
-  { field: "ExitSpeed", label: "Exit velocity", unit: "mph", actor: "Batter", low: 35, high: 125, floor: 12 },
+  { field: "ExitSpeed", label: "Exit velocity", unit: "mph", actor: "Batter", low: LOW_EXIT_VELOCITY_REVIEW_MPH, high: 125, floor: 12 },
   { field: "Angle", label: "Launch angle", unit: "°", actor: "Batter", low: -50, high: 65, floor: 0 },
   { field: "Direction", label: "Field direction", unit: "°", actor: "Batter", low: -90, high: 90, floor: 0 },
   { field: "BatSpeed", label: "Bat speed", unit: "mph", actor: "Batter", low: 25, high: 95, floor: 12 },
@@ -39,7 +40,7 @@ export function inspectFullSwingReadings(table: ImportTable): FullSwingReadingRe
       if (!raw || raw.toLowerCase() === "null") continue;
       const value = numeric.test(raw) && Number.isFinite(Number(raw)) ? Number(raw) : null;
       const blocking = value === null || (spec.field === "Distance" ? value < 0 || value > 1000 : spec.field === "Angle" || spec.field === "Direction" ? Math.abs(value) > 90 : value <= 0 || (spec.field === "ExitSpeed" && value > 200));
-      const reason = blocking ? "Invalid or outside the supported measurement range" : value < spec.low ? "Unusually low — check the source" : value > spec.high ? "Unusually high — check the source" : null;
+      const reason = blocking ? "Invalid or outside the supported measurement range" : value < spec.low ? spec.field === "ExitSpeed" ? `Below ${LOW_EXIT_VELOCITY_REVIEW_MPH} mph — check contact or tracking` : "Unusually low — check the source" : value > spec.high ? "Unusually high — check the source" : null;
       rows.push({ key: fullSwingValueKey(sourceRow, spec.field), sourceRow, pitchNumber: cells[0].trim(), identity: cells[spec.actorColumn].trim(), actor: spec.actor, field: spec.field, label: spec.label, unit: spec.unit, raw, value, reason, blocking });
     }
   }

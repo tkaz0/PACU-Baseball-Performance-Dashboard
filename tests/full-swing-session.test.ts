@@ -4,7 +4,7 @@ import { previewFullSwingSummary } from "@/lib/imports/full-swing";
 import { getPreviewRoster } from "@/lib/preview-roster";
 import { groupPitchRanges, SESSION_METRICS } from "@/lib/imports/full-swing-session";
 import { prepareFullSwingContacts, REVIEWED_CONTACT_FIELDS } from "@/lib/imports/full-swing-contacts";
-import { fullSwingValueKey, inspectFullSwingReadings, omitFullSwingReadings, summarizeReviewedFullSwingSession } from "@/lib/imports/full-swing-misreads";
+import { fullSwingValueKey, inspectFullSwingReadings, LOW_EXIT_VELOCITY_REVIEW_MPH, omitFullSwingReadings, summarizeReviewedFullSwingSession } from "@/lib/imports/full-swing-misreads";
 
 const player = getPreviewRoster()[0];
 const name = `${player.first_name} ${player.last_name}`;
@@ -144,6 +144,18 @@ it("reviews hitter outliers from a short session without changing valid pitcher 
  expect(reviewed.table.rows.find(row=>row[2])?.slice(2,7)).toEqual(["72","71","61","60.5","120"]);
  expect(reviewed.table.rows.find(row=>row[7])?.slice(7)).toEqual(["90","83.66666666666667"]);
  expect(reviewed.contacts.some(contact=>contact.sourceRow===4)).toBe(false);
+});
+
+it("marks exit velocities below the low-70s review line without deleting legitimate soft contact",()=>{
+ const source=table([
+  event({PitchNo:"1",ExitSpeed:"71.9"}),
+  event({PitchNo:"2",ExitSpeed:"72"}),
+ ]);
+ const readings=inspectFullSwingReadings(source);
+ expect(LOW_EXIT_VELOCITY_REVIEW_MPH).toBe(72);
+ expect(readings.find(row=>row.key===fullSwingValueKey(2,"ExitSpeed"))?.reason).toContain("Below 72 mph");
+ expect(readings.find(row=>row.key===fullSwingValueKey(3,"ExitSpeed"))?.reason).toBeNull();
+ expect(summarizeReviewedFullSwingSession(source,readings,new Set()).table.rows.find(row=>row[2])?.[2]).toBe("72");
 });
 
 it("requires explicit removal of invalid readings and keeps later summary coordinates stable",()=>{
