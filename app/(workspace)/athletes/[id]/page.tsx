@@ -5,6 +5,8 @@ import { profileMetricLabel } from "@/lib/profile-metric-label";
 import { ClassifiedPitchResults } from "@/components/classified-pitch-results";
 import { HitterContactMap } from "@/components/hitter-contact-map";
 import { loadFullSwingContacts } from "@/lib/full-swing-contacts-server";
+import { loadCoachFocusItems } from "@/lib/coach-focus-server";
+import { CoachFocusItems } from "@/components/coach-focus-items";
 import { formatSourceNumber } from "@/lib/measurement-display";
 import { loadGameLogs } from "@/lib/game-log-server";
 import { PlayerGameLog } from "@/components/player-game-log";
@@ -26,7 +28,7 @@ import { RenphoCharts } from "@/components/renpho-charts";
 import { PlayerPerformanceProfile } from "@/components/player-performance-profile";
 import { profileMeasurementVisible } from "@/lib/player-profile-layout";
 
-export default async function Profile({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ preview?: string }> }) {
+export default async function Profile({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ preview?: string; focus?: string }> }) {
   const access = await requireAccess();
   const { supabase, roles } = access;
   const { id } = await params;
@@ -43,7 +45,7 @@ export default async function Profile({ params, searchParams }: { params: Promis
   const gameLogs = staff ? await loadGameLogs(access, athlete.id) : [];
   const gameStats = await loadGameStats(access, athlete.id);
   const gameComparisons = await loadGameComparisons(access, athlete.id);
-  const [shared, teamAverages, movement, contacts] = await Promise.all([loadAthletePerformance(access,athlete), loadHittingTeamAverages(access), loadMovementScreening(access,athlete.id,athlete.athlete_code), loadFullSwingContacts(access,athlete.id)]);
+  const [shared, teamAverages, movement, contacts, focusItems] = await Promise.all([loadAthletePerformance(access,athlete), loadHittingTeamAverages(access), loadMovementScreening(access,athlete.id,athlete.athlete_code), loadFullSwingContacts(access,athlete.id), loadCoachFocusItems(access,athlete.id)]);
   const performance = getPlayerPerformance({ readings:shared.measurements, batches:shared.batches, athleteCode:athlete.athlete_code, cohortAthleteCodes:[], percentileOverrides:shared.percentileOverrides });
   const readings = shared.measurements.filter(reading => {
     if (!profileMeasurementVisible(reading, season)) return false;
@@ -55,7 +57,7 @@ export default async function Profile({ params, searchParams }: { params: Promis
   return <>
     <AccessPreviewNotice status={query?.preview} isPreview={!!access.preview} />
     {staff && <Link href="/roster" className="profile-back"><ArrowLeft size={15} />Team Roster</Link>}
-    <PlayerPerformanceProfile teamAverages={teamAverages} blastReadings={shared.measurements} practicePitchResults={<ClassifiedPitchResults readings={shared.measurements} context="practice" />} pitchResults={<ClassifiedPitchResults readings={shared.measurements} />} contactResults={<HitterContactMap contacts={contacts} context="in_game" bats={season?.bats} />} practiceContactResults={<HitterContactMap contacts={contacts} context="practice" bats={season?.bats} />} simplified={!staff} overviewGameStats={gameStats} gameComparisons={gameComparisons} gameStats={<><AthleteGameStats stats={gameStats} comparisons={gameComparisons} showDetails={staff}/>{staff&&<PlayerGameLog logs={gameLogs}/>}</>} athlete={athlete} performance={performance} season={season}
+    <PlayerPerformanceProfile coachFocus={<CoachFocusItems athleteId={athlete.id} items={focusItems} staff={canImportPresentedAccess(access)} status={query?.focus}/>} teamAverages={teamAverages} blastReadings={shared.measurements} timelineReadings={readings} practicePitchResults={<ClassifiedPitchResults readings={shared.measurements} context="practice" />} pitchResults={<ClassifiedPitchResults readings={shared.measurements} />} contactResults={<HitterContactMap contacts={contacts} context="in_game" bats={season?.bats} />} practiceContactResults={<HitterContactMap contacts={contacts} context="practice" bats={season?.bats} />} simplified={!staff} overviewGameStats={gameStats} gameComparisons={gameComparisons} gameStats={<><AthleteGameStats stats={gameStats} comparisons={gameComparisons} showDetails={staff}/>{staff&&<PlayerGameLog logs={gameLogs}/>}</>} athlete={athlete} performance={performance} season={season}
       action={canImportPresentedAccess(access) ? <Link href="/imports" className="text-link">Import Information <ArrowRight size={15} /></Link> : undefined}
       movementScreening={<MovementScreening report={movement} showReferences={staff}/>}
       muscleBalance={<RenphoMuscleBalance report={getRenphoReports(readings,shared.batches,athlete.athlete_code)[0]} />}

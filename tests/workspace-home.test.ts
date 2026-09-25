@@ -4,9 +4,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Role } from "@/lib/types";
 import { workspaceHome, workspacePreviewQuery } from "@/lib/workspace-home";
 
-const fake = vi.hoisted(() => ({ access: vi.fn(), from: vi.fn(), home: vi.fn(), leaderboards: vi.fn() }));
+const fake = vi.hoisted(() => ({ access: vi.fn(), from: vi.fn(), home: vi.fn(), leaderboards: vi.fn(), due: vi.fn() }));
 vi.mock("@/lib/home-server", () => ({loadHomeSummary: fake.home}));
 vi.mock("@/lib/home-leaderboards-server", () => ({loadHomeLeaderboards: fake.leaderboards}));
+vi.mock("@/lib/coach-focus-server", () => ({loadDueCoachFocus: fake.due}));
 vi.mock("@/lib/auth", () => ({ requireAccess: fake.access }));
 vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw new Error(`REDIRECT:${path}`); }, usePathname: () => "/roster" }));
 vi.mock("next/link", () => ({ default: ({ href, children, ...props }: { href: string; children: ReactNode }) => createElement("a", { href, ...props }, children) }));
@@ -19,7 +20,7 @@ const access = (roles: Role[], linked: string | null = athleteId, preview = fals
   roles, athleteId: linked, actualRoles: preview ? ["admin"] : roles,
   preview: preview ? { role: roles[0], athleteId: linked } : null, supabase: { from: fake.from },
 });
-beforeEach(() => { vi.resetAllMocks(); fake.leaderboards.mockResolvedValue([]); });
+beforeEach(() => { vi.resetAllMocks(); fake.leaderboards.mockResolvedValue([]); fake.due.mockResolvedValue([]); });
 
 describe("role-aware dashboard landing", () => {
   it.each(["admin","coach","player"] as Role[])("opens Home for %s while preserving presented scope",async role=>{
@@ -27,6 +28,7 @@ describe("role-aware dashboard landing", () => {
     expect(workspaceHome(current)).toBe("/overview");
     const html=renderToStaticMarkup(await Overview({searchParams:Promise.resolve({})}));
     expect(fake.home).toHaveBeenCalledWith(current);expect(fake.leaderboards).toHaveBeenCalledWith(current);expect(html).toContain(role==="player"?"Your Baseball Home.":"The Team, at a Glance.");
+    expect(fake.due).toHaveBeenCalledTimes(role==="player"?0:1);
     expect(html.includes('href="/imports"')).toBe(role!=="player");expect(fake.from).not.toHaveBeenCalled();
   });
   it("keeps the connection message for an unlinked player",async()=>{

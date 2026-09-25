@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Role, RosterAthlete } from "@/lib/types";
 import type { Measurement } from "@/lib/imports/engine";
 
-const fake = vi.hoisted(() => ({ access: vi.fn(), from: vi.fn(), select: vi.fn(), eq: vi.fn(), single: vi.fn(), load: vi.fn(), contacts: vi.fn(), charts: vi.fn(), games: vi.fn(), comparisons: vi.fn(), logs: vi.fn(), team: vi.fn(), movement: vi.fn() }));
+const fake = vi.hoisted(() => ({ access: vi.fn(), from: vi.fn(), select: vi.fn(), eq: vi.fn(), single: vi.fn(), rpc: vi.fn(), load: vi.fn(), contacts: vi.fn(), charts: vi.fn(), games: vi.fn(), comparisons: vi.fn(), logs: vi.fn(), team: vi.fn(), movement: vi.fn() }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/movement-server", () => ({ loadMovementScreening: fake.movement }));
 vi.mock("@/lib/auth", () => ({ requireAccess: fake.access }));
@@ -33,7 +33,7 @@ const reading = (change: Partial<Measurement> = {}): Measurement => ({
 });
 function access(roles: Role[] = ["player"], athleteId: string | null = ownId, preview = false) {
   return { roles, athleteId, actualRoles: preview ? ["admin"] : roles, preview: preview ? { role: roles[0], athleteId: roles[0] === "player" ? ownId : null } : null,
-    user: { id: "fictional-user", email: "private-login@example.com" }, supabase: { from: fake.from } };
+    user: { id: "fictional-user", email: "private-login@example.com" }, supabase: { from: fake.from, rpc: fake.rpc } };
 }
 beforeEach(() => {
   vi.resetAllMocks(); fake.movement.mockResolvedValue(null); fake.comparisons.mockResolvedValue([]); fake.team.mockResolvedValue([]);
@@ -43,6 +43,7 @@ beforeEach(() => {
   fake.access.mockResolvedValue(access());
   fake.load.mockResolvedValue({ measurements: [reading()], batches: [], percentileOverrides: [] });
   fake.contacts.mockResolvedValue([]);
+  fake.rpc.mockResolvedValue({data:[],error:null});
   fake.games.mockResolvedValue([]); fake.logs.mockResolvedValue([]);
   fake.charts.mockImplementation(() => createElement("p", null, "Fictional chart boundary"));
 });
@@ -82,6 +83,7 @@ describe("protected profile route authorization and integration", () => {
     expect(fake.logs).not.toHaveBeenCalled();
     expect(fake.team).toHaveBeenCalledExactlyOnceWith(trusted);
     expect(fake.movement).toHaveBeenCalledExactlyOnceWith(trusted,athlete.id,athlete.athlete_code);
+    expect(fake.rpc).toHaveBeenCalledExactlyOnceWith("athlete_focus_items",{p_athlete_id:athlete.id});
     expect(html).toContain("Game Stats");
     expect(html).toContain("Fictional Profile"); expect(html).toContain('data-metric-key="max_exit_velocity"');
     expect(html).toContain('data-value="10"'); expect(html).toContain("Jersey Number");
@@ -135,6 +137,19 @@ describe("protected profile route authorization and integration", () => {
     fake.load.mockRejectedValueOnce(new Error("Fictional performance unavailable"));
     await expect(Profile({ params: Promise.resolve({ id: ownId }) })).rejects.toThrow("Fictional performance unavailable");
     expect(fake.charts).not.toHaveBeenCalled();
+  });
+  it("shows only shared focus titles in Player View and keeps staff notes private",async()=>{
+    fake.rpc.mockResolvedValueOnce({data:[
+      {id:"11111111-1111-4111-8111-111111111111",athleteId:ownId,title:"Fictional shared goal",staffNote:"Private coach note",targetDate:"2026-10-10",shared:true,completedAt:null,createdAt:"2026-09-20T00:00:00Z"},
+      {id:"22222222-2222-4222-8222-222222222222",athleteId:ownId,title:"Fictional staff-only goal",staffNote:"Another private note",targetDate:null,shared:false,completedAt:null,createdAt:"2026-09-20T00:00:00Z"},
+    ],error:null});
+    fake.access.mockResolvedValueOnce(access(["player"],ownId,true));
+    const html=renderToStaticMarkup(await Profile({params:Promise.resolve({id:ownId})}));
+    expect(html).toContain("Fictional shared goal");
+    expect(html).not.toContain("Fictional staff-only goal");
+    expect(html).not.toContain("Private coach note");
+    expect(html).not.toContain("Another private note");
+    expect(html).not.toContain("Add Coach Focus");
   });
 });
 it("renders aggregate hitting comparisons on an own-player profile without peer queries",async()=>{
