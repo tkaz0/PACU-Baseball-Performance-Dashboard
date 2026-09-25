@@ -116,7 +116,7 @@ export function PlayerPerformanceProfile({ athlete, performance, season, blastRe
   const latestBlast = layout.showHitting ? blastReadings?.flatMap(r => { const period=parseBlastSource(r.source); return period?[period]:[]; }).sort((a,b)=>b.end.localeCompare(a.end))[0] : undefined;
   const newerReport = latestBlast && latestBlast.end > (lastTested ?? "") ? latestBlast : null;
   const tabs: ProfileTab[] = [
-    { id: "overview", label: "Overview", content: <><PlayerOverview teamAverages={teamAverages} twoWay={selectedSeason?.player_type?.trim().toLowerCase() === "two_way"} showMethods={!simplified} cards={[...cards, ...(bodyScoreCard ? [bodyScoreCard] : [])]} gameStats={overviewGameStats} gameComparisons={gameComparisons} />{coachFocus}{layout.showHitting&&<PracticeGameBridge performance={performance}/>}{layout.showHitting && hasBlast && <BlastPracticeReports teamAverages={teamAverages} readings={blastReadings!} compact/>}</> },
+    { id: "overview", label: "Overview", content: <><PlayerOverview teamAverages={teamAverages} twoWay={selectedSeason?.player_type?.trim().toLowerCase() === "two_way"} showMethods={!simplified} cards={[...cards, ...(bodyScoreCard ? [bodyScoreCard] : [])]} gameStats={overviewGameStats} gameComparisons={gameComparisons} />{coachFocus}{layout.showHitting&&<PracticeGameBridge performance={performance} blastReadings={blastReadings}/>}</> },
     { id: "physicality", label: "Physicality", content: <>
       {!layout.physicality.length && !layout.additionalBody.length && !bodyScore && <p className="muted text-sm">No physicality measurements recorded yet.</p>}
       <MetricGroup id="body-measurements" title="Physicality" cards={layout.physicality} />

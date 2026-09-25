@@ -1,0 +1,13 @@
+.bridge{min-width:0;overflow:hidden;border:1px solid var(--line-subtle);border-radius:18px;background:var(--surface-panel);padding:20px 22px;box-shadow:var(--panel-shadow)}
+.heading{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:16px}
+.eyebrow{margin:0 0 5px;color:var(--accent-readable);font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+.heading h2{margin:0;font-size:19px;font-weight:800;letter-spacing:-.035em}
+.unit{flex-shrink:0;border:1px solid var(--line-subtle);border-radius:999px;padding:5px 10px;color:var(--text-secondary);font-size:11px;font-weight:700}
+.lanes{display:grid;grid-template-columns:minmax(0,1fr) 20px minmax(0,1fr);align-items:center;gap:12px}
+.lane{display:flex;align-items:center;min-width:0;gap:14px;padding:16px;border:1px solid var(--line-subtle);border-radius:13px;background:var(--surface-raised)}
+.practice{border-left:4px solid var(--accent-readable)}.game{border-left:4px solid #507ebc}
+.icon{display:grid;place-items:center;width:38px;height:38px;border-radius:10px;color:var(--accent-readable);background:color-mix(in srgb,var(--accent-readable) 12%,var(--surface-panel));flex-shrink:0}.game .icon{color:#507ebc;background:color-mix(in srgb,#507ebc 12%,var(--surface-panel))}
+.laneCopy{min-width:0}.laneCopy h3{margin:0;font-size:13px;font-weight:800}.laneCopy h3 span{margin-left:5px;color:var(--text-secondary);font-size:10px;font-weight:600}.laneCopy p{margin:3px 0 0;color:var(--text-secondary);font-size:11px;line-height:1.4}.laneCopy small{display:block;margin-top:7px;color:var(--text-secondary);font-size:10px;line-height:1.4}
+.value{margin-left:auto;font-size:clamp(27px,3vw,38px);font-weight:850;font-variant-numeric:tabular-nums;letter-spacing:-.06em;line-height:1}
+.arrow{color:var(--text-secondary)}.note{margin:12px 0 0;color:var(--text-secondary);font-size:11px;line-height:1.5}
+@media(max-width:760px){.bridge{padding:17px}.lanes{grid-template-columns:1fr;gap:8px}.arrow{display:none}.lane{padding:13px}.value{font-size:30px}}

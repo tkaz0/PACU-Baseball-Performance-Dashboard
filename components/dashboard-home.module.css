@@ -77,17 +77,19 @@
 
 .weekSection{min-width:0}
 .weekGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-.weekCard{min-width:0;display:flex;flex-direction:column;border:1px solid var(--line-subtle);border-radius:15px;background:var(--surface-panel);padding:17px 18px;box-shadow:var(--panel-shadow)}
-.weekCard:first-child{border-top:3px solid var(--accent-readable)}
-.weekCount{font-size:29px;line-height:1;font-weight:800;letter-spacing:-.05em;font-variant-numeric:tabular-nums;color:var(--accent-readable)}
-.weekCard h3{font-size:14px;margin:7px 0 0}
-.weekCard>p{margin:4px 0 11px;color:var(--text-secondary);font-size:11px;line-height:1.5}
-.weekCard ul{list-style:none;padding:0;margin:0 0 8px}
-.weekCard li{display:flex;justify-content:space-between;gap:10px;align-items:baseline;padding:6px 0;border-top:1px solid var(--line-subtle);font-size:11px}
-.weekCard li a{color:var(--text-primary);font-weight:700;text-decoration:none}
-.weekCard li a:hover{text-decoration:underline}
-.weekCard li small{color:var(--text-secondary);text-align:right;line-height:1.4}
+.weekCard{min-width:0;display:flex;flex-direction:column;border:1px solid var(--line-subtle);border-radius:17px;background:var(--surface-panel);padding:17px 18px;box-shadow:var(--panel-shadow)}
+.weekCardTop{display:flex;align-items:start;justify-content:space-between;gap:12px}
+.weekIcon{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;color:var(--accent-readable);background:color-mix(in srgb,var(--accent-readable) 10%,var(--surface-panel))}
+.weekCount{font-size:34px;line-height:1;font-weight:850;letter-spacing:-.06em;font-variant-numeric:tabular-nums;color:var(--accent-readable)}
+.weekCard h3{font-size:14px;margin:9px 0 0}
+.weekCard>p{margin:5px 0 0;color:var(--text-secondary);font-size:11px;line-height:1.5}
+.weekCard .weekPreview{margin:13px 0 14px;padding:10px 0;border-top:1px solid var(--line-subtle);border-bottom:1px solid var(--line-subtle);min-height:38px;color:var(--text-primary)}
+.weekPreview a{color:var(--text-primary);font-weight:750;text-decoration:underline;text-decoration-color:var(--line-subtle);text-underline-offset:3px}
 .weekCard>a{display:inline-flex;align-items:center;gap:5px;align-self:flex-start;margin-top:auto;font-size:11px;font-weight:750;color:var(--accent-readable);text-decoration:none}
-.weekCard>a+a{margin-top:8px}
-.weekCard .weekEmpty{margin:0 0 12px;padding-top:9px;border-top:1px solid var(--line-subtle)}
-@media(max-width:900px){.weekGrid{grid-template-columns:1fr}.weekCard li{justify-content:flex-start;gap:14px}.weekCard li small{text-align:left}}
+.quickLinks>a{box-shadow:var(--panel-shadow);border-radius:16px}.quickLinks strong{font-size:13px}.quickLinks small{font-size:11px}
+.actionIcon{width:42px;height:42px;border-radius:12px}
+.rankCard{box-shadow:var(--panel-shadow)}.rankCardHead{min-height:76px}
+.coverageRow meter{height:9px}.coverageRow meter::-webkit-meter-bar{height:9px}
+.gameNumbers>div{padding:12px;border-radius:11px;background:var(--surface-raised)}.gameNumbers{gap:9px;margin-top:15px}.gameNumbers dd{font-size:27px;margin-top:6px}
+@media(max-width:900px){.weekGrid{grid-template-columns:1fr 1fr}.weekCard:last-child{grid-column:1/-1}}
+@media(max-width:620px){.weekGrid{grid-template-columns:1fr}.weekCard:last-child{grid-column:auto}.gameNumbers{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.gameNumbers>div{padding:9px}.gameNumbers dd{font-size:23px}.gameNumbers dt{font-size:10px}}

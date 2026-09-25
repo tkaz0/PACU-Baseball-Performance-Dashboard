@@ -732,6 +732,12 @@ html[data-theme="dark"] .measurement-change[data-tone="red"] .measurement-change
 /* Launch presentation: quieter hierarchy, consistent controls and compact summaries. */
 .workspace-shell .btn,.workspace-shell input,.workspace-shell select { border-radius:8px; }
 .workspace-main h1,.workspace-main h2,.workspace-main h3 { text-wrap:balance; }
+.workspace-shell .page-head { align-items:end; padding-bottom:19px; border-bottom:1px solid var(--line-subtle); }
+.workspace-shell .page-title { font-size:clamp(30px,3.4vw,40px); letter-spacing:-.05em; }
+.workspace-shell .page-description { max-width:620px; font-size:13px; line-height:1.55; }
+.workspace-shell .page-head .eyebrow { font-size:10px; font-weight:800; letter-spacing:.13em; text-transform:uppercase; }
+.workspace-shell :is(a,button,summary):focus-visible { outline:2px solid var(--accent-readable); outline-offset:3px; }
+@media(max-width:600px){.workspace-shell .page-head{gap:12px;margin-bottom:18px;padding-bottom:14px}.workspace-shell .page-title{font-size:31px}}
 .team-game-counts { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:18px 0 0; padding:16px 0; border-block:1px solid var(--line-subtle); }
 .team-game-counts dt { font-size:11px; color:var(--text-secondary); font-weight:600; }
 .team-game-counts dd { margin:5px 0 0; font-size:22px; font-weight:750; font-variant-numeric:tabular-nums; }

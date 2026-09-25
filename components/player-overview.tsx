@@ -109,7 +109,7 @@ export function PlayerOverview({ cards, gameStats = [], gameComparisons = [], sh
     </div>
     {!comparableCount && <p className="m-0 max-w-3xl text-xs leading-6 text-[var(--text-secondary)]">Team comparisons need at least five players with the same test or game stat. Your own results are available in the other tabs.</p>}
     {hasPhysicalityRadar ? <PhysicalityRadar cards={physicality}/> : <TestingComparisons teamAverages={teamAverages} title="Physicality" cards={physicality.filter(card => card.latest)}/>}
-    <div aria-label="Pacific percentiles" className={overview.gameOverview}><div className={overview.sectionHeading}><h2 className="mb-2 mt-0 text-lg font-bold">Game Comparisons</h2><PercentileLegend/></div><GameComparisons metrics={games}/></div>
+    <details aria-label="Pacific game percentiles" className={overview.moreTesting}><summary><span>Game Comparisons <small className={overview.summaryCount}>{games.length} recorded stats</small></span><ChevronDown size={16} aria-hidden="true"/></summary><div className={overview.gameOverview}><PercentileLegend/><GameComparisons metrics={games}/></div></details>
     {(testingComparisons.length > 0 || trends.length > 0) && <details className={overview.moreTesting}><summary>More Test Results <ChevronDown size={16} aria-hidden="true"/></summary><div className={styles.percentileSections} aria-label="Testing percentiles">
       <TestingComparisons teamAverages={teamAverages} title="Hitting · Testing" cards={testing.filter(c => c.metric.group === "hitting" && !isTimedMetric(c.metric.key) && c.latest)}/>
       <TestingComparisons teamAverages={teamAverages} title="Athletic Testing" cards={testing.filter(c => isTimedMetric(c.metric.key) && c.latest)}/>

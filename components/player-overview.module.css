@@ -52,4 +52,10 @@
 .moreTesting[open] > summary { border-bottom:1px solid var(--line-subtle); }
 .moreTesting[open] > summary svg { transform:rotate(180deg); }
 .moreTesting > :not(summary) { margin:16px; }
+.summaryCount{display:inline-flex;align-items:center;margin-left:10px;padding:4px 8px;border-radius:999px;background:var(--surface-raised);color:var(--text-secondary);font-size:10px;font-weight:650;vertical-align:middle}
+.panel[data-highlight]{border-top-width:4px;box-shadow:var(--panel-shadow)}
+.highlightResult .resultValue{font-size:22px;letter-spacing:-.04em;line-height:1.1}
+.highlightList>li{padding:12px 0}.highlightList h3{line-height:1.3}
+.highlightIcon{width:36px;height:36px;border-radius:10px}
+@media(max-width:620px){.summaryCount{margin-left:5px}.highlightResult .resultValue{font-size:20px}}
 @media(prefers-reduced-motion:reduce){.moreTesting > summary svg{transition:none}}

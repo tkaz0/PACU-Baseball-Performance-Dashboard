@@ -9,6 +9,7 @@ import { profileMetricLabel } from "@/lib/profile-metric-label";
 import { withoutWeeklyBlastCards } from "@/lib/player-profile-layout";
 import { getPlayerPerformance } from "@/lib/player-performance";
 import { BlastPracticeReports } from "@/components/blast-practice-reports";
+import { PracticeGameBridge } from "@/components/practice-game-bridge";
 const roster=getPreviewRoster(),p=roster[0];
 function report(hash="a",start="2026-09-13",end="2026-09-20",count=10,speed=60,kind:"average"|"p95"="average") {
  return previewBlastPerformance({table:selectTable([BLAST_HEADERS,[p.first_name,p.last_name,String(count),String(speed),"18","12","3","80","10","-30",".150",".050","90","85","88","25"]],0),roster,file:{fileName:"fictional.csv",fileHash:hash.repeat(64),sheetName:"CSV"},kind,start,end}).rows;
@@ -23,3 +24,12 @@ it("does not substitute peak-only reports for Fall averages or pool other vendor
 it("labels bat speeds by source without relabeling canonical metrics",()=>{expect(profileMetricLabel("avg_bat_speed","Average Bat Speed","Full Swing · Intrasquad")).toBe("Average Bat Speed (In-Game)");expect(profileMetricLabel("max_bat_speed","Max Bat Speed","Full Swing · Practice")).toBe("Max Bat Speed (Practice)");expect(profileMetricLabel("weight","Weight","RENPHO")).toBe("Weight");});
 it("replaces weekly Blast cards without hiding a separate in-game result",()=>{const readings=[...report(),{...report("b")[1],source:"Full Swing · Intrasquad"}];const model=withoutWeeklyBlastCards(getPlayerPerformance({readings,athleteCode:p.athlete_code}));const avg=model.hitting.find(c=>c.metric.key==="avg_bat_speed")!;expect(avg.latest?.source).toBe("Full Swing · Intrasquad");expect(avg.sourceCards).toHaveLength(1);});
 it("renders only the requested metrics and clearly separates cumulative averages and weekly peaks",()=>{const html=renderToStaticMarkup(BlastPracticeReports({readings:[...report(),...report("b",undefined,undefined,10,72,"p95")]}));expect(html).toContain("Fall 2026 · Cumulative");expect(html).toContain("Bat Speed (Practice)");expect(html).toContain("Hand Speed");expect(html).toContain("Latest Week");expect(html).not.toContain("Rotational Acceleration");expect(html).not.toContain("Time to Contact");});
+it("compares weighted Blast practice bat speed with the latest Full Swing game session without pooling vendors",()=>{
+ const blast=[...report(),...report("b","2026-09-21","2026-09-27",30,80),...report("c",undefined,undefined,10,91,"p95")];
+ const game={...report("d")[1],source:"Full Swing · Intrasquad",metric:"Average Bat Speed",value:71.24,measured_at:"2026-09-11"};
+ const performance=getPlayerPerformance({readings:[game],athleteCode:p.athlete_code});
+ const html=renderToStaticMarkup(PracticeGameBridge({performance,blastReadings:blast}));
+ expect(html).toContain("Fall swing-weighted average");expect(html).toContain("75.0");expect(html).toContain("40 swings");expect(html).toContain("71.2");expect(html).not.toContain("91.0");
+ const invalid=renderToStaticMarkup(PracticeGameBridge({performance,blastReadings:[...report(),...report("e","2026-09-20","2026-09-27",30,80)]}));
+ expect(invalid).not.toContain("75.0");expect(invalid).toContain("71.2");
+});
