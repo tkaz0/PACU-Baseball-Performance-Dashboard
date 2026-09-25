@@ -18,6 +18,13 @@ describe("strict minimal leaderboard response adapter", () => {
     rpc.mockResolvedValue({ data: [row({ value: 0.30000000000000004 }), row({ rank: 2, athleteCode: "SYN-002", value: 0, profileId: null, jerseyNumber: null, position: null })], error: null });
     const data = await loadLeaderboard(access, selection); expect(data[0].value).toBe(0.30000000000000004); expect(data[0].jerseyNumber).toBe(0); expect(data[1].value).toBe(0);
   });
+  it("accepts verified Full Swing Fall averages with their sample sizes", async () => {
+    const average = { ...selection, metricKey: "avg_exit_velocity" as const, source: "full swing · intrasquad" };
+    rpc.mockResolvedValue({ data: [row({ source: average.source, value: 82.5, derived: true, sampleCount: 12, sampleUnit: "swings" })], error: null });
+    expect((await loadLeaderboard(access, average))[0]).toMatchObject({ value: 82.5, derived: true, sampleCount: 12 });
+    rpc.mockResolvedValue({ data: [row({ source: "unverified source", value: 82.5, derived: true, sampleCount: 12, sampleUnit: "swings" })], error: null });
+    await expect(loadLeaderboard(access, { ...average, source: "unverified source" })).rejects.toThrow(/verified/);
+  });
   it.each([
     [row({ value: NaN })], [row({ value: Infinity })], [row({ value: -1 })], [row({ source: "other source" })], [row({ rank: 2 })],
     [row({ measuredAt: "2026-08-20" })], [row({ measuredAt: "2026-09-31" })], [row({ jerseyNumber: 100 })], [row({ position: "invalid" })], [row({ profileId: "invalid" })],
