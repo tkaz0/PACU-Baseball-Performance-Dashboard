@@ -31,7 +31,7 @@ function ColumnSelect({ label, headers, value, onChange }: { label: string; head
   return <label>{label}<select value={value} onChange={event => onChange(Number(event.target.value))}><option value={-1}>Choose a column…</option>{headers.map((header, index) => <option key={index} value={index}>{index + 1}. {header}</option>)}</select></label>;
 }
 
-export function FullSwingImport({ category, roster, saveAction, saveSamples, assignmentStore, vendor = "Full Swing" }: { assignmentStore?: PitchAssignmentStore; vendor?: "Full Swing" | "Blast Motion"; category: FullSwingCategory; roster: RosterAthlete[]; saveAction: SaveImportAction; saveSamples?: (rows: ReviewedFullSwingSample[]) => Promise<{ created: number; unchanged: number } | { error: string }> }) {
+export function FullSwingImport({ category, roster, saveAction, saveSamples, saveExistingSamples, assignmentStore, vendor = "Full Swing" }: { assignmentStore?: PitchAssignmentStore; vendor?: "Full Swing" | "Blast Motion"; category: FullSwingCategory; roster: RosterAthlete[]; saveAction: SaveImportAction; saveSamples?: (rows: ReviewedFullSwingSample[]) => Promise<{ created: number; unchanged: number } | { error: string }>; saveExistingSamples?: (rows: ReviewedFullSwingSample[]) => Promise<{ created: number; unchanged: number; skipped: number } | { error: string }> }) {
   const [file, setFile] = useState<FileData | null>(null);
   const [headerRow, setHeaderRow] = useState(0);
   const [sessionSource, setSessionSource] = useState<ReturnType<typeof selectTable> | null>(null);
@@ -144,16 +144,16 @@ export function FullSwingImport({ category, roster, saveAction, saveSamples, ass
     finally { setBusy(false); }
   }
   async function saveExistingCounts() {
-    if (!reviewed?.canApply || !confirmed || !session || !saveSamples || busy) return;
+    if (!reviewed?.canApply || !confirmed || !session || !saveExistingSamples || busy) return;
     setBusy(true); setError(""); setSampleReceipt("");
     try {
       const counts = fullSwingSamplesForImport(session,
         (selection?.players ?? []).filter(player => player.included).map(player => ({ identity: player.identity, athleteCode: player.athlete!.athlete_code })),
         reviewed.candidateMeasurements);
       if (!counts.length) throw new Error("No reviewed session counts are available.");
-      const result = await saveSamples(counts);
+      const result = await saveExistingSamples(counts);
       if ("error" in result) throw new Error(result.error);
-      setSampleReceipt(`Verified sample counts for ${result.created + result.unchanged} saved measurements. ${result.created} added, ${result.unchanged} already recorded.`);
+      setSampleReceipt(`Verified sample counts for ${result.created + result.unchanged} saved measurements. ${result.created} added, ${result.unchanged} already recorded.${result.skipped ? ` ${result.skipped} could not match an existing saved reading and were left unchanged.` : ""}`);
       setReviewed(null); setConfirmed(false);
     } catch (error) { setError(errorText(error)); }
     finally { setBusy(false); }
@@ -209,7 +209,7 @@ export function FullSwingImport({ category, roster, saveAction, saveSamples, ass
             <button type="button" className="btn btn-secondary mb-px" aria-label={`Remove data column ${index + 1}`} disabled={metrics.length === 1} onClick={() => { invalidate(); setMetrics(current => current.filter(item => item.id !== metric.id)); }}><Trash2 size={16} /></button>
           </div>)}</div>
           <button type="button" className="btn btn-secondary mt-4" disabled={metrics.length >= definitions.length} onClick={() => { invalidate(); setMetrics(current => [...current, { id: nextId.current++, column: -1, key: "", unit: "" }]); }}><Plus size={16} />Add Measurement</button></fieldset>}
-          <label className="my-6 flex items-start gap-3"><input type="checkbox" checked={summaryConfirmed} onChange={event => { invalidate(); setSummaryConfirmed(event.target.checked); }} /><span>{session ? "I confirm this export uses mph for speeds and feet for distance. I reviewed the calculated player summaries and have not already imported this session from another export." : "Each row contains one player’s reviewed session summaries. I am not labeling individual swings or pitches as an average or maximum."}</span></label>
+          <label className="my-6 flex items-start gap-3"><input type="checkbox" checked={summaryConfirmed} onChange={event => { invalidate(); setSummaryConfirmed(event.target.checked); }} /><span>{session ? "I confirm this export uses mph for speeds and feet for distance and reviewed the calculated player summaries. For a new import, I checked this session was not already imported from another export." : "Each row contains one player’s reviewed session summaries. I am not labeling individual swings or pitches as an average or maximum."}</span></label>
           <button type="button" className="btn btn-primary" onClick={review}>Review Import</button>
         </>}
       </section>
@@ -221,7 +221,7 @@ export function FullSwingImport({ category, roster, saveAction, saveSamples, ass
         <div className="table-wrap"><table><caption className="sr-only">All reviewed readings</caption><thead><tr><th>Player</th><th>Date</th><th>Measurement</th><th>Value</th><th>Source Row</th></tr></thead><tbody>{reviewed.candidateMeasurements.map(row => <tr key={row.id}><td><Link className="font-semibold underline underline-offset-2" prefetch={false} href={`/athletes/${roster.find(athlete => athlete.athlete_code === row.athlete_code)!.id}`}>{athleteName(roster.find(athlete => athlete.athlete_code === row.athlete_code)!)}</Link><span className="muted block text-xs">{row.athlete_code}</span></td><td className="whitespace-nowrap">{row.measured_at}</td><td>{row.metric}<StatInfo metric={row.metric} /></td><td className="whitespace-nowrap">{formatMetricNumber(row.value,row.metric,row.source)} {row.unit}</td><td>{row.source_row}</td></tr>)}</tbody></table></div>
         <label className="my-5 flex items-start gap-3"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} /><span>I checked every player match, date, measurement, and unit. I confirm this is the original reviewed file.</span></label>
         <div className="flex flex-wrap gap-3"><button type="button" className="btn btn-primary" disabled={!reviewed.canApply || !reviewed.candidateMeasurements.length || !confirmed || busy} onClick={() => { void save(); }}><Check size={17} />Save to Player Profiles</button>
-          {session && saveSamples && <button type="button" className="btn btn-secondary" disabled={!reviewed.canApply || !reviewed.candidateMeasurements.length || !confirmed || busy} onClick={() => { void saveExistingCounts(); }}>Add Counts to Existing Import</button>}</div>
+      {session && saveExistingSamples && <button type="button" className="btn btn-secondary" disabled={!reviewed.canApply || !reviewed.candidateMeasurements.length || !confirmed || busy} onClick={() => { void saveExistingCounts(); }}>Add Counts to Existing Import</button>}</div>
       </section>}
     </fieldset>}
     {error && <p role="alert" className="notice notice-error">{error}</p>}

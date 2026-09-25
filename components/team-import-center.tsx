@@ -6,7 +6,7 @@ import { Activity, CircleDot, CalendarDays, Swords } from "lucide-react";
 import { RenphoReportForm } from "@/components/renpho-import";
 import { BlastMotionImport } from "@/components/blast-motion-import";
 import { FullSwingImport } from "@/components/full-swing-import";
-import { loadPitchAssignments, savePitchAssignments, loadSharedReportMeasurements, matchSharedRenphoPlayer, saveReviewedMeasurements, saveReviewedRenphoMeasurements, saveReviewedFullSwingSamples } from "@/app/(workspace)/imports/actions";
+import { loadPitchAssignments, savePitchAssignments, loadSharedReportMeasurements, matchSharedRenphoPlayer, saveReviewedMeasurements, saveReviewedRenphoMeasurements, saveReviewedFullSwingSamples, saveReviewedExistingFullSwingSamples } from "@/app/(workspace)/imports/actions";
 import type { ReadingsSaved } from "@/lib/import-confirmation";
 import type { Measurement } from "@/lib/imports/engine";
 import type { RosterAthlete } from "@/lib/types";
@@ -52,7 +52,7 @@ export function TeamImportCenter({ roster }: { roster: RosterAthlete[] }) {
         profileHref: code => `/athletes/${roster.find(athlete => athlete.athlete_code === code)!.id}`,
         loadExisting: async hash => { const result = await loadSharedReportMeasurements(hash); if ("error" in result) throw new Error(result.error); return result.measurements; },
         matchPlayer: async id => { const result = await matchSharedRenphoPlayer(id); if ("error" in result) throw new Error(result.error); return result.athleteCode; },
-      }} /> : lane === "blast" ? <BlastMotionImport roster={roster} saveAction={save}/> : <FullSwingImport key={lane === "games" ? gameKind : lane} vendor="Full Swing" category={lane === "games" ? gameKind : lane} roster={roster} saveAction={save} saveSamples={saveReviewedFullSwingSamples} assignmentStore={pitchAssignmentStore} />}
+      }} /> : lane === "blast" ? <BlastMotionImport roster={roster} saveAction={save}/> : <FullSwingImport key={lane === "games" ? gameKind : lane} vendor="Full Swing" category={lane === "games" ? gameKind : lane} roster={roster} saveAction={save} saveSamples={saveReviewedFullSwingSamples} saveExistingSamples={saveReviewedExistingFullSwingSamples} assignmentStore={pitchAssignmentStore} />}
     </>}
   </div>;
 }

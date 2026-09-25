@@ -46,8 +46,7 @@ export async function saveReviewedMeasurements(measurements: unknown, confirmed:
   return saveMeasurements(measurements, confirmed);
 }
 
-export async function saveReviewedFullSwingSamples(input: unknown): Promise<{ created: number; unchanged: number } | { error: string }> {
-  const { supabase } = await requireImportAccess();
+function reviewedSampleRows(input: unknown): ReviewedFullSwingSample[] | null {
   const fields = ["athleteCode", "expectedValue", "fileHash", "metricKey", "sampleCount", "sourceRow", "unit"].join(",");
   if (!Array.isArray(input) || input.length < 1 || input.length > 500 ||
     new TextEncoder().encode(JSON.stringify(input)).byteLength > 1048576 || input.some(row =>
@@ -58,15 +57,55 @@ export async function saveReviewedFullSwingSamples(input: unknown): Promise<{ cr
       !["mph", "ft"].includes(row.unit) || !Number.isSafeInteger(row.sourceRow) || row.sourceRow < 2 || row.sourceRow > 1000000 ||
       !Number.isSafeInteger(row.sampleCount) || row.sampleCount < 1 || row.sampleCount > 100000 ||
       !Number.isFinite(row.expectedValue) || Math.abs(row.expectedValue) > 10000))
-    return { error: "Review the session sample counts and player matches." };
+    return null;
+  const keys = input.map(row => [row.fileHash,row.athleteCode,row.metricKey,row.unit].join(":"));
+  return new Set(keys).size === input.length ? input as ReviewedFullSwingSample[] : null;
+}
+
+export async function saveReviewedFullSwingSamples(input: unknown): Promise<{ created: number; unchanged: number } | { error: string }> {
+  const { supabase } = await requireImportAccess();
+  const rows = reviewedSampleRows(input);
+  if (!rows) return { error: "Review the session sample counts and player matches." };
   try {
-    const { data, error } = await supabase.rpc("save_full_swing_session_samples", { p_rows: input as ReviewedFullSwingSample[] });
+    const { data, error } = await supabase.rpc("save_full_swing_session_samples", { p_rows: rows });
     if (error || !data || typeof data !== "object" || Object.keys(data).sort().join(",") !== "created,unchanged" ||
-      !Number.isSafeInteger(data.created) || !Number.isSafeInteger(data.unchanged) || data.created + data.unchanged !== input.length)
+      !Number.isSafeInteger(data.created) || !Number.isSafeInteger(data.unchanged) || data.created + data.unchanged !== rows.length)
       throw new Error("Unverified sample receipt");
     revalidatePath("/leaderboards");
     return data as { created: number; unchanged: number };
   } catch { return { error: "Sample counts were not confirmed. Review the original CSV and saved measurements before retrying." }; }
+}
+
+export async function saveReviewedExistingFullSwingSamples(input: unknown): Promise<{ created: number; unchanged: number; skipped: number } | { error: string }> {
+  const { supabase } = await requireImportAccess();
+  const rows = reviewedSampleRows(input);
+  if (!rows) return { error: "Review the session sample counts and player matches." };
+  const totals = { created: 0, unchanged: 0, skipped: 0 };
+  async function saveChunk(chunk: ReviewedFullSwingSample[]): Promise<void> {
+    const { data, error } = await supabase.rpc("save_full_swing_session_samples", { p_rows: chunk });
+    if (error) {
+      if (error.code !== "22023" || !error.message.includes("Sample count has no unique saved Full Swing summary")) throw error;
+      if (chunk.length === 1) { totals.skipped++; return; }
+      const middle = Math.floor(chunk.length / 2);
+      await saveChunk(chunk.slice(0,middle));
+      await saveChunk(chunk.slice(middle));
+      return;
+    }
+    if (!data || typeof data !== "object" || Object.keys(data).sort().join(",") !== "created,unchanged" ||
+      !Number.isSafeInteger(data.created) || !Number.isSafeInteger(data.unchanged) || data.created + data.unchanged !== chunk.length)
+      throw new Error("Unverified sample receipt");
+    totals.created += data.created;
+    totals.unchanged += data.unchanged;
+  }
+  try {
+    await saveChunk(rows);
+    if (totals.created + totals.unchanged + totals.skipped !== rows.length) throw new Error("Incomplete sample receipt");
+    revalidatePath("/leaderboards");
+    return totals;
+  } catch {
+    if (totals.created) revalidatePath("/leaderboards");
+    return { error: "Some sample counts could not be confirmed. Reopen the same original CSV before retrying; any verified counts remain saved." };
+  }
 }
 
 export async function saveReviewedContacts(input: unknown, confirmed: boolean): Promise<{ created: number; unchanged: number } | { error: string }> {
