@@ -41,3 +41,18 @@ it("rechecks administrator activity and rejects reused request IDs with differen
  await asUser(admin,async()=>{await expect(change("0".repeat(32))).rejects.toThrow();});
  await db.query("update public.app_accounts set is_active=false where user_id=$1",[admin]);await asUser(admin,async()=>{await expect(review()).rejects.toThrow();await expect(change(r.active[0].fingerprint,true)).rejects.toThrow();});
 });
+it("archives one reviewed Full Swing maximum without losing the rest of its file",async()=>{
+ await db.query("insert into public.performance_measurements(observation_id,athlete_id,metric_key,metric,unit,measured_at,value,source,source_file,source_sheet,source_row,source_column,file_hash,import_id,imported_by) select 'fictional:spin:max',athlete_id,'classified_max_spin','Pitch Type Max Spin','rpm',measured_at,3275.6,'Full Swing · Intrasquad · Four-Seam Fastball',source_file,source_sheet,16,4,file_hash,import_id,imported_by from public.performance_measurements where athlete_id=$1 and source like 'Full Swing%' limit 1",[athlete]);
+ const choices=await asUser(admin,()=>db.query<{data:{id:string;fingerprint:string;metricKey:string}[]}>("select public.admin_csv_max_readings($1) data",[athlete]));
+ const target=choices.rows[0].data.find(row=>row.metricKey==="classified_max_spin")!;
+ expect(target).toBeDefined();
+ await asUser(coach,async()=>{await expect(db.query("select public.admin_csv_max_readings($1)",[athlete])).rejects.toThrow();});
+ const receipt=await asUser(admin,()=>db.query<{data:{count:number;removed:boolean}}>("select public.admin_archive_csv_max_reading($1,$2,$3,$4,true) data",["55555555-5555-4555-8555-555555555555",athlete,target.id,target.fingerprint]));
+ expect(receipt.rows[0].data).toMatchObject({count:1,removed:true});
+ expect((await all()).filter(row=>row.athlete_id===athlete&&row.source!=="RENPHO")).toHaveLength(2);
+ expect(await asUser(admin,()=>db.query<{data:{count:number;removed:boolean}}>("select public.admin_archive_csv_max_reading($1,$2,$3,$4,true) data",["55555555-5555-4555-8555-555555555555",athlete,target.id,target.fingerprint]))).toEqual(receipt);
+ await asUser(admin,async()=>{await expect(db.query("select public.admin_archive_csv_max_reading($1,$2,$3,$4,true)",["66666666-6666-4666-8666-666666666666",athlete,target.id,"0".repeat(32)])).rejects.toThrow();});
+ const archived=(await asUser(admin,review)).archived.find(row=>!row.restored);expect(archived).toBeDefined();
+ await asUser(admin,()=>change(target.fingerprint,true,true,"55555555-5555-4555-8555-555555555555"));
+ expect((await all()).filter(row=>row.athlete_id===athlete&&row.source!=="RENPHO")).toHaveLength(3);
+});

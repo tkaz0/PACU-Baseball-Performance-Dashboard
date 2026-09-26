@@ -400,3 +400,6 @@ Apply `202609220001_account_setup_status.sql` before the consuming app. Its read
 
 
 September 25 dashboard sweep: apply `202609250006_leaderboard_sample_source_isolation.sql` to keep fallback sample counts within the exact source and pitch family. It replaces the existing authorized leaderboard function without changing grants, measurements or identities. Missing or ambiguous counts stay unknown.
+
+
+Apply additive migration `202609260001_individual_csv_reading_archive.sql` before deploying the individual Full Swing maximum correction UI. It adds Admin-only read/archive RPCs and reuses the existing private reversible CSV archive and import guard. It changes no athlete, account or role grant and performs no removal on migration.

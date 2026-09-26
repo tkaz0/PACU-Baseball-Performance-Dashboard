@@ -429,3 +429,6 @@ Focused account-setup tests cover status distinctions, strict whitelisting, inva
 
 
 September 25 dashboard sweep: source-isolation regression proves a pitch family cannot borrow another family’s sample count. Equal-cohort Blast selection prefers the newest valid report period. Presentation checks cover explicit Fall-average versus latest-session labels, count-pending states, compact Home boards, profile tabs, and expandable Analytics filters. Synthetic desktop/mobile rendering supplements, but does not replace, authenticated end-to-end role tests.
+
+
+September 25 individual maximum correction: embedded database tests cover a reviewed single Full Swing maximum archive, preservation of the file’s other readings, exact restoration, identical retry, stale fingerprint denial and Coach denial. Production correction still requires selecting the exact player/source/value through the Admin review page and verifying leaderboards afterward.
