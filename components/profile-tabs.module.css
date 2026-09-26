@@ -1,0 +1,12 @@
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-bottom: 22px; }
+.navigation { display: flex; flex: 1; min-width: 0; gap: 4px; overflow-x: auto; padding: 5px; border: 1px solid var(--line-subtle); border-radius: 12px; background: var(--surface-panel); scrollbar-width: thin; scrollbar-color: var(--line-subtle) transparent; }
+.navigation > button { flex: 1; padding-inline: 14px; border-radius: 8px; font-size: 12px; }
+.navigation > button[aria-selected="true"] { box-shadow: 0 2px 5px #00000012; }
+.navigation > button:focus-visible { outline: 2px solid var(--accent-readable); outline-offset: -2px; }
+.navigation > button[aria-selected="true"]:focus-visible { outline-color: white; outline-offset: -4px; }
+.action { margin-left: auto; padding-inline: 2px; font-size: 12px; }
+@container player-profile (max-width: 520px) {
+  .navigation { flex-basis: 100%; }
+  .navigation > button { padding-inline: 10px; }
+}
+@media (prefers-reduced-motion: reduce) { .navigation > button { transition: none; } }

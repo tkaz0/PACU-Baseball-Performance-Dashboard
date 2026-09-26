@@ -1,27 +1,46 @@
-.profile { --profile-section-gap:26px; }
-.profile :global(.player-identity-card) { padding:20px 22px; border-radius:16px; }
-.profile :global(.player-identity-card) h1 { font-size:clamp(26px,3.2vw,36px); }
-.profile :global(.player-identity-card) :global(dl:last-child) { padding-top:12px; }
-.profile [role="tabpanel"] > * + * { margin-top:var(--profile-section-gap); }
-.profile :global(.performance-metric-card) { padding:15px 16px; border-radius:12px; box-shadow:none; }
-.profile :global(.performance-metric-card) h3 { min-height:0; font-size:13px; line-height:1.45; }
-.profile :global(.performance-metric-card)>div:nth-child(2) { margin-top:10px; font-size:28px; }
-.profile :global(.performance-metric-card)>p:last-of-type { margin-top:auto; padding-top:10px; }
-.profile :global(.performance-metric-card) [data-testid="player-percentile"] { margin-top:10px; padding-top:9px; }
-.metricGroup > div:first-child { margin-bottom:12px; }
-.metricGroup > div:first-child h2 { font-size:17px; }
-.metricGroup > ul { gap:12px; }
-.composition { display:grid; gap:16px; align-items:stretch; }
-.composition [data-testid="renpho-body-score"] { margin:0; padding:18px; border-radius:12px; box-shadow:none; }
-.composition [data-testid="renpho-body-score"] h2 { font-size:15px; }
-.composition [data-testid="renpho-body-score"]>div:first-child>span { display:none; }
-@media(min-width:1200px) {
- .composition { grid-template-columns:minmax(180px,.7fr) minmax(0,2fr); }
- .composition>.metricGroup { align-self:center; }
+.profile { --profile-section-gap: 26px; container: player-profile / inline-size; }
+.profile :global(.player-identity-card) { padding: 20px 22px; border-radius: 16px; }
+.profile :global(.player-identity-card) h1 { font-size: clamp(26px, 3.2vw, 36px); }
+.profile :global(.player-identity-card) :global(dl:last-child) { padding-top: 12px; }
+.profile [role="tabpanel"] > * + * { margin-top: var(--profile-section-gap); }
+.profile :global(.performance-metric-card) { gap: 0; padding: 16px; border-radius: 14px; box-shadow: none; }
+.metricTitle { margin: 0; color: var(--text-secondary); font-size: 13px; font-weight: 650; line-height: 1.5; }
+.metricValue { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; margin-top: 10px; color: var(--text-primary); font-size: 30px; line-height: 1.1; letter-spacing: -.04em; }
+.readingValue { display: inline-flex; align-items: baseline; white-space: nowrap; }
+.bestLabel { margin-right: 7px; color: var(--text-secondary); font-size: 11px; font-weight: 650; letter-spacing: 0; }
+.metricMeta { margin-top: auto; padding-top: 14px; }
+.metricSource { width: fit-content; max-width: 100%; margin: 0 0 6px; padding: 3px 7px; border-radius: 5px; background: var(--surface-raised); color: var(--text-secondary); font-size: 10px; font-weight: 650; line-height: 1.4; overflow-wrap: anywhere; }
+.metricDate { margin: 0; color: var(--text-secondary); font-size: 11px; line-height: 1.5; }
+.metricDate time { white-space: nowrap; }
+.profile :global(.performance-metric-card) [data-testid="player-percentile"] { margin-top: 12px; padding-top: 9px; }
+.metricGroup { min-width: 0; }
+.groupHeading { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.groupHeading::before { content: ""; width: 4px; height: 18px; flex-shrink: 0; border-radius: 2px; background: var(--accent-readable); }
+.groupHeading h2 { margin: 0; font-size: 16px; font-weight: 750; line-height: 1.4; letter-spacing: -.02em; }
+.groupHeading > span { flex: 1; height: 1px; background: var(--line-subtle); }
+.metricGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+.sessionMeasurements { display: grid; gap: 24px; }
+.sessionHeading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid var(--line-subtle); }
+.sessionHeading p { margin: 0 0 5px; color: var(--text-secondary); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; }
+.sessionHeading p span { padding: 0 6px; color: var(--text-secondary); opacity: .6; }
+.sessionHeading h2 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -.025em; line-height: 1.3; }
+.seasonBadge { display: inline-flex; flex-shrink: 0; padding: 6px 10px; border: 1px solid var(--line-subtle); border-radius: 999px; color: var(--text-secondary); font-size: 11px; font-weight: 650; }
+.emptyState { margin: 0; padding: 20px; border: 1px dashed var(--line-subtle); border-radius: 14px; background: var(--surface-panel); color: var(--text-secondary); font-size: 13px; line-height: 1.6; }
+.composition { display: grid; gap: 16px; align-items: stretch; }
+.composition [data-testid="renpho-body-score"] { margin: 0; padding: 18px; border-radius: 14px; box-shadow: none; }
+.composition [data-testid="renpho-body-score"] h2 { font-size: 15px; }
+.composition [data-testid="renpho-body-score"] > div:first-child > span { display: none; }
+@container player-profile (min-width: 840px) {
+  .composition { grid-template-columns: minmax(180px, .7fr) minmax(0, 2fr); }
+  .composition > .metricGroup { align-self: center; }
 }
-@media(max-width:600px) {
- .profile { --profile-section-gap:22px; }
- .profile :global(.player-identity-card) { padding:16px; }
- .profile :global(.performance-metric-card) { padding:13px; }
- .profile :global(.performance-metric-card)>div:nth-child(2) { font-size:25px; }
+@container player-profile (max-width: 420px) {
+  .metricGrid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 165px), 1fr)); }
+  .profile :global(.performance-metric-card) { padding: 14px; }
+  .metricValue { font-size: 27px; }
+  .sessionHeading h2 { font-size: 18px; }
+}
+@media (max-width: 600px) {
+  .profile { --profile-section-gap: 22px; }
+  .profile :global(.player-identity-card) { padding: 16px; }
 }

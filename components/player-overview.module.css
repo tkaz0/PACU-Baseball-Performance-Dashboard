@@ -1,4 +1,15 @@
 .panel { min-width: 0; padding: 16px; border: 1px solid var(--line-subtle); border-radius: 14px; background: var(--surface-panel); box-shadow: var(--panel-shadow); }
+.snapshotHeader { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px 24px; }
+.snapshotIntro { flex: 1 1 300px; min-width: 0; }
+.snapshotIntro > p { max-width: 60ch; }
+.snapshotFacts { display: flex; flex-wrap: wrap; gap: 12px 22px; margin: 0; padding: 12px 16px; border: 1px solid var(--line-subtle); border-radius: 12px; background: var(--surface-panel); font-size: 12px; }
+.snapshotFacts > div { min-width: 0; }
+.insights { display: grid; grid-template-columns: 1fr; gap: 14px; align-items: stretch; }
+@container player-profile (min-width: 650px) { .insights { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@container player-profile (max-width: 420px) {
+  .snapshotFacts { width: 100%; justify-content: space-between; gap: 10px 14px; padding: 12px; }
+  .snapshotFacts dt { font-size: 9px; }
+}
 .panel[data-highlight] { border-top: 3px solid var(--line-subtle); }
 .panel[data-highlight="strengths"] { border-top-color: #c32132; }
 .panel[data-highlight="weaknesses"] { border-top-color: #3983be; }

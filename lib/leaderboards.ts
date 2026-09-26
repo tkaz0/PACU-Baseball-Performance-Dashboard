@@ -1,3 +1,4 @@
+import { parseBlastSource } from "@/lib/blast-metrics";
 import { PITCH_TYPES } from "@/lib/imports/pitch-assignments";
 import { TIMED_METRIC_KEYS, isVisibleProfileMetric, isTimedMetric, PLAYER_METRICS, type PlayerMetricDefinition, type PlayerMetricKey, type PlayerPerformancePeriod } from "@/lib/player-performance";
 
@@ -41,6 +42,15 @@ export function leaderboardOrderLabel(metric: LeaderboardMetricDefinition): stri
   return metric.key === "height" ? "Tallest First" : leaderboardOrder(metric) === "lower" ? "Lowest First" : "Highest First";
 }
 
+/** Source keys are normalized by the reader; the Blast parser accepts its canonical export label. */
+function latestBlastPeriodFirst(a: string, b: string): number {
+  const parse = (source: string) => parseBlastSource(source.replace(/^blast motion · (average|p95) · /, (_, kind: string) => `Blast Motion · ${kind === "average" ? "Average" : "P95"} · `));
+  const first = parse(a), second = parse(b);
+  return first && second && first.kind === second.kind
+    ? second.end.localeCompare(first.end) || second.start.localeCompare(first.start)
+    : 0;
+}
+
 /** One honest comparison per metric, without pooling source, unit or testing period. */
 export function visibleLeaderboardComparisons(group: LeaderboardGroup, options: readonly LeaderboardComparison[], session?: LeaderboardSession): LeaderboardComparison[] {
   return leaderboardMetrics(group).flatMap(metric => {
@@ -48,6 +58,7 @@ export function visibleLeaderboardComparisons(group: LeaderboardGroup, options: 
     candidates.sort((a, b) => Number(b.period === "fall_2026") - Number(a.period === "fall_2026")
       || b.athleteCount - a.athleteCount
       || metric.units.indexOf(a.unit) - metric.units.indexOf(b.unit)
+      || latestBlastPeriodFirst(a.source, b.source)
       || (a.source < b.source ? -1 : a.source > b.source ? 1 : 0));
     return isPitchLeaderboardMetric(metric.key) ? candidates.filter(option => leaderboardPitchType(option.source)) : candidates[0] ? [candidates[0]] : [];
   });

@@ -397,3 +397,6 @@ September 21 bulk invitations: an active Admin outside View as can review remain
 
 ### Invitation status deployment
 Apply `202609220001_account_setup_status.sql` before the consuming app. Its read-only, active-Admin-only RPC uses the ordinary signed-in session. No Auth admin secret or new account configuration is needed. Existing disabled accounts remain disabled.
+
+
+September 25 dashboard sweep: apply `202609250006_leaderboard_sample_source_isolation.sql` to keep fallback sample counts within the exact source and pitch family. It replaces the existing authorized leaderboard function without changing grants, measurements or identities. Missing or ambiguous counts stay unknown.

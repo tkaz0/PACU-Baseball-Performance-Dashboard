@@ -42,7 +42,7 @@ function ReadingValue({ reading }: { reading: PlayerMetricReading }) {
   const height = reading.metricKey === "height" ? formatHeight(reading.value, reading.unit) : null;
   if (height) return <span className="font-extrabold tabular-nums" title={`Recorded: ${reading.value} ${reading.unit}`}>{height}</span>;
   const value = parseBlastSource(reading.source) ? formatBlastValue(reading.value,reading.unit) : formatMetricNumber(reading.value, reading.metricKey, reading.source, reading.unit === "s" ? reading.value.toFixed(2) : reading.derived ? `≈${reading.value.toFixed(1)}` : String(reading.value));
-  return <><span className="break-all font-extrabold tabular-nums">{value}</span><span className="ml-1.5 text-sm font-medium tracking-normal text-[var(--text-secondary)]">{reading.unit}</span></>;
+  return <><span className="font-extrabold tabular-nums">{value}</span><span className="ml-1.5 text-sm font-medium tracking-normal text-[var(--text-secondary)]">{reading.unit}</span></>;
 }
 function Percentile({ card }: { card: PlayerMetricCard }) {
   const percentile = card.percentile;
@@ -73,20 +73,22 @@ function MetricSparkline({card}:{card:PlayerMetricCard}) {
 function MetricCard({ card, teamAverages=[] }: { card: PlayerMetricCard; teamAverages?: readonly HittingTeamAverage[] }) {
   const reading = card.latest;
   return <li className={`performance-metric-card flex min-w-0 flex-col rounded-lg border border-[var(--line-subtle)] p-3 sm:p-4 ${reading ? "bg-[var(--surface-panel)]" : "border-dashed bg-[var(--surface-page)]"}`} data-testid="player-metric" data-metric-key={card.metric.key} data-value={reading?.value} data-unit={reading?.unit} data-date={reading?.measuredAt}>
-    <h3 className="m-0 min-h-7 text-sm font-semibold leading-5 text-[var(--text-secondary)]">{profileMetricLabel(card.metric.key,card.metric.key === "bat_speed" ? "Bat Speed (Unspecified)" : card.metric.label,reading?.source)}<StatInfo metric={card.metric.key} label={card.metric.label} /></h3>
-    <div className="mt-2 text-2xl leading-tight tracking-tight text-[var(--text-primary)] sm:text-3xl">{reading ? <><span className="mr-2 inline-block">{card.timedTrials && <span className="mr-2 text-xs font-medium text-[var(--text-secondary)]">Best</span>}<ReadingValue reading={reading} /></span><MeasurementChange change={playerRenphoChange(card)} metric={card.metric.key}/></> : <span className="font-medium text-[var(--text-secondary)]" aria-label="Not yet tested">—</span>}</div>
+    <h3 className={presentation.metricTitle}>{profileMetricLabel(card.metric.key,card.metric.key === "bat_speed" ? "Bat Speed (Unspecified)" : card.metric.label,reading?.source)}<StatInfo metric={card.metric.key} label={card.metric.label} /></h3>
+    <div className={presentation.metricValue}>{reading ? <><span className={presentation.readingValue}>{card.timedTrials && <span className={presentation.bestLabel}>Best</span>}<ReadingValue reading={reading} /></span><MeasurementChange change={playerRenphoChange(card)} metric={card.metric.key}/></> : <span className="font-medium text-[var(--text-secondary)]" aria-label="Not yet tested">—</span>}</div>
     {reading && card.metric.group === "hitting" && /^Full Swing · (Game|Intrasquad|Practice|Hitting)$/.test(reading.source) && <HittingTeamAverageLine average={hittingTeamAverage(teamAverages,card.metric.key,reading.unit,reading.source)}/>}
     {!reading && <p className="mb-0 mt-3 text-[11px] text-[var(--text-secondary)]">Not Yet Tested</p>}
     {card.timedTrials && <p className="mb-0 mt-2 text-sm text-[var(--text-secondary)]">Average <strong className="tabular-nums text-[var(--text-primary)]">{card.timedTrials.average.toFixed(2)} s</strong><span className="ml-2 text-xs">{card.timedTrials.count} {card.timedTrials.count === 1 ? "trial" : "trials"} · Fall 2026</span></p>}
-    {reading && card.metric.group !== "body" && <p className="mb-0 mt-2 text-xs font-semibold text-[var(--text-secondary)]">{reading.source}</p>}
-    {reading && <p className="mb-0 mt-3 text-[11px] leading-5 text-[var(--text-secondary)]">{parseBlastSource(reading.source) ? <>Reporting Week: {blastPeriodLabel(parseBlastSource(reading.source)!.start,parseBlastSource(reading.source)!.end)}</> : <>Last Tested: <time dateTime={card.timedTrials?.lastTested ?? reading.measuredAt}>{measurementDate(card.timedTrials?.lastTested ?? reading.measuredAt)}</time></>}{reading.derived ? " · Calculated" : ""}</p>}
+    {reading && <div className={presentation.metricMeta}>
+      {card.metric.group !== "body" && <p className={presentation.metricSource}>{reading.source}</p>}
+      <p className={presentation.metricDate}>{parseBlastSource(reading.source) ? <>Reporting Week: {blastPeriodLabel(parseBlastSource(reading.source)!.start,parseBlastSource(reading.source)!.end)}</> : <>Last Tested: <time dateTime={card.timedTrials?.lastTested ?? reading.measuredAt}>{measurementDate(card.timedTrials?.lastTested ?? reading.measuredAt)}</time></>}{reading.derived ? " · Calculated" : ""}</p>
+    </div>}
     <Percentile card={card} />
     <MetricSparkline card={card}/>
   </li>;
 }
 function MetricGroup({ id, title, cards, teamAverages=[] }: { id: string; title: string; cards: PlayerMetricCard[]; teamAverages?: readonly HittingTeamAverage[] }) {
   if (!cards.length) return null;
-  return <section id={id} aria-labelledby={`${id}-heading`} className={`min-w-0 ${presentation.metricGroup}`}><div className="mb-4 flex items-center gap-3"><h2 id={`${id}-heading`} className="m-0 shrink-0 text-lg font-bold tracking-tight">{title}</h2><span className="h-px flex-1 bg-[var(--line-subtle)]" aria-hidden="true" /></div><ul className={`m-0 grid list-none grid-cols-1 gap-3 p-0 ${cards.length === 1 ? "" : "min-[360px]:grid-cols-2"} sm:gap-4 ${cards.length === 3 ? "min-[360px]:[&>li:last-child]:col-span-2 xl:[&>li:last-child]:col-span-1" : ""} ${cards.length === 1 ? "xl:grid-cols-1" : cards.length === 2 ? "xl:grid-cols-2" : cards.length === 4 ? "xl:grid-cols-4" : "xl:grid-cols-3"}`}>{cards.map(card => <MetricCard key={`${card.metric.key}:${card.latest?.source}:${card.latest?.unit}`} card={card} teamAverages={teamAverages} />)}</ul>{cards.some(card => card.latest && (!card.percentile || card.percentile.sampleSize < 5)) && <p className="mb-0 mt-3 text-xs leading-5 text-[var(--text-secondary)]">Team rankings appear once at least five players have the same test result.</p>}</section>;
+  return <section id={id} aria-labelledby={`${id}-heading`} className={presentation.metricGroup}><div className={presentation.groupHeading}><h2 id={`${id}-heading`}>{title}</h2><span aria-hidden="true" /></div><ul className={presentation.metricGrid}>{cards.map(card => <MetricCard key={`${card.metric.key}:${card.latest?.source}:${card.latest?.unit}`} card={card} teamAverages={teamAverages} />)}</ul>{cards.some(card => card.latest && (!card.percentile || card.percentile.sampleSize < 5)) && <p className="mb-0 mt-3 text-xs leading-5 text-[var(--text-secondary)]">Team rankings appear once at least five players have the same test result.</p>}</section>;
 }
 function SessionMeasurements({ performance, season, context, hasBlast=false, teamAverages=[] }: { teamAverages?:readonly HittingTeamAverage[]; performance: ReturnType<typeof getPlayerPerformance>; season?: AthleteSeason | null; context: "in_game" | "practice"; hasBlast?: boolean }) {
   const layout = getPlayerProfileLayout(getSessionPerformance(performance, context), season);
@@ -94,9 +96,9 @@ function SessionMeasurements({ performance, season, context, hasBlast=false, tea
   const throwing = [...layout.fieldThrowing, ...layout.pitching];
   const hasData = hitting.length + throwing.length > 0;
   if(hasBlast && !hasData)return null;
-  return <section className="space-y-5" aria-label={context === "in_game" ? "In-Game measurements" : "Practice measurements"}>
-    <div><h2 className="m-0 text-xl font-bold">{context === "in_game" ? "Games & Intrasquad" : (hasBlast ? "Other Practice & Testing" : "Practice & Testing")}</h2><p className="muted mb-0 mt-1 text-sm">{context === "in_game" ? "Your latest game and intrasquad testing. Fall game totals are below." : "Your latest practice results. Games and intrasquads are in In-Game."}</p></div>
-    {!hasData && <p className="rounded-lg border border-dashed border-[var(--line-subtle)] p-5 text-sm text-[var(--text-secondary)]">{context === "in_game" ? "No game or intrasquad test results yet." : "No practice measurements recorded yet."}</p>}
+  return <section className={presentation.sessionMeasurements} aria-label={context === "in_game" ? "In-Game measurements" : "Practice measurements"}>
+    <header className={presentation.sessionHeading}><div><p>{context === "in_game" ? "In-Game" : "Practice"} <span aria-hidden="true">/</span> Latest Sessions</p><h2>{context === "in_game" ? "Games & Intrasquad" : (hasBlast ? "Other Practice & Testing" : "Practice & Testing")}</h2></div><span className={presentation.seasonBadge}>Fall 2026</span></header>
+    {!hasData && <p className={presentation.emptyState}>{context === "in_game" ? "No game or intrasquad test results yet." : "No practice measurements recorded yet."}</p>}
     <MetricGroup id={`${context}-hitting`} title="Hitting" cards={hitting} teamAverages={teamAverages} />
     <MetricGroup id={`${context}-field`} title="Position Throwing" cards={layout.fieldThrowing} />
     <MetricGroup id={`${context}-pitching`} title="Pitching" cards={layout.pitching} />
@@ -119,7 +121,7 @@ export function PlayerPerformanceProfile({ athlete, performance, season, blastRe
   const tabs: ProfileTab[] = [
     { id: "overview", label: "Overview", content: <><PlayerOverview teamAverages={teamAverages} twoWay={selectedSeason?.player_type?.trim().toLowerCase() === "two_way"} showMethods={!simplified} cards={[...cards, ...(bodyScoreCard ? [bodyScoreCard] : [])]} gameStats={overviewGameStats} gameComparisons={gameComparisons} />{coachFocus}{layout.showHitting&&<PracticeGameBridge performance={performance} blastReadings={blastReadings}/>}</> },
     { id: "physicality", label: "Physicality", content: <>
-      {!layout.physicality.length && !layout.additionalBody.length && !bodyScore && <p className="muted text-sm">No physicality measurements recorded yet.</p>}
+      {!layout.physicality.length && !layout.additionalBody.length && !bodyScore && <p className={presentation.emptyState}>No physicality measurements recorded yet.</p>}
       <MetricGroup id="body-measurements" title="Physicality" cards={layout.physicality} />
       <div className={bodyScore && layout.additionalBody.length ? presentation.composition : undefined}>
         {bodyScore && <RenphoBodyScore reading={bodyScore} change={bodyScoreCard ? playerRenphoChange(bodyScoreCard) : null}/>}

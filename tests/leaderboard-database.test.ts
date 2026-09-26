@@ -68,6 +68,28 @@ describe("explicit minimal team leaderboard access", () => {
       expect(JSON.stringify(rows)).not.toMatch(/file_hash|source_file|email|source_row/);
     });
   });
+  it("never borrows a fallback sample count from another pitch type in the same file", async () => {
+    await save([
+      row(1, { metric_key: "classified_max_spin", source: "Full Swing · Intrasquad · Curveball", value: 2500, unit: "rpm" }, 0),
+      row(1, { metric_key: "classified_spin_count", source: "Full Swing · Intrasquad · Fastball", value: 17, unit: "count" }, 1),
+    ]);
+    const result = await asUser(users.player, () => board({ metricKey: "classified_max_spin", source: "full swing · intrasquad · curveball", unit: "rpm" }));
+    expect(result[0]).toMatchObject({ sampleCount: null, sampleUnit: null });
+  });
+  it("shows only the selected session's unique matching count when Fall counts are incomplete", async () => {
+    const source = "Full Swing · Intrasquad · Curveball";
+    await save([
+      row(1, { metric_key: "classified_avg_spin", source, value: 2500, unit: "rpm", measured_at: "2026-09-11", file_hash: "a".repeat(64) }, 0),
+      row(1, { metric_key: "classified_avg_spin", source, value: 2300, unit: "rpm" }, 0),
+      row(1, { metric_key: "classified_spin_count", source: "Full Swing · Intrasquad · Fastball", value: 17, unit: "count" }, 1),
+      row(1, { metric_key: "classified_spin_count", source, value: 5, unit: "count" }, 2),
+    ]);
+    const selection = { metricKey: "classified_avg_spin" as const, source: source.toLowerCase(), unit: "rpm" };
+    expect((await asUser(users.player, () => board(selection)))[0]).toMatchObject({ value: 2300, derived: false, sampleCount: 5, sampleUnit: "pitches" });
+    // Conflicting duplicates invalidate the fallback rather than selecting whichever row sorts first.
+    await save([row(1, { metric_key: "classified_spin_count", source, value: 6, unit: "count" }, 3)]);
+    expect((await asUser(users.player, () => board(selection)))[0]).toMatchObject({ value: 2300, derived: false, sampleCount: null, sampleUnit: null });
+  });
   it("denies anonymous execution and inaccessible private raw helper", async () => {
     await asUser(null, async () => { await expect(options()).rejects.toThrow("permission denied"); await expect(board()).rejects.toThrow("permission denied"); });
     await asUser(users.player, async () => { await expect(db.query("select * from private.leaderboard_latest()")).rejects.toThrow("permission denied"); });

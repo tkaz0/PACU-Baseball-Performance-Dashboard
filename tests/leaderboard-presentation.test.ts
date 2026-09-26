@@ -8,6 +8,15 @@ import { LeaderboardBoard } from "@/components/leaderboard-board";
 const row: LeaderboardRow = { rank: 1, athleteCode: "SYN-001", name: "Fictional Player", jerseyNumber: 0, position: "P", profileId: null, value: 0.30000000000000004, measuredAt: "2026-09-12", source: "fictional source", derived: false };
 const html = (key: string, rows: LeaderboardRow[] = [row]) => renderToStaticMarkup(createElement(LeaderboardResults, { metric: PLAYER_METRICS.find(metric => metric.key === key)!, rows, unit: "mph" }));
 describe("leaderboard presentation and truthful comparisons", () => {
+  it("distinguishes latest-session fallbacks from verified Fall averages on the same board", () => {
+    const rows = [{ ...row, source: "full swing · intrasquad", value: 90, derived: true, sampleCount: 12, sampleUnit: "swings" as const },
+      { ...row, athleteCode: "SYN-002", rank: 2, source: "full swing · intrasquad", value: 80, derived: false, sampleCount: null, sampleUnit: null }];
+    const output = html("avg_exit_velocity", rows);
+    expect(output).toContain("Fall average");
+    expect(output).toContain("Latest session");
+    expect(output).toContain("Latest-session results are marked below.");
+    expect(output).toContain("Count pending");
+  });
   it("separates Physicality, position throws and pitching", () => {
     for (const key of ["grip_strength", "home_to_first", "boxer_t"]) expect(leaderboardGroup(PLAYER_METRICS.find(metric => metric.key === key)!)).toBe("physicality");
     expect(leaderboardGroup(PLAYER_METRICS.find(metric => metric.key === "max_pitch_velocity")!)).toBe("pitching");

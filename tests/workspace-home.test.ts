@@ -27,7 +27,7 @@ describe("role-aware dashboard landing", () => {
     const current=access([role],athleteId,role==="player");fake.access.mockResolvedValue(current);fake.home.mockResolvedValue(null);
     expect(workspaceHome(current)).toBe("/overview");
     const html=renderToStaticMarkup(await Overview({searchParams:Promise.resolve({})}));
-    expect(fake.home).toHaveBeenCalledWith(current);expect(fake.leaderboards).toHaveBeenCalledWith(current);expect(html).toContain(role==="player"?"Your Baseball Home.":"The Team, at a Glance.");
+    expect(fake.home).toHaveBeenCalledWith(current);expect(fake.leaderboards).toHaveBeenCalledWith(current);expect(html).toContain(role==="player"?"My Dashboard":"Team Dashboard");
     expect(fake.due).toHaveBeenCalledTimes(role==="player"?0:1);
     expect(html.includes('href="/imports"')).toBe(role!=="player");expect(fake.from).not.toHaveBeenCalled();
   });

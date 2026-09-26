@@ -426,3 +426,6 @@ Bulk invitations: `bulk-invitations.test.ts` checks recipient exclusions; `bulk-
 
 ### Invitation status checks
 Focused account-setup tests cover status distinctions, strict whitelisting, invalid responses, authorization before RPC, and generic failures. PGlite verifies Admin-only read access, anonymous/Coach/Player/revoked-Admin denial, configured-only results, password-presence booleans, disabled-state preservation, no returned credential material and no mutation. PGlite is not hosted Supabase integration; verify the installed RPC and live Admin page after deployment. Use fictional accounts for visual QA.
+
+
+September 25 dashboard sweep: source-isolation regression proves a pitch family cannot borrow another family’s sample count. Equal-cohort Blast selection prefers the newest valid report period. Presentation checks cover explicit Fall-average versus latest-session labels, count-pending states, compact Home boards, profile tabs, and expandable Analytics filters. Synthetic desktop/mobile rendering supplements, but does not replace, authenticated end-to-end role tests.
