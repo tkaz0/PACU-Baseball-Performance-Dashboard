@@ -35,7 +35,9 @@ Mappings are additive: previous IDs still match, blanks do not delete links, and
 
 ## Full Swing readiness
 
-**The owner supplied a Field / Live at Bat export on September 17.** Games / Intrasquad now detects that exact 28-column layout and prepares player summaries. The owner confirmed the sample is a September 11 intrasquad session using mph and feet. Every subsequent file requires explicit confirmation of these units. Other raw layouts remain unsupported; manually reviewed summary CSVs continue to work in all lanes.
+**The owner supplied a Field / Live at Bat export on September 17.** Every Full Swing lane now detects that exact 28-column layout and prepares hitter and pitcher summaries from one CSV. Staff select Game, Intrasquad, or Practice before uploading, so both roles keep the same reviewed session context. The owner confirmed the sample is a September 11 intrasquad session using mph and feet. Every subsequent file requires explicit confirmation of these units. Other raw layouts remain unsupported; manually reviewed summary CSVs continue to work in all lanes.
+
+The same header layout with **Cage / Machine BP** is accepted only as Practice hitting. Machine pitches are never matched to a roster pitcher or used in pitcher profiles or rankings. A file mixing machine and live modes is rejected. All other modes or header changes still require review before an adapter is added. Pitch-type velocity and spin leaderboards update only after staff confirm RPM, save pitch labels and select **Save Pitch Results to Profiles**; a generic overall pitching summary does not invent a pitch type.
 
 The session reader groups hitters and pitchers separately by their exported identity. It calculates maximum/average measured exit velocity, maximum/average measured bat speed, maximum distance, and maximum/average pitch velocity. Each average uses only its own recorded readings; literal `null` and blank cells are missing, never zero. Review shows metric-specific sample counts and original CSV rows. Names require unique exact roster matching or an explicit manual choice. No accounts or permanent ID links are created.
 
@@ -47,7 +49,7 @@ Derived observations retain the original file hash/name under `CSV · Full Swing
 
 Each row must already contain one player's session summaries. Map player name, PAC ID or email; review exact matches, map alternate export names to a roster player, or leave them excluded. Unmatched/ambiguous names are skipped by default and do not block matched players. Choose the original date and units, then select only supported profile metrics. Percentages are 0–100 percentage points. Average fastball spin must already exclude other pitch types. Repeated player/date/metric rows block saving rather than silently selecting a raw event as the maximum or average. Average EV, bat speed and pitch velocity cannot exceed their matching maximum in the same unit. Generic Bat Speed remains separate; smash factor and distance must be explicitly supplied, not derived from other summaries.
 
-Only September 1–December 31, 2026 dates are accepted in these Full Swing flows. Hitting, Pitching, Game and Intrasquad use distinct source labels so comparisons do not mix their protocols. Raw CSV files stay in the browser; only approved numeric observations and provenance are sent.
+Only September 1–December 31, 2026 dates are accepted in these Full Swing flows. Game, Intrasquad and Practice use distinct source labels so comparisons do not mix their protocols. The Hitting and Pitching entry lanes also accept a mixed Full Swing file; their selected session type determines the source label. Raw CSV files stay in the browser; only approved numeric observations and provenance are sent.
 
 Blank PACU summary templates are downloadable from each lane. These are explicitly labeled as our templates, not vendor exports. No fake readings are included.
 

@@ -12,7 +12,7 @@ export const SESSION_METRICS = [
   { key: "avg_pitch_velocity", label: "Average Velocity", unit: "mph", input: "RelSpeed", operation: "mean", role: "Pitcher" },
 ] as const;
 export type FullSwingSession = {
-  table: ImportTable; date: string; eventCount: number; pitcherCount: number; batterCount: number;
+  table: ImportTable; date: string; mode: "Live at Bat" | "Machine BP"; eventCount: number; pitcherCount: number; batterCount: number;
   players: { identity: string; role: "Pitcher" | "Batter"; eventCount: number; values: string[] }[];
   pitches: { identity: string; velocity: number | null; spin: number | null; sourceRow: number; pitchNumber: number }[];
   contacts: { identity: string; exitVelocity: number; launchAngle: number; direction: number | null; distance: number | null; sourceRow: number; pitchNumber: number }[];
@@ -25,7 +25,7 @@ export function summarizeFullSwingSession(input: ImportTable): FullSwingSession 
   if (JSON.stringify(input.headers) !== JSON.stringify(FULL_SWING_SESSION_HEADERS)) throw new Error("This Full Swing layout differs from the reviewed Live at Bat sample. Keep the original export for review.");
   const index = (header: string) => input.headers.indexOf(header);
   const groups = new Map<string, { identity: string; role: "Pitcher" | "Batter"; rows: { cells: string[]; row: number }[] }>();
-  const dates = new Set<string>(), pitches = new Set<string>(), nameIds = new Map<string, string>(), idNames = new Map<string, string>();
+  const dates = new Set<string>(), pitches = new Set<string>(), modes = new Set<"Live at Bat" | "Machine BP">(), nameIds = new Map<string, string>(), idNames = new Map<string, string>();
   for (const [i, cells] of input.rows.entries()) {
     const row = input.rowNumbers[i];
     if (cells.length !== FULL_SWING_SESSION_HEADERS.length) throw new Error(`Row ${row}: incomplete Full Swing row.`);
@@ -35,10 +35,12 @@ export function summarizeFullSwingSession(input: ImportTable): FullSwingSession 
     const iso = parseMeasurementDate(`20${date[3]}-${date[1]}-${date[2]}`, "ISO");
     if (iso < "2026-09-01" || iso > "2026-12-31") throw new Error(`Row ${row}: use a Fall 2026 session.`);
     dates.add(iso);
-    if (get("Mode") !== "Live at Bat" || get("Environment") !== "Field") throw new Error(`Row ${row}: only the reviewed Field / Live at Bat layout is supported.`);
+    const mode = get("Mode"), environment = get("Environment");
+    if (!(mode === "Live at Bat" && environment === "Field") && !(mode === "Machine BP" && environment === "Cage")) throw new Error(`Row ${row}: only the reviewed Field / Live at Bat or Cage / Machine BP layout is supported.`);
+    modes.add(mode as "Live at Bat" | "Machine BP");
     if (!/^[1-9]\d*$/.test(get("PitchNo")) || pitches.has(get("PitchNo"))) throw new Error(`Row ${row}: missing or repeated pitch number. Use one complete session export.`);
     pitches.add(get("PitchNo"));
-    for (const role of ["Pitcher", "Batter"] as const) {
+    for (const role of (mode === "Machine BP" ? ["Batter"] : ["Pitcher", "Batter"]) as ("Pitcher" | "Batter")[]) {
       const identity = get(role), id = get(`${role}Id`), key = `${role}:${id}`, nameKey = `${role}:${identity.toLowerCase()}`;
       if (!identity || !id || /^(null|unknown|n\/a)$/i.test(identity) || /^(null|unknown|n\/a)$/i.test(id)) throw new Error(`Row ${row}: missing ${role.toLowerCase()} identity.`);
       if ((nameIds.has(nameKey) && nameIds.get(nameKey) !== id) || (idNames.has(key) && idNames.get(key) !== identity)) throw new Error(`Row ${row}: conflicting ${role.toLowerCase()} name or ID. Review the source identities.`);
@@ -47,8 +49,8 @@ export function summarizeFullSwingSession(input: ImportTable): FullSwingSession 
       group.rows.push({ cells, row }); groups.set(key, group);
     }
   }
-  if (dates.size !== 1) throw new Error("Use one dated Full Swing session per file.");
-  const date = [...dates][0], table: ImportTable = { headers: ["Player", "Date", ...SESSION_METRICS.map(m => m.label)], rows: [], rowNumbers: [] }, samples: FullSwingSession["samples"] = [];
+  if (dates.size !== 1 || modes.size !== 1) throw new Error("Use one dated Full Swing session and one session mode per file.");
+  const date = [...dates][0], mode = [...modes][0], table: ImportTable = { headers: ["Player", "Date", ...SESSION_METRICS.map(m => m.label)], rows: [], rowNumbers: [] }, samples: FullSwingSession["samples"] = [];
   const players: FullSwingSession["players"] = [], pitchReadings: FullSwingSession["pitches"] = [], contacts: FullSwingSession["contacts"] = [];
   for (const group of groups.values()) {
     const values = SESSION_METRICS.map(metric => {
@@ -88,7 +90,7 @@ export function summarizeFullSwingSession(input: ImportTable): FullSwingSession 
     }
     if (values.some(Boolean)) { table.rows.push([group.identity, date, ...values]); table.rowNumbers.push(table.rows.length + 1); }
   }
-  return { table, date, eventCount: input.rows.length, pitcherCount: [...groups.values()].filter(g => g.role === "Pitcher").length, batterCount: [...groups.values()].filter(g => g.role === "Batter").length, players, pitches: pitchReadings, contacts, samples };
+  return { table, date, mode, eventCount: input.rows.length, pitcherCount: [...groups.values()].filter(g => g.role === "Pitcher").length, batterCount: [...groups.values()].filter(g => g.role === "Batter").length, players, pitches: pitchReadings, contacts, samples };
 }
 
 export type PitchRange = { sourceRows: number[]; identity: string; velocityStart: number | null; velocityEnd: number | null; spinStart: number | null; count: number; averageVelocity: number | null; averageSpin: number | null };

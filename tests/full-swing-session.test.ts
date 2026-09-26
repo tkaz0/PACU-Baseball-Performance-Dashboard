@@ -16,7 +16,7 @@ const table = (rows = [event(), event({ PitchNo: "2", RelSpeed: "84", ExitSpeed:
 describe("reviewed Full Swing Live at Bat session", () => {
   it("separates pitching and hitting, skips nulls, and uses each metric's sample", () => {
     const result = summarizeFullSwingSession(table());
-    expect(result).toMatchObject({ date: "2026-09-11", eventCount: 2, pitcherCount: 1, batterCount: 1 });
+    expect(result).toMatchObject({ date: "2026-09-11", mode: "Live at Bat", eventCount: 2, pitcherCount: 1, batterCount: 1 });
     const hitter = result.table.rows.find(r => r[2]);
     const pitcher = result.table.rows.find(r => r[7]);
     expect(hitter?.slice(2)).toEqual(["90", "90", "70", "65", "250", "", ""]);
@@ -24,6 +24,16 @@ describe("reviewed Full Swing Live at Bat session", () => {
     expect(result.samples.find(s => s.metric === "Average EV")?.count).toBe(1);
     expect(result.samples.find(s => s.metric === "Average Bat Speed")?.count).toBe(2);
     expect(result.samples.find(s => s.metric === "Average Velocity")?.sourceRows).toEqual([2, 3]);
+  });
+  it("treats Cage / Machine BP as practice hitting, never as player pitching", () => {
+    const source = table([event({ Mode: "Machine BP", Environment: "Cage", Pitcher: "Machine", PitcherId: "machine", RelSpeed: "150", SpinRate: "9000" })]);
+    const result = summarizeFullSwingSession(source);
+    expect(result).toMatchObject({ mode: "Machine BP", pitcherCount: 0, batterCount: 1 });
+    expect(result.pitches).toEqual([]);
+    expect(result.table.rows).toHaveLength(1);
+    expect(result.table.rows[0].slice(7)).toEqual(["", ""]);
+    expect(inspectFullSwingReadings(source).some(reading => reading.actor === "Pitcher")).toBe(false);
+    expect(() => summarizeFullSwingSession(table([event(), event({ PitchNo: "2", Mode: "Machine BP", Environment: "Cage" })]))).toThrow("one session mode");
   });
   it("preserves original file with distinct derived-summary coordinates", () => {
     const session = summarizeFullSwingSession(table());

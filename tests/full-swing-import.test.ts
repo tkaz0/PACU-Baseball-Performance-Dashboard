@@ -17,6 +17,16 @@ describe("reviewed Full Swing summary imports", () => {
     expect(result.candidateMeasurements[0].id).toBe(`observation:${JSON.stringify([file.fileHash, "CSV", 2, 2])}`);
   });
   it.each(["hitting", "game", "intrasquad"] as FullSwingCategory[])("retains %s separately", category => expect(run(undefined, { category }).candidateMeasurements[0].source).toBe(`Full Swing · ${category === "hitting" ? "Hitting" : category === "game" ? "Game" : "Intrasquad"}`));
+  it("imports reviewed hitter and pitcher summaries from one practice CSV", () => {
+    const second = roster[1];
+    const csv = `Player,Date,Max EV,Max Velocity\n${player.athlete_code},2026-09-12,96,\n${second.athlete_code},2026-09-12,,84`;
+    const result = run(csv, { category: "practice", mapping: { ...mapping, metrics: [mapping.metrics[0], { column: 3, label: "Max Velocity", unit: "mph" }] } });
+    expect(result.canApply).toBe(true);
+    expect(result.candidateMeasurements.map(row => [row.athlete_code, row.metric, row.source])).toEqual([
+      [player.athlete_code, "Max EV", "Full Swing · Practice"],
+      [second.athlete_code, "Max Velocity", "Full Swing · Practice"],
+    ]);
+  });
   it("does not accept raw events without explicit summary review", () => expect(() => run(undefined, { summaryConfirmed: false })).toThrow("session summaries"));
   it("blocks repeated player/date/metric rows instead of choosing an arbitrary swing", () => expect(() => run(`Player,Date,Max EV\n${player.athlete_code},2026-09-12,96\n${player.athlete_code},2026-09-12,92`)).toThrow("More than one summary"));
   it.each(["2026-08-31", "2027-04-12"])("excludes non-Fall date %s", date => expect(() => run(`Player,Date,Max EV\n${player.athlete_code},${date},96`)).toThrow("Fall 2026"));

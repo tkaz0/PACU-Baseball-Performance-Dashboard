@@ -18,10 +18,10 @@ const pitchAssignmentStore = {
 
 const lanes = [
   { key: "physicality", label: "Physicality", source: "RENPHO", format: "Image or PDF", detail: "Body composition from a one-page RENPHO report.", icon: Activity },
-  { key: "hitting", label: "Hitting", source: "Full Swing Summary", format: "CSV", detail: "Hitting session summaries, one player per row.", icon: Swords },
+  { key: "hitting", label: "Hitting", source: "Full Swing", format: "CSV", detail: "Full Swing sessions and summaries. Match hitters and pitchers from one file.", icon: Swords },
   { key: "blast", label: "Blast Motion", source: "Practice Hitting", format: "CSV", detail: "Weekly practice averages or peak reports.", icon: Swords },
-  { key: "pitching", label: "Pitching", source: "Full Swing Summary", format: "CSV", detail: "Pitching session summaries, one player per row.", icon: CircleDot },
-  { key: "games", label: "Game / Intrasquad", source: "Full Swing Live at Bat", format: "CSV", detail: "Live at-bat exports and player session summaries.", icon: CalendarDays },
+  { key: "pitching", label: "Pitching", source: "Full Swing", format: "CSV", detail: "Full Swing sessions and summaries. Match pitchers and hitters from one file.", icon: CircleDot },
+  { key: "games", label: "Game / Intrasquad", source: "Full Swing", format: "CSV", detail: "Live at-bat exports and player session summaries.", icon: CalendarDays },
 ] as const;
 type Lane = (typeof lanes)[number]["key"];
 
@@ -42,7 +42,7 @@ export function TeamImportCenter({ roster }: { roster: RosterAthlete[] }) {
   return <div className={styles.importCenter}>
     <div className={styles.sourceHeading}><h2>Choose Your Report</h2><span>Match the source on your file</span></div>
     <div className={styles.lanes} role="group" aria-label="Import category">
-      {lanes.map(item => <button key={item.key} type="button" disabled={saving} aria-pressed={lane === item.key} onClick={() => { setLane(item.key); }}
+      {lanes.map(item => <button key={item.key} type="button" disabled={saving} aria-pressed={lane === item.key} onClick={() => { setLane(item.key); if (item.key === "games") setGameKind("intrasquad"); else if (item.key === "hitting" || item.key === "pitching") setGameKind("practice"); }}
         className={styles.lane}>
         <span className={styles.laneIcon}><item.icon size={19} aria-hidden="true" /></span>
         <span><span className={styles.laneName}>{item.label}</span><span className={styles.laneSource}>{item.source}</span></span>
@@ -51,12 +51,12 @@ export function TeamImportCenter({ roster }: { roster: RosterAthlete[] }) {
     </div>
     <div className={styles.selectedSource} aria-live="polite"><div><h2>{selectedLane.label}</h2><p>{selectedLane.detail}</p></div><span className={styles.formatBadge}>{selectedLane.format}</span></div>
     {!roster.length ? <p className="notice">No players are on the 2026–27 roster yet. An admin can add the roster before measurements are imported.</p> : <>
-      {lane === "games" && <div className={styles.session}><label htmlFor={sessionId} className={styles.sessionLabel}>Session Type</label><select id={sessionId} disabled={saving} value={gameKind} onChange={event => { setGameKind(event.target.value as "game" | "intrasquad" | "practice"); }}><option value="intrasquad">Intrasquad</option><option value="game">Game</option><option value="practice">Practice</option></select></div>}
+      {(lane === "hitting" || lane === "pitching" || lane === "games") && <div className={styles.session}><label htmlFor={sessionId} className={styles.sessionLabel}>Session Type</label><select id={sessionId} disabled={saving} value={gameKind} onChange={event => { setGameKind(event.target.value as "game" | "intrasquad" | "practice"); }}><option value="intrasquad">Intrasquad · In-Game</option><option value="game">Game · In-Game</option><option value="practice">Practice</option></select></div>}
       {lane === "physicality" ? <RenphoReportForm workspace={{ roster, measurements: [], revision: 0, ready: true, error: null, applyRenphoReport: async (measurements, _batch, _revision, identity) => { await save(measurements, { athleteCode: identity.athleteCode, renphoId: identity.renphoId ?? "" }); } }} shared={{ save,
         profileHref: code => `/athletes/${roster.find(athlete => athlete.athlete_code === code)!.id}`,
         loadExisting: async hash => { const result = await loadSharedReportMeasurements(hash); if ("error" in result) throw new Error(result.error); return result.measurements; },
         matchPlayer: async id => { const result = await matchSharedRenphoPlayer(id); if ("error" in result) throw new Error(result.error); return result.athleteCode; },
-      }} /> : lane === "blast" ? <BlastMotionImport roster={roster} saveAction={save}/> : <FullSwingImport key={lane === "games" ? gameKind : lane} vendor="Full Swing" category={lane === "games" ? gameKind : lane} roster={roster} saveAction={save} saveSamples={saveReviewedFullSwingSamples} saveExistingSamples={saveReviewedExistingFullSwingSamples} assignmentStore={pitchAssignmentStore} />}
+      }} /> : lane === "blast" ? <BlastMotionImport roster={roster} saveAction={save}/> : <FullSwingImport key={`${lane}:${gameKind}`} vendor="Full Swing" category={lane === "games" ? gameKind : lane} sourceCategory={gameKind} roster={roster} saveAction={save} saveSamples={saveReviewedFullSwingSamples} saveExistingSamples={saveReviewedExistingFullSwingSamples} assignmentStore={pitchAssignmentStore} />}
     </>}
   </div>;
 }

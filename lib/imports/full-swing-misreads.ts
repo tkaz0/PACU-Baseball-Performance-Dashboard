@@ -35,7 +35,9 @@ export function inspectFullSwingReadings(table: ImportTable): FullSwingReadingRe
   for (const [index, cells] of table.rows.entries()) {
     const sourceRow = table.rowNumbers[index];
     if (cells.length !== table.headers.length) throw new Error(`Row ${sourceRow}: incomplete Full Swing row.`);
+    const machine = cells[table.headers.indexOf("Mode")].trim() === "Machine BP" && cells[table.headers.indexOf("Environment")].trim() === "Cage";
     for (const spec of fields) {
+      if (machine && spec.actor === "Pitcher") continue;
       const raw = cells[spec.column].trim();
       if (!raw || raw.toLowerCase() === "null") continue;
       const value = numeric.test(raw) && Number.isFinite(Number(raw)) ? Number(raw) : null;
