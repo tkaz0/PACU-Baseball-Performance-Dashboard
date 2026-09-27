@@ -10,6 +10,8 @@ import { loadPitchAssignments, savePitchAssignments, loadSharedReportMeasurement
 import type { ReadingsSaved } from "@/lib/import-confirmation";
 import type { Measurement } from "@/lib/imports/engine";
 import type { RosterAthlete } from "@/lib/types";
+import { loadFullSwingSession, publishFullSwingSession } from "@/app/(workspace)/imports/session-actions";
+import type { FullSwingSessionBundle } from "@/lib/imports/full-swing-session-bundle";
 
 const pitchAssignmentStore = {
   load: async (hash: string) => {const result=await loadPitchAssignments(hash);if("error" in result)throw new Error(result.error);return result;},
@@ -25,12 +27,17 @@ const lanes = [
 ] as const;
 type Lane = (typeof lanes)[number]["key"];
 
-export function TeamImportCenter({ roster }: { roster: RosterAthlete[] }) {
+export function TeamImportCenter({ roster, allowSessionCorrections = false, initialSessionCategory }: { roster: RosterAthlete[]; allowSessionCorrections?: boolean; initialSessionCategory?: "game" | "intrasquad" | "practice" }) {
   const sessionId = useId();
-  const [lane, setLane] = useState<Lane>("physicality");
-  const [gameKind, setGameKind] = useState<"game" | "intrasquad" | "practice">("intrasquad");
+  const [lane, setLane] = useState<Lane>(initialSessionCategory ? "games" : "physicality");
+  const [gameKind, setGameKind] = useState<"game" | "intrasquad" | "practice">(initialSessionCategory ?? "intrasquad");
   const [saving, setSaving] = useState(false);
   const selectedLane = lanes.find(item => item.key === lane)!;
+  async function publishSession(bundle: FullSwingSessionBundle) {
+    setSaving(true);
+    try { return await publishFullSwingSession(bundle); }
+    finally { setSaving(false); }
+  }
   async function save(measurements: Measurement[], identity?: { athleteCode: string; renphoId: string }): Promise<ReadingsSaved> {
     setSaving(true);
     try {
@@ -56,7 +63,7 @@ export function TeamImportCenter({ roster }: { roster: RosterAthlete[] }) {
         profileHref: code => `/athletes/${roster.find(athlete => athlete.athlete_code === code)!.id}`,
         loadExisting: async hash => { const result = await loadSharedReportMeasurements(hash); if ("error" in result) throw new Error(result.error); return result.measurements; },
         matchPlayer: async id => { const result = await matchSharedRenphoPlayer(id); if ("error" in result) throw new Error(result.error); return result.athleteCode; },
-      }} /> : lane === "blast" ? <BlastMotionImport roster={roster} saveAction={save}/> : <FullSwingImport key={`${lane}:${gameKind}`} vendor="Full Swing" category={lane === "games" ? gameKind : lane} sourceCategory={gameKind} roster={roster} saveAction={save} saveSamples={saveReviewedFullSwingSamples} saveExistingSamples={saveReviewedExistingFullSwingSamples} assignmentStore={pitchAssignmentStore} />}
+      }} /> : lane === "blast" ? <BlastMotionImport roster={roster} saveAction={save}/> : <FullSwingImport key={`${lane}:${gameKind}`} vendor="Full Swing" category={lane === "games" ? gameKind : lane} sourceCategory={gameKind} roster={roster} saveAction={save} saveSamples={saveReviewedFullSwingSamples} saveExistingSamples={saveReviewedExistingFullSwingSamples} assignmentStore={pitchAssignmentStore} saveSession={publishSession} loadSession={loadFullSwingSession} allowSessionCorrections={allowSessionCorrections} />}
     </>}
   </div>;
 }

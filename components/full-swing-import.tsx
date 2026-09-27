@@ -6,7 +6,7 @@ import { FullSwingSessionReview } from "@/components/full-swing-session-review";
 import { FullSwingMisreadReview } from "@/components/full-swing-misread-review";
 import { ImportConfirmation } from "@/components/import-confirmation";
 import { buildImportConfirmation, type ReadingsSaved, type ImportConfirmationData } from "@/lib/import-confirmation";
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Check, LoaderCircle, Plus, Trash2 } from "lucide-react";
 import styles from "./import-presentation.module.css";
@@ -19,6 +19,9 @@ import { looksLikeFullSwingSession, SESSION_METRICS } from "@/lib/imports/full-s
 import { fullSwingSamplesForImport, type ReviewedFullSwingSample } from "@/lib/imports/full-swing-samples";
 import { inspectFullSwingReadings, summarizeReviewedFullSwingSession } from "@/lib/imports/full-swing-misreads";
 import { selectRosterSummaries } from "@/lib/imports/roster-selection";
+import { classifiedPitchSource, prepareClassifiedPitchResults } from "@/lib/imports/classified-pitch-results";
+import { requireFullSwingPitchReview, type FullSwingPitchReview } from "@/lib/imports/full-swing-review";
+import { prepareFullSwingSessionBundle, type FullSwingSessionBundle, type FullSwingSessionReceipt, type FullSwingSessionState } from "@/lib/imports/full-swing-session-bundle";
 import { StatInfo } from "@/components/stat-info";
 import { athleteName, type RosterAthlete } from "@/lib/types";
 
@@ -31,7 +34,7 @@ function ColumnSelect({ label, headers, value, onChange }: { label: string; head
   return <label>{label}<select value={value} onChange={event => onChange(Number(event.target.value))}><option value={-1}>Choose a column…</option>{headers.map((header, index) => <option key={index} value={index}>{index + 1}. {header}</option>)}</select></label>;
 }
 
-export function FullSwingImport({ category, sourceCategory, roster, saveAction, saveSamples, saveExistingSamples, assignmentStore, vendor = "Full Swing" }: { assignmentStore?: PitchAssignmentStore; vendor?: "Full Swing" | "Blast Motion"; category: FullSwingCategory; sourceCategory?: "game" | "intrasquad" | "practice"; roster: RosterAthlete[]; saveAction: SaveImportAction; saveSamples?: (rows: ReviewedFullSwingSample[]) => Promise<{ created: number; unchanged: number } | { error: string }>; saveExistingSamples?: (rows: ReviewedFullSwingSample[]) => Promise<{ created: number; unchanged: number; skipped: number } | { error: string }> }) {
+export function FullSwingImport({ category, sourceCategory, roster, saveAction, saveSamples, saveExistingSamples, assignmentStore, saveSession, loadSession, allowSessionCorrections = false, vendor = "Full Swing" }: { saveSession?: (bundle: FullSwingSessionBundle) => Promise<FullSwingSessionReceipt | { error: string }>; loadSession?: (hash: string) => Promise<FullSwingSessionState | { error: string }>; allowSessionCorrections?: boolean; assignmentStore?: PitchAssignmentStore; vendor?: "Full Swing" | "Blast Motion"; category: FullSwingCategory; sourceCategory?: "game" | "intrasquad" | "practice"; roster: RosterAthlete[]; saveAction: SaveImportAction; saveSamples?: (rows: ReviewedFullSwingSample[]) => Promise<{ created: number; unchanged: number } | { error: string }>; saveExistingSamples?: (rows: ReviewedFullSwingSample[]) => Promise<{ created: number; unchanged: number; skipped: number } | { error: string }> }) {
   const [file, setFile] = useState<FileData | null>(null);
   const [headerRow, setHeaderRow] = useState(0);
   const [sessionSource, setSessionSource] = useState<ReturnType<typeof selectTable> | null>(null);
@@ -56,6 +59,17 @@ export function FullSwingImport({ category, sourceCategory, roster, saveAction, 
   const [error, setError] = useState("");
   const [receipt, setReceipt] = useState<ImportConfirmationData | null>(null);
   const [sampleReceipt, setSampleReceipt] = useState("");
+  const [pitchReview, setPitchReview] = useState<FullSwingPitchReview | null>(null);
+  const [existingSession, setExistingSession] = useState<FullSwingSessionState | null>(null);
+  const [replaceSaved, setReplaceSaved] = useState(false);
+  const [bundleReview, setBundleReview] = useState<{ payload: FullSwingSessionBundle; measurements: Measurement[] } | null>(null);
+  const [sessionReceipt, setSessionReceipt] = useState<FullSwingSessionReceipt | null>(null);
+  const [publishLocked, setPublishLocked] = useState(false);
+  const attemptedBundle = useRef<FullSwingSessionBundle | null>(null);
+  const receivePitchReview = useCallback((next: FullSwingPitchReview) => {
+    setPitchReview(current => JSON.stringify(current) === JSON.stringify(next) ? current : next);
+    setReviewed(null); setBundleReview(null); setConfirmed(false);
+  }, []);
   const blast = vendor === "Blast Motion";
   const importCategory = blast ? category : sourceCategory ?? (category === "hitting" || category === "pitching" ? "practice" : category);
   const definitions = blast ? BLAST_MOTION_METRICS : fullSwingMetrics(importCategory);
@@ -77,16 +91,17 @@ export function FullSwingImport({ category, sourceCategory, roster, saveAction, 
     try { selection = selectRosterSummaries(table, { identityKind, identityColumn, identityOverrides: overrides }, roster, excluded, session?.players.map(player => player.identity)); }
     catch (error) { selectionError = errorText(error); }
   }
-  const invalidate = () => { setReviewed(null); setConfirmed(false); setError(""); setReceipt(null); setSampleReceipt(""); };
+  const invalidate = () => { setBundleReview(null); setReviewed(null); setConfirmed(false); setError(""); setReceipt(null); setSampleReceipt(""); };
   async function chooseFile(next?: File) {
     const version = ++request.current;
-    invalidate(); setFile(null); setSessionSource(null); setRemovedValues([]); setMisreadsApproved(false); setMisreadsLocked(false); setHeaderRow(0); setIdentityColumn(-1); setOverrides({}); setExcluded([]); setDateColumn(-1); setSummaryConfirmed(false);
+    invalidate(); setPitchReview(null); setExistingSession(null); setReplaceSaved(false); setSessionReceipt(null); setPublishLocked(false); attemptedBundle.current = null; setFile(null); setSessionSource(null); setRemovedValues([]); setMisreadsApproved(false); setMisreadsLocked(false); setHeaderRow(0); setIdentityColumn(-1); setOverrides({}); setExcluded([]); setDateColumn(-1); setSummaryConfirmed(false);
     setMetrics([{ id: nextId.current++, column: -1, key: "", unit: "" }]);
     if (!next) return;
     setBusy(true);
     try {
       if (!next.name.toLowerCase().endsWith(".csv")) throw new Error(`Choose a ${vendor} CSV or a reviewed PACU summary CSV.`);
       const loaded = await readImportFile(next);
+      let selectedFile = loaded;
       if (version === request.current) {
         if (!blast && looksLikeFullSwingSession(loaded.sheets[0].matrix[0].map(cell => cell.trim()))) {
           const original = selectTable(loaded.sheets[0].matrix, 0);
@@ -94,9 +109,24 @@ export function FullSwingImport({ category, sourceCategory, roster, saveAction, 
           if (original.rows.some(row => row[modeColumn]?.trim() === "Machine BP") && importCategory !== "practice") throw new Error("Choose Practice for a Machine BP session. Machine pitches are not assigned to player pitching results.");
           inspectFullSwingReadings(original);
           setSessionSource(original); setIdentityKind("name"); setIdentityColumn(0); setDateMode("column"); setDateColumn(1); setDateFormat("ISO");
+          if (saveSession) {
+            if (!loadSession) throw new Error("The session library could not be checked. Reload the import page before publishing.");
+            const existing = await loadSession(loaded.fileHash);
+            if (version !== request.current) return;
+            if ("error" in existing) throw new Error(existing.error);
+            if (existing.revision > 0) {
+              if (existing.category && existing.category !== importCategory) throw new Error(`This file was saved as ${FULL_SWING_LABELS[existing.category]}. Choose that session type and reopen the original CSV.`);
+              const previousRemovals = existing.removedValues ?? [];
+              const restored = summarizeReviewedFullSwingSession(original, inspectFullSwingReadings(original), new Set(previousRemovals));
+              if ((existing.date && existing.date !== restored.date) || (existing.mode && existing.mode !== restored.mode)) throw new Error("This session does not match its saved date or mode. Check the Session Library before publishing.");
+              setRemovedValues(previousRemovals);
+              selectedFile = { ...loaded, fileName: existing.fileName ?? loaded.fileName };
+            }
+            setExistingSession(existing);
+          }
           setMetrics(SESSION_METRICS.map((m, i) => ({ id: nextId.current++, column: i + 2, key: m.key, unit: m.unit })));
         }
-        setFile(loaded);
+        setFile(selectedFile);
       }
     } catch (error) { if (version === request.current) setError(errorText(error)); }
     finally { if (version === request.current) setBusy(false); }
@@ -112,9 +142,26 @@ export function FullSwingImport({ category, sourceCategory, roster, saveAction, 
         source: "", metrics: metrics.map(metric => ({ column: metric.column, label: definitions.find(item => item.key === metric.key)?.label ?? "", unit: metric.unit })),
       };
       if (selectionError) throw new Error(selectionError);
-      if (!selection?.table.rows.length) throw new Error("No rostered player readings are selected. Match an export name to a roster player before importing.");
+      if (!selection || (!selection.table.rows.length && !(session && saveSession && selection.includedIdentities.length))) throw new Error("No rostered player readings are selected. Match an export name to a roster player before importing.");
+      if (session && saveSession && !summaryConfirmed) throw new Error("Confirm mph and feet and review the player summaries before publishing this session.");
       const input = { table: selection.table, mapping, roster, file: { fileName: file.fileName, fileHash: file.fileHash, sheetName: session ? "CSV · Full Swing session summaries v1" : file.sheets[0].name }, category: importCategory, summaryConfirmed };
-      setReviewed(blast ? previewBlastMotionSummary(input) : previewFullSwingSummary(input));
+      const preview: MeasurementPreview = !selection.table.rows.length && session && saveSession
+        ? { candidateMeasurements: [], rows: [], counts: { create: 0, update: 0, unchanged: 0, reject: 0 }, issues: [], canApply: true, nameMatches: 0 }
+        : blast ? previewBlastMotionSummary(input) : previewFullSwingSummary(input);
+      if (session && saveSession) {
+        if (!existingSession) throw new Error("Wait for the session library check before reviewing this file.");
+        if (existingSession.revision > 0 && (!allowSessionCorrections || !replaceSaved)) throw new Error("This session is already published. An admin can review the original CSV and replace its saved results.");
+        const matches = (selection.players ?? []).filter(player => player.included).map(player => ({ identity: player.identity, athleteCode: player.athlete!.athlete_code }));
+        const labels = requireFullSwingPitchReview(pitchReview, session.pitches.some(pitch => matches.some(match => match.identity === pitch.identity)), session.pitches.length > 0);
+        const context = { fileName: file.fileName, fileHash: file.fileHash, date: session.date, category: importCategory as "game" | "intrasquad" | "practice", matches };
+        if (preview.canApply) {
+          const allMeasurements = [...preview.candidateMeasurements, ...prepareClassifiedPitchResults(session, labels.assignments, context)];
+          if (!allMeasurements.length) throw new Error("No included player results are ready to publish. Check the player matches and review pitch labels for any recorded spin readings.");
+          const payload = prepareFullSwingSessionBundle({ session, context, summaries: preview.candidateMeasurements, assignments: labels.assignments, assignmentVersion: labels.assignmentVersion, removedValues, excludedPlayerCount: selection.skipped.length, requestId: crypto.randomUUID(), expectedRevision: existingSession.revision, replace: replaceSaved });
+          setBundleReview({ payload, measurements: allMeasurements });
+        }
+      }
+      setReviewed(preview);
     } catch (error) { setError(errorText(error)); }
   }
   async function save() {
@@ -127,6 +174,18 @@ export function FullSwingImport({ category, sourceCategory, roster, saveAction, 
       });
       if (selection?.skipped.length) skipped.push({ label: "Excluded players", reason: `${selection.skipped.length} unmatched or excluded export names were not imported.` });
       if (sessionSource) setMisreadsLocked(true);
+      if (session && saveSession) {
+        if (!bundleReview) throw new Error("Review the complete session before publishing.");
+        const payload = attemptedBundle.current ?? bundleReview.payload;
+        attemptedBundle.current = payload;
+        setPublishLocked(true);
+        const result = await saveSession(payload);
+        if ("error" in result) throw new Error(result.error);
+        setSessionReceipt(result);
+        setReceipt(buildImportConfirmation(bundleReview.measurements, roster, result, skipped));
+        setReviewed(null); setConfirmed(false);
+        return;
+      }
       const result = await saveAction(reviewed.candidateMeasurements);
       if (session && saveSamples) {
         const counts = fullSwingSamplesForImport(session,
@@ -169,17 +228,18 @@ export function FullSwingImport({ category, sourceCategory, roster, saveAction, 
     <section className={`panel p-5 sm:p-7 ${styles.uploadPanel}`}>
       <h2 className={styles.stepTitle}><span className={styles.stepNumber}>1.</span>{" "}Add {blast ? FULL_SWING_LABELS[category] : "Full Swing"} Data</h2>
       <p className={styles.sectionLead}>{blast ? "One player’s session summary per row." : `Live at Bat export or player session summaries · ${FULL_SWING_LABELS[importCategory]}. Hitting and pitching readings in the same file are reviewed together.`}</p>
-      <FileDropZone label={`${vendor} CSV · ${FULL_SWING_LABELS[category]}`} description="Drop a CSV here, or choose a file." accept=".csv,text/csv" disabled={busy || !roster.length} onFile={next => { void chooseFile(next); }} />
-      <details className={styles.help}><summary>CSV Requirements &amp; Template</summary><div className="mt-3 space-y-3"><p className="muted mb-0 text-sm">Use session summaries, up to 2 MiB and 500 readings. {blast ? "Individual-swing Blast exports are not supported yet." : "The reviewed Field / Live at Bat and Cage / Machine BP layouts are supported after confirming mph and feet. Machine BP is Practice hitting only. Upload each complete session once; do not upload overlapping or edited copies. Pitch-specific leaderboards also require reviewed pitch assignments and RPM confirmation."}</p><p className="muted mb-0 text-sm"><a className="font-semibold underline" href={blast ? "/templates/pacu-blast-motion-summary.csv" : `/templates/pacu-${importCategory === "practice" ? "intrasquad" : importCategory}-summary.csv`} download>Download the PACU summary template</a>. This blank template is provided by PACU; it is not a {vendor} export format.</p></div></details>
+      <FileDropZone label={`${vendor} CSV · ${FULL_SWING_LABELS[category]}`} description="Drop a CSV here, or choose a file." accept=".csv,text/csv" disabled={busy || !roster.length || (publishLocked && !sessionReceipt)} onFile={next => { void chooseFile(next); }} />
+      <details className={styles.help}><summary>CSV Requirements &amp; Template</summary><div className="mt-3 space-y-3"><p className="muted mb-0 text-sm">Use session summaries, up to 2 MiB and 500 readings. {blast ? "Individual-swing Blast exports are not supported yet." : "The reviewed Field / Live at Bat and Cage / Machine BP layouts are supported after confirming mph and feet. Machine BP is Practice hitting only. Upload each complete session once; do not upload overlapping or edited copies. Review pitch labels and RPM before publishing. One session save includes hitter and pitcher results, sample sizes, contact maps and reviewed labels."}</p><p className="muted mb-0 text-sm"><a className="font-semibold underline" href={blast ? "/templates/pacu-blast-motion-summary.csv" : `/templates/pacu-${importCategory === "practice" ? "intrasquad" : importCategory}-summary.csv`} download>Download the PACU summary template</a>. This blank template is provided by PACU; it is not a {vendor} export format.</p></div></details>
       {blast && <p className="muted mt-3 mb-0 text-sm">Import maximum and average bat speed from session summaries. For Average Performance or Peak (95th Percentile) exports, use Weekly Blast Reports. Individual-swing CSVs are not supported here.</p>}
       {busy && <p role="status" className={styles.progress}><LoaderCircle className="animate-spin" size={18} aria-hidden="true" />{file ? "Saving reviewed readings…" : "Reading CSV…"}</p>}
     </section>
     {file && <fieldset disabled={busy} className="min-w-0 space-y-6">
-      <section className="panel p-5 sm:p-7">
+      <section inert={publishLocked} className="panel p-5 sm:p-7">
         <h2 className={styles.stepTitle}><span className={styles.stepNumber}>2.</span>{" "}Match Players and Columns</h2>
         <p className={`${styles.sectionLead} break-words`}>{file.fileName}</p>
-        {sessionSource && <FullSwingMisreadReview readings={misreadReadings} excluded={removedSet} toggle={toggleMisread} reviewed={misreadsApproved} setReviewed={setMisreadsApproved} locked={misreadsLocked} />}
-        {session && <div className="notice mb-5"><p className="font-semibold">{session.mode} · {session.date}</p><p>Source file: {session.eventCount} {session.mode === "Machine BP" ? "swings" : "pitches"} · {session.pitcherCount} {session.pitcherCount === 1 ? "pitcher" : "pitchers"} · {session.batterCount} {session.batterCount === 1 ? "batter" : "batters"}. Summaries use only included readings; {removedValues.length} {removedValues.length === 1 ? "value was" : "values were"} removed from this import.</p><p className="mb-0 text-sm">{session.mode === "Machine BP" ? "Machine BP contributes Practice hitting results only. A machine is never matched to a player pitcher." : "Save the reviewed hitter and pitcher summaries together below. To update pitch-type leaderboards, also review and save pitch assignments and results below."} The export has no pitch labels or outcomes, so strike, K, and BB percentages remain unavailable. Potential exit speed is not measured exit velocity.</p></div>}
+        {sessionSource && <FullSwingMisreadReview readings={misreadReadings} excluded={removedSet} toggle={toggleMisread} reviewed={misreadsApproved} setReviewed={value => { invalidate(); setMisreadsApproved(value); }} locked={misreadsLocked} />}
+        {session && <div className="notice mb-5"><p className="font-semibold">{session.mode} · {session.date}</p><p>Source file: {session.eventCount} {session.mode === "Machine BP" ? "swings" : "pitches"} · {session.pitcherCount} {session.pitcherCount === 1 ? "pitcher" : "pitchers"} · {session.batterCount} {session.batterCount === 1 ? "batter" : "batters"}. Summaries use only included readings; {removedValues.length} {removedValues.length === 1 ? "value was" : "values were"} removed from this import.</p><p className="mb-0 text-sm">{session.mode === "Machine BP" ? "Machine BP contributes Practice hitting results only. A machine is never matched to a player pitcher." : "Review hitter results, pitch labels and the contact map below. Publish them together after the final review."} The export has no pitch labels or outcomes, so strike, K, and BB percentages remain unavailable. Potential exit speed is not measured exit velocity.</p></div>}
+        {session && saveSession && existingSession && existingSession.revision > 0 && <div className="notice mb-5"><p className="font-semibold">This Session Is Already Published</p><p>Open the <Link className="underline" href="/imports/sessions">Session Library</Link> to check its saved results.</p>{allowSessionCorrections ? <label className="mb-0 flex items-start gap-3 text-sm"><input type="checkbox" checked={replaceSaved} onChange={event => { invalidate(); setReplaceSaved(event.target.checked); }} /><span>I am reviewing this original CSV to replace the session’s saved results. Updated readings will recalculate its summaries, counts, charts and leaderboards together.</span></label> : <p className="mb-0 text-sm">An admin can replace the results after reviewing the original CSV.</p>}</div>}
         {!sessionSource && <details className="mb-5 rounded-lg border border-[var(--line-subtle)] p-4"><summary className="cursor-pointer text-sm font-semibold">File Layout</summary><label className="mt-4 max-w-xs">Header row<select value={headerRow} onChange={event => { invalidate(); setHeaderRow(Number(event.target.value)); setIdentityColumn(-1); setDateColumn(-1); setOverrides({}); setExcluded([]); setMetrics([{ id: nextId.current++, column: -1, key: "", unit: "" }]); }}>{file.sheets[0].matrix.slice(0, 20).map((_, index) => <option value={index} key={index}>Row {index + 1}</option>)}</select></label></details>}
         {tableError && <p role="alert" className="notice notice-error">{tableError}</p>}
         {table && <>
@@ -199,7 +259,7 @@ export function FullSwingImport({ category, sourceCategory, roster, saveAction, 
               setOverrides(current => { const next = { ...current }; if (value && value !== "__exclude__") next[player.identity] = value; else delete next[player.identity]; return next; });
             }}><option value="">Auto-match; skip if unmatched</option><option value="__exclude__">No player / Skip these stats</option>{roster.map(athlete => <option key={athlete.id} value={athlete.athlete_code}>{athleteName(athlete)} · {athlete.athlete_code}</option>)}</select></label>)}</div></details>
           </div>}
-          {session && (!needsMisreadReview || misreadsApproved) ? <FullSwingSessionReview key={`${file.fileHash}:${removedValues.join(",")}`} session={session} resultContext={{ fileName: file.fileName, fileHash: file.fileHash, date: session.date, category: importCategory as "game" | "intrasquad" | "practice", matches: (selection?.players ?? []).filter(player => player.included).map(player => ({ identity: player.identity, athleteCode: player.athlete!.athlete_code })) }} saveResults={saveAction} includedIdentities={selection?.includedIdentities ?? []} fileHash={file.fileHash} assignmentStore={assignmentStore} onResultsSaved={() => setMisreadsLocked(true)} /> : !sessionSource && selection && <details className="mb-6 rounded-lg border border-[var(--line-subtle)] p-4"><summary className="cursor-pointer text-sm font-semibold">View Matched Summaries · {selection.table.rows.length} Rows</summary><div className="table-wrap mt-4 max-h-[32rem] overflow-auto"><table><thead><tr><th>Row</th>{table.headers.map((header, index) => <th key={index}>{header}</th>)}</tr></thead><tbody>{selection.table.rows.map((row, index) => <tr key={index}><td>{selection!.table.rowNumbers[index]}</td>{row.map((cell, column) => <td key={column}>{cell && Number.isFinite(Number(cell)) && (isBatSpeedMetric(table.headers[column] ?? "") || (!blast && metrics.some(metric => metric.column === column))) ? formatMetricNumber(Number(cell),table.headers[column] ?? "",blast ? "Blast Motion" : "Full Swing") : cell || "—"}</td>)}</tr>)}</tbody></table></div></details>}
+          {session && (!needsMisreadReview || misreadsApproved) ? <FullSwingSessionReview bundled={Boolean(saveSession)} onPitchReviewChange={saveSession ? receivePitchReview : undefined} key={`${file.fileHash}:${removedValues.join(",")}`} session={session} resultContext={{ fileName: file.fileName, fileHash: file.fileHash, date: session.date, category: importCategory as "game" | "intrasquad" | "practice", matches: (selection?.players ?? []).filter(player => player.included).map(player => ({ identity: player.identity, athleteCode: player.athlete!.athlete_code })) }} saveResults={saveAction} includedIdentities={selection?.includedIdentities ?? []} fileHash={file.fileHash} assignmentStore={assignmentStore} onResultsSaved={() => setMisreadsLocked(true)} /> : !sessionSource && selection && <details className="mb-6 rounded-lg border border-[var(--line-subtle)] p-4"><summary className="cursor-pointer text-sm font-semibold">View Matched Summaries · {selection.table.rows.length} Rows</summary><div className="table-wrap mt-4 max-h-[32rem] overflow-auto"><table><thead><tr><th>Row</th>{table.headers.map((header, index) => <th key={index}>{header}</th>)}</tr></thead><tbody>{selection.table.rows.map((row, index) => <tr key={index}><td>{selection!.table.rowNumbers[index]}</td>{row.map((cell, column) => <td key={column}>{cell && Number.isFinite(Number(cell)) && (isBatSpeedMetric(table.headers[column] ?? "") || (!blast && metrics.some(metric => metric.column === column))) ? formatMetricNumber(Number(cell),table.headers[column] ?? "",blast ? "Blast Motion" : "Full Swing") : cell || "—"}</td>)}</tr>)}</tbody></table></div></details>}
           {session && <details className="mt-5"><summary className="cursor-pointer font-semibold">Measurement Sample Sizes</summary><div className="table-wrap mt-3"><table><thead><tr><th>Export Player</th><th>Role</th><th>Measurement</th><th>Recorded Readings</th><th>CSV Rows</th></tr></thead><tbody>{session.samples.filter(sample => selection?.includedIdentities.includes(sample.identity)).map((sample, i) => <tr key={i}><td>{sample.identity}</td><td>{sample.role}</td><td>{sample.metric}</td><td>{sample.count}</td><td className="max-w-64 break-words text-xs">{sample.sourceRows.join(", ")}</td></tr>)}</tbody></table></div></details>}
           <h3 className="mb-2 mt-7 font-bold">Measurements</h3>
           <p className="muted text-sm">{session ? "Calculated from this session in mph and feet." : "Match each column to a measurement and its original unit."}</p>
@@ -216,16 +276,19 @@ export function FullSwingImport({ category, sourceCategory, roster, saveAction, 
         </>}
       </section>
       {reviewed && <section className="panel p-5 sm:p-7">
-        <h2 className={styles.stepTitle}><span className={styles.stepNumber}>3.</span>{" "}Review and Save</h2>
-        <p className={styles.sectionLead}>{reviewed.candidateMeasurements.length} {reviewed.candidateMeasurements.length === 1 ? "reading" : "readings"} · {vendor} · {FULL_SWING_LABELS[importCategory]} · Fall 2026</p>
+        <h2 className={styles.stepTitle}><span className={styles.stepNumber}>3.</span>{" "}{bundleReview ? "Review and Publish Session" : "Review and Save"}</h2>
+        <p className={styles.sectionLead}>{(bundleReview?.measurements ?? reviewed.candidateMeasurements).length} readings · {vendor} · {FULL_SWING_LABELS[importCategory]} · Fall 2026</p>
+        {bundleReview && <div className="mb-5 grid gap-3 sm:grid-cols-3"><div className="rounded-lg border border-[var(--line-subtle)] p-3"><strong className="block">Player Results</strong><span className="muted text-sm">{bundleReview.measurements.length} reviewed measurements</span></div><div className="rounded-lg border border-[var(--line-subtle)] p-3"><strong className="block">Counts &amp; Charts</strong><span className="muted text-sm">{bundleReview.payload.samples.length} sample counts · {bundleReview.payload.contacts.length} contacts</span></div><div className="rounded-lg border border-[var(--line-subtle)] p-3"><strong className="block">One Session Save</strong><span className="muted text-sm">Profiles + leaderboards together</span></div></div>}
         {!!selection?.skipped.length && <p className="notice text-sm">{selection.skipped.length} unmatched or excluded export names will be skipped. Only the readings below will be saved.</p>}
         {!!reviewed.issues.length && <div role="alert" className="notice notice-error"><p className="font-semibold">Fix these rows before saving.</p><ul className="mb-0 list-disc pl-5">{reviewed.issues.slice(0, 30).map((issue, index) => <li key={index}>Row {issue.row}: {issue.message}</li>)}</ul>{reviewed.issues.length > 30 && <p>{reviewed.issues.length - 30} additional issues remain.</p>}</div>}
-        <div className="table-wrap"><table><caption className="sr-only">All reviewed readings</caption><thead><tr><th>Player</th><th>Date</th><th>Measurement</th><th>Value</th><th>Source Row</th></tr></thead><tbody>{reviewed.candidateMeasurements.map(row => <tr key={row.id}><td><Link className="font-semibold underline underline-offset-2" prefetch={false} href={`/athletes/${roster.find(athlete => athlete.athlete_code === row.athlete_code)!.id}`}>{athleteName(roster.find(athlete => athlete.athlete_code === row.athlete_code)!)}</Link><span className="muted block text-xs">{row.athlete_code}</span></td><td className="whitespace-nowrap">{row.measured_at}</td><td>{row.metric}<StatInfo metric={row.metric} /></td><td className="whitespace-nowrap">{formatMetricNumber(row.value,row.metric,row.source)} {row.unit}</td><td>{row.source_row}</td></tr>)}</tbody></table></div>
-        <label className="my-5 flex items-start gap-3"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} /><span>I checked every player match, date, measurement, and unit. I confirm this is the original reviewed file.</span></label>
-        <div className="flex flex-wrap gap-3"><button type="button" className="btn btn-primary" disabled={!reviewed.canApply || !reviewed.candidateMeasurements.length || !confirmed || busy} onClick={() => { void save(); }}><Check size={17} />Save to Player Profiles</button>
-      {session && saveExistingSamples && <button type="button" className="btn btn-secondary" disabled={!reviewed.canApply || !reviewed.candidateMeasurements.length || !confirmed || busy} onClick={() => { void saveExistingCounts(); }}>Add Counts to Existing Import</button>}</div>
+        <div className="table-wrap"><table><caption className="sr-only">All reviewed readings</caption><thead><tr><th>Player</th><th>Date</th><th>Measurement</th><th>Value</th><th>Source Row</th></tr></thead><tbody>{(bundleReview?.measurements ?? reviewed.candidateMeasurements).map(row => <tr key={row.id}><td><Link className="font-semibold underline underline-offset-2" prefetch={false} href={`/athletes/${roster.find(athlete => athlete.athlete_code === row.athlete_code)!.id}`}>{athleteName(roster.find(athlete => athlete.athlete_code === row.athlete_code)!)}</Link><span className="muted block text-xs">{row.athlete_code}</span></td><td className="whitespace-nowrap">{row.measured_at}</td><td>{row.metric}<StatInfo metric={row.metric} />{classifiedPitchSource(row.source) && <span className="muted block text-xs">{classifiedPitchSource(row.source)!.pitchType}</span>}</td><td className="whitespace-nowrap">{formatMetricNumber(row.value,row.metric,row.source)} {row.unit}</td><td>{row.source_row}</td></tr>)}</tbody></table></div>
+        <label className="my-5 flex items-start gap-3"><input type="checkbox" disabled={publishLocked} checked={confirmed} onChange={event => setConfirmed(event.target.checked)} /><span>{bundleReview ? "I checked the player matches, date, hitting results, pitch labels, sample sizes, contact-map readings and units. Publish this complete reviewed session." : "I checked every player match, date, measurement, and unit. I confirm this is the original reviewed file."}</span></label>
+        <div className="flex flex-wrap gap-3"><button type="button" className="btn btn-primary" disabled={!reviewed.canApply || !(bundleReview?.measurements ?? reviewed.candidateMeasurements).length || !confirmed || busy} onClick={() => { void save(); }}><Check size={17} />{bundleReview ? publishLocked ? "Retry This Reviewed Session" : replaceSaved ? "Replace Saved Session" : "Publish Complete Session" : "Save to Player Profiles"}</button>
+      {session && !saveSession && saveExistingSamples && <button type="button" className="btn btn-secondary" disabled={!reviewed.canApply || !(bundleReview?.measurements ?? reviewed.candidateMeasurements).length || !confirmed || busy} onClick={() => { void saveExistingCounts(); }}>Add Counts to Existing Import</button>}</div>
       </section>}
     </fieldset>}
+    {publishLocked && !sessionReceipt && <p className="notice text-sm">This reviewed session is locked for an identical retry. Check the <Link className="font-semibold underline" href="/imports/sessions" target="_blank" rel="noopener noreferrer">Session Library</Link> if the save was interrupted before retrying.</p>}
+    {sessionReceipt && <section role="status" className="panel border border-[var(--success)] p-5"><h3 className="m-0 text-lg font-bold">{sessionReceipt.unresolvedPitchCount ? "Session Published · Pitch Review Pending" : "Fully Published"}</h3><p className="mt-2 mb-0">{sessionReceipt.measurementCount} player readings, {sessionReceipt.sampleCount} sample counts and {sessionReceipt.contactCount} contact-map readings were saved together. Profiles and leaderboards now use this reviewed session.</p>{sessionReceipt.unresolvedPitchCount > 0 && <p className="muted mt-2 text-sm">{sessionReceipt.unresolvedPitchCount} unassigned pitches remain outside pitch-type rankings.</p>}<Link className="btn btn-secondary mt-4" href="/imports/sessions">Open Session Library</Link></section>}
     {error && <p role="alert" className="notice notice-error">{error}</p>}
     {sampleReceipt && <p role="status" className="notice">{sampleReceipt}</p>}
     {receipt && <ImportConfirmation receipt={receipt} />}

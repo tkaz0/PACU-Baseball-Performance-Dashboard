@@ -187,6 +187,9 @@ export async function savePitchAssignments(fileHash: string, version: number, as
   let reviewed;
   try {reviewed=validatePitchAssignments(assignments);} catch {return {error:"Review the pitch assignments before saving."};}
   try {
+    const session = await supabase.rpc("staff_full_swing_session_state", {p_file_hash:fileHash});
+    if (session.error || !Number.isSafeInteger(session.data?.revision)) return {error:"The saved session could not be checked. Refresh before changing pitch labels."};
+    if (session.data.revision > 0) return {error:"This file is a published session. Reopen the original CSV through the Session Library so its pitch labels and results update together."};
     const { data, error } = await supabase.rpc("staff_full_swing_pitch_labels", { p_hash: fileHash, p_version: version, p_assignments: reviewed });
     if(error?.code==="40001") return {error:"Another staff member changed these labels. Reopen the CSV to load their changes before editing again."};
     if(error) return {error:"The pitch-label save could not be confirmed. Retry with these same labels."};

@@ -159,3 +159,6 @@ September 21 bulk invitations: an active Admin outside View as can review remain
 
 ### Invitation status
 Admins can open Account Access → Invitation Status to search/filter configured accounts by acceptance, password setup, role and disabled access. Refresh Status reads current status without sending emails or changing access.
+## Session publishing
+
+Staff can review saved Full Swing and Blast reports in **Import Center → Session Library**. Raw Full Swing sessions publish player summaries, classified pitch results, sample counts and contact charts together. Admins can re-review an original tracked CSV to correct misreads and restore a previous revision. See [Session Library](docs/SESSION_LIBRARY.md) for legacy-file limits and rollout requirements.

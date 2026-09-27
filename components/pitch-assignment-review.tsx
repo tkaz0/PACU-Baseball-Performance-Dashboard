@@ -3,6 +3,7 @@ import { formatSourceNumber } from "@/lib/measurement-display";
 import { prepareClassifiedPitchResults, type PitchResultContext } from "@/lib/imports/classified-pitch-results";
 import type { SaveImportAction } from "@/components/full-swing-import";
 import { useEffect, useState } from "react";
+import { fullSwingPitchReviewKey, type FullSwingPitchReview } from "@/lib/imports/full-swing-review";
 import { DEFAULT_PITCH_GUIDELINES, validPitchGuidelines, type PitchGuidelines, PITCH_TYPES, assignPitchRows, summarizeAssignedPitches, suggestPitchTypes, validatePitchAssignments, type PitchAssignment, type PitchAssignmentSnapshot, type PitchType } from "@/lib/imports/pitch-assignments";
 import type { FullSwingSession, PitchRange } from "@/lib/imports/full-swing-session";
 export type PitchAssignmentStore = {
@@ -15,7 +16,7 @@ function TypeSelect({ value, label, onChange }: { value: string; label: string; 
     <option value="">Unassigned</option>{PITCH_TYPES.map(type=><option key={type} value={type}>{type}</option>)}
   </select>;
 }
-export function PitchAssignmentReview({ session, ranges, fileHash, store, search, spinUnit, rpmConfirmed, includedIdentities, resultContext, saveResults, onResultsSaved }: { session: FullSwingSession; resultContext?: PitchResultContext; saveResults?: SaveImportAction; includedIdentities?: string[]; ranges: PitchRange[]; fileHash?: string; store?: PitchAssignmentStore; search: string; spinUnit: string; rpmConfirmed: boolean; onResultsSaved?: () => void }) {
+export function PitchAssignmentReview({ session, ranges, fileHash, store, search, spinUnit, rpmConfirmed, includedIdentities, resultContext, saveResults, onResultsSaved, bundled = false, onReviewChange }: { bundled?: boolean; onReviewChange?: (review: FullSwingPitchReview) => void; session: FullSwingSession; resultContext?: PitchResultContext; saveResults?: SaveImportAction; includedIdentities?: string[]; ranges: PitchRange[]; fileHash?: string; store?: PitchAssignmentStore; search: string; spinUnit: string; rpmConfirmed: boolean; onResultsSaved?: () => void }) {
   const [resultApproval, setResultApproval] = useState("");
   const [resultMessage, setResultMessage] = useState("");
   const [assignments,setAssignments]=useState<PitchAssignment[]>([]), [saved,setSaved]=useState<PitchAssignment[]>([]);
@@ -52,7 +53,9 @@ export function PitchAssignmentReview({ session, ranges, fileHash, store, search
   const visible=eligiblePitches.filter(p=>p.identity.toLowerCase().includes(search.trim().toLowerCase()));
   const summaries=summarizeAssignedPitches(visible,assignments);
   const assignedCount=eligiblePitches.filter(p=>types.has(p.sourceRow)).length;
-  const approvalKey=JSON.stringify([resultContext, assignments, rpmConfirmed]);
+  const approvalKey=fullSwingPitchReviewKey(resultContext, assignments, version, rpmConfirmed);
+  const reviewState = JSON.stringify({ assignments, assignmentVersion: version, ready: ready && !loading && !saving, pitchApproved: resultApproval === approvalKey, rpmConfirmed });
+  useEffect(() => { onReviewChange?.(JSON.parse(reviewState) as FullSwingPitchReview); }, [onReviewChange, reviewState]);
   const display=(value:number|null)=>value===null?"—":formatSourceNumber(value,"Full Swing");
   async function publishResults() {
     if (!resultContext || !saveResults || !store || !rpmConfirmed || dirty || !ready || saving || resultApproval !== approvalKey) return;
@@ -87,12 +90,17 @@ export function PitchAssignmentReview({ session, ranges, fileHash, store, search
       })}</tbody></table></div>
       <details><summary className="cursor-pointer font-semibold">Individual Pitches · {visible.length}</summary><div className="table-wrap mt-3 max-h-96 overflow-auto"><table><caption className="sr-only">Individual pitch assignments</caption><thead><tr><th>Pitcher</th><th>Pitch #</th><th>CSV Row</th><th>Velocity (mph)</th><th>Spin ({spinUnit})</th><th>Pitch Type</th><th>Suggestion</th></tr></thead><tbody>{visible.map(p=><tr key={p.sourceRow}><th scope="row">{p.identity}</th><td>{p.pitchNumber}</td><td>{p.sourceRow}</td><td>{p.velocity?.toFixed(1)??"—"}</td><td>{p.spin?.toFixed(1)??"—"}</td><td><TypeSelect value={types.get(p.sourceRow)??""} label={`Pitch ${p.pitchNumber} type`} onChange={type=>edit([p.sourceRow],type)}/></td><td><span className="font-semibold">{suggested.get(p.sourceRow)?.pitchType??"Unknown"}</span><span className="muted block max-w-64 text-xs">{suggested.get(p.sourceRow)?.reason??"Needs staff review"}</span></td></tr>)}</tbody></table></div></details>
       {assignedCount > 0 && <details open><summary className="cursor-pointer font-semibold">Pitch-Type Summary</summary><div className="table-wrap mt-3"><table><caption className="sr-only">Reviewed pitch-type summaries</caption><thead><tr><th>Pitcher</th><th>Type</th><th>Pitches</th><th>Average Velocity (mph)</th><th>Max Velocity (mph)</th><th>Average Spin ({spinUnit})</th><th>Max Spin ({spinUnit})</th></tr></thead><tbody>{summaries.map(s=><tr key={JSON.stringify([s.identity,s.pitchType])}><th scope="row">{s.identity}</th><td>{s.pitchType}</td><td>{s.count}</td><td>{display(s.averageVelocity)}<span className="muted block text-xs">n={s.velocityCount}</span></td><td>{display(s.maxVelocity)}</td><td>{display(s.averageSpin)}<span className="muted block text-xs">n={s.spinCount}</span></td><td>{display(s.maxSpin)}</td></tr>)}</tbody></table></div></details>}
-      {store && fileHash ? <div className="flex flex-wrap items-center gap-3"><button type="button" className="btn btn-primary" disabled={!dirty} onClick={()=>void save()}>{saving?"Saving…":"Save Pitch Assignments"}</button><span className="muted text-xs">Labels are saved separately from player measurements. Reopen this exact CSV to reuse them.</span></div>:<p className="muted text-xs">Preview only. Labels remain in this open review.</p>}
-      {resultContext && saveResults && store && assignedCount > 0 && <div className="rounded-lg border border-[var(--line-subtle)] p-4">
+      {!bundled && (store && fileHash ? <div className="flex flex-wrap items-center gap-3"><button type="button" className="btn btn-primary" disabled={!dirty} onClick={()=>void save()}>{saving?"Saving…":"Save Pitch Assignments"}</button><span className="muted text-xs">Labels are saved separately from player measurements. Reopen this exact CSV to reuse them.</span></div>:<p className="muted text-xs">Preview only. Labels remain in this open review.</p>)}
+      {!bundled && resultContext && saveResults && store && assignedCount > 0 && <div className="rounded-lg border border-[var(--line-subtle)] p-4">
         <h4 className="m-0 font-bold">Add Pitch Results to Profiles</h4><p className="muted text-sm">Save the reviewed pitch types with max and average velocity and spin. Unassigned pitches stay out of this breakdown. Save pitch assignments above first, then confirm RPM and player matches.</p>
         <label className="my-3 flex items-start gap-3 text-sm"><input type="checkbox" checked={resultApproval === approvalKey} onChange={e=>setResultApproval(e.target.checked?approvalKey:"")} /><span>I reviewed the pitcher matches, pitch labels, mph and RPM for these results.</span></label>
         <button type="button" className="btn btn-primary" disabled={dirty || !rpmConfirmed || resultApproval !== approvalKey} onClick={()=>void publishResults()}>Save Pitch Results to Profiles</button>
         {resultMessage && <p role="status" className="notice mt-3">{resultMessage}</p>}
+      </div>}
+      {bundled && <div className="rounded-lg border border-[var(--line-subtle)] bg-[var(--surface-panel)] p-4">
+        <h4 className="m-0 font-bold">Pitching Review</h4>
+        <p className="muted mt-1 text-sm">{assignedCount} labeled pitches will contribute to pitch-type velocity and spin rankings. {eligiblePitches.length - assignedCount} unassigned pitches stay out of those rankings. Labels and results publish together with the session.</p>
+        <label className="mb-0 flex items-start gap-3 text-sm"><input type="checkbox" checked={resultApproval === approvalKey} disabled={!rpmConfirmed} onChange={event => setResultApproval(event.target.checked ? approvalKey : "")} /><span>I reviewed the pitcher matches, pitch labels, mph and RPM, including the pitches left unassigned.</span></label>
       </div>}
     </fieldset>
     {message && <p role="status" className="notice">{message}</p>}

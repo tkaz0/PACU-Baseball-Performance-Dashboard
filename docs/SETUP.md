@@ -403,3 +403,6 @@ September 25 dashboard sweep: apply `202609250006_leaderboard_sample_source_isol
 
 
 Apply additive migration `202609260001_individual_csv_reading_archive.sql` before deploying the individual Full Swing maximum correction UI. It adds Admin-only read/archive RPCs and reuses the existing private reversible CSV archive and import guard. It changes no athlete, account or role grant and performs no removal on migration.
+## Session publication rollout
+
+Apply `202609270001_full_swing_publications.sql` before deploying the atomic raw Full Swing importer and `/imports/sessions`. This adds private publication/revision/request ledgers and ordinary-session staff RPCs; no credentials, user roles or accounts change. A new publication saves all reviewed numerical projections together. Admin original-file correction and prior-revision restore use stale-state checks and preserve separate CSV archives. Older files remain explicitly untracked until their exact original CSV is reviewed successfully. See [Session Library](SESSION_LIBRARY.md).

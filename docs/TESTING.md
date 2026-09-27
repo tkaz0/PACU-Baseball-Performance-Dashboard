@@ -432,3 +432,8 @@ September 25 dashboard sweep: source-isolation regression proves a pitch family 
 
 
 September 25 individual maximum correction: embedded database tests cover a reviewed single Full Swing maximum archive, preservation of the file’s other readings, exact restoration, identical retry, stale fingerprint denial and Coach denial. Production correction still requires selecting the exact player/source/value through the Admin review page and verifying leaderboards afterward.
+## Complete-session regression checks
+
+`full-swing-session-bundle.test.ts` covers rebuilding generic/classified averages, maxima and denominators after individual source-cell removal, preserving unrelated readings and coordinates, contact/spatial-pair changes, Machine BP hitting-only handling, strict numerical payload validation and source partition checks. Session Library tests cover legacy/verified status, grouping, player links and bounded metadata reads. The publication migration suite checks transaction rollback, idempotent retries, stale revisions, full correction/restore, archived-coordinate protection and staff/Admin/Player access boundaries with fictional data.
+
+For a UI check, use a fictional original CSV in a separate local test environment: verify one final publish action, invalidation after pitch-label changes, visible unresolved-pitch counts, preserved source exclusions on reopen, correction acknowledgement and explicit identical-request retry. Never seed synthetic readings into the production team. PGlite checks SQL behavior but do not replace a live Supabase Auth/API integration check.

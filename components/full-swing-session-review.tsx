@@ -2,13 +2,14 @@
 import { PitchAssignmentReview, type PitchAssignmentStore } from "@/components/pitch-assignment-review";
 import { saveReviewedContacts } from "@/app/(workspace)/imports/actions";
 import { prepareFullSwingContacts } from "@/lib/imports/full-swing-contacts";
+import type { FullSwingPitchReview } from "@/lib/imports/full-swing-review";
 import type { PitchResultContext } from "@/lib/imports/classified-pitch-results";
 import type { SaveImportAction } from "@/components/full-swing-import";
 import { useState } from "react";
 import { groupPitchRanges, SESSION_METRICS, type FullSwingSession, type PitchGroupingMode } from "@/lib/imports/full-swing-session";
 
 const number = (value: number | null) => value === null ? "—" : value.toFixed(1);
-export function FullSwingSessionReview({ session, fileHash, assignmentStore, includedIdentities, resultContext, saveResults, onResultsSaved }: { session: FullSwingSession; resultContext?: PitchResultContext; saveResults?: SaveImportAction; includedIdentities?: string[]; fileHash?: string; assignmentStore?: PitchAssignmentStore; onResultsSaved?: () => void }) {
+export function FullSwingSessionReview({ session, fileHash, assignmentStore, includedIdentities, resultContext, saveResults, onResultsSaved, bundled = false, onPitchReviewChange }: { bundled?: boolean; onPitchReviewChange?: (review: FullSwingPitchReview) => void; session: FullSwingSession; resultContext?: PitchResultContext; saveResults?: SaveImportAction; includedIdentities?: string[]; fileHash?: string; assignmentStore?: PitchAssignmentStore; onResultsSaved?: () => void }) {
   const [search, setSearch] = useState("");
   const [velocityWidth, setVelocityWidth] = useState(3), [spinWidth, setSpinWidth] = useState(250);
   const [groupingMode, setGroupingMode] = useState<PitchGroupingMode>("gap");
@@ -48,15 +49,16 @@ export function FullSwingSessionReview({ session, fileHash, assignmentStore, inc
     })}
     {resultContext && <div className="rounded-xl border border-[var(--line-subtle)] bg-[var(--surface-panel)] p-4" aria-label="Batted-ball contact review">
       <h4 className="m-0 font-bold">Hitter Contact Map</h4>
-      <p className="muted mb-2 mt-1 text-sm">Save paired ExitSpeed (mph) and Angle (degrees) from the same CSV row. When present, Direction (degrees) and Distance (feet) stay with that row for the spray view. Unmatched hitters and incomplete contact pairs stay out.</p>
+      <p className="muted mb-2 mt-1 text-sm">Paired exit velocity (mph) and launch angle (degrees) come from the same CSV row. When present, Direction (degrees) and Distance (feet) stay with that row for the spray view. Unmatched hitters and incomplete contact pairs stay out.</p>
       <p className="mb-2 text-sm font-semibold">{contactRows.length} paired batted balls · {matchedBatters.length} matched {matchedBatters.length === 1 ? "hitter" : "hitters"} · {session.date}</p>
       {contactError && <p role="alert" className="notice notice-error">{contactError}</p>}
       {contactRows.length > 0 && <details><summary className="cursor-pointer text-sm font-semibold text-[var(--accent-readable)]">Review paired source readings</summary><div className="table-wrap mt-3 max-h-72"><table><thead><tr><th>CSV Row</th><th>Pitch #</th><th>Matched Batter</th><th>Exit Velocity</th><th>Launch Angle</th><th>Direction</th><th>Distance</th></tr></thead><tbody>{contactRows.map(row => <tr key={row.sourceRow}><td>{row.sourceRow}</td><td>{row.pitchNumber}</td><td>{resultContext.matches.find(match => match.athleteCode === row.athleteCode)?.identity}</td><td>{row.exitVelocity.toFixed(1)} mph</td><td>{row.launchAngle.toFixed(1)}°</td><td>{row.direction===null?"—":`${row.direction.toFixed(1)}°`}</td><td>{row.distance===null?"—":`${row.distance.toFixed(1)} ft`}</td></tr>)}</tbody></table></div></details>}
-      {contactRows.length > 0 && !contactError && <><label className="my-3 flex items-start gap-2 text-sm"><input type="checkbox" checked={contactsApproved === contactKey} onChange={event => setContactsApproved(event.target.checked ? contactKey : "")} /><span>I checked the batter matches, source rows, mph, angles, available direction/distance and {resultContext.category} against this CSV. Positive Direction plots toward first base.</span></label><button type="button" className="btn btn-primary" disabled={contactsApproved !== contactKey || contactsBusy} onClick={() => void saveContacts()}>{contactsBusy ? "Saving…" : "Save Contact Map Readings"}</button></>}
+      {!bundled && contactRows.length > 0 && !contactError && <><label className="my-3 flex items-start gap-2 text-sm"><input type="checkbox" checked={contactsApproved === contactKey} onChange={event => setContactsApproved(event.target.checked ? contactKey : "")} /><span>I checked the batter matches, source rows, mph, angles, available direction/distance and {resultContext.category} against this CSV. Positive Direction plots toward first base.</span></label><button type="button" className="btn btn-primary" disabled={contactsApproved !== contactKey || contactsBusy} onClick={() => void saveContacts()}>{contactsBusy ? "Saving…" : "Save Contact Map Readings"}</button></>}
+      {bundled && contactRows.length > 0 && !contactError && <p className="muted mb-0 mt-3 text-xs">These contact and spray readings publish with the session after your final review.</p>}
       {contactsMessage && <p role="status" className="notice mt-3 mb-0">{contactsMessage}</p>}
     </div>}
     {session.pitches.length > 0 && <details className="border-t border-[var(--line-subtle)] pt-4" open><summary className="cursor-pointer font-semibold">Pitch Velocity &amp; Spin Ranges</summary>
-      <p className="muted text-sm">Grouped separately for each pitcher. Ranges organize similar readings. Review the suggested pitch types below. Pitch assignments save separately from player measurements.</p>
+      <p className="muted text-sm">Grouped separately for each pitcher. Ranges organize similar readings. Review the suggested pitch types below. {bundled ? "Reviewed labels and pitching results publish with this session." : "Pitch assignments save separately from player measurements."}</p>
       <div className="flex flex-wrap gap-4"><label>Group pitches by<select value={groupingMode} onChange={e=>setGroupingMode(e.target.value as PitchGroupingMode)}><option value="gap">Gaps between velocities</option><option value="fixed">Fixed velocity ranges</option></select></label><label>{groupingMode === "gap" ? "Start a new group at" : "Velocity range"}<select value={velocityWidth} onChange={e => setVelocityWidth(Number(e.target.value))}>{[2,3,5,10].map(n => <option key={n} value={n}>{n} mph</option>)}</select></label><label>Spin range<select value={spinWidth} onChange={e => setSpinWidth(Number(e.target.value))}>{[100,250,500].map(n => <option key={n} value={n}>{n} {spinUnit}</option>)}</select></label></div>
       <label className="my-3 flex items-center gap-2 text-sm"><input type="checkbox" checked={rpmConfirmed} onChange={e => setRpmConfirmed(e.target.checked)} />I confirm the export’s SpinRate values are RPM.</label>
       <div className="table-wrap max-h-[32rem] overflow-auto"><table><caption className="sr-only">Pitch groups by velocity and spin</caption><thead><tr><th>Pitcher</th><th>Velocity (mph)</th><th>Spin ({spinUnit})</th><th>Pitches</th><th>Average Velocity</th><th>Average Spin</th></tr></thead><tbody>{ranges.map((range, i) => {
@@ -65,6 +67,6 @@ export function FullSwingSessionReview({ session, fileHash, assignmentStore, inc
       })}</tbody></table></div>
       <p className="muted mb-0 text-xs">{groupingMode === "gap" ? `A gap of ${velocityWidth} mph or more starts a new group within each pitcher’s spin band. Nearby speeds stay together, so a group can span more than ${velocityWidth} mph. Review every group before assigning a pitch type.` : "Fixed ranges include the lower number and exclude the upper number."} Percentages use all pitches thrown by that pitcher; missing spin stays separate.</p>
     </details>}
-    <PitchAssignmentReview key={fileHash} session={session} resultContext={resultContext} saveResults={saveResults} includedIdentities={includedIdentities} ranges={ranges} search={search} spinUnit={spinUnit} rpmConfirmed={rpmConfirmed} fileHash={fileHash} store={assignmentStore} onResultsSaved={onResultsSaved} />
+    {session.pitches.length > 0 && <PitchAssignmentReview bundled={bundled} onReviewChange={onPitchReviewChange} key={fileHash} session={session} resultContext={resultContext} saveResults={saveResults} includedIdentities={includedIdentities} ranges={ranges} search={search} spinUnit={spinUnit} rpmConfirmed={rpmConfirmed} fileHash={fileHash} store={assignmentStore} onResultsSaved={onResultsSaved} />}
   </section>;
 }
