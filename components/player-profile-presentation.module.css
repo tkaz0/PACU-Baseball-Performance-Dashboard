@@ -44,3 +44,21 @@
   .profile { --profile-section-gap: 22px; }
   .profile :global(.player-identity-card) { padding: 16px; }
 }
+
+.identityRole { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:12px 0 0; color:#d6d6dc; font-size:13px; font-weight:650; }
+.identityRole > span { padding:4px 8px; border:1px solid #ffffff22; border-radius:5px; color:#eeeef0; background:#ffffff0a; font-size:10px; font-weight:700; letter-spacing:.04em; }
+.sessionDisciplines { display:grid; gap:22px; min-width:0; align-items:start; }
+.sessionDisciplines > .metricGroup { padding:18px; border:1px solid var(--line-subtle); border-radius:16px; background:color-mix(in srgb,var(--surface-panel) 55%,var(--surface-page)); }
+.sessionDisciplines > .metricGroup .metricGrid { grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr)); }
+.sessionDisciplines > .metricGroup .groupHeading { margin-bottom:16px; }
+@container player-profile (min-width:850px) {
+  .sessionDisciplines[data-two-way="true"] { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .sessionDisciplines[data-two-way="true"] > .metricGroup:has(+ .metricGroup) { height:100%; }
+}
+@container player-profile (max-width:420px) {
+  .sessionDisciplines > .metricGroup { padding:12px; }
+  .sessionDisciplines > .metricGroup .metricGrid { grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr)); gap:8px; }
+}
+@container player-profile (min-width:850px) {
+  .sessionDisciplines[data-two-way="true"] > .metricGroup[id$="-field"] { grid-column:1/-1; }
+}

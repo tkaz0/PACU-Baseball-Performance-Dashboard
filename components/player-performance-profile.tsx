@@ -99,9 +99,11 @@ function SessionMeasurements({ performance, season, context, hasBlast=false, tea
   return <section className={presentation.sessionMeasurements} aria-label={context === "in_game" ? "In-Game measurements" : "Practice measurements"}>
     <header className={presentation.sessionHeading}><div><p>{context === "in_game" ? "In-Game" : "Practice"} <span aria-hidden="true">/</span> Latest Sessions</p><h2>{context === "in_game" ? "Games & Intrasquad" : (hasBlast ? "Other Practice & Testing" : "Practice & Testing")}</h2></div><span className={presentation.seasonBadge}>Fall 2026</span></header>
     {!hasData && <p className={presentation.emptyState}>{context === "in_game" ? "No game or intrasquad test results yet." : "No practice measurements recorded yet."}</p>}
+    <div className={presentation.sessionDisciplines} data-two-way={hitting.length > 0 && layout.pitching.length > 0}>
     <MetricGroup id={`${context}-hitting`} title="Hitting" cards={hitting} teamAverages={teamAverages} />
-    <MetricGroup id={`${context}-field`} title="Position Throwing" cards={layout.fieldThrowing} />
     <MetricGroup id={`${context}-pitching`} title="Pitching" cards={layout.pitching} />
+    <MetricGroup id={`${context}-field`} title="Position Throwing" cards={layout.fieldThrowing} />
+    </div>
     <ProfileTrendChart series={profileTrends([...hitting, ...throwing])} />
   </section>;
 }
@@ -111,6 +113,7 @@ export function PlayerPerformanceProfile({ athlete, performance, season, blastRe
   const bodyScoreCard = performance.body.find(card => card.metric.key === "body_score" && card.latest);
   const bodyScore = bodyScoreCard?.latest ?? null;
   const selectedSeason = season ?? [...athlete.athlete_seasons].sort((a, b) => b.season.localeCompare(a.season))[0];
+  const roleLabel = selectedSeason?.player_type?.trim().toLowerCase() === "two_way" ? "Two-Way Player" : selectedSeason?.player_type?.trim().toLowerCase() === "pitcher" ? "Pitcher" : null;
   const position = [selectedSeason?.primary_position, selectedSeason?.secondary_position].filter((value, index, values) => value && values.indexOf(value) === index).join(" / ");
   const layout = getPlayerProfileLayout(displayPerformance, selectedSeason);
   const cards = [...layout.physicality, ...layout.additionalBody, ...layout.speedAgility, ...(layout.showHitting ? [...layout.hitting, ...layout.otherHitting] : []), ...layout.fieldThrowing, ...layout.pitching];
@@ -142,7 +145,7 @@ export function PlayerPerformanceProfile({ athlete, performance, season, blastRe
       <div className="pointer-events-none absolute -right-24 -top-32 -z-10 size-80 rotate-45 border border-white/[.05]" aria-hidden="true" />
       <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><PacificLogo className="w-9 shrink-0" decorative /><p className="m-0 text-[10px] font-bold uppercase tracking-[.18em] text-[#e0e0e3]">Pacific Baseball<span className="mx-2 text-[#a4a4aa]" aria-hidden="true">/</span>Performance</p></div>{fictional && <span className="shrink-0 rounded border border-white/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white">Fictional profile</span>}</div>
       <div className="my-3 flex items-center justify-between gap-4 sm:my-3 sm:gap-6">
-        <div className="min-w-0"><h1 className="m-0 break-words text-3xl font-black leading-[1.08] tracking-tight text-white sm:text-4xl">{athleteName(athlete)}</h1><p className="mb-0 mt-3 text-sm font-semibold text-[#d6d6dc]">{position || "Position to be added"}</p></div>
+        <div className="min-w-0"><h1 className="m-0 break-words text-3xl font-black leading-[1.08] tracking-tight text-white sm:text-4xl">{athleteName(athlete)}</h1><p className={presentation.identityRole}>{position || "Position to be added"}{roleLabel && <span>{roleLabel}</span>}</p></div>
         <dl className="m-0 shrink-0 border-l border-white/15 pl-4 text-center sm:pl-8"><dt className="text-[9px] font-semibold uppercase tracking-[.1em] text-[#b3b4ba]">Jersey Number</dt><dd className="m-0 mt-2 text-5xl font-black leading-none tracking-tighter text-white sm:text-5xl">{display(selectedSeason?.jersey_number)}</dd></dl>
       </div>
       <dl className="m-0 grid grid-cols-2 gap-x-5 gap-y-2 border-t border-white/15 pt-4 text-xs sm:grid-cols-4"><div><dt className="text-[10px] uppercase tracking-wider text-[#a7a8af]">Bats / Throws</dt><dd className="m-0 mt-1.5 font-semibold">{display(selectedSeason?.bats)} / {display(selectedSeason?.throws)}</dd></div><div><dt className="text-[10px] uppercase tracking-wider text-[#a7a8af]">Season</dt><dd className="m-0 mt-1.5 font-semibold">{selectedSeason?.season ?? "To be added"}</dd></div><div><dt className="text-[10px] uppercase tracking-wider text-[#a7a8af]">PAC ID</dt><dd className="m-0 mt-1.5 font-mono font-semibold">{athlete.athlete_code}</dd></div><div><dt className="text-[10px] uppercase tracking-wider text-[#a7a8af]">{newerReport ? "Latest Report" : "Last Tested"}</dt><dd className="m-0 mt-1.5 font-semibold">{newerReport ? blastPeriodLabel(newerReport.start,newerReport.end) : lastTested ? <time dateTime={lastTested}>{measurementDate(lastTested)}</time> : "Not Yet Tested"}</dd></div></dl>

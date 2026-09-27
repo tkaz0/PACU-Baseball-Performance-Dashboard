@@ -1,5 +1,7 @@
 import { HittingTeamAverageLine } from "@/components/hitting-team-average";
 import { hittingTeamAverage, type HittingTeamAverage } from "@/lib/hitting-team-averages";
+import { profileSessionContext } from "@/lib/player-profile-layout";
+import { profileOverviewGroups } from "@/lib/profile-overview-groups";
 import { profileMetricLabel } from "@/lib/profile-metric-label";
 import { formatMetricNumber } from "@/lib/measurement-display";
 import { pitchingPeriodLabel } from "@/lib/game-source";
@@ -17,17 +19,17 @@ import type { SharedGameStat } from "@/lib/game-server";
 import styles from "./percentile-bar.module.css";
 import overview from "./player-overview.module.css";
 import { percentileColor } from "@/lib/percentile-color";
-import { ArrowUpRight, Crosshair, TrendingUp, ChevronDown } from "lucide-react";
+import { ArrowUpRight, Crosshair, TrendingUp, ChevronDown, ChartNoAxesCombined } from "lucide-react";
 import { isTimedMetric, type PlayerMetricCard } from "@/lib/player-performance";
 import { getPlayerInsights, type PlayerRelativeInsight } from "@/lib/player-insights";
 import { leaderboardMetricLabel, leaderboardTestDate } from "@/lib/leaderboards";
 
-type OverviewInsight = { key: string; metric: string; label: string; value: string; percentile: number; sampleSize: number; discipline: string; game?: GameOverviewMetric };
+type OverviewInsight = { key: string; metric: string; label: string; value: string; percentile: number; sampleSize: number; discipline: string; context: string; game?: GameOverviewMetric };
 function testingInsight(item: PlayerRelativeInsight): OverviewInsight {
-  return { key: `test:${item.metric.key}`, metric: item.metric.key, label: profileMetricLabel(item.metric.key,leaderboardMetricLabel(item.metric),item.latest.source), value: `${formatMetricNumber(item.latest.value, item.metric.key, item.latest.source, item.latest.unit === "s" ? item.latest.value.toFixed(2) : String(item.latest.value))} ${item.latest.unit === "ratio" ? "" : item.latest.unit}`, percentile: item.percentile.value, sampleSize: item.percentile.sampleSize, discipline: testingDiscipline(item.metric) };
+  return { key: `test:${item.metric.key}`, metric: item.metric.key, label: profileMetricLabel(item.metric.key,leaderboardMetricLabel(item.metric),item.latest.source), value: `${formatMetricNumber(item.latest.value, item.metric.key, item.latest.source, item.latest.unit === "s" ? item.latest.value.toFixed(2) : String(item.latest.value))} ${item.latest.unit === "ratio" ? "" : item.latest.unit}`, percentile: item.percentile.value, sampleSize: item.percentile.sampleSize, discipline: testingDiscipline(item.metric), context: isTimedMetric(item.metric.key) ? "Testing" : profileSessionContext(item.latest.source) === "in_game" ? "In-Game" : "Practice" };
 }
 function gameInsight(item: GameOverviewMetric): OverviewInsight {
-  return { key: `game:${item.source}:${item.metric}`, metric: item.metric, label: item.label, value: gameValue(item.value, item.unit), percentile: item.comparison!.percentile!, sampleSize: item.comparison!.sampleSize, discipline: item.source === "qpa_fall_2026" ? "Hitting" : "Pitching", game: item };
+  return { key: `game:${item.source}:${item.metric}`, metric: item.metric, label: item.label, value: gameValue(item.value, item.unit), percentile: item.comparison!.percentile!, sampleSize: item.comparison!.sampleSize, discipline: item.source === "qpa_fall_2026" ? "Hitting" : "Pitching", context: "In-Game", game: item };
 }
 const gameDate = (date: string) => new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "America/Los_Angeles" }).format(new Date(date));
 function testingDiscipline(metric: PlayerMetricCard["metric"]): string {
@@ -38,31 +40,54 @@ function RelativeResults({ items, separate = false }: { items: OverviewInsight[]
     const group = items.filter(item => item.discipline === discipline);
     return group.length ? <div key={discipline} data-insight-discipline={discipline}><h3 className={overview.disciplineLabel}>{discipline}</h3><RelativeResults items={group}/></div> : null;
   })}</div>;
+  return <><RelativeRows items={items.slice(0,1)}/>{items.length > 1 && <details className={overview.additionalHighlights}><summary>{items.length-1} more {items.length === 2 ? "highlight" : "highlights"}<ChevronDown size={13} aria-hidden="true"/></summary><RelativeRows items={items.slice(1)}/></details>}</>;
+}
+function RelativeRows({items}:{items:OverviewInsight[]}) {
   return <ul className={overview.highlightList}>{items.map(item => <li key={item.key}>
     <div className={overview.highlightResult}>
       <div><h3>{item.label}<StatInfo metric={item.metric} label={item.label}/></h3><span className={overview.resultValue}>{item.value}</span></div>
       <span className={overview.percentileBadge} style={percentileColor(item.percentile)} aria-label={`${Math.round(item.percentile)} percentile among ${item.sampleSize} comparable Pacific players`}><strong>{Math.round(item.percentile)}</strong><span>PCTL</span></span>
     </div>
-    <p className={overview.highlightMeta}>{item.discipline} · {item.sampleSize} teammates with this stat</p>
+    <div className={overview.highlightBar} aria-hidden="true"><span style={{ width: `${item.percentile}%`, backgroundColor: percentileColor(item.percentile).backgroundColor }} /><i /></div>
+    <p className={overview.highlightMeta}>{item.discipline} · {item.context} · {item.sampleSize} teammates with this stat</p>
     {item.game && <GameOpportunity source={item.game.source} metric={item.game.metric} count={item.game.opportunities}/>}
   </li>)}</ul>;
 }
-function TestingComparisons({ title, cards, teamAverages=[] }: { title: string; cards: readonly PlayerMetricCard[]; teamAverages?:readonly HittingTeamAverage[] }) {
+function TestingComparisons({ title, cards, context, teamAverages=[] }: { title: string; cards: readonly PlayerMetricCard[]; context?: string; teamAverages?:readonly HittingTeamAverage[] }) {
   if (!cards.length) return null;
-  return <section aria-label={`${title} percentiles`} className={overview.panel}><h3 className="m-0 text-base font-bold">{title}</h3><ul className={`${styles.rows} ${styles.overviewRows}`}>{cards.map(card => {
+  const row = (card: PlayerMetricCard) => {
     const reading = card.latest, p = card.percentile;
     const average=reading&&card.metric.group==="hitting"?hittingTeamAverage(teamAverages,card.metric.key,reading.unit,reading.source):undefined;
     const valid = reading && card.percentileStatus === "available" && p && p.sampleSize >= 5 && Number.isFinite(p.value) && p.value >= 0 && p.value <= 100 && p.unit === reading.unit && p.period === reading.period;
-    return <li className={styles.row} key={card.metric.key} data-overview-metric={card.metric.key}><div><h3>{profileMetricLabel(card.metric.key,leaderboardMetricLabel(card.metric),reading?.source)}<StatInfo metric={card.metric.key} label={leaderboardMetricLabel(card.metric)}/></h3><span className="mr-2 font-bold tabular-nums">{reading ? `${formatMetricNumber(reading.value,card.metric.key,reading.source,reading.unit === "s" ? reading.value.toFixed(2) : String(reading.value))} ${reading.unit === "ratio" ? "" : reading.unit}` : "—"}</span><MeasurementChange change={playerRenphoChange(card)} metric={card.metric.key}/>{reading && <p className={styles.meta}>Last Tested: <time dateTime={reading.measuredAt}>{leaderboardTestDate(reading.measuredAt)}</time></p>}{average&&<HittingTeamAverageLine average={average}/>}</div><div>{valid ? <><PercentileBar value={p.value} sampleSize={p.sampleSize} label={card.metric.label} descriptive={card.metric.direction === "neutral"}/><p className={styles.meta}>{p.sampleSize} teammates{card.metric.direction === "neutral" ? " · Descriptive rank" : ""}</p></> : <p className={styles.meta}>{reading ? "Team rank appears after five players record the same test." : "Not Yet Tested"}</p>}</div></li>;
-  })}</ul></section>;
+    return <li className={styles.row} key={`${card.metric.key}:${reading?.source}:${reading?.unit}:${reading?.period}`} data-overview-metric={card.metric.key}>
+      <div><h3>{profileMetricLabel(card.metric.key,leaderboardMetricLabel(card.metric),reading?.source)}<StatInfo metric={card.metric.key} label={leaderboardMetricLabel(card.metric)}/></h3><span className="mr-2 font-bold tabular-nums">{reading ? `${formatMetricNumber(reading.value,card.metric.key,reading.source,reading.unit === "s" ? reading.value.toFixed(2) : String(reading.value))} ${reading.unit === "ratio" ? "" : reading.unit}` : "—"}</span><MeasurementChange change={playerRenphoChange(card)} metric={card.metric.key}/>{reading && <p className={styles.meta}>{reading.source} · <time dateTime={reading.measuredAt}>{leaderboardTestDate(reading.measuredAt)}</time></p>}{average&&<HittingTeamAverageLine average={average}/>}</div>
+      <div>{valid ? <><PercentileBar value={p.value} sampleSize={p.sampleSize} label={card.metric.label} descriptive={card.metric.direction === "neutral"}/><p className={styles.meta}>{p.sampleSize} teammates{card.metric.direction === "neutral" ? " · Descriptive rank" : ""}</p></> : <p className={styles.meta}>{reading ? "Team rank appears after five players record the same test." : "Not Yet Tested"}</p>}</div>
+    </li>;
+  };
+  return <section aria-label={`${title}${context ? ` · ${context}` : ""} percentiles`} className={`${overview.panel} ${overview.comparisonCard}`}>
+    <header className={overview.comparisonHeader}><div><p>{context || "Team Comparison"}</p><h3>{title}</h3></div><span>{cards.length} {cards.length === 1 ? "stat" : "stats"}</span></header>
+    <ul className={`${styles.rows} ${styles.overviewRows}`}>{cards.slice(0,4).map(row)}</ul>
+    {cards.length > 4 && <details className={overview.additionalRows}><summary>All {title.toLowerCase()} results <span>+{cards.length-4}</span><ChevronDown size={14} aria-hidden="true"/></summary><ul className={`${styles.rows} ${styles.overviewRows}`}>{cards.slice(4).map(row)}</ul></details>}
+  </section>;
 }
-function GameComparisons({ metrics }: { metrics: GameOverviewMetric[] }) {
-  if (!metrics.length) return <section aria-label="Game Stats percentiles" className={overview.panel}><h3 className="m-0 text-base font-bold">Game Stats</h3><p className="muted mb-0 mt-2 text-xs">Game comparisons appear after recorded Fall results are synced.</p></section>;
-  const groups=[...new Set(metrics.map(m=>`${m.source}:${m.eventId}`))].map(key=>metrics.filter(m=>`${m.source}:${m.eventId}`===key));
-  return <section aria-label="Game Stats percentiles" className={overview.testingSections}>{groups.map(group=><section className={overview.panel} aria-label={group[0].source === "qpa_fall_2026" ? "Hitting game percentiles" : "Pitching game percentiles"} key={`${group[0].source}:${group[0].eventId}`}><header className={overview.gameHeader}><span>Game Stats</span><h3>{group[0].source === "qpa_fall_2026" ? "Hitting" : "Pitching"}</h3></header><p className={styles.meta}>{group[0].source==="qpa_fall_2026"?"Hitting · Fall 2026 · Cumulative":`Pitching · ${pitchingPeriodLabel(group[0].eventId,group[0].playedOn)}`} · Updated {leaderboardTestDate(gameDate(group.map(m=>m.updatedAt).sort().at(-1)!))}</p><ul className={`${styles.rows} ${styles.compactGameRows}`}>{group.map(item=><li className={styles.row} key={item.metric} data-overview-game-metric={item.metric}>
+function GameComparisonRows({metrics}:{metrics:GameOverviewMetric[]}) {
+  return <ul className={`${styles.rows} ${styles.compactGameRows}`}>{metrics.map(item=><li className={styles.row} key={item.metric} data-overview-game-metric={item.metric}>
     <div><h3>{item.label}<StatInfo metric={item.metric} label={item.label}/><span className={styles.inlineValue}>{item.metric==="batting_sb_per_pa"?item.value.toFixed(3):gameValue(item.value,item.unit)}</span></h3><GameOpportunity source={item.source} metric={item.metric} count={item.opportunities}/></div>
     <div>{item.comparison?<><PercentileBar value={item.comparison.percentile!} sampleSize={item.comparison.sampleSize} label={item.label} descriptive={item.direction==="neutral"}/><p className={styles.meta}>{item.comparison.sampleSize} teammates</p></>:<p className={styles.meta}>{item.metric==="batting_sb_per_pa"?"Recorded rate · team rank not available":"Team rank not available for this result."}</p>}</div>
-  </li>)}</ul></section>)}</section>;
+  </li>)}</ul>;
+}
+function GameComparisons({ metrics }: { metrics: GameOverviewMetric[] }) {
+  if (!metrics.length) return null;
+  const groups=[...new Set(metrics.map(m=>`${m.source}:${m.eventId}`))].map(key=>metrics.filter(m=>`${m.source}:${m.eventId}`===key));
+  return <section aria-label="Game Stats percentiles" className={overview.gameCards}>{groups.map(group=>{
+    const hitting = group[0].source === "qpa_fall_2026";
+    return <section className={`${overview.panel} ${overview.comparisonCard}`} aria-label={hitting ? "Hitting game percentiles" : "Pitching game percentiles"} key={`${group[0].source}:${group[0].eventId}`}>
+      <header className={overview.comparisonHeader}><div><p>In-Game · Fall 2026</p><h3>{hitting ? "Hitting" : "Pitching"}</h3></div><span>Game Stats</span></header>
+      <p className={overview.comparisonCaption}>{hitting ? "Cumulative hitting" : pitchingPeriodLabel(group[0].eventId,group[0].playedOn)} · Updated {leaderboardTestDate(gameDate(group.map(m=>m.updatedAt).sort().at(-1)!))}</p>
+      <GameComparisonRows metrics={group.slice(0,4)}/>
+      {group.length > 4 && <details className={overview.additionalRows}><summary>All {hitting ? "hitting" : "pitching"} game stats <span>+{group.length-4}</span><ChevronDown size={14} aria-hidden="true"/></summary><GameComparisonRows metrics={group.slice(4)}/></details>}
+    </section>;
+  })}</section>;
 }
 
 function compactNumber(value: number): string {
@@ -84,7 +109,7 @@ export function PlayerOverview({ cards, gameStats = [], gameComparisons = [], sh
   const lastTested = availableCards.map(card => card.timedTrials?.lastTested ?? card.latest!.measuredAt).sort().at(-1);
   const bodyResultsOnly = availableCards.length > 0 && availableCards.every(card => card.metric.group === "body");
   const hasPhysicalityRadar = physicalityRadarPoints(physicality).length === 3;
-  const testingComparisons = testing.filter(card => card.latest && (card.metric.group === "hitting" || card.metric.group === "pitching" || card.metric.group === "throwing" || isTimedMetric(card.metric.key)));
+  const testingGroups = profileOverviewGroups(testing);
   const trends = profileTrends([...physicality, ...testing]);
   return <section aria-label="Player overview" className={styles.overview} data-testid="player-overview">
     <div className={overview.snapshotHeader}><div className={overview.snapshotIntro}><h2 className="m-0 text-xl font-bold tracking-tight">Performance Snapshot</h2><p className="mb-0 mt-1.5 text-sm leading-6 text-[var(--text-secondary)]">{games.length ? "Your latest tests and Fall game stats, alongside the Pacific team." : bodyResultsOnly ? comparisonCards.length ? "Your latest body results compared with the team. More highlights will appear as testing continues." : "Your body results are in Physicality. More highlights will appear as testing continues." : "Where you stand now and how you have changed since earlier tests."}</p></div>{(lastTested || games.length > 0) && <dl className={overview.snapshotFacts}><div><dt className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Stats Available</dt><dd className="m-0 mt-1 font-bold tabular-nums">{availableCards.length + games.length}</dd></div>{lastTested && <div><dt className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Last Tested</dt><dd className="m-0 mt-1 font-semibold"><time dateTime={lastTested}>{leaderboardTestDate(lastTested)}</time></dd></div>}{games.length > 0 && <div><dt className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Game Stats Updated</dt><dd className="m-0 mt-1 font-semibold">{leaderboardTestDate(gameDate(games.map(g=>g.updatedAt).sort().at(-1)!))}</dd></div>}</dl>}</div>
@@ -108,14 +133,15 @@ export function PlayerOverview({ cards, gameStats = [], gameComparisons = [], sh
       </section>
     </div>
     {!comparableCount && <p className="m-0 max-w-3xl text-xs leading-6 text-[var(--text-secondary)]">Team comparisons need at least five players with the same test or game stat. Your own results are available in the other tabs.</p>}
-    {hasPhysicalityRadar ? <PhysicalityRadar cards={physicality}/> : <TestingComparisons teamAverages={teamAverages} title="Physicality" cards={physicality.filter(card => card.latest)}/>}
-    <details aria-label="Pacific game percentiles" className={overview.moreTesting}><summary><span>Game Comparisons <small className={overview.summaryCount}>{games.length} recorded stats</small></span><ChevronDown size={16} aria-hidden="true"/></summary><div className={overview.gameOverview}><PercentileLegend/><GameComparisons metrics={games}/></div></details>
-    {(testingComparisons.length > 0 || trends.length > 0) && <details className={overview.moreTesting}><summary>More Test Results <ChevronDown size={16} aria-hidden="true"/></summary><div className={styles.percentileSections} aria-label="Testing percentiles">
-      <TestingComparisons teamAverages={teamAverages} title="Hitting · Testing" cards={testing.filter(c => c.metric.group === "hitting" && !isTimedMetric(c.metric.key) && c.latest)}/>
-      <TestingComparisons teamAverages={teamAverages} title="Athletic Testing" cards={testing.filter(c => isTimedMetric(c.metric.key) && c.latest)}/>
-      <TestingComparisons teamAverages={teamAverages} title="Position Throwing · Testing" cards={testing.filter(c => c.metric.group === "throwing" && c.latest)}/>
-      <TestingComparisons teamAverages={teamAverages} title="Pitching · Testing" cards={testing.filter(c => c.metric.group === "pitching" && c.latest)}/>
-    </div><ProfileTrendChart series={trends}/></details>}
+    {(physicality.some(card=>card.latest) || games.length > 0 || testingGroups.length > 0) && <section className={overview.comparisonBoard} aria-label="Team Comparison Board">
+      <header className={overview.boardHeader}><div><ChartNoAxesCombined size={20} aria-hidden="true"/><h2>Team Comparison Board</h2></div><PercentileLegend/></header>
+      {(physicality.some(card=>card.latest) || games.length > 0) && <div className={overview.primaryComparisons} data-has-body={physicality.some(card=>card.latest)} data-has-games={games.length>0}>
+        {physicality.some(card=>card.latest) && <div className={overview.physicalityComparison}>{hasPhysicalityRadar ? <PhysicalityRadar cards={physicality}/> : <TestingComparisons teamAverages={teamAverages} title="Physicality" cards={physicality.filter(card => card.latest)}/>}</div>}
+        <GameComparisons metrics={games}/>
+      </div>}
+      {testingGroups.length > 0 && <div className={overview.testingCards} aria-label="Testing percentiles">{testingGroups.map(group=><TestingComparisons key={group.id} teamAverages={teamAverages} title={group.title} context={group.context} cards={group.cards}/>)}</div>}
+    </section>}
+    {trends.length > 0 && <details className={overview.moreTesting}><summary>Testing Trends <ChevronDown size={16} aria-hidden="true"/></summary><ProfileTrendChart series={trends}/></details>}
     {showMethods && <details className="group border-t border-[var(--line-subtle)] pt-4 text-xs text-[var(--text-secondary)]"><summary className="flex min-h-8 w-fit cursor-pointer list-none items-center gap-2 font-semibold">How These Highlights Work<ChevronDown size={14} className="transition-transform group-open:rotate-180" aria-hidden="true" /></summary>
       <div className="mt-3 max-w-3xl space-y-2 leading-relaxed">
         <p>Strengths are in the top quarter of the Pacific team; areas to work on are in the bottom quarter. Testing comparisons use the same test, source, unit and period; game comparisons use the same current cumulative QPA or pitching snapshot, with at least five comparable players. Game highlights use batting rates and pitching K/9, BB/9, Runs/9 and Strike %, with opportunity counts and limited-sample labels. Lower batting K % is favorable. Playing-time totals do not decide strengths or areas to work on. Up to three results appear in each section.</p>

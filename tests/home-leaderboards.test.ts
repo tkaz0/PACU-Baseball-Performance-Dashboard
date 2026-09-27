@@ -26,5 +26,22 @@ describe("home leaderboard cards", () => {
     const bat = { ...comparison, metricKey: "avg_bat_speed" as const, source: "blast motion · hitting", unit: "mph" };
     const board = homeMeasurementBoard("bat", "Hitting · Practice", "Average Bat Speed", "/leaderboards?group=hitting&session=practice", [{ ...measurement(1, null), value: 72.347, source: bat.source }], bat, null);
     expect(board.rows[0].value).toBe("72.3 mph");
+    expect(board.rows[0].numericValue).toBe(72.347);
   });
+  it("keeps recorded sample counts beside home values without inventing missing counts", () => {
+    const bat = { ...comparison, metricKey: "avg_bat_speed" as const, source: "blast motion · hitting", unit: "mph" };
+    const board = homeMeasurementBoard("bat", "Hitting · Practice", "Average Bat Speed", "/leaderboards", [
+      { ...measurement(1, null), sampleCount: 44, sampleUnit: "swings" }, measurement(2, null),
+    ], bat, null);
+    expect(board.rows[0].sample).toBe("44 swings");
+    expect(board.rows[1].sample).toBeUndefined();
+  });
+  it("uses batting opportunities rather than comparison-cohort size for home sample captions", () => {
+    const board = homeGameBoard("avg", "Hitting · In Game", "Batting AVG", "/leaderboards", [
+      { ...game("batting_avg", "", 1, null), opportunities: 17, sampleSize: 26 }, game("batting_avg", "", 2, null),
+    ], "qpa_fall_2026", "", "batting_avg", null);
+    expect(board.rows[0].sample).toBe("17 AB");
+    expect(board.rows[1].sample).toBeUndefined();
+  });
+
 });

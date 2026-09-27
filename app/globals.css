@@ -756,3 +756,96 @@ html[data-theme="dark"] .measurement-change[data-tone="red"] .measurement-change
   .leaderboard-navigation[aria-label="Leaderboard group"] { flex-wrap: wrap; }
   .leaderboard-navigation[aria-label="Leaderboard group"] a { flex: 1 0 28%; min-width: 0; }
 }
+
+/* Fall workspace refresh: shared surfaces and a quieter, consistent reading rhythm. */
+:root {
+  --surface-page: #f3f4f7;
+  --surface-raised: #f2f4f7;
+  --line-subtle: #e0e4eb;
+  --panel-shadow: 0 2px 4px #17203603, 0 10px 24px #17203603;
+  --chart-blue: #367ea3;
+  --chart-red: #b62c46;
+  --chart-gold: #c89153;
+}
+html[data-theme="dark"] {
+  --surface-page: #11151c;
+  --surface-panel: #1b212b;
+  --surface-raised: #242d39;
+  --surface-input: #161c24;
+  --line-subtle: #333f4e;
+  --text-secondary: #aebbcf;
+  --panel-shadow: none;
+  --chart-blue: #75badb;
+  --chart-red: #ef8196;
+  --chart-gold: #d4a268;
+}
+.workspace-shell { background: var(--surface-page); color: var(--text-primary); }
+.workspace-main { padding-top: 25px; padding-bottom: 42px; }
+.workspace-shell .panel { border-radius: 15px; border-color: var(--line-subtle); background: var(--surface-panel); box-shadow: var(--panel-shadow); }
+.workspace-shell .page-head { align-items: center; margin-bottom: 24px; padding-bottom: 20px; }
+.workspace-shell .page-title { font-size: clamp(28px,3vw,36px); line-height: 1.16; margin-block: 4px 8px; font-weight: 800; letter-spacing: -.045em; }
+.workspace-shell .page-description { max-width: 660px; color: var(--text-secondary); font-size: 12px; line-height: 1.7; }
+.page-actions { padding-top: 0; }
+.workspace-shell .btn { min-height: 42px; border-radius: 9px; font-size: 12px; font-weight: 700; padding: 10px 15px; }
+.workspace-shell .btn-primary { background: #ab1f2c; border-color: #ab1f2c; }
+.workspace-shell .btn-primary:hover { background: #921a27; border-color: #921a27; }
+.workspace-shell .btn-secondary { background: var(--surface-panel); border-color: var(--line-subtle); color: var(--text-primary); }
+.workspace-shell .btn-secondary:hover { background: var(--surface-raised); }
+.workspace-shell :is(input,select,textarea) { border-radius: 8px; border-color: var(--line-subtle); }
+.workspace-shell .notice { border-radius: 10px; line-height: 1.65; }
+.workspace-shell .badge { border-radius: 5px; line-height: 1.5; font-size: 10px; }
+.workspace-shell th { padding-top: 13px; padding-bottom: 13px; background: var(--surface-raised); color: var(--text-secondary); letter-spacing: .065em; }
+.workspace-shell td { border-color: var(--line-subtle); }
+.workspace-shell tbody tr:hover { background: color-mix(in srgb,var(--surface-raised) 55%,var(--surface-panel)); }
+.baseball-sidebar { background: #151a22; border-right-color: #26303d; padding: 26px 17px 22px; }
+.baseball-sidebar .sidebar-brand-link { padding-inline: 10px; }
+.baseball-sidebar .pacific-brand-compact .pacific-brand-name { font-size: 16px; }
+.baseball-sidebar .pacific-brand-descriptor { font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: #9faaba; }
+.sidebar-rule { margin: 22px 12px 3px; background: #ffffff12; }
+.baseball-sidebar .nav-link { min-height: 42px; padding: 10px 12px; margin: 3px 0; gap: 11px; border-radius: 9px; color: #b4bfce; font-size: 12px; font-weight: 550; }
+.baseball-sidebar .nav-link svg { width: 17px; height: 17px; color: #8f9fb5; }
+.baseball-sidebar .nav-link:hover { background: #ffffff08; color: #fff; }
+.baseball-sidebar .nav-link[aria-current="page"] { color: #fff; background: #a52232; box-shadow: inset 3px 0 0 #f0bdc4; font-weight: 750; }
+.baseball-sidebar .nav-link[aria-current="page"] svg { color: #fff; }
+.workspace-nav-group { margin: 20px 12px 7px; font-size: 8px; letter-spacing: .15em; font-weight: 800; color: #778ba4; }
+.workspace-nav-disclosure { margin-top: 12px; }
+.workspace-nav-disclosure>summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; color: #91a2b9; font-size: 9px; letter-spacing: .08em; text-transform: uppercase; font-weight: 700; cursor: pointer; list-style: none; border-radius: 8px; }
+.workspace-nav-disclosure>summary::-webkit-details-marker { display: none; }
+.workspace-nav-disclosure>summary:hover { background: #ffffff06; color: #dfe7f2; }
+.workspace-nav-disclosure[open]>summary>svg { transform: rotate(180deg); }
+.workspace-nav-disclosure-links { border-left: 1px solid #ffffff13; margin-left: 12px; padding-left: 6px; }
+.sidebar-boxer { display: flex; align-items: center; gap: 13px; padding-block: 23px 15px; }
+.sidebar-boxer .pacific-logo { width: 47px; height: auto; }
+.sidebar-boxer p { font-size: 10px; font-weight: 750; color: #bcc6d3; letter-spacing: .05em; }
+.sidebar-disclosure { font-size: 8px; line-height: 1.6; color: #7f8b9c; }
+.workspace-topbar { min-height: 67px; background: var(--surface-panel); border-color: var(--line-subtle); padding: 12px 32px; }
+.workspace-topbar .btn { min-height: 36px; padding: 7px 11px; font-size: 10px; }
+.workspace-topbar .appearance-control>select { min-height: 36px; font-size: 11px; width: 108px; }
+.workspace-account-role { min-height: 30px; border-radius: 6px; background: var(--surface-raised); font-size: 10px; padding-inline: 9px; }
+.workspace-footer { color: var(--text-secondary); border-color: var(--line-subtle); font-size: 9px; }
+.workspace-footer>span:first-child { color: var(--text-secondary); }
+.leaderboard-navigation { border-radius: 12px; padding: 5px; gap: 5px; }
+.leaderboard-navigation a { border-radius: 8px; font-size: 12px; }
+.leaderboard-navigation a[aria-current="page"] { background: #ab1f2c; }
+@media(max-width:900px) {
+  .baseball-sidebar { padding: 17px 22px 13px; }
+  .baseball-sidebar .sidebar-brand-link { padding-inline: 0; }
+  .workspace-menu-toggle { margin-top: 12px; border-radius: 8px; min-height: 40px; font-size: 12px; }
+  .baseball-sidebar nav.workspace-nav[data-open="true"] { display: block; padding-block: 4px; }
+  .workspace-nav-section { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 4px; margin-top: 4px; }
+  .workspace-nav-disclosure { margin-top: 6px; }
+  .workspace-nav-disclosure-links { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 4px; }
+  .baseball-sidebar .nav-link { min-height: 42px; margin: 0; font-size: 12px; }
+}
+@media(max-width:600px) {
+  .workspace-main { padding: 20px 16px 32px; }
+  .workspace-topbar { padding: 11px 16px; }
+  .baseball-sidebar { padding: 16px 18px 12px; }
+  .workspace-shell .page-head { align-items: flex-start; margin-bottom: 20px; padding-bottom: 16px; gap: 12px; }
+  .workspace-shell .page-title { font-size: 29px; }
+  .workspace-shell .page-description { font-size: 12px; }
+  .workspace-shell .page-actions { width: 100%; }
+  .workspace-shell .page-actions .btn { min-height: 40px; }
+  .workspace-footer { margin-inline: 16px; }
+  .leaderboard-navigation a { font-size: 11px; }
+}

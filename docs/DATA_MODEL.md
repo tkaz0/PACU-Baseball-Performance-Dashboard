@@ -359,3 +359,7 @@ September 21 bulk invitations: an active Admin outside View as can review remain
 ## Full Swing publication revisions
 
 Private `full_swing_publications`, `full_swing_publication_revisions` and `full_swing_publication_requests` bind one original file hash to a reviewed numerical payload, complete projection snapshots, revision and idempotent receipt. They contain no raw CSV or export-player names. The publication transaction applies the existing performance, sample-count, pitch-label and contact validators together. Admin replacements retain original coordinate ownership and preserve prior snapshots; undo restores a whole earlier projection. Read-only metadata is staff-only. Existing own-player RLS, source partitions and separately archived coordinates remain authoritative. See [Session Library](SESSION_LIBRARY.md).
+
+## September 27 presentation and exit-meeting rebuild
+
+This release adds no tables, catalog metrics, source observations, roles or RLS grants. Correlation maps and leaderboard distributions reuse the authorized Analytics and ranking projections. Exit Meeting PDFs are request-scoped numerical snapshots assembled using the existing ordinary staff session and current player readers; they are not stored in the database and do not send email. Optional meeting talking points are included only in that request's download. Generated reports and full-player previews remain staff-only, including Coach View; Player View remains blocked.

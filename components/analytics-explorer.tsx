@@ -16,8 +16,8 @@ function Mark({index,cx,cy,size=6}:{index:number;cx:number;cy:number;size?:numbe
   if(Math.floor(index/COLORS.length)%3===2)return <path d={`M${cx},${cy-size-2} L${cx+size+1},${cy+size} L${cx-size-1},${cy+size} Z`} {...common}/>;
   return <circle cx={cx} cy={cy} r={size} {...common}/>;
 }
-export function AnalyticsExplorer({data}:{data:AnalyticsDataset}) {
-  const chartId=useId(),[period,setPeriod]=useState<"fall"|"earlier">("fall"),[xChoice,setXChoice]=useState(""),[yChoice,setYChoice]=useState(""),[group,setGroup]=useState<ColorGroup>("academicClass"),[classFilter,setClassFilter]=useState(""),[positionFilter,setPositionFilter]=useState(""),[maxGap,setMaxGap]=useState(30),[hidden,setHidden]=useState<string[]>([]),[active,setActive]=useState<string|null>(null);
+export function AnalyticsExplorer({data,initialX="",initialY="",initialPeriod="fall",initialWindow=30}:{data:AnalyticsDataset;initialX?:string;initialY?:string;initialPeriod?:"fall"|"earlier";initialWindow?:number}) {
+  const chartId=useId(),[period,setPeriod]=useState<"fall"|"earlier">(initialPeriod),[xChoice,setXChoice]=useState(initialX),[yChoice,setYChoice]=useState(initialY),[group,setGroup]=useState<ColorGroup>("academicClass"),[classFilter,setClassFilter]=useState(""),[positionFilter,setPositionFilter]=useState(""),[maxGap,setMaxGap]=useState([0,7,30,90,366].includes(initialWindow)?initialWindow:30),[hidden,setHidden]=useState<string[]>([]),[active,setActive]=useState<string|null>(null);
   const readings=useMemo(()=>readingsForPeriod(data.readings,period),[data.readings,period]);
   const variables=useMemo(()=>analyticsVariables(readings),[readings]);
   const x=variables.find(v=>v.key===xChoice)??variables.find(v=>v.metric==="weight")??variables[0];

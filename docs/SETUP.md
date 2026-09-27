@@ -406,3 +406,7 @@ Apply additive migration `202609260001_individual_csv_reading_archive.sql` befor
 ## Session publication rollout
 
 Apply `202609270001_full_swing_publications.sql` before deploying the atomic raw Full Swing importer and `/imports/sessions`. This adds private publication/revision/request ledgers and ordinary-session staff RPCs; no credentials, user roles or accounts change. A new publication saves all reviewed numerical projections together. Admin original-file correction and prior-revision restore use stale-state checks and preserve separate CSV archives. Older files remain explicitly untracked until their exact original CSV is reviewed successfully. See [Session Library](SESSION_LIBRARY.md).
+
+## Exit meetings and visual workspace
+
+The September 27 rebuild is an application deployment only; it requires no additional Supabase migration or environment key. Staff can open **Exit Meetings**, select a current player, review their results, optionally enter talking points, and download a private PDF. The report rechecks current access and saved results at generation time. Talking points are not saved between player selections or sent to the team. Correlation Map is under Analytics; Session Library remains under Import Center. Existing sign-in, own-player restrictions, imports, invitations and scheduled source checks are unchanged.

@@ -9,7 +9,7 @@ const metrics = [
 
 export function physicalityRadarPoints(cards: readonly PlayerMetricCard[]) {
   return metrics.flatMap(metric => {
-    const card = cards.find(item => item.metric.key === metric.key && item.latest && item.percentileStatus === "available" && item.percentile && item.percentile.sampleSize >= 5 && item.percentile.unit === item.latest.unit && item.percentile.period === item.latest.period && Number.isFinite(item.percentile.value) && item.percentile.value >= 0 && item.percentile.value <= 100);
+    const card = cards.find(item => item.metric.key === metric.key && item.latest?.period === "fall_2026" && item.percentileStatus === "available" && item.percentile && item.percentile.sampleSize >= 5 && item.percentile.unit === item.latest.unit && item.percentile.period === item.latest.period && Number.isFinite(item.percentile.value) && item.percentile.value >= 0 && item.percentile.value <= 100);
     return card?.percentile ? [{ ...metric, percentile: card.percentile.value, sampleSize: card.percentile.sampleSize }] : [];
   });
 }

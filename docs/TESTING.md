@@ -437,3 +437,10 @@ September 25 individual maximum correction: embedded database tests cover a revi
 `full-swing-session-bundle.test.ts` covers rebuilding generic/classified averages, maxima and denominators after individual source-cell removal, preserving unrelated readings and coordinates, contact/spatial-pair changes, Machine BP hitting-only handling, strict numerical payload validation and source partition checks. Session Library tests cover legacy/verified status, grouping, player links and bounded metadata reads. The publication migration suite checks transaction rollback, idempotent retries, stale revisions, full correction/restore, archived-coordinate protection and staff/Admin/Player access boundaries with fictional data.
 
 For a UI check, use a fictional original CSV in a separate local test environment: verify one final publish action, invalidation after pitch-label changes, visible unresolved-pitch counts, preserved source exclusions on reopen, correction acknowledgement and explicit identical-request retry. Never seed synthetic readings into the production team. PGlite checks SQL behavior but do not replace a live Supabase Auth/API integration check.
+
+## September 27 visual rebuild
+
+- `tests/correlation-map.test.ts`: exact pairing, source/unit isolation, date windows, N>=5, constant inputs, symmetry, excluded P95/count variables and identity-free scatter links.
+- `tests/ranking-spread.test.ts`: displayed-player median, signed/zero values, unavailable/constant distributions and proportional duplicate groups without lost players.
+- Home/profile focused suites cover role-safe shortcuts, numerical leaderboard bars, known denominators, source-specific comparison panels and Fall-only physicality radar.
+- Synthetic Vite preview harnesses outside Git exercise actual components without a backend. Inspect desktop and 390px screens in light/dark modes, interaction state, no viewport overflow, table-local scrolling and player/staff differences. Never take production numerical/player screenshots.
