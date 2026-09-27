@@ -4,7 +4,7 @@ import { ExitMeetingError, loadExitMeetingReport } from "@/lib/exit-meeting-serv
 import { ExitMeetingWorkspace } from "@/components/exit-meeting-workspace";
 import { notFound } from "next/navigation";
 
-export const metadata = { title: "Exit Meetings | PACU Baseball" };
+export const metadata = { title: "Exit Meetings" };
 export default async function ExitMeetingsPage({ searchParams }: { searchParams: Promise<{ athlete?: string }> }) {
   const access = await requireImportAccess();
   const [query, players] = await Promise.all([searchParams, loadStaffAthleteChoices(access)]);
