@@ -42,7 +42,9 @@ export async function createExitMeetingPdf(report: ExitMeetingReport, options: E
     const logoScale = 29 / 124;
     for (const svgPath of logoPaths) page.drawSvgPath(svgPath,{x:margin-124*logoScale,y:height-20-5*logoScale,scale:logoScale,color:colors.red});
     draw("PACU / BASEBALL PERFORMANCE",margin+36,22,8,true,colors.red);
-    draw(`${report.name} ${report.jersey} · ${label}`,margin+36,36,9,true);
+    const runningHeader = `${report.code} ${report.jersey} · ${label}`;
+    const runningSize = Math.min(9, (content-36) / bold.widthOfTextAtSize(textSafe(runningHeader), 1));
+    draw(runningHeader,margin+36,36,runningSize,true);
     line(60);
   }
   const ensure = (needed:number,label?:string) => { if(y+needed>730)newPage(label ?? `${activeSection} Continued`); };

@@ -1,7 +1,7 @@
 import { expect, it, vi } from "vitest";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, PDFPage } from "pdf-lib";
 vi.mock("server-only",()=>({}));
 import { createExitMeetingPdf } from "@/lib/exit-meeting-pdf";
 import type { ExitMeetingReport, ExitMeetingRow } from "@/lib/exit-meeting";
@@ -14,7 +14,10 @@ it("generates a real, paginated PDF with readable branded sections and no persis
  if(process.env.EXIT_MEETING_QA_DIR){await mkdir(process.env.EXIT_MEETING_QA_DIR,{recursive:true});await writeFile(path.join(process.env.EXIT_MEETING_QA_DIR,"fictional-exit-meeting.pdf"),bytes);}
 });
 it("handles long player names, unbroken notes, and a long table without clipping into another page",async()=>{
+ const drawn=vi.spyOn(PDFPage.prototype,"drawText");
  const long={...report,name:"Fictional Extremely Long Compound Player Name for Layout Verification",sections:[{id:"long",title:"Extended Fictional Measurement Report",subtitle:"Synthetic pagination stress test",rows:Array.from({length:70},(_,i)=>metric(`Long descriptive measurement label ${i+1} with an exceptionally extended name`,"1234.5 mph",i%100))}]};
  const bytes=await createExitMeetingPdf(long,{meetingDate:"2026-10-01",talkingPoints:"Word".repeat(400)});const pdf=await PDFDocument.load(bytes);expect(pdf.getPageCount()).toBeGreaterThan(8);expect(pdf.getPageCount()).toBeLessThan(25);
+ for(const [text,options] of drawn.mock.calls){if(options?.font&&options.x!==undefined&&options.y!==undefined&&options.size!==undefined){expect(options.x).toBeGreaterThanOrEqual(38);expect(options.x+options.font.widthOfTextAtSize(text,options.size)).toBeLessThanOrEqual(574.1);expect(options.y).toBeGreaterThanOrEqual(20);expect(options.y+options.size).toBeLessThanOrEqual(780);}}
+ drawn.mockRestore();
  if(process.env.EXIT_MEETING_QA_DIR)await writeFile(path.join(process.env.EXIT_MEETING_QA_DIR,"fictional-exit-meeting-stress.pdf"),bytes);
 });
