@@ -469,3 +469,8 @@ Pitch-label regression checks cover stable legacy coordinate indices, absence of
 ## September 28 derived game metrics
 
 `tests/advanced-game-stats.test.ts` checks HR counted once, conservative XBH treatment, pooled Production+ baseline, exact current snapshot checks, incomplete/invalid counts, zero-walk handling, fractional innings via outs, opportunity labels, and estimate-card rendering without a misleading 0–1 bar. `tests/game-database.test.ts` applies migration 202609280005 and compares SQL with JavaScript using fictional same-snapshot hitters and cumulative multi-week pitching. It checks preserved raw rows, invalid-XBH withholding, own-player access and narrow peer rankings. PGlite tests exercise SQL/RLS contracts, not hosted Supabase Auth/API behavior; verify the hosted migration and normal-session profile/leaderboard reads separately. Required release checks remain lint, typecheck, all tests and production build.
+
+
+## Advanced performance presentation
+
+Advanced-performance presentation checks in tests/advanced-performance-presentation.test.ts verify prominence before insights, two-way discipline separation, no duplicate advanced bars, sample denominators, missing/zero-walk/stale-snapshot withholding, advanced-first rankings and no fabricated aggregate Production+ index. Home tests verify advanced leader selection, classic fallback, unchanged narrow readers and PA/contact/walk/innings labels. Responsive visual checks use explicitly fictional values; live checks return structural counts only, with no roster or readings in screenshots.

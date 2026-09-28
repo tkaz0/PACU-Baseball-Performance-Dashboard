@@ -6,18 +6,13 @@ Personal and staff team Game Stats show stolen bases divided by plate appearance
 
 The individual ratio requires unique nonnegative counts from one athlete's current QPA snapshot and PA > 0. A missing denominator stays absent. Team SB/PA uses summed SB / summed PA, not an average of individual ratios, and requires complete constituent counts. No new stored measurements or database migration are introduced. The eight requested Analytics metrics and curated leaderboard/comparison RPCs remain unchanged; SB/PA currently has no new percentile projection.
 
-## Reviewed but not yet calculated
+## Available estimates and team-relative production
 
-The NWBB Stats glossary and Stat Leaders presentation were reviewed on September 13, 2026. Its division-calibrated weights, concise metric labels, and contextual explanations are useful references; its league/park calibration cannot simply be applied to Pacific Fall/intrasquad data.
+The September 28 owner clarification establishes HH Extra Base Hit as all doubles/triples, excluding Pumps (home runs). Base Hit includes every hit. The app now provides conservative **Est. SLG**, **Est. ISO**, **Est. wOBAcon**, and **PAC Production+ (Est.)**, with formulas, reference weights, validity guards and source permissions in [DATA_MODEL](DATA_MODEL.md#september-28-estimated-hitting-value-and-pitching-efficiency).
 
-| Metric | Additional source requirements |
-| --- | --- |
-| ISO / SLG / OPS | Complete doubles and triples; total hits and HR alone do not determine total bases. |
-| wOBA | Complete 1B/2B/3B/HR outcomes, BB/HBP and denominators, an intentional-walk convention, and documented weights appropriate to the chosen reference context. |
-| wOBAcon | Complete contact outcomes and a documented contact denominator/weights. It excludes walks and strikeouts; it cannot be inferred from hard-hit categories. |
-| wRC+ | Valid weighted offense plus a suitable comparison league/run environment and a documented park/context adjustment. A team-relative index would need a distinct name and explicit methodology. |
+These metrics lead Overview, Home summaries and game rankings. The team-relative index uses a pooled eligible-team reference of 100, not a calibrated runs-created model. Combined doubles/triples are treated as doubles; no triple share is invented. Est. wOBAcon measures recorded contact outcomes, not expected contact quality or luck adjustment. Existing Full Swing exit velocity, hard-hit and launch-angle charts provide separate evidence about contact.
 
-QPA's Base Hit is all hits, Pumps is HR, and the hard-hit columns overlap hitting outcomes. None may be reinterpreted as complete singles/doubles/triples. The added Sac Fly column supports OBP under the existing count-consistency check but does not fill missing hit types. No guessed weighted metric is shown in the app.
+Exact SLG/ISO/OPS and wOBA need the double/triple split and verified outcome conventions. True wRC+ additionally needs appropriate league/run/park context. No local expected-contact model is implied. The NWBB Stats glossary and Stat Leaders remain presentation references; their division calibration cannot simply be copied into Pacific Fall/intrasquad data.
 
 References:
 

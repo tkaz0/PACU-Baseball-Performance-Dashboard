@@ -1,3 +1,5 @@
+import { AdvancedGameCards } from "@/components/advanced-game-cards";
+import { isAdvancedGameMetric } from "@/lib/advanced-game-presentation";
 import { pitchSourceLabel } from "@/lib/pitch-display";
 import { HittingTeamAverageLine } from "@/components/hitting-team-average";
 import { hittingTeamAverage, type HittingTeamAverage } from "@/lib/hitting-team-averages";
@@ -114,6 +116,7 @@ export function PlayerOverview({ cards, gameStats = [], gameComparisons = [], sh
   const trends = profileTrends([...physicality, ...testing]);
   return <section aria-label="Player overview" className={styles.overview} data-testid="player-overview">
     <div className={overview.snapshotHeader}><div className={overview.snapshotIntro}><h2 className="m-0 text-xl font-bold tracking-tight">Performance Snapshot</h2><p className="mb-0 mt-1.5 text-sm leading-6 text-[var(--text-secondary)]">{games.length ? "Your latest tests and Fall game stats, alongside the Pacific team." : bodyResultsOnly ? comparisonCards.length ? "Your latest body results compared with the team. More highlights will appear as testing continues." : "Your body results are in Physicality. More highlights will appear as testing continues." : "Where you stand now and how you have changed since earlier tests."}</p></div>{(lastTested || games.length > 0) && <dl className={overview.snapshotFacts}><div><dt className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Stats Available</dt><dd className="m-0 mt-1 font-bold tabular-nums">{availableCards.length + games.length}</dd></div>{lastTested && <div><dt className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Last Tested</dt><dd className="m-0 mt-1 font-semibold"><time dateTime={lastTested}>{leaderboardTestDate(lastTested)}</time></dd></div>}{games.length > 0 && <div><dt className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Game Stats Updated</dt><dd className="m-0 mt-1 font-semibold">{leaderboardTestDate(gameDate(games.map(g=>g.updatedAt).sort().at(-1)!))}</dd></div>}</dl>}</div>
+    <AdvancedGameCards metrics={games}/>
     <div className={overview.insights}>
       {[
         { title: "Strengths", icon: TrendingUp, items: strengths, note: "Results in the top quarter of the team", empty: "No results are in the top quarter right now." },
@@ -138,14 +141,14 @@ export function PlayerOverview({ cards, gameStats = [], gameComparisons = [], sh
       <header className={overview.boardHeader}><div><ChartNoAxesCombined size={20} aria-hidden="true"/><h2>Team Comparison Board</h2></div><PercentileLegend/></header>
       {(physicality.some(card=>card.latest) || games.length > 0) && <div className={overview.primaryComparisons} data-has-body={physicality.some(card=>card.latest)} data-has-games={games.length>0}>
         {physicality.some(card=>card.latest) && <div className={overview.physicalityComparison}>{hasPhysicalityRadar ? <PhysicalityRadar cards={physicality}/> : <TestingComparisons teamAverages={teamAverages} title="Physicality" cards={physicality.filter(card => card.latest)}/>}</div>}
-        <GameComparisons metrics={games}/>
+        <GameComparisons metrics={games.filter(item => !isAdvancedGameMetric(item.metric))}/>
       </div>}
       {testingGroups.length > 0 && <div className={overview.testingCards} aria-label="Testing percentiles">{testingGroups.map(group=><TestingComparisons key={group.id} teamAverages={teamAverages} title={group.title} context={group.context} cards={group.cards}/>)}</div>}
     </section>}
     {trends.length > 0 && <details className={overview.moreTesting}><summary>Testing Trends <ChevronDown size={16} aria-hidden="true"/></summary><ProfileTrendChart series={trends}/></details>}
     {showMethods && <details className="group border-t border-[var(--line-subtle)] pt-4 text-xs text-[var(--text-secondary)]"><summary className="flex min-h-8 w-fit cursor-pointer list-none items-center gap-2 font-semibold">How These Highlights Work<ChevronDown size={14} className="transition-transform group-open:rotate-180" aria-hidden="true" /></summary>
       <div className="mt-3 max-w-3xl space-y-2 leading-relaxed">
-        <p>Strengths are in the top quarter of the Pacific team; areas to work on are in the bottom quarter. Testing comparisons use the same test, source, unit and period; game comparisons use the same current cumulative QPA or pitching snapshot, with at least five comparable players. Game highlights use batting rates and pitching K/9, BB/9, Runs/9 and Strike %, with opportunity counts and limited-sample labels. Lower batting K % is favorable. Playing-time totals do not decide strengths or areas to work on. Up to three results appear in each section.</p>
+        <p>Strengths are in the top quarter of the Pacific team; areas to work on are in the bottom quarter. Testing comparisons use the same test, source, unit and period; game comparisons use the same current cumulative QPA or pitching snapshot, with at least five comparable players. Game highlights include advanced production rates, WHIP, K/BB, K/9, BB/9, Runs/9 and Strike %, with opportunity counts and limited-sample labels. Lower batting K % is favorable. Playing-time totals do not decide strengths or areas to work on. Up to three results appear in each section.</p>
         <p>Biggest jumps compare the latest result with the previous testing date for the same measurement, source, unit and period. Gains are ordered by relative percentage improvement; higher or lower values count as improvement according to the test. A percentage improvement is relative to the previous value, not a percentage-point change. Displayed improvement percentages are rounded to one decimal.</p>
         <p>Body fat ranks lower percentages higher, matching the leaderboard. Height, weight, body composition and fastball spin stay descriptive throughout the profile. They are not labeled strengths, weaknesses or improvements. These highlights summarize current recorded results, not a prediction. Cumulative game snapshots do not establish biggest jumps.</p>
       </div>

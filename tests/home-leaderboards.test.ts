@@ -44,4 +44,17 @@ describe("home leaderboard cards", () => {
     expect(board.rows[1].sample).toBeUndefined();
   });
 
+  it("labels advanced samples with their actual PA, contact, walk or innings basis", () => {
+    for (const [metric, source, count, expected] of [
+      ["batting_production_plus", "qpa_fall_2026", 30, "30 PA"],
+      ["batting_est_wobacon", "qpa_fall_2026", 23, "23 contacts"],
+      ["pitching_k_bb", "pitching_fall_2026", 4, "4 walks"],
+      ["pitching_whip", "pitching_fall_2026", 20, "6.2 IP"],
+    ] as const) {
+      const eventId = source === "qpa_fall_2026" ? "" : "fall-2026-cumulative";
+      const board = homeGameBoard("advanced", "Advanced", "Advanced", "/leaderboards", [{ ...game(metric, eventId, 1, null), source, opportunities: count }], source, eventId, metric, null);
+      expect(board.rows[0].sample).toBe(expected);
+    }
+  });
+
 });

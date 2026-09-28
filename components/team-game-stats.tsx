@@ -18,19 +18,21 @@ function Metric({ metric }: { metric: TeamGameMetric }) {
 export function TeamGameStats({ stats, names }: { stats: SharedGameStat[]; names: Map<string, string> }) {
   const batting = teamGameSummary(stats, "qpa_fall_2026"), pitching = teamGameSummary(stats, "pitching_fall_2026");
   const playerIds = [...new Set(stats.map(r => r.athlete_id))].sort((a, b) => (names.get(a) ?? "").localeCompare(names.get(b) ?? ""));
+  const primaryBattingKeys=["batting_est_slg","batting_est_iso","batting_est_wobacon","batting_hh_pct","batting_bb_pct","batting_k_pct"];
+  const primaryPitchingKeys=["pitching_k_bb","pitching_k9","pitching_bb9","pitching_whip"];
   const pending = [...batting.counts, ...batting.rates, ...pitching.counts, ...pitching.rates].some(m => m.pending);
   return <div className="space-y-6">
     <section className="panel p-5 sm:p-6" aria-label="Team batting statistics">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-2"><div><h2 className="m-0 text-xl font-bold">Team Batting</h2><p className="muted mb-0 mt-1 text-xs">Hitting · Fall 2026 · Cumulative{batting.players > 0 && ` · ${batting.players} ${batting.players === 1 ? "player" : "players"} with recorded results`}</p></div>{batting.updatedAt && <p className="muted m-0 text-xs">Updated {updated(batting.updatedAt)}</p>}</div>
       {!batting.entries ? <p className="muted text-sm">Team batting totals will appear after the first verified QPA update.</p> : <>
-        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">{batting.rates.slice(0, 6).map(m => <Metric key={m.metric} metric={m}/>)}</dl>
-        <dl className="team-game-counts">{batting.counts.filter(m=>["pa","pumps","rbi","sb"].includes(m.metric)).map(m=><div key={m.metric}><dt>{m.label}<StatInfo metric={m.metric} label={m.label}/></dt><dd>{formatTeamGameMetric(m)}</dd></div>)}</dl>
-        <details className="team-game-more"><summary>More Team Totals &amp; Rates</summary><dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">{[...batting.counts.filter(m=>!["pa","pumps","rbi","sb"].includes(m.metric)), ...batting.rates.slice(6)].map(m => <Metric key={m.metric} metric={m}/>)}</dl></details>
+        <h3 className="mb-3 text-sm font-bold">Advanced Hitting</h3><p className="muted mb-4 text-xs leading-5">Power, contact, and approach. Estimates count doubles/triples as doubles; these are recorded results, not luck-adjusted predictions.</p><dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">{primaryBattingKeys.flatMap(key=>batting.rates.filter(m=>m.metric===key)).map(m => <Metric key={m.metric} metric={m}/>)}</dl>
+        <dl className="team-game-counts">{[...batting.rates.filter(m=>["batting_avg","batting_obp","qpa_pct"].includes(m.metric)),...batting.counts.filter(m=>["pa","pumps","rbi","sb"].includes(m.metric))].map(m=><div key={m.metric}><dt>{m.label}<StatInfo metric={m.metric} label={m.label}/></dt><dd>{formatTeamGameMetric(m)}</dd></div>)}</dl>
+        <details className="team-game-more"><summary>More Team Totals &amp; Rates</summary><dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">{[...batting.counts.filter(m=>!["pa","pumps","rbi","sb"].includes(m.metric)), ...batting.rates.filter(m=>![...primaryBattingKeys,"batting_avg","batting_obp","qpa_pct"].includes(m.metric))].map(m => <Metric key={m.metric} metric={m}/>)}</dl></details>
       </>}
     </section>
     <section className="panel p-5 sm:p-6" aria-label="Team pitching statistics">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-2"><div><h2 className="m-0 text-xl font-bold">Team Pitching</h2><p className="muted mb-0 mt-1 text-xs">Pitching · Fall 2026 · Cumulative{pitching.entries > 0 && ` · ${pitching.players} ${pitching.players === 1 ? "pitcher" : "pitchers"} · ${pitching.games} recorded ${pitching.games === 1 ? "period" : "periods"}`}</p></div>{pitching.updatedAt && <p className="muted m-0 text-xs">Updated {updated(pitching.updatedAt)}</p>}</div>
-      {!pitching.entries ? <p className="muted mb-0 text-sm">No pitching stats yet. Team totals will appear after coaches add the next Fall sheet update.</p> : <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">{[...pitching.rates, ...pitching.counts].map(m => <Metric key={m.metric} metric={m}/>)}</dl>}
+      {!pitching.entries ? <p className="muted mb-0 text-sm">No pitching stats yet. Team totals will appear after coaches add the next Fall sheet update.</p> : <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">{[...primaryPitchingKeys.flatMap(key=>pitching.rates.filter(m=>m.metric===key)),...pitching.rates.filter(m=>!primaryPitchingKeys.includes(m.metric)), ...pitching.counts].map(m => <Metric key={m.metric} metric={m}/>)}</dl>}
     </section>
     {pending && <p className="notice text-sm">A few game-sheet counts need a coach to check them. The other stats are still available. <Link prefetch={false} href="/game-stats/review" className="text-link">Open Data Review</Link></p>}
     {playerIds.length > 0 && <details className="panel p-5 sm:p-6"><summary className="cursor-pointer font-semibold">Player Breakdown · {playerIds.length} Players</summary>

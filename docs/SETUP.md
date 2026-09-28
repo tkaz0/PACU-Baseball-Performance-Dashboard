@@ -435,3 +435,8 @@ The owner clarified that **HH Extra Base Hit is every double/triple, excluding P
 **WHIP** = 3×(hits + outcome walks) / exact outs, excluding HBP. **K/BB** = strikeouts / outcome walks, withheld at zero walks rather than represented as infinity. All pitching projections sum complete counts from distinct reviewed periods, preserving the existing weekly/dates overlap guard. Missing or inconsistent inputs withhold affected rates. Estimated power rates may exceed 1; never clip them to a 0–1 progress bar. Team summaries pool counts, staff comparisons use the eligible source projection, and players receive only their own summaries plus the existing narrow ranking projection. Percentiles need five comparable players; rankings remain inclusive with existing sample labels.
 
 Deploy compatible application readers **before** applying `supabase/migrations/202609280005_advanced_game_rates.sql`. It replaces read-only rank functions; no source data, RLS, account grants or import permissions change. Profiles, overviews, comparisons, exit reports and rankings share the same definitions. Pitching Analytics includes WHIP and K/BB; the owner's eight QPA Analytics choices stay unchanged. FIP remains withheld because HR allowed and a verified local run-scale constant are unavailable.
+
+
+## Advanced performance presentation
+
+The advanced-performance presentation requires no additional migration, key or access change after migration 202609280005 is live. Home reuses the existing narrow signed-in leaderboard readers; no peer raw-profile request is added. Deploy the application normally and verify the own-player, staff and two-way layouts, denominators, missing-data fallback and mobile width.

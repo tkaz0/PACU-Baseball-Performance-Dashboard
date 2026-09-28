@@ -1,0 +1,21 @@
+.section { min-width:0; padding:20px; border:1px solid var(--line-subtle); border-top:3px solid var(--accent-readable); border-radius:16px; background:var(--surface-panel); }
+.heading { display:flex; flex-wrap:wrap; align-items:start; justify-content:space-between; gap:12px; }
+.heading h2 { margin:0; font-size:20px; font-weight:800; letter-spacing:-.025em; }
+.heading p { margin:6px 0 0; font-size:12px; line-height:1.6; color:var(--text-secondary); }
+.heading > span { font-size:10px; font-weight:650; padding:6px 9px; border:1px solid var(--line-subtle); border-radius:8px; color:var(--text-secondary); }
+.discipline { min-width:0; margin-top:18px; }
+.discipline + .discipline { padding-top:18px; border-top:1px solid var(--line-subtle); }
+.discipline h3 { margin:0 0 10px; font-size:13px; font-weight:750; }
+.groupHeading { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:8px; }
+.groupHeading > span { font-size:10px; color:var(--text-secondary); }
+.cards { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:0; }
+.card { min-width:0; padding:15px; border:1px solid var(--line-subtle); border-radius:12px; background:var(--surface-raised); }
+.card dt { min-height:34px; font-size:12px; font-weight:650; line-height:1.5; overflow-wrap:anywhere; }
+.card dd { margin:5px 0 0; }
+.value { display:block; font-size:clamp(28px,3vw,36px); font-weight:850; line-height:1.2; letter-spacing:-.04em; font-variant-numeric:tabular-nums; }
+.cue { min-height:30px; margin:8px 0 0; font-size:10px; line-height:1.5; color:var(--text-secondary); }
+.percentile { margin-top:15px; }
+.percentile > span,.missing { display:block; margin:7px 0 0; color:var(--text-secondary); font-size:10px; line-height:1.5; }
+.note { max-width:90ch; margin:12px 0 0; font-size:11px; line-height:1.7; color:var(--text-secondary); }
+@media(max-width:850px) { .cards { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:480px) { .section { padding:15px; } .cards { gap:9px; } .card { padding:11px; } .card dt { font-size:11px; } }
