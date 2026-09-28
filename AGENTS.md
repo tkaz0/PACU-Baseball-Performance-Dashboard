@@ -18,6 +18,8 @@ September 22 hitter contact map: only the exact reviewed Full Swing Field / Live
 
 # PACU project rules
 
+September 27 full pitching arsenal update supersedes the earlier latest-date-only profile display and single-pitch default: profiles and staff comparison show every recorded staff-classified Fall pitch, grouped by exact Game/Intrasquad/Practice source. Average velocity/spin use their own verified per-file reading counts; saved maximums use the Fall best. Label a verified latest-average fallback and never invent a missing pitch or spin value. Only authorized own-athlete profile data or the staff-scoped comparison reader supplies these summaries. File identities used for grouping stay on the comparison server. Pitching leaderboards default to All Pitches and retain a specific-pitch selector; preserve existing source partitions, mean references, ranks, samples and peer-link restrictions. One decimal for displayed Full Swing results; calculations retain full precision.
+
 This is Trevor Kazahaya's independently owned personal project for Pacific Baseball players and coaches. It is not an official university application. Preserve existing work and keep changes within the explicitly requested phase.
 
 - Stack: Next.js App Router, TypeScript, Tailwind, Supabase Auth/PostgreSQL, Vercel. Use the lockfile and current official documentation.

@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { PlayerPerformanceProfile } from "@/components/player-performance-profile";
 import { getPlayerPerformance } from "@/lib/player-performance";
-import { getPlayerProfileLayout } from "@/lib/player-profile-layout";
+import { getPlayerProfileLayout, withoutUnclassifiedPitchVelocity } from "@/lib/player-profile-layout";
 import type { RosterAthlete } from "@/lib/types";
 import type { Measurement } from "@/lib/imports/engine";
 function fictionalAthlete(playerType: string | null,primary: string|null="CF",secondary:string|null=null): RosterAthlete {
@@ -113,4 +113,51 @@ it("shows earlier in-game readings separately from newer practice readings and c
  const panels=html.split('role="tabpanel"');
  expect(panels[3]).toContain('data-value="85"');expect(panels[3]).not.toContain('data-value="95"');expect(panels[3]).toContain("Fictional cumulative stats");
  expect(panels[4]).toContain('data-value="95"');expect(panels[4]).not.toContain('data-value="85"');expect(panels[4]).not.toContain("Fictional cumulative stats");
+});
+
+it("prioritizes a full Fall arsenal in pitcher Overview and hides only broad Full Swing velocity in the matching context", () => {
+ const classified = [
+  ["Pitch Type Average Velocity",81.123,"mph"], ["Pitch Type Max Velocity",84.456,"mph"], ["Pitch Type Velocity Readings",5,"count"],
+  ["Pitch Type Average Spin",2001.234,"rpm"], ["Pitch Type Max Spin",2100.123,"rpm"], ["Pitch Type Spin Readings",3,"count"], ["Pitch Type Count",6,"count"],
+ ].map(([metric,value,unit])=>({...measurement(String(metric),Number(value),String(unit),"2026-09-11"),source:"Full Swing · Intrasquad · Fastball"}));
+ const genericGame={...measurement("Max Velocity",85,"mph","2026-09-11"),source:"Full Swing · Intrasquad"};
+ const genericPractice={...measurement("Max Velocity",86,"mph","2026-09-12"),source:"Full Swing · Practice"};
+ const manual={...measurement("Max Velocity",87,"mph","2026-09-13"),source:"Fictional manual testing"};
+ const readings=[...classified,genericGame,genericPractice,manual];
+ const performance=model(readings),original=structuredClone(performance);
+ const html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete:fictionalAthlete("pitcher","P"),performance,blastReadings:readings}));
+ const panels=html.split('role="tabpanel"');
+ expect(panels[1]).toContain("Full Pitch Arsenal");expect(panels[1]).toContain("Fastball");expect(panels[1]).toContain("81.1");expect(panels[1]).toContain("2100.1");
+ expect(panels[1]).not.toContain('data-value="85"');expect(panels[3]).not.toContain('data-value="85"');
+ expect(panels[3]).toContain("Pitch Mix");expect(panels[3]).not.toContain("No in-game results");
+ expect(panels[4]).toContain('data-value="86"');expect(panels[4]).toContain('data-value="87"');
+ expect(performance).toEqual(original);
+});
+
+it("does not render pitcher result slots for a position-only profile", () => {
+ const props={performance:model(),pitchResults:createElement("p",null,"Fictional in-game arsenal"),practicePitchResults:createElement("p",null,"Fictional practice arsenal")};
+ const position=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{...props,athlete:fictionalAthlete("position")}));
+ expect(position).not.toContain("Fictional in-game arsenal");expect(position).not.toContain("Fictional practice arsenal");
+ const twoWay=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{...props,athlete:fictionalAthlete("two_way")}));
+ expect(twoWay).toContain("Fictional in-game arsenal");expect(twoWay).toContain("Fictional practice arsenal");
+});
+
+it.each(["Game", "Intrasquad", "Practice"] as const)("replaces only the exact %s broad velocity source when that classified arsenal exists", category => {
+ const sources=["Full Swing · Game","Full Swing · Intrasquad","Full Swing · Practice","Full Swing · Pitching","Fictional manual testing"];
+ const performance=model(sources.map((source,index)=>({...measurement("Max Velocity",80+index,"mph",`2026-09-${11+index}`),source})));
+ const original=structuredClone(performance), filtered=withoutUnclassifiedPitchVelocity(performance,[{category,average:true,maximum:true}]);
+ const remaining=filtered.pitching.flatMap(card=>card.sourceCards??[card]).flatMap(card=>card.latest?[card.latest.source]:[]);
+ expect(remaining).not.toContain(`Full Swing · ${category}`);
+ for(const source of sources.filter(source=>source!==`Full Swing · ${category}`))expect(remaining).toContain(source);
+ expect(performance).toEqual(original);
+});
+
+it.each(["average", "maximum"] as const)("keeps the uncovered broad velocity statistic when only classified %s is available", available => {
+ const performance=model([
+  {...measurement("Average Velocity",81,"mph","2026-09-11"),source:"Full Swing · Intrasquad"},
+  {...measurement("Max Velocity",85,"mph","2026-09-11"),source:"Full Swing · Intrasquad"},
+ ]);
+ const filtered=withoutUnclassifiedPitchVelocity(performance,[{category:"Intrasquad",average:available==="average",maximum:available==="maximum"}]);
+ expect(filtered.pitching.find(card=>card.metric.key==="avg_pitch_velocity")?.latest?.value??null).toBe(available==="average"?null:81);
+ expect(filtered.pitching.find(card=>card.metric.key==="max_pitch_velocity")?.latest?.value??null).toBe(available==="maximum"?null:85);
 });

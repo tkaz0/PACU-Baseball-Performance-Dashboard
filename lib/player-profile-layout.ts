@@ -15,6 +15,7 @@ function testingRole(season?: AthleteSeason | null) {
 }
 /** Same role rule for loading only the sections the profile can display. */
 export function profileShowsHitting(season?: AthleteSeason | null) { return testingRole(season).positionTesting; }
+export function profileShowsPitching(season?: AthleteSeason | null) { return testingRole(season).pitches; }
 /** Filter profile history only; saved speed readings and team comparisons stay unchanged. */
 export function profileMeasurementVisible(reading: { metric: string; unit: string }, season?: AthleteSeason | null): boolean {
   const key = normalizePlayerMetric(reading.metric, reading.unit)?.key ?? "";
@@ -66,4 +67,17 @@ export function withoutWeeklyBlastCards(performance: PlayerPerformance): PlayerP
     return {...(latest??card),latest:latest?.latest??null,sourceCards:sources,history:latest?.history??[],percentile:latest?.percentile??null};
   });
   return {...performance,hitting:filter(performance.hitting)};
+}
+
+/** Replace only the exact broad source and velocity statistic covered by an arsenal. */
+export function withoutUnclassifiedPitchVelocity(performance: PlayerPerformance, coverage: readonly { category: "Game" | "Intrasquad" | "Practice"; average: boolean; maximum: boolean }[]): PlayerPerformance {
+  const pitching = performance.pitching.map(card => {
+    if (!["max_pitch_velocity", "avg_pitch_velocity"].includes(card.metric.key)) return card;
+    const sourcesWithArsenal = new Set(coverage.filter(source => card.metric.key === "avg_pitch_velocity" ? source.average : source.maximum).map(source => `Full Swing · ${source.category}`));
+    const sources = (card.sourceCards ?? [card]).filter(source => !source.latest || !sourcesWithArsenal.has(source.latest.source));
+    if (!card.sourceCards && sources.length) return card;
+    const latest = sources.filter(source => source.latest).sort((a, b) => b.latest!.measuredAt.localeCompare(a.latest!.measuredAt))[0];
+    return { ...(latest ?? card), latest: latest?.latest ?? null, sourceCards: sources, history: latest?.history ?? [], percentile: latest?.percentile ?? null };
+  });
+  return { ...performance, pitching };
 }

@@ -11,6 +11,8 @@ import { requireRenderImportAccess as requireImportAccess } from "@/lib/render-a
 import { UUID_PATTERN } from "@/lib/types";
 import { analyticsReadingVisible } from "@/lib/analytics";
 import type { AnalyticsDataset, AnalyticsPlayer, AnalyticsReading } from "@/lib/analytics";
+import { classifiedPitchSource, CLASSIFIED_METRICS } from "@/lib/imports/classified-pitch-results";
+import { fallArsenalPitches, type ArsenalReading } from "@/lib/pitch-arsenal";
 
 const fail=():never=>{throw new Error("Analytics data could not be verified. Refresh to load the current measurements.");};
 const text=(v:unknown,n=120):v is string=>typeof v==="string"&&v.length>0&&v.length<=n&&!/[\u0000-\u001f\u007f]/.test(v);
@@ -34,7 +36,7 @@ export async function analyticsPages<T>(request:(from:number,to:number)=>Promise
   }
   return rows;
 }
-async function loadTeamSource(includeFullRoster=false, includeGames=true){
+async function loadTeamSource(includeFullRoster=false, includeGames=true, includeArsenal=false){
   // Fresh trusted account check also denies Admin-as-Player before any team query.
   const access=await requireImportAccess();
   const {supabase}=access;
@@ -46,13 +48,20 @@ async function loadTeamSource(includeFullRoster=false, includeGames=true){
   const eligible=players.filter(p=>includeFullRoster||p.status===null||p.status==="active"||p.status==="redshirt");
   if(new Set(players.map(p=>p.id)).size!==players.length)return fail();
   const readings:AnalyticsReading[]=[];
-  for(let start=0;start<eligible.length;start+=100){const ids=eligible.slice(start,start+100).map(p=>p.id);const page=await analyticsPages((from,to)=>supabase.from("performance_measurements").select("observation_id,athlete_id,metric_key,metric,unit,value,measured_at,source,imported_at",{count:"exact"}).in("athlete_id",ids).gte("measured_at","2026-06-01").lte("measured_at","2026-12-31").order("observation_id").range(from,to),row=>{
+  // File identity stays server-side and is selected only for the staff comparison.
+  const arsenalReadings: (ArsenalReading & { athleteId:string })[]=[];
+  const fields="observation_id,athlete_id,metric_key,metric,unit,value,measured_at,source,imported_at"+(includeArsenal?",file_hash":"");
+  for(let start=0;start<eligible.length;start+=100){const ids=eligible.slice(start,start+100).map(p=>p.id);const page=await analyticsPages((from,to)=>supabase.from("performance_measurements").select(fields,{count:"exact"}).in("athlete_id",ids).gte("measured_at","2026-06-01").lte("measured_at","2026-12-31").order("observation_id").range(from,to),row=>{
     if(!object(row)||!text(row.observation_id,2000)||!text(row.athlete_id)||!ids.includes(row.athlete_id)||!text(row.metric_key)||!text(row.metric,300)||!text(row.unit,80)||!text(row.source,100)||typeof row.value!=="number"||!Number.isFinite(row.value)||(row.value<0&&!validBlastObservation(row.metric_key,row.value,row.unit,row.source,row.measured_at as string))||!text(row.measured_at)||!/^2026-\d{2}-\d{2}$/.test(row.measured_at)||!Number.isFinite(Date.parse(row.measured_at))||new Date(row.measured_at).toISOString().slice(0,10)!==row.measured_at||!text(row.imported_at)||!Number.isFinite(Date.parse(row.imported_at)))return fail();
+    if(includeArsenal && classifiedPitchSource(row.source)) {
+      if(typeof row.file_hash!=="string"||!/^[a-f0-9]{64}$/.test(row.file_hash)||!CLASSIFIED_METRICS.some(m=>m.key===row.metric_key&&m.label===row.metric&&m.unit===row.unit))return fail();
+      arsenalReadings.push({athleteId:row.athlete_id,source:row.source,metric:row.metric,unit:row.unit,value:row.value,measured_at:row.measured_at,file_hash:row.file_hash});
+    }
     return {id:row.observation_id,athleteId:row.athlete_id,metric:row.metric_key,label:row.metric,unit:row.unit,value:row.value,date:row.measured_at,source:row.source,importedAt:row.imported_at};
   },20000);readings.push(...page);if(readings.length>20000)return fail();}
   if(new Set(readings.map(r=>r.id)).size!==readings.length)return fail();
   const games=gameRows.filter(row=>eligible.some(player=>player.id===row.athlete_id));
-  return {players:eligible.map(p=>({id:p.id,code:p.code,name:p.name,academicClass:p.academicClass,position:p.position,secondaryPosition:p.secondaryPosition,playerType:p.playerType,bats:p.bats,throws:p.throws})).sort((a,b)=>a.name.localeCompare(b.name)),readings,games};
+  return {players:eligible.map(p=>({id:p.id,code:p.code,name:p.name,academicClass:p.academicClass,position:p.position,secondaryPosition:p.secondaryPosition,playerType:p.playerType,bats:p.bats,throws:p.throws})).sort((a,b)=>a.name.localeCompare(b.name)),readings,games,arsenalReadings};
 }
 export async function loadAnalytics():Promise<AnalyticsDataset>{
   const data=await loadTeamSource();
@@ -65,8 +74,10 @@ export async function loadCoachingData(){
 
 /** Staff comparison can select any current-season roster identity, even without results. */
 export async function loadComparisonData(){
-  const data=await loadTeamSource(true);
-  return {players:data.players,readings:data.readings.filter(coachingReadingVisible),games:coachingGames(data.games)};
+  const data=await loadTeamSource(true,true,true);
+  const today=pacificTestingDate();
+  const arsenals=data.players.map(player=>({athleteId:player.id,pitches:fallArsenalPitches(data.arsenalReadings.filter(row=>row.athleteId===player.id),today)})).filter(row=>row.pitches.length>0);
+  return {players:data.players,readings:data.readings.filter(coachingReadingVisible),games:coachingGames(data.games),arsenals};
 }
 
 /** Coverage projects only identities, metric availability and dates to the client. */

@@ -3,10 +3,11 @@ import { isTimedMetric, PLAYER_METRICS, validatePlayerMetricValue } from "@/lib/
 import { formatHeight, formatMetricNumber, isBatSpeedMetric } from "@/lib/measurement-display";
 import { gameOverviewMetrics, type GameOverviewMetric } from "@/lib/game-overview";
 import type { SharedGameStat } from "@/lib/game-server";
+import type { FallArsenalPitch } from "@/lib/pitch-arsenal";
 
 export type CoachingPlayer = AnalyticsPlayer & { secondaryPosition?: string };
 export type CoachingGame = Omit<GameOverviewMetric,"comparison"> & { athleteId:string; snapshotId:string };
-export type CoachingData = { players:CoachingPlayer[]; readings:AnalyticsReading[]; games:CoachingGame[] };
+export type CoachingData = { players:CoachingPlayer[]; readings:AnalyticsReading[]; games:CoachingGame[]; arsenals?: { athleteId:string; pitches:FallArsenalPitch[] }[] };
 export type CoachingCategory = "Physicality" | "Hitting" | "Throwing";
 export const COACHING_CATEGORIES:CoachingCategory[] = ["Physicality","Hitting","Throwing"];
 export const COACHING_METRICS = PLAYER_METRICS.filter(m=>!["skeletal_muscle_mass","muscle_mass_pct"].includes(m.key));

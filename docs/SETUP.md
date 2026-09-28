@@ -413,3 +413,6 @@ The September 27 rebuild is an application deployment only; it requires no addit
 
 
 The follow-up performance release also needs no schema or environment change. It uses request-scoped React memoization on selected read pages only, bounded concurrent data reads, and memoized chart computations. Public brand and packaged report-worker assets bypass session middleware and retain normal static-asset caching; dashboard routes still use private no-store responses. See `docs/PERFORMANCE.md`.
+
+
+The September 27 full-arsenal display update requires no new migration or environment setting. It consumes existing classified readings and the installed Fall leaderboard aggregation. Profiles remain own-player/staff only, comparison remains staff-only, and the approved narrow team leaderboard projection is unchanged.

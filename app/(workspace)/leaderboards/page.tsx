@@ -4,7 +4,7 @@ import { requireRenderAccess as requireAccess } from "@/lib/render-access";
 import { PageHeading } from "@/components/page-heading";
 import { LeaderboardBoard } from "@/components/leaderboard-board";
 import { loadLeaderboard, loadLeaderboardComparisons } from "@/lib/leaderboard-server";
-import { LEADERBOARD_GROUPS, selectPitchLeaderboards, visibleLeaderboardComparisons } from "@/lib/leaderboards";
+import { LEADERBOARD_GROUPS, loadLeaderboardPanels, selectPitchLeaderboards, visibleLeaderboardComparisons } from "@/lib/leaderboards";
 
 export default async function LeaderboardsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const access = await requireAccess(["admin", "coach", "player"]);
@@ -15,6 +15,6 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
   const comparisons = visibleLeaderboardComparisons(group, await loadLeaderboardComparisons(access), session);
   const pitchSelection = selectPitchLeaderboards(comparisons, typeof query.pitch === "string" ? query.pitch : undefined);
   const selected = group === "pitching" ? pitchSelection.comparisons : comparisons;
-  const panels = await Promise.all(selected.map(async comparison => ({ comparison, rows: await loadLeaderboard(access, comparison) })));
+  const panels = await loadLeaderboardPanels(selected, comparison => loadLeaderboard(access, comparison));
   return <><PageHeading section="Pacific Baseball / Team Results" title="Leaderboards" description="Fall 2026 · Recorded team results." /><LeaderboardBoard group={group} panels={panels} session={session} pitches={pitchSelection.pitches} selectedPitch={pitchSelection.selectedPitch} /></>;
 }

@@ -51,16 +51,17 @@ it("requires the classified source, Fall date, correct units and integer counts"
  const rows=prepareClassifiedPitchResults(session,labels,context);
  for(const changes of [{source:"Full Swing"},{measured_at:"2026-08-11"},{unit:"ft"},{metric:"pitch type count",unit:"count",value:1.5}])expect(()=>prepareReviewedPerformanceRows([{...rows[0],...changes}])).toThrow();
 });
-it("renders four one-decimal results, sample sizes and separate sessions for the latest actual date",()=>{
+it("renders the full visible Fall arsenal with four one-decimal results and exact sample sizes",()=>{
  const rows=prepareClassifiedPitchResults(session,labels,context);
- const earlier=rows.map(r=>({...r,measured_at:"2026-09-10",source_file:"Old fictional session.csv"}));
+ const earlier=rows.map(r=>({...r,file_hash:"b".repeat(64),measured_at:"2026-09-10",source_file:"Old fictional session.csv"}));
  const html=renderToStaticMarkup(createElement(ClassifiedPitchResults,{readings:[...rows,...earlier]}));
- for(const text of ["81.3","82.5","2050.3","2100.5","n=2","Fastball","Slider"])expect(html).toContain(text);
+ for(const text of ["81.3","82.5","2050.3","2100.5","n=4","Fastball","Slider"])expect(html).toContain(text);
  expect(html).not.toContain("82.456");expect(html).not.toContain("Old fictional");expect(html).not.toContain("Fictional Excluded");
  expect(html).toContain("Pitch Arsenal");expect(html).toContain("Pitch Mix");
  expect(html).toContain('aria-label="About Pitch Arsenal chart"');expect(html).toContain('aria-label="About Pitch Mix chart"');
  expect(html).toContain("Average velocity (mph)");expect(html).toContain("Average spin (RPM)");
- expect(html).toContain("See Every Pitch Type");
+ expect(html).toContain("Full Pitch Arsenal");expect(html).toContain("Fall average");expect(html).toContain('data-label="Max Spin · RPM"');
+ expect(html).not.toContain("<details");
 });
 it("uses reviewed per-type summaries for chart marks and omits ambiguous duplicate values",()=>{
  const rows=prepareClassifiedPitchResults(session,labels,context);

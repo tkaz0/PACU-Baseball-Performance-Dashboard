@@ -16,15 +16,15 @@ function extent(values: number[], step: number): [number, number] {
   return [min, max <= min ? min + step : max];
 }
 
-function ArsenalScatter({ pitches }: { pitches: readonly ArsenalPitch[] }) {
+function ArsenalScatter({ pitches, scope }: { pitches: readonly ArsenalPitch[]; scope: "session" | "fall" }) {
   const points = pitches.filter(p => p.averageVelocity !== null && p.averageSpin !== null);
-  if (!points.length) return <p className={styles.empty}>No pitch type has both a speed and spin reading for this session yet.</p>;
+  if (!points.length) return <p className={styles.empty}>No pitch type has both an available speed and spin average yet.</p>;
   const [xMin, xMax] = extent(points.map(p => p.averageVelocity!), 2);
   const [yMin, yMax] = extent(points.map(p => p.averageSpin!), 100);
   const x = (value: number) => 62 + (value - xMin) / (xMax - xMin) * 340;
   const y = (value: number) => 210 - (value - yMin) / (yMax - yMin) * 174;
   return <figure className={styles.figure}>
-    <figcaption><h4>Pitch Arsenal<StatInfo metric="pitch_arsenal_chart" label="Pitch Arsenal chart"/></h4><p>Each pitch type by average speed and spin</p></figcaption>
+    <figcaption><h4>Pitch Arsenal<StatInfo metric="pitch_arsenal_chart" label="Pitch Arsenal chart"/></h4><p>Each pitch type by average speed and spin{scope === "fall" ? " · See table for sample periods" : ""}</p></figcaption>
     <div className={styles.plotScroll}><svg viewBox="0 0 460 275" role="img" aria-label={`Pitch arsenal chart for ${points.length} classified pitch types. Velocity in miles per hour, spin in revolutions per minute.`}>
       {[0, .5, 1].map(fraction => {
         const spin = yMin + fraction * (yMax - yMin), speed = xMin + fraction * (xMax - xMin);
@@ -45,7 +45,8 @@ function ArsenalScatter({ pitches }: { pitches: readonly ArsenalPitch[] }) {
   </figure>;
 }
 
-function ArsenalMix({ pitches }: { pitches: readonly ArsenalPitch[] }) {
+function ArsenalMix({ pitches, scope }: { pitches: readonly ArsenalPitch[]; scope: "session" | "fall" }) {
+  if (scope === "fall" && pitches.some(pitch => pitch.count === null)) return null;
   const counted = pitches.filter(p => p.count !== null && Number.isInteger(p.count) && p.count > 0);
   const total = counted.reduce((sum,p)=>sum+p.count!,0);
   if (!total) return null;
@@ -68,6 +69,6 @@ function ArsenalMix({ pitches }: { pitches: readonly ArsenalPitch[] }) {
   </figure>;
 }
 
-export function PitchArsenalChart({ pitches }: { pitches: readonly ArsenalPitch[] }) {
-  return <div className={styles.grid} aria-label="Pitch arsenal visual summary"><ArsenalScatter pitches={pitches}/><ArsenalMix pitches={pitches}/></div>;
+export function PitchArsenalChart({ pitches, scope = "session" }: { pitches: readonly ArsenalPitch[]; scope?: "session" | "fall" }) {
+  return <div className={styles.grid} aria-label="Pitch arsenal visual summary"><ArsenalScatter pitches={pitches} scope={scope}/><ArsenalMix pitches={pitches} scope={scope}/></div>;
 }

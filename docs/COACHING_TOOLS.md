@@ -18,6 +18,12 @@ Game Stats uses the current QPA Fall cumulative snapshot or a selected actual Pi
 
 Only the existing main metric catalog is serialized for these testing views; skeletal muscle and historical muscle percentages are retained in storage but not promoted into new cards. Game data is projected into numerical display fields and sample sizes without source-grid coordinates or file hashes. Analytics keeps its existing limited physicality/QPA choices and output contract.
 
+### Full Pitch Arsenal
+
+The comparison Throwing view also receives a separate `arsenals` projection. The staff-authorized source reader selects file identity only for this comparison request, validates the exact classified metric label/key/unit and hash, and combines numerical results on the server. Neither file hashes nor classified raw observations are sent to the comparison component. Other Analytics, Home, coverage and progress readers retain their existing projections.
+
+Every pitch recorded by either selected pitcher is available, including pitches recorded before the latest testing date. Average/max velocity and average/max spin stay within the exact classified pitch, Game/Intrasquad/Practice source and Fall window. Averages use verified matching velocity or spin counts, maximums use the saved Fall best, and metric-specific dates remain visible. Missing and ambiguous values stay unavailable; a verified latest-average fallback is labeled. Fall and latest averages do not receive a comparison winner against one another; spin remains descriptive. Position throwing and the approved QPA/Pitching game-stat calculations are unchanged.
+
 ## Validation
 
 Synthetic tests cover date/source/unit partitions, previous-date conflicts, zero baselines, missing/future/invalid readings, role eligibility, adjustable queues, same-snapshot game opportunities and event boundaries. Server tests cover denial before reads, bounded pagination and safe projections. Browser verification uses fictional fixtures for screenshots and desktop/mobile/theme checks; live checks record only aggregate success/failure signals.

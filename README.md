@@ -167,3 +167,6 @@ Admins can open Account Access → Invitation Status to search/filter configured
 Staff can review saved Full Swing and Blast reports in **Import Center → Session Library**. Raw Full Swing sessions publish player summaries, classified pitch results, sample counts and contact charts together. Admins can re-review an original tracked CSV to correct misreads and restore a previous revision. See [Session Library](docs/SESSION_LIBRARY.md) for legacy-file limits and rollout requirements.
 
 Read-page loads share authorization checks only within one server render, run independent readers concurrently, and avoid unused pitcher/Home comparisons. Mutations and PDF downloads always recheck live access. See [performance notes](docs/PERFORMANCE.md).
+
+
+Full pitching arsenals now appear in profiles, staff player comparison and the default All Pitches leaderboards. Every recorded pitch keeps its own average/max velocity and spin, metric-specific samples and dates, with Game, Intrasquad and Practice separated. Fall averages use verified reading counts; missing counts retain a labeled latest-session average. No stored readings or access rules change.

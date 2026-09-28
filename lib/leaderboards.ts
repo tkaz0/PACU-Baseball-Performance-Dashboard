@@ -81,10 +81,35 @@ export function initialLeaderboardSelection(group: LeaderboardGroup, options: re
   return { metricKey: metric.key, period: permittedPeriod, unit, source };
 }
 
-/** Select one recorded pitch before fetching ranked player values. Keep source partitions intact. */
+export const ALL_PITCHES = "all";
+
+/** Show the complete recorded arsenal by default, without merging source partitions. */
 export function selectPitchLeaderboards(options: readonly LeaderboardComparison[], requested?: string) {
   const order = ["Fastball", "Four-Seam Fastball", "Two-Seam Fastball", "Sinker", "Cutter", "Slider", "Sweeper", "Curveball", "Breaking Ball", "Changeup", "Splitter", "Knuckleball", "Other"];
   const pitches = [...new Set(options.filter(o => isPitchLeaderboardMetric(o.metricKey)).flatMap(o => { const type = leaderboardPitchType(o.source); return type ? [type] : []; }))].sort((a,b) => order.indexOf(a)-order.indexOf(b));
-  const selectedPitch = pitches.find(pitch => pitch === requested) ?? pitches[0];
-  return { pitches, selectedPitch, comparisons: selectedPitch ? options.filter(o => isPitchLeaderboardMetric(o.metricKey) && leaderboardPitchType(o.source) === selectedPitch) : [] };
+  const selectedPitch = pitches.find(pitch => pitch === requested) ?? ALL_PITCHES;
+  return { pitches, selectedPitch, comparisons: options.filter(option => {
+    const pitch = leaderboardPitchType(option.source);
+    return isPitchLeaderboardMetric(option.metricKey) && Boolean(pitch) && (selectedPitch === ALL_PITCHES || pitch === selectedPitch);
+  }) };
+}
+
+/** Call only after access and comparison metadata have been authorized. Preserve input order. */
+export async function loadLeaderboardPanels(comparisons: readonly LeaderboardComparison[], readRows: (comparison: LeaderboardComparison) => Promise<LeaderboardRow[]>): Promise<{ comparison: LeaderboardComparison; rows: LeaderboardRow[] }[]> {
+  const panels = new Array<{ comparison: LeaderboardComparison; rows: LeaderboardRow[] }>(comparisons.length);
+  let next = 0;
+  let failed = false;
+  await Promise.all(Array.from({ length: Math.min(4, comparisons.length) }, async () => {
+    while (!failed && next < comparisons.length) {
+      const index = next++;
+      const comparison = comparisons[index];
+      try {
+        panels[index] = { comparison, rows: await readRows(comparison) };
+      } catch (error) {
+        failed = true;
+        throw error;
+      }
+    }
+  }));
+  return panels;
 }
