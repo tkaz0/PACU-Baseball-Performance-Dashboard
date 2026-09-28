@@ -1,6 +1,6 @@
 import { GameLeaderboard } from "@/components/game-leaderboard";
 import { loadGameLeaderboards } from "@/lib/game-comparison-server";
-import { requireAccess } from "@/lib/auth";
+import { requireRenderAccess as requireAccess } from "@/lib/render-access";
 import { PageHeading } from "@/components/page-heading";
 import { LeaderboardBoard } from "@/components/leaderboard-board";
 import { loadLeaderboard, loadLeaderboardComparisons } from "@/lib/leaderboard-server";

@@ -1,4 +1,4 @@
-import { requireAccess } from "@/lib/auth";
+import { requireRenderAccess as requireAccess } from "@/lib/render-access";
 import { PlayerProfileGuide } from "@/components/player-profile-guide";
 import { Sidebar } from "@/components/sidebar";
 import { AccessPreviewControl } from "@/components/access-preview-control";

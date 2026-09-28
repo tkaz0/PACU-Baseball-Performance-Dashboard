@@ -14,7 +14,7 @@ export function CorrelationMap({ data }: { data: AnalyticsDataset }) {
   const [pair, setPair] = useState<[string, string] | null>(null);
   const readings = useMemo(() => readingsForPeriod(data.readings, period), [data.readings, period]);
   const variables = useMemo(() => analyticsVariables(readings), [readings]);
-  const keys = (choices ?? defaultMapVariables(variables)).filter(key => variables.some(v => v.key === key));
+  const keys = useMemo(() => (choices ?? defaultMapVariables(variables)).filter(key => variables.some(v => v.key === key)), [choices, variables]);
   const grid = useMemo(() => correlationMap(data.players, readings, keys, gap), [data.players, readings, keys, gap]);
   const selected = grid.flat().find(cell => pair && cell.x.key === pair[0] && cell.y.key === pair[1]);
   const comparable = grid.flat().filter((cell, index) => Math.floor(index / grid.length) > index % grid.length && cell.r !== null);

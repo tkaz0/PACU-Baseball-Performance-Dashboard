@@ -7,6 +7,7 @@ import type { Role, RosterAthlete } from "@/lib/types";
 const fake = vi.hoisted(() => ({ access: vi.fn(), from: vi.fn(), select: vi.fn(), eq: vi.fn(), order: vi.fn(), limit: vi.fn(), search: vi.fn(), preview: vi.fn() }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/auth", () => ({ requireAccess: fake.access }));
+vi.mock("@/lib/render-access", () => ({ requireRenderAccess: fake.access }));
 vi.mock("@/app/auth/actions", () => ({ logout: vi.fn() }));
 vi.mock("@/components/sidebar", () => ({ Sidebar: () => null }));
 vi.mock("@/components/appearance-control", () => ({ AppearanceControl: () => null }));

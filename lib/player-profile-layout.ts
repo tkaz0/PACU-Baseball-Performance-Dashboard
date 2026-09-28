@@ -13,6 +13,8 @@ function testingRole(season?: AthleteSeason | null) {
   const pitches = playerType === "pitcher" || playerType === "two_way" || positions.includes("P");
   return { positions, pitches, positionTesting: playerType === "two_way" || !pitches };
 }
+/** Same role rule for loading only the sections the profile can display. */
+export function profileShowsHitting(season?: AthleteSeason | null) { return testingRole(season).positionTesting; }
 /** Filter profile history only; saved speed readings and team comparisons stay unchanged. */
 export function profileMeasurementVisible(reading: { metric: string; unit: string }, season?: AthleteSeason | null): boolean {
   const key = normalizePlayerMetric(reading.metric, reading.unit)?.key ?? "";

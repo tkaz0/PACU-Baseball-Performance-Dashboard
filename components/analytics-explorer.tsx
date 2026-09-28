@@ -20,16 +20,20 @@ export function AnalyticsExplorer({data,initialX="",initialY="",initialPeriod="f
   const chartId=useId(),[period,setPeriod]=useState<"fall"|"earlier">(initialPeriod),[xChoice,setXChoice]=useState(initialX),[yChoice,setYChoice]=useState(initialY),[group,setGroup]=useState<ColorGroup>("academicClass"),[classFilter,setClassFilter]=useState(""),[positionFilter,setPositionFilter]=useState(""),[maxGap,setMaxGap]=useState([0,7,30,90,366].includes(initialWindow)?initialWindow:30),[hidden,setHidden]=useState<string[]>([]),[active,setActive]=useState<string|null>(null);
   const readings=useMemo(()=>readingsForPeriod(data.readings,period),[data.readings,period]);
   const variables=useMemo(()=>analyticsVariables(readings),[readings]);
-  const x=variables.find(v=>v.key===xChoice)??variables.find(v=>v.metric==="weight")??variables[0];
-  const y=variables.find(v=>v.key===yChoice)??variables.find(v=>v.metric==="muscle_mass"&&v.key!==x?.key)??variables.find(v=>v.key!==x?.key);
-  const eligible=data.players.filter(p=>(!classFilter||(p.academicClass||"__unknown")===classFilter)&&(!positionFilter||(p.position||"__unknown")===positionFilter));
-  const paired=pairAnalytics(eligible,readings,x?.key??"",y?.key??"",maxGap);
-  const classOrder=["Freshman","Sophomore","Junior","Senior","Graduate","Not Listed"];
-  const groups=[...new Set(data.players.map(p=>pointGroup(p,group)))].sort((a,b)=>group==="academicClass" ? (classOrder.indexOf(a)<0?99:classOrder.indexOf(a))-(classOrder.indexOf(b)<0?99:classOrder.indexOf(b))||a.localeCompare(b):a.localeCompare(b));
-  const points=paired.points.filter(p=>!hidden.includes(pointGroup(p.player,group)));
-  const fit=x?.key!==y?.key?linearFit(points.map(p=>({x:p.x.value,y:p.y.value}))):null;
+  const x=useMemo(()=>variables.find(v=>v.key===xChoice)??variables.find(v=>v.metric==="weight")??variables[0],[variables,xChoice]);
+  const y=useMemo(()=>variables.find(v=>v.key===yChoice)??variables.find(v=>v.metric==="muscle_mass"&&v.key!==x?.key)??variables.find(v=>v.key!==x?.key),[variables,yChoice,x]);
+  const eligible=useMemo(()=>data.players.filter(p=>(!classFilter||(p.academicClass||"__unknown")===classFilter)&&(!positionFilter||(p.position||"__unknown")===positionFilter)),[data.players,classFilter,positionFilter]);
+  const xKey=x?.key??"",yKey=y?.key??"";
+  // Selecting a dot changes only its highlight, not the saved results or fitted line.
+  const paired=useMemo(()=>pairAnalytics(eligible,readings,xKey,yKey,maxGap),[eligible,readings,xKey,yKey,maxGap]);
+  const groups=useMemo(()=>{
+    const classOrder=["Freshman","Sophomore","Junior","Senior","Graduate","Not Listed"];
+    return [...new Set(data.players.map(p=>pointGroup(p,group)))].sort((a,b)=>group==="academicClass" ? (classOrder.indexOf(a)<0?99:classOrder.indexOf(a))-(classOrder.indexOf(b)<0?99:classOrder.indexOf(b))||a.localeCompare(b):a.localeCompare(b));
+  },[data.players,group]);
+  const points=useMemo(()=>paired.points.filter(p=>!hidden.includes(pointGroup(p.player,group))),[paired.points,hidden,group]);
+  const fit=useMemo(()=>xKey!==yKey?linearFit(points.map(p=>({x:p.x.value,y:p.y.value}))):null,[points,xKey,yKey]);
   const selected=points.find(p=>p.player.id===active);
-  const xDomain=chartDomain(points.map(p=>p.x.value)),yDomain=chartDomain(points.map(p=>p.y.value));
+  const xDomain=useMemo(()=>chartDomain(points.map(p=>p.x.value)),[points]),yDomain=useMemo(()=>chartDomain(points.map(p=>p.y.value)),[points]);
   const px=(n:number)=>76+(n-xDomain[0])/(xDomain[1]-xDomain[0])*780,py=(n:number)=>408-(n-yDomain[0])/(yDomain[1]-yDomain[0])*360;
   const minX=points.length?Math.min(...points.map(p=>p.x.value)):0,maxX=points.length?Math.max(...points.map(p=>p.x.value)):1;
   const fitted=(v:number)=>fit?fit.meanY+fit.slope*(v-fit.meanX):0;

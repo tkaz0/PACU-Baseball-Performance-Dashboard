@@ -17,7 +17,7 @@ export async function loadHomeSummary(access:Awaited<ReturnType<typeof requireAc
   if(error||!data||data.id!==access.athleteId)throw new Error("Your home summary could not be loaded.");
   const athlete=data as Pick<RosterAthlete,"id"|"athlete_code"|"athlete_seasons">;
   const season=athlete.athlete_seasons.find(s=>s.season==="2026-27");
-  const [performance,games]=await Promise.all([loadAthletePerformance(access,athlete),loadGameStats(access,athlete.id)]);
+  const [performance,games]=await Promise.all([loadAthletePerformance(access,athlete,{includePercentiles:false}),loadGameStats(access,athlete.id)]);
   const batches=new Map(performance.batches.map(b=>[b.id,b.importedAt]));
   const readings=performance.measurements.filter(r=>profileMeasurementVisible(r,season)).map(r=>({athleteId:athlete.id,source:r.source,date:r.measured_at,importedAt:batches.get(r.batch_id)!}));
   return buildHomeSummary([athlete.id],readings,games,pacificTestingDate());

@@ -26,7 +26,7 @@ describe('server performance adapter boundaries',()=>{
   it('rejects a mismatched returned athlete instead of serializing it',async()=>{
     mock.rows=[{...row(),athlete_id:other}];
     await expect(loadAthletePerformance(access(),{id:own,athlete_code:'SYN-001'})).rejects.toThrow('could not be verified');
-    expect(mock.rpc).toHaveBeenCalledTimes(1);
+    expect(mock.rpc).toHaveBeenCalledTimes(2);
     expect(mock.rpc.mock.calls[0][0]).toBe('athlete_performance_measurements');
   });
   it('validates bounded page shapes and rejects unexpected fields before serializing a profile',async()=>{
@@ -42,7 +42,7 @@ describe('server performance adapter boundaries',()=>{
     const result=await loadAthletePerformance(access(),{id:own,athlete_code:'SYN-001'});
     expect(result.measurements.map(item=>item.id)).toEqual(mock.rows.map(item=>item.observation_id));
     expect(mock.rpc.mock.calls.map(([name,args])=>[name,args.p_offset])).toEqual([
-      ['athlete_performance_measurements',0],['athlete_performance_measurements',1000],['athlete_performance_summary',undefined],
+      ['athlete_performance_measurements',0],['athlete_performance_summary',undefined],['athlete_performance_measurements',1000],
     ]);
   });
   it('refuses duplicate observations and histories over twenty thousand rows',async()=>{
@@ -51,7 +51,7 @@ describe('server performance adapter boundaries',()=>{
     vi.clearAllMocks();
     mock.rows=Array.from({length:20001},(_,i)=>({...row(),source_row:i+1,observation_id:`observation:${JSON.stringify([hash,'Fictional tests',i+1,0])}`}));
     await expect(loadAthletePerformance(access(),{id:own,athlete_code:'SYN-001'})).rejects.toThrow('exceeds the supported measurement history');
-    expect(mock.rpc.mock.calls).toHaveLength(21);
+    expect(mock.rpc.mock.calls).toHaveLength(22);
     expect(mock.rpc.mock.calls.at(-1)).toEqual(['athlete_performance_measurements',{p_athlete_id:own,p_offset:20000}]);
   });
   it('accepts only validated fixed-metric summary shapes without peer rows',async()=>{
@@ -68,4 +68,17 @@ describe('server performance adapter boundaries',()=>{
     expect(await importReviewedPerformance([m])).toMatchObject({created:1,unchanged:0});
     expect(mock.rpc.mock.calls[0][1].p_rows[0]).toMatchObject({athlete_code:'SYN-001',metric_key:'weight',value:50});
   });
+});
+
+it('starts the verified summary while own history is still loading',async()=>{
+ let release!:(value:{data:unknown[];error:null})=>void;
+ mock.rpc.mockImplementation((name:string)=>name==='athlete_performance_measurements'?new Promise(resolve=>{release=resolve;}):Promise.resolve({data:[],error:null}));
+ const result=loadAthletePerformance(access(),{id:own,athlete_code:'SYN-001'});
+ expect(mock.rpc).toHaveBeenCalledWith('athlete_performance_summary',{p_athlete_id:own});
+ release({data:[row()],error:null});expect((await result).measurements).toHaveLength(1);
+});
+it('loads valid own history without an unused percentile query for Home',async()=>{
+ const result=await loadAthletePerformance(access(),{id:own,athlete_code:'SYN-001'},{includePercentiles:false});
+ expect(result.measurements).toHaveLength(1);expect(result.percentileOverrides).toEqual([]);
+ expect(mock.rpc).toHaveBeenCalledExactlyOnceWith('athlete_performance_measurements',{p_athlete_id:own,p_offset:0});
 });

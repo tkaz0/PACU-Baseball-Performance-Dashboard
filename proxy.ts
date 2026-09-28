@@ -24,4 +24,6 @@ export async function proxy(request: NextRequest) {
   response.headers.set("Pragma", "no-cache");
   return response;
 }
-export const config = { matcher: ["/((?!_next/|favicon.ico|templates/).*)"] };
+// Only public, repository-owned assets skip session work. Dashboard/API paths still
+// validate sessions even if they contain an image-like extension.
+export const config = { matcher: ["/((?!_next/|favicon.ico|templates/|brand/|report-assets/|icon\\.svg$).*)"] };

@@ -53,8 +53,9 @@ function readMeasurementPage(data: unknown, athleteId: string): DatabaseMeasurem
 }
 
 /** Restrict on the server as well as RLS: a preview keeps its real administrator JWT. */
-export async function loadAthletePerformance(access:Access, athlete:Pick<Athlete,"id"|"athlete_code">):Promise<AthletePerformanceData> {
+export async function loadAthletePerformance(access:Access, athlete:Pick<Athlete,"id"|"athlete_code">, options:{includePercentiles?:boolean}={}):Promise<AthletePerformanceData> {
   if(!UUID_PATTERN.test(athlete.id) || !canReadPresentedAthlete(access,athlete.id)) throw new Error("Athlete performance access denied.");
+  async function history() {
   const stored:DatabaseMeasurement[]=[];
   for(let offset=0;offset<=20000;offset+=1000) {
     const {data,error}=await access.supabase.rpc("athlete_performance_measurements", {p_athlete_id:athlete.id,p_offset:offset});
@@ -65,6 +66,12 @@ export async function loadAthletePerformance(access:Access, athlete:Pick<Athlete
     if(page.length<1000) break;
   }
   if(new Set(stored.map(row=>row.observation_id)).size!==stored.length) throw new Error("Measurement history changed while loading. Refresh this profile.");
+  return stored;
+  }
+  // The own-history reader and aggregate comparator do not depend on each other.
+  const [stored, summary] = await Promise.all([history(), options.includePercentiles === false
+    ? Promise.resolve({data: [], error: null})
+    : access.supabase.rpc("athlete_performance_summary",{p_athlete_id:athlete.id})]);
   const measurements:StoredMeasurement[]=stored.map(row=>({id:row.observation_id,athlete_code:athlete.athlete_code,measured_at:row.measured_at,metric:row.metric,unit:row.unit,value:row.value,
     source:row.source,source_file:row.source_file,source_sheet:row.source_sheet,source_row:row.source_row,file_hash:row.file_hash,batch_id:batchIdentity(row)}));
   // Metadata is reconstructed from permitted observations; players never read admin import receipts.
@@ -74,7 +81,7 @@ export async function loadAthletePerformance(access:Access, athlete:Pick<Athlete
     const batch=batchMap.get(key)??{id:key,kind:"measurements",fileName:row.source_file,source:row.source,importedAt:row.imported_at,created:0,updated:0,unchanged:0,fileHash:row.file_hash,sheetName:row.source_sheet};
     batch.created+=1;batchMap.set(key,batch);
   }
-  const {data,error}=await access.supabase.rpc("athlete_performance_summary",{p_athlete_id:athlete.id});
+  const {data,error}=summary;
   if(error || !Array.isArray(data)) throw new Error("Team comparison summaries could not be loaded.");
   const percentileOverrides:PlayerPercentileOverride[]=data.map((item:unknown)=>{
     if(!item || typeof item!=="object") throw new Error("Team comparison summary format is invalid.");

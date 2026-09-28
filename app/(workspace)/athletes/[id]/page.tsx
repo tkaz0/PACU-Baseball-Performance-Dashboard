@@ -17,7 +17,7 @@ import { RenphoMuscleBalance } from "@/components/renpho-muscle-balance";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight, ChevronDown } from "lucide-react";
-import { requireAccess } from "@/lib/auth";
+import { requireRenderAccess as requireAccess } from "@/lib/render-access";
 import { display, UUID_PATTERN, type RosterAthlete } from "@/lib/types";
 import { canImportPresentedAccess, canReadPresentedAthlete } from "@/lib/access-preview";
 import { loadAthletePerformance } from "@/lib/performance-server";
@@ -26,7 +26,7 @@ import { getPlayerPerformance, normalizePlayerMetric, PLAYER_METRICS } from "@/l
 import { getRenphoReports } from "@/lib/renpho-charts";
 import { RenphoCharts } from "@/components/renpho-charts";
 import { PlayerPerformanceProfile } from "@/components/player-performance-profile";
-import { profileMeasurementVisible } from "@/lib/player-profile-layout";
+import { profileMeasurementVisible, profileShowsHitting } from "@/lib/player-profile-layout";
 
 export default async function Profile({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ preview?: string; focus?: string }> }) {
   const access = await requireAccess();
@@ -42,10 +42,15 @@ export default async function Profile({ params, searchParams }: { params: Promis
   const season = seasons.find(item => item.season === "2026-27") ?? seasons[0];
   const staff = roles.includes("admin") || roles.includes("coach");
   const admin = roles.includes("admin");
-  const gameLogs = staff ? await loadGameLogs(access, athlete.id) : [];
-  const gameStats = await loadGameStats(access, athlete.id);
-  const gameComparisons = await loadGameComparisons(access, athlete.id);
-  const [shared, teamAverages, movement, contacts, focusItems] = await Promise.all([loadAthletePerformance(access,athlete), loadHittingTeamAverages(access), loadMovementScreening(access,athlete.id,athlete.athlete_code), loadFullSwingContacts(access,athlete.id), loadCoachFocusItems(access,athlete.id)]);
+  const showHitting = profileShowsHitting(season);
+  // Independent readers start together after the exact player passes live authorization.
+  const [gameLogs, gameStats, gameComparisons, shared, teamAverages, movement, contacts, focusItems] = await Promise.all([
+    staff ? loadGameLogs(access, athlete.id) : Promise.resolve([]),
+    loadGameStats(access, athlete.id), loadGameComparisons(access, athlete.id),
+    loadAthletePerformance(access,athlete), showHitting ? loadHittingTeamAverages(access) : Promise.resolve([]),
+    loadMovementScreening(access,athlete.id,athlete.athlete_code),
+    showHitting ? loadFullSwingContacts(access,athlete.id) : Promise.resolve([]), loadCoachFocusItems(access,athlete.id),
+  ]);
   const performance = getPlayerPerformance({ readings:shared.measurements, batches:shared.batches, athleteCode:athlete.athlete_code, cohortAthleteCodes:[], percentileOverrides:shared.percentileOverrides });
   const readings = shared.measurements.filter(reading => {
     if (!profileMeasurementVisible(reading, season)) return false;

@@ -21,27 +21,36 @@ import { getRenphoMuscleBalance } from "@/lib/renpho-muscle-balance";
 import { isMovementRom, MOVEMENT_LABELS, movementTone, type MovementColor, type MovementReport } from "@/lib/movement-screening";
 import type { SavedContact } from "@/lib/full-swing-contacts-server";
 import { contactQuality } from "@/lib/contact-quality";
+import { compactExitMeetingReport } from "@/lib/exit-meeting-compact";
 
 export type ExitMeetingRow = {
   label: string; value: string; source: string; date: string; basis: string;
   percentile: number | null; peers: number | null; sample: string | null;
   tone?: MovementColor; trend?: { date: string; value: number }[];
+  metricKey?: string;
 };
 export type ExitMeetingSection = { id: string; title: string; subtitle: string; rows: ExitMeetingRow[]; note?: string };
 export type ExitMeetingInsight = { label: string; detail: string; percentile: number | null };
 export type ExitMeetingReport = {
+  format: ExitMeetingFormat;
   name: string; code: string; jersey: string; position: string; academicClass: string; batsThrows: string;
   season: string; generatedAt: string; lastTested: string | null; lastGameUpdate: string | null;
   strengths: ExitMeetingInsight[]; development: ExitMeetingInsight[]; jumps: ExitMeetingInsight[];
   sections: ExitMeetingSection[]; missing: string[]; notes: string[];
 };
-export type ExitMeetingOptions = { meetingDate: string; talkingPoints: string };
+export type ExitMeetingFormat = "meeting" | "detailed";
+export type ExitMeetingOptions = { meetingDate: string; talkingPoints: string; format?: ExitMeetingFormat };
+export function exitMeetingFormat(value: unknown): ExitMeetingFormat {
+  if (value === undefined || value === "meeting") return "meeting";
+  if (value === "detailed") return "detailed";
+  throw new Error("Choose Meeting Summary or Detailed Report.");
+}
 export const EXIT_MEETING_NOTES_LIMIT = 1600;
 export function parseExitMeetingOptions(value: Record<string, unknown>): ExitMeetingOptions {
   const meetingDate = value.meetingDate, talkingPoints = value.talkingPoints ?? "";
   if (typeof meetingDate !== "string" || !/^20\d\d-\d\d-\d\d$/.test(meetingDate) || !Number.isFinite(Date.parse(meetingDate)) || new Date(meetingDate).toISOString().slice(0, 10) !== meetingDate
     || typeof talkingPoints !== "string" || talkingPoints.length > EXIT_MEETING_NOTES_LIMIT || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(talkingPoints)) throw new Error("Choose a valid meeting date and keep talking points under 1,600 characters.");
-  return { meetingDate, talkingPoints: talkingPoints.trim() };
+  return { meetingDate, talkingPoints: talkingPoints.trim(), format: exitMeetingFormat(value.format) };
 }
 const row = (label: string, value: string, source: string, date: string, basis = "Latest saved result", extra: Partial<ExitMeetingRow> = {}): ExitMeetingRow => ({ label, value, source, date, basis, percentile: null, peers: null, sample: null, ...extra });
 const displayReading = (value: number, metric: string, unit: string, source: string) => metric === "height" ? formatHeight(value, unit) ?? `${value} ${unit}` : `${formatMetricNumber(value, metric, source, value.toLocaleString("en-US", { maximumFractionDigits: unit === "s" ? 3 : 2 }))}${unit === "%" ? "" : " "}${unit}`;
@@ -54,14 +63,14 @@ export function buildExitMeetingReport(input: {
   athlete: RosterAthlete; measurements: readonly Measurement[]; batches: readonly ImportBatch[];
   percentileOverrides: readonly PlayerPercentileOverride[]; games: readonly SharedGameStat[];
   comparisons: readonly GameComparison[]; movement: MovementReport | null; contacts?: readonly SavedContact[]; generatedAt: string;
-}): ExitMeetingReport {
+}, format: ExitMeetingFormat = "meeting"): ExitMeetingReport {
   const { athlete } = input;
   if (input.measurements.some(r => r.athlete_code !== athlete.athlete_code) || input.games.some(r => r.athlete_id !== athlete.id) || input.movement && input.movement.athleteCode !== athlete.athlete_code) throw new Error("Report player identity could not be verified.");
   const season = athlete.athlete_seasons.find(s => s.season === "2026-27");
   const performance = getPlayerPerformance({ readings: input.measurements, batches: input.batches, athleteCode: athlete.athlete_code, cohortAthleteCodes: [], percentileOverrides: input.percentileOverrides });
   const clean = withoutWeeklyBlastCards(performance), layout = getPlayerProfileLayout(clean, season);
   const pitchingRole = season?.player_type?.trim().toLowerCase() === "pitcher" || season?.player_type?.trim().toLowerCase() === "two_way" || [season?.primary_position, season?.secondary_position].some(position => position?.trim().toUpperCase() === "P");
-  const report: ExitMeetingReport = { name: athleteName(athlete), code: athlete.athlete_code, jersey: season?.jersey_number == null ? "" : `#${season.jersey_number}`, position: [season?.primary_position, season?.secondary_position].filter(Boolean).join(" / ") || "Position not recorded", academicClass: season?.academic_class ?? "Class not recorded", batsThrows: `Bats ${season?.bats ?? "-"} / Throws ${season?.throws ?? "-"}`, season: "Fall 2026", generatedAt: input.generatedAt, lastTested: null, lastGameUpdate: null, strengths: [], development: [], jumps: [], sections: [], missing: [], notes: [] };
+  const report: ExitMeetingReport = { format, name: athleteName(athlete), code: athlete.athlete_code, jersey: season?.jersey_number == null ? "" : `#${season.jersey_number}`, position: [season?.primary_position, season?.secondary_position].filter(Boolean).join(" / ") || "Position not recorded", academicClass: season?.academic_class ?? "Class not recorded", batsThrows: `Bats ${season?.bats ?? "-"} / Throws ${season?.throws ?? "-"}`, season: "Fall 2026", generatedAt: input.generatedAt, lastTested: null, lastGameUpdate: null, strengths: [], development: [], jumps: [], sections: [], missing: [], notes: [] };
   const add = (id: string, title: string, subtitle: string, rows: ExitMeetingRow[], note?: string) => { if (rows.length) report.sections.push({ id, title, subtitle, rows, note }); };
   const cards = [...layout.physicality, ...layout.additionalBody, ...layout.speedAgility, ...(layout.showHitting ? [...layout.hitting, ...layout.otherHitting] : []), ...layout.fieldThrowing, ...layout.pitching];
   const insights = getPlayerInsights(cards.filter(card => card.metric.group !== "body"));
@@ -75,6 +84,7 @@ export function buildExitMeetingReport(input: {
     const distinct = new Map(history.map(r => [r.measuredAt, { date: r.measuredAt, value: r.value }]));
     return row(profileMetricLabel(card.metric.key, card.metric.label, latest.source), value, latest.source, card.timedTrials?.lastTested ?? latest.measuredAt,
       card.timedTrials ? `Best time · Average ${displayReading(card.timedTrials.average, card.metric.key, latest.unit, latest.source)}` : latest.period === "summer_2026" ? "Last tested · Before Fall" : "Latest profile result", {
+        metricKey: card.metric.key,
         percentile: percentile?.value ?? null, peers: percentile?.sampleSize ?? (card.cohortSampleSize && card.cohortSampleSize > 0 ? card.cohortSampleSize : null),
         sample: card.timedTrials ? `${card.timedTrials.count} trials` : /^full swing/i.test(latest.source) ? "Session sample not shown" : null,
         trend: distinct.size >= 2 ? [...distinct.values()].slice(-8) : undefined,
@@ -90,7 +100,7 @@ export function buildExitMeetingReport(input: {
   const gameMetrics = gameOverviewMetrics(input.games, input.comparisons).filter(g => g.source === "qpa_fall_2026" ? layout.showHitting : pitchingRole);
   for (const source of ["qpa_fall_2026", "pitching_fall_2026"] as const) {
     const relevant = gameMetrics.filter(g => g.source === source);
-    add(`game-${source}`, `Game Stats · ${source === "qpa_fall_2026" ? "Hitting" : "Pitching"}`, "Fall to date · Current approved team-sheet totals", relevant.map(g => row(g.label, g.unit === "ratio" ? g.value.toFixed(3) : gameValue(g.value, g.unit), source === "qpa_fall_2026" ? "QPA Fall Sheet" : "Pitching Fall Sheet", exitMeetingPacificDate(g.updatedAt), "Updated snapshot", { percentile: g.comparison?.percentile ?? null, peers: g.comparison?.sampleSize ?? null, sample: g.opportunities === null ? null : `${g.opportunities} ${gameOpportunityLabel(g.source, g.metric) ?? "opportunities"}` })), "These are cumulative totals, not a dated game log. Counting stats depend on playing opportunities. ISO, SLG, OPS and wOBA are unavailable because doubles and triples are not recorded.");
+    add(`game-${source}`, `Game Stats · ${source === "qpa_fall_2026" ? "Hitting" : "Pitching"}`, "Fall to date · Current approved team-sheet totals", relevant.map(g => row(g.label, g.unit === "ratio" ? g.value.toFixed(3) : gameValue(g.value, g.unit), source === "qpa_fall_2026" ? "QPA Fall Sheet" : "Pitching Fall Sheet", exitMeetingPacificDate(g.updatedAt), "Updated snapshot", { metricKey: g.metric, percentile: g.comparison?.percentile ?? null, peers: g.comparison?.sampleSize ?? null, sample: g.opportunities === null ? null : `${g.opportunities} ${gameOpportunityLabel(g.source, g.metric) ?? "opportunities"}` })), "These are cumulative totals, not a dated game log. Counting stats depend on playing opportunities. ISO, SLG, OPS and wOBA are unavailable because doubles and triples are not recorded.");
     for (const g of relevant.filter(g => g.insightEligible && g.direction !== "neutral" && g.comparison?.percentile != null && g.opportunities !== null)) {
       const item = { label: `${g.label} · ${source === "qpa_fall_2026" ? "Hitting" : "Pitching"}`, detail: `${gameValue(g.value, g.unit)} · ${g.comparison!.sampleSize} teammates · ${g.opportunities ?? "Unrecorded"} ${gameOpportunityLabel(g.source, g.metric) ?? "opportunities"} · Updated ${exitMeetingPacificDate(g.updatedAt)}`, percentile: g.comparison!.percentile };
       if (g.comparison!.percentile! >= 75) report.strengths.push(item); if (g.comparison!.percentile! <= 25) report.development.push(item);
@@ -151,5 +161,5 @@ export function buildExitMeetingReport(input: {
   if (pitchingRole && !report.sections.some(s => s.id.startsWith("arsenal-"))) report.missing.push("Classified pitch results");
   if (!input.movement) report.missing.push("Movement screening");
   report.notes.push("Percentiles compare at least five eligible teammates with the same metric, source, unit and period. Blue means a lower team rank; red means higher. A blank percentile means there is no verified comparison.", "Strengths are at or above the 75th team percentile; development areas are at or below the 25th, for directional baseball metrics only. They describe the saved sample and are conversation starters, not training prescriptions.", "Profile readings use latest saved results and best timed trials. They may differ from leaderboards using Fall-wide bests or weighted averages. Empty results stay missing; no zeros or estimates are added.");
-  return report;
+  return format === "meeting" ? compactExitMeetingReport(report, pitchingRole ? classified : []) : report;
 }

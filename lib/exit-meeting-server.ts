@@ -7,14 +7,15 @@ import { loadGameStats } from "@/lib/game-server";
 import { loadGameComparisons } from "@/lib/game-comparison-server";
 import { loadMovementScreening } from "@/lib/movement-server";
 import { loadFullSwingContacts } from "@/lib/full-swing-contacts-server";
-import { buildExitMeetingReport } from "@/lib/exit-meeting";
+import { buildExitMeetingReport, exitMeetingFormat, type ExitMeetingFormat } from "@/lib/exit-meeting";
 
 type Access = Awaited<ReturnType<typeof requireAccess>>;
 export class ExitMeetingError extends Error {
   constructor(message: string, public status: number) { super(message); }
 }
 /** Every entry point passes freshly verified access. No role, report, or statistics arrive from the browser. */
-export async function loadExitMeetingReport(access: Access, athleteId: string) {
+export async function loadExitMeetingReport(access: Access, athleteId: string, format: ExitMeetingFormat = "meeting") {
+  const selectedFormat = exitMeetingFormat(format);
   if (!canImportPresentedAccess(access)) throw new ExitMeetingError("Exit meetings are available to coaches and admins.", 403);
   if (!UUID_PATTERN.test(athleteId)) throw new ExitMeetingError("Choose a rostered player.", 400);
   const { data, error } = await access.supabase.from("athletes")
@@ -25,7 +26,8 @@ export async function loadExitMeetingReport(access: Access, athleteId: string) {
   const athlete = data as RosterAthlete;
   const [performance, games, comparisons, movement, contacts] = await Promise.all([
     loadAthletePerformance(access, athlete), loadGameStats(access, athleteId), loadGameComparisons(access, athleteId),
-    loadMovementScreening(access, athleteId, athlete.athlete_code), loadFullSwingContacts(access, athleteId),
+    selectedFormat === "detailed" ? loadMovementScreening(access, athleteId, athlete.athlete_code) : Promise.resolve(null),
+    selectedFormat === "detailed" ? loadFullSwingContacts(access, athleteId) : Promise.resolve([]),
   ]);
-  return buildExitMeetingReport({ athlete, ...performance, games, comparisons, movement, contacts, generatedAt: new Date().toISOString() });
+  return buildExitMeetingReport({ athlete, ...performance, games, comparisons, movement, contacts, generatedAt: new Date().toISOString() }, selectedFormat);
 }

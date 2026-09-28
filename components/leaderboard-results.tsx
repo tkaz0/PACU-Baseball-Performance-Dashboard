@@ -4,7 +4,7 @@ import { leaderboardMetricLabel, pitchLeaderboardLabel, isPitchLeaderboardMetric
 import { isFallBestMetric, isTimedMetric, type PlayerPerformancePeriod } from "@/lib/player-performance";
 import { formatHeight, formatMetricNumber } from "@/lib/measurement-display";
 import styles from "./leaderboard.module.css";
-import { RankingSpread } from "@/components/ranking-spread";
+import { LeaderboardAverage } from "@/components/leaderboard-average";
 
 const fallAverageKeys = new Set(["avg_exit_velocity", "avg_bat_speed", "avg_pitch_velocity", "classified_avg_velocity", "classified_avg_spin"]);
 
@@ -50,7 +50,7 @@ export function LeaderboardResults({ rows, metric, unit, source, period }: { row
       <p title={isTimedMetric(metric.key) ? "Fastest comparable Fall trial per athlete; equal values share a rank." : fallBestActive ? "Best recorded Fall result within this source and session type; equal values share a rank." : fallAverageActive ? "Reading-count-weighted average across saved Fall sessions when every session has a verified count; otherwise the latest session." : metric.direction === "neutral" ? "Numerical comparisons, not a health or performance rating." : "Latest comparable result per athlete; equal values share a rank."}>{fallBestActive ? `Fall Best · ${leaderboardOrderLabel(metric)}` : fallAverageActive ? `Fall Average · ${leaderboardOrderLabel(metric)}` : leaderboardOrderLabel(metric)}</p>
       {mixedAverages && <p className={styles.contextNote}>Latest-session results are marked below.</p>}
     </header>
-    <RankingSpread values={rows.map(row => row.value)} label={leaderboardMetricLabel(metric)} format={value => metric.key === "height" ? formatHeight(value, unit) ?? String(value) : `${formatMetricNumber(value, metric.key, source, value.toLocaleString("en-US", { maximumFractionDigits: unit === "s" ? 2 : 1 }))}${unit === "ratio" ? "" : unit === "%" ? "%" : ` ${unit === "score" ? "pts" : unit}`}`} />
+    <LeaderboardAverage basis={isFallBestMetric(metric.key) || isTimedMetric(metric.key) ? "best" : fallAverageKeys.has(metric.key) ? "average" : "result"} values={rows.map(row => row.value)} label={leaderboardMetricLabel(metric)} format={value => metric.key === "height" ? formatHeight(value, unit) ?? String(value) : `${formatMetricNumber(value, metric.key, source, value.toLocaleString("en-US", { maximumFractionDigits: unit === "s" ? 2 : 1 }))}${unit === "ratio" ? "" : unit === "%" ? "%" : ` ${unit === "score" ? "pts" : unit}`}`} />
     {rows.length ? <><RankingTable rows={rows.slice(0, 5)} metric={metric} unit={unit} tiedRanks={tiedRanks} barMax={barMax} />{rows.length > 5 && <details className={styles.more}><summary>Show {rows.length - 5} More</summary><RankingTable rows={rows.slice(5)} metric={metric} unit={unit} tiedRanks={tiedRanks} barMax={barMax} continued /></details>}</>
       : <p className="muted m-0 p-6 text-sm">Results will appear after testing data is added.</p>}
   </section>;

@@ -7,7 +7,7 @@ import type { Measurement } from "@/lib/imports/engine";
 const fake = vi.hoisted(() => ({ access: vi.fn(), from: vi.fn(), select: vi.fn(), eq: vi.fn(), single: vi.fn(), rpc: vi.fn(), load: vi.fn(), contacts: vi.fn(), charts: vi.fn(), games: vi.fn(), comparisons: vi.fn(), logs: vi.fn(), team: vi.fn(), movement: vi.fn() }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/movement-server", () => ({ loadMovementScreening: fake.movement }));
-vi.mock("@/lib/auth", () => ({ requireAccess: fake.access }));
+vi.mock("@/lib/render-access", () => ({ requireRenderAccess: fake.access }));
 vi.mock("@/lib/hitting-team-server", () => ({ loadHittingTeamAverages: fake.team }));
 vi.mock("@/lib/performance-server", () => ({ loadAthletePerformance: fake.load }));
 vi.mock("@/lib/full-swing-contacts-server", () => ({ loadFullSwingContacts: fake.contacts }));
@@ -132,6 +132,7 @@ describe("protected profile route authorization and integration", () => {
     expect(html).not.toContain("Home to First"); expect(html).not.toContain("Speed &amp; Agility");
     expect(html).not.toContain("Measurement History"); expect(html).toContain('data-value="180"');
     expect(measurements).toHaveLength(2);
+    expect(fake.contacts).not.toHaveBeenCalled(); expect(fake.team).not.toHaveBeenCalled();
   });
   it("does not present a failed performance load as a successful empty profile", async () => {
     fake.load.mockRejectedValueOnce(new Error("Fictional performance unavailable"));
@@ -157,4 +158,12 @@ it("renders aggregate hitting comparisons on an own-player profile without peer 
  fake.team.mockResolvedValueOnce([{metricKey:"max_exit_velocity",unit:"mph",source:"full swing · intrasquad",method:"player_mean",value:75.25,athleteCount:8,swingCount:null,firstDate:"2026-09-11",lastDate:"2026-09-20"}]);
  const html=renderToStaticMarkup(await Profile({params:Promise.resolve({id:ownId})}));
  expect(html).toContain("Team Average");expect(html).toContain("75.3");expect(fake.from).toHaveBeenCalledExactlyOnceWith("athletes");expect(fake.eq).toHaveBeenCalledExactlyOnceWith("id",ownId);
+});
+
+it("starts independent profile readers while game stats are still loading",async()=>{
+ let release!:(rows:[])=>void;fake.games.mockImplementation(()=>new Promise(resolve=>{release=resolve;}));
+ const pending=Profile({params:Promise.resolve({id:ownId})});
+ await vi.waitFor(()=>expect(fake.load).toHaveBeenCalledTimes(1));
+ expect(fake.comparisons).toHaveBeenCalledTimes(1);expect(fake.movement).toHaveBeenCalledTimes(1);expect(fake.contacts).toHaveBeenCalledTimes(1);
+ release([]);await expect(pending).resolves.toBeDefined();
 });

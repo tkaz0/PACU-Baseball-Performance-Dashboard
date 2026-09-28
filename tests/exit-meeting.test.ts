@@ -14,7 +14,7 @@ const reading = (metric:string,value:number,unit:string,source="RENPHO",date="20
 const comparison = (metricKey:PlayerPercentileOverride["metricKey"],observedValue:number,value:number,source:string,unit:string,sampleSize=8):PlayerPercentileOverride=>({athleteCode:"PAC-9999",metricKey,observedValue,value,source,unit,sampleSize,direction:["height","body_score","body_fat_pct","muscle_mass"].includes(metricKey)?"neutral":"higher",measuredAt:"2026-09-16",period:"fall_2026"});
 const game=(metric:string,value:number):SharedGameStat=>({source:"qpa_fall_2026",athlete_id:fictionalExitAthlete.id,metric,value,unit:"count",scope:"cumulative_fall",event_id:null,played_on:null,source_row:9,source_column:2,derived_from:[],snapshot_id:"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",fetched_at:"2026-09-20T04:00:00Z",content_hash:"c".repeat(64)});
 const contact:SavedContact={fileHash:"a".repeat(64),sourceRow:2,pitchNumber:1,sourceFile:"PRIVATE-SOURCE-NAME.csv",playedOn:"2026-09-16",category:"intrasquad",exitVelocity:95,launchAngle:15,direction:10,distance:280};
-const build = (partial: Partial<Parameters<typeof buildExitMeetingReport>[0]> = {}) => buildExitMeetingReport({athlete:fictionalExitAthlete,measurements:[],batches:[],percentileOverrides:[],games:[],comparisons:[],movement:null,generatedAt:"2026-09-27T12:00:00Z",...partial});
+const build = (partial: Partial<Parameters<typeof buildExitMeetingReport>[0]> = {}) => buildExitMeetingReport({athlete:fictionalExitAthlete,measurements:[],batches:[],percentileOverrides:[],games:[],comparisons:[],movement:null,generatedAt:"2026-09-27T12:00:00Z",...partial}, "detailed");
 
 describe("exit meeting report",()=>{
  it("strips email and raw provenance, preserves jersey zero and never invents empty results",()=>{
@@ -73,7 +73,7 @@ describe("exit meeting report",()=>{
   const pitcher=build({athlete,measurements:[reading("Weight",190,"lb"),reading("Home to 1st",4,"s","Player Metrics","2026-09-25")]});expect(pitcher.lastTested).toBe("2026-09-16");
  });
  it("validates meeting-only notes without silently accepting invalid dates",()=>{
-  expect(parseExitMeetingOptions({meetingDate:"2026-10-01",talkingPoints:" Review plan "})).toEqual({meetingDate:"2026-10-01",talkingPoints:"Review plan"});
+  expect(parseExitMeetingOptions({meetingDate:"2026-10-01",talkingPoints:" Review plan "})).toEqual({meetingDate:"2026-10-01",talkingPoints:"Review plan",format:"meeting"});
   for(const value of [{meetingDate:"2026-02-30"},{meetingDate:"2026-09-27",talkingPoints:"x".repeat(1601)},{meetingDate:"2026-09-27",talkingPoints:"bad\u0000text"}])expect(()=>parseExitMeetingOptions(value)).toThrow();
  });
 });

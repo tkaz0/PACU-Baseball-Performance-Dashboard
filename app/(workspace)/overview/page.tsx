@@ -1,4 +1,4 @@
-import { requireAccess } from "@/lib/auth";
+import { requireRenderAccess as requireAccess } from "@/lib/render-access";
 import { canImportPresentedAccess } from "@/lib/access-preview";
 import { AccessPreviewNotice } from "@/components/access-preview-notice";
 import { DashboardHome } from "@/components/dashboard-home";

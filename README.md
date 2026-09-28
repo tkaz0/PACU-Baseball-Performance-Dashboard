@@ -15,8 +15,8 @@ Built with Next.js 16, React 19, TypeScript, Tailwind 4, Supabase Auth/PostgreSQ
 
 ## Available workflows
 
-- **[Exit Meetings](docs/EXIT_MEETINGS.md):** choose a player, review their complete saved performance snapshot and download a branded private PDF with stats, verified percentiles, strengths/development areas, and optional meeting talking points. Staff only; no email or persistent report storage.
-- **Visual workspace:** refreshed player/staff Home, role-specific profile comparison cards, source-backed rate/coverage/ranking graphics, team-spread charts, and a staff Correlation Map with exact paired-player counts and scatterplot drill-down. Existing data and metric policies remain intact.
+- **[Exit Meetings](docs/EXIT_MEETINGS.md):** choose a player, review a concise meeting summary (or choose the detailed report) and download a branded private PDF with stats, verified percentiles, strengths/development areas, and optional meeting talking points. Staff only; no email or persistent report storage.
+- **Visual workspace:** refreshed player/staff Home, role-specific profile comparison cards, source-backed rate/coverage/ranking graphics, compact team-average references, and a staff Correlation Map with exact paired-player counts and scatterplot drill-down. Existing data and metric policies remain intact.
 
 - **Coaching Analytics:** compare two saved testing measures with a scatterplot, best-fit line, Pearson r, class/position filters and color groups. Admin/Coach only; see [ANALYTICS](docs/ANALYTICS.md).
 
@@ -165,3 +165,5 @@ Admins can open Account Access → Invitation Status to search/filter configured
 ## Session publishing
 
 Staff can review saved Full Swing and Blast reports in **Import Center → Session Library**. Raw Full Swing sessions publish player summaries, classified pitch results, sample counts and contact charts together. Admins can re-review an original tracked CSV to correct misreads and restore a previous revision. See [Session Library](docs/SESSION_LIBRARY.md) for legacy-file limits and rollout requirements.
+
+Read-page loads share authorization checks only within one server render, run independent readers concurrently, and avoid unused pitcher/Home comparisons. Mutations and PDF downloads always recheck live access. See [performance notes](docs/PERFORMANCE.md).

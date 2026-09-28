@@ -22,11 +22,11 @@ export async function POST(request: Request) {
     while (true) { const chunk = await reader.read(); if (chunk.done) break; size += chunk.value.byteLength; if (size > 12000) { await reader.cancel(); return errorResponse("Meeting notes are too long.", 413); } chunks.push(chunk.value); }
     let payload: Record<string, unknown>;
     try { payload = JSON.parse(Buffer.concat(chunks).toString("utf8")); } catch { return errorResponse("Review your report options and try again.", 400); }
-    if (!payload || typeof payload !== "object" || Array.isArray(payload) || Object.keys(payload).some(k => !["athleteId", "meetingDate", "talkingPoints"].includes(k)) || typeof payload.athleteId !== "string") return errorResponse("Choose a player and review your report options.", 400);
+    if (!payload || typeof payload !== "object" || Array.isArray(payload) || Object.keys(payload).some(k => !["athleteId", "meetingDate", "talkingPoints", "format"].includes(k)) || typeof payload.athleteId !== "string") return errorResponse("Choose a player and review your report options.", 400);
     let options; try { options = parseExitMeetingOptions(payload); } catch { return errorResponse("Choose a valid date and keep notes under 1,600 characters.", 400); }
-    const report = await loadExitMeetingReport(access, payload.athleteId);
+    const report = await loadExitMeetingReport(access, payload.athleteId, options.format);
     const bytes = await createExitMeetingPdf(report, options);
-    const filename = `PACU-Exit-Meeting-${report.code.replace(/[^A-Z0-9-]/g, "")}-${options.meetingDate}.pdf`;
+    const filename = `PACU-${report.format === "meeting" ? "Exit-Meeting" : "Detailed-Report"}-${report.code.replace(/[^A-Z0-9-]/g, "")}-${options.meetingDate}.pdf`;
     return new Response(new Uint8Array(bytes).buffer, { headers: { ...privateHeaders, "Content-Type": "application/pdf", "Content-Disposition": `attachment; filename="${filename}"` } });
   } catch (error) {
     if (error instanceof ExitMeetingError) return errorResponse(error.message, error.status);

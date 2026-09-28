@@ -37,6 +37,7 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({
 }) }));
 
 import { getAccess, requireAdminMutation, requireAdminWorkspaceAccess, requireImportAccess, requireAccess, getTrustedAccess } from "@/lib/auth";
+import { requireRenderAccess, requireRenderImportAccess } from "@/lib/render-access";
 import { GET } from "@/app/api/athletes/[id]/route";
 import { GET as localWorkspaceAccess } from "@/app/api/local-workspace/access/route";
 import { startAccessPreview, exitAccessPreview } from "@/app/(workspace)/view-as/actions";
@@ -234,4 +235,13 @@ describe("server preview enforcement", () => {
     expect(fake.deleteCookie).toHaveBeenCalledWith(ACCESS_PREVIEW_COOKIE);
     expect(fake.rpc).not.toHaveBeenCalled();
   });
+});
+
+it("read-page guards preserve role, revocation and preview boundaries without caching mutations",async()=>{
+ expect((await requireRenderImportAccess()).roles).toEqual(["admin"]);
+ preview();await expect(requireRenderImportAccess()).rejects.toThrow("REDIRECT:/overview?preview=read-only");
+ expect((await requireRenderAccess()).roles).toEqual(["player"]);
+ fake.active=false;await expect(requireRenderAccess()).rejects.toThrow("REDIRECT:/access-denied");
+ fake.active=true;fake.raw=undefined;await requireAdminMutation();fake.active=false;
+ await expect(requireAdminMutation()).rejects.toThrow("REDIRECT:/access-denied");
 });

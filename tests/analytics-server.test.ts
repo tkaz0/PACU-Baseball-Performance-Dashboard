@@ -1,6 +1,6 @@
 import { beforeEach, expect, it, vi } from "vitest";
 const mocks=vi.hoisted(()=>({access:vi.fn(),from:vi.fn(),games:vi.fn()}));
-vi.mock("server-only",()=>({}));vi.mock("@/lib/auth",()=>({requireImportAccess:mocks.access}));
+vi.mock("server-only",()=>({}));vi.mock("@/lib/render-access",()=>({requireRenderImportAccess:mocks.access}));
 vi.mock("@/lib/game-server",()=>({loadGameStats:mocks.games}));
 import { analyticsPages, loadAnalytics, loadCoachingData, loadComparisonData, loadDataCoverage } from "@/lib/analytics-server";
 beforeEach(()=>{vi.resetAllMocks();mocks.games.mockResolvedValue([]);});
@@ -34,4 +34,22 @@ it("accepts validated signed Blast angles without allowing arbitrary negative re
  const measurement={observation_id:"fictional-angle",athlete_id:id,metric_key:"blast_vertical_bat_angle",metric:"Vertical Bat Angle",unit:"deg",value:-30,measured_at:"2026-09-20",source:"Blast Motion · Average · 2026-09-13:2026-09-20",imported_at:"2026-09-20T12:00:00Z"};
  mocks.from.mockImplementation(table=>{const data=table==="athletes"?[athlete]:[measurement];const chain={select:vi.fn(),eq:vi.fn(),in:vi.fn(),gte:vi.fn(),lte:vi.fn(),order:vi.fn(),range:vi.fn().mockResolvedValue({data,count:data.length,error:null})};for(const k of ["select","eq","in","gte","lte","order"] as const)chain[k].mockReturnValue(chain);return chain;});mocks.access.mockResolvedValue({supabase:{from:mocks.from}});
  await expect(loadCoachingData()).resolves.toBeDefined();measurement.source="RENPHO";await expect(loadCoachingData()).rejects.toThrow("could not be verified");
+});
+
+it("bounds parallel pages to three and preserves source order despite out-of-order completion",async()=>{
+ const pending=new Map<number,()=>void>();const requested:number[]=[];let active=0,peak=0;
+ const request=(from:number)=>{requested.push(from);if(from===0)return Promise.resolve({data:Array.from({length:500},(_,i)=>i),count:2001,error:null});active++;peak=Math.max(peak,active);return new Promise<{data:number[];count:number;error:null}>(resolve=>pending.set(from,()=>{active--;pending.delete(from);resolve({data:Array.from({length:Math.min(500,2001-from)},(_,i)=>from+i),count:2001,error:null});}));};
+ const result=analyticsPages(request,x=>x,3000);
+ await vi.waitFor(()=>expect(pending.size).toBe(3));expect(requested).toEqual([0,500,1000,1500]);
+ pending.get(1500)!();pending.get(1000)!();expect(requested).not.toContain(2000);pending.get(500)!();
+ await vi.waitFor(()=>expect(pending.has(2000)).toBe(true));pending.get(2000)!();
+ expect(await result).toEqual(Array.from({length:2001},(_,i)=>i));expect(peak).toBe(3);
+});
+it("rejects any incomplete or changed parallel page and never fans out an oversized or empty source",async()=>{
+ for(const change of [{data:[1],count:2000,error:null},{data:Array(500).fill(1),count:2001,error:null},{data:null,count:2000,error:"unavailable"}]){
+  const request=vi.fn(async(from:number)=>from===1000?change:{data:Array(500).fill(1),count:2000,error:null});
+  await expect(analyticsPages(request,x=>x,3000)).rejects.toThrow("could not be verified");
+ }
+ const empty=vi.fn(async()=>({data:[],count:0,error:null}));expect(await analyticsPages(empty,x=>x,3000)).toEqual([]);expect(empty).toHaveBeenCalledTimes(1);
+ const oversized=vi.fn(async()=>({data:Array(500).fill(1),count:3001,error:null}));await expect(analyticsPages(oversized,x=>x,3000)).rejects.toThrow("could not be verified");expect(oversized).toHaveBeenCalledTimes(1);
 });

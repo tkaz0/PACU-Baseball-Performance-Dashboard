@@ -8,7 +8,7 @@ const fake = vi.hoisted(() => ({ access: vi.fn(), from: vi.fn(), home: vi.fn(), 
 vi.mock("@/lib/home-server", () => ({loadHomeSummary: fake.home}));
 vi.mock("@/lib/home-leaderboards-server", () => ({loadHomeLeaderboards: fake.leaderboards}));
 vi.mock("@/lib/coach-focus-server", () => ({loadDueCoachFocus: fake.due}));
-vi.mock("@/lib/auth", () => ({ requireAccess: fake.access }));
+vi.mock("@/lib/render-access", () => ({ requireRenderAccess: fake.access }));
 vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw new Error(`REDIRECT:${path}`); }, usePathname: () => "/roster" }));
 vi.mock("next/link", () => ({ default: ({ href, children, ...props }: { href: string; children: ReactNode }) => createElement("a", { href, ...props }, children) }));
 import Overview from "@/app/(workspace)/overview/page";

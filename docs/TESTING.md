@@ -441,6 +441,13 @@ For a UI check, use a fictional original CSV in a separate local test environmen
 ## September 27 visual rebuild
 
 - `tests/correlation-map.test.ts`: exact pairing, source/unit isolation, date windows, N>=5, constant inputs, symmetry, excluded P95/count variables and identity-free scatter links.
-- `tests/ranking-spread.test.ts`: displayed-player median, signed/zero values, unavailable/constant distributions and proportional duplicate groups without lost players.
+- `tests/leaderboard-average.test.ts`: equal-player arithmetic means, signed/zero/full-precision values, no distribution chart, and explicit distinction from pooled rates or means of individual swings.
 - Home/profile focused suites cover role-safe shortcuts, numerical leaderboard bars, known denominators, source-specific comparison panels and Fall-only physicality radar.
 - Synthetic Vite preview harnesses outside Git exercise actual components without a backend. Inspect desktop and 390px screens in light/dark modes, interaction state, no viewport overflow, table-local scrolling and player/staff differences. Never take production numerical/player screenshots.
+
+
+## Read-page performance checks
+
+`analytics-server.test.ts` verifies that a complete first page establishes the source count before at most three later pages load concurrently. Out-of-order completions must return source order; count drift, truncation and provider failure reject the complete result. Empty/oversized sources cannot fan out. `performance-server.test.ts` checks concurrent history/comparison reads and the own-Home history-only option. `protected-profile.test.ts` checks parallel independent readers after authorization and omission of unused hitting queries on pitcher-only profiles. `access-preview-server.test.ts` covers render guard role/revocation/preview behavior and unchanged fresh mutation checks. React cache is request/render-only; unit invocation outside a render does not establish a persistent cache. `proxy-assets.test.ts` verifies only public asset prefixes skip session middleware; private pages, downloads, APIs and image-like protected URLs remain covered.
+
+Chart calculations remain validated by the existing analytics/correlation suites. Memoization keys include sources, period, cohort filters and date-gap choices; hover and selected-cell UI states are excluded from expensive recalculations. No production data or performance timings are stored in fixtures.

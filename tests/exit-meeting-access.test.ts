@@ -37,8 +37,14 @@ it("rejects unknown or invalid player identities without broadening the query",a
  query.maybeSingle.mockResolvedValue({data:null,error:null});expect((await POST(request())).status).toBe(404);expect(query.eq).toHaveBeenCalledWith("id",id);expect(mocks.performance).not.toHaveBeenCalled();
 });
 it("does not issue partial PDFs when any source reader fails and never returns provider errors",async()=>{
- mocks.contacts.mockRejectedValue(new Error("Private provider database or credential details"));const response=await POST(request());expect(response.status).toBe(503);expect(await response.text()).not.toContain("credential");expect(mocks.pdf).not.toHaveBeenCalled();
+ mocks.contacts.mockRejectedValue(new Error("Private provider database or credential details"));const response=await POST(request({athleteId:id,meetingDate:"2026-09-27",format:"detailed"}));expect(response.status).toBe(503);expect(await response.text()).not.toContain("credential");expect(mocks.pdf).not.toHaveBeenCalled();
 });
 it("defends the report reader even if another server entry point passes Player access",async()=>{
  await expect(loadExitMeetingReport(staff(["player"]),id)).rejects.toThrow("coaches and admins");expect(mocks.from).not.toHaveBeenCalled();
+});
+
+it("defaults to a compact download and allows only an explicit detailed format",async()=>{
+ const compact=await POST(request());expect(compact.status).toBe(200);expect(mocks.pdf.mock.calls[0][0].format).toBe("meeting");expect(mocks.contacts).not.toHaveBeenCalled();expect(mocks.movement).not.toHaveBeenCalled();
+ const detailed=await POST(request({athleteId:id,meetingDate:"2026-09-27",format:"detailed"}));expect(detailed.status).toBe(200);expect(mocks.pdf.mock.calls[1][0].format).toBe("detailed");expect(mocks.contacts).toHaveBeenCalledTimes(1);expect(mocks.movement).toHaveBeenCalledTimes(1);expect(detailed.headers.get("content-disposition")).toContain("PACU-Detailed-Report-");
+ const calls=mocks.from.mock.calls.length;expect((await POST(request({athleteId:id,meetingDate:"2026-09-27",format:"raw-admin-export"}))).status).toBe(400);expect(mocks.from.mock.calls).toHaveLength(calls);
 });

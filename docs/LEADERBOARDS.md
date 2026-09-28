@@ -35,6 +35,8 @@ Home Run Rate (HR%) uses recorded Pumps / PA × 100, with a positive denominator
 
 Opportunity counts appear under game results. PA beside raw HR/SB/GDP counts is playing-time context, not the number of steal chances or double-play situations. It does not change ranks or introduce a minimum-PA qualification rule. Teammate cohort counts retain their separate label.
 
-## September 27 visual distribution
+## September 27 mean references
 
-Testing and game-ranking cards now add a compact team-spread chart above the unchanged ranking table. It uses the exact displayed player results and units, shows observed minimum/maximum and the unweighted median of those player results, and never changes ranks, opportunity counts or source partitions. Nearby values share a dot; dot area is proportional to the number of players in that group and multi-player counts are printed. This prevents dense tied groups disappearing behind each other. Fewer than three or all-equal results omit the chart. The median is not a target, team pooled game rate or weighted Fall-average replacement.
+Testing and game-ranking cards show a compact arithmetic-mean reference above the unchanged ranking table. The owner removed the Team Spread charts and median. Each saved player result on the complete board contributes once, including rows below the initial top five; sources, units, contexts and periods retain their existing exact partitions. The reference uses full-precision values and only rounds its displayed result. Missing/nonfinite values never become zero. A single or all-equal measured group still has a valid mean.
+
+Testing cards label the reference **Team Average**. A maximum or fastest-time board explains that this is the mean of player bests, not an overall average of the original pitches, swings or trials. Average-metric boards explain that it is the equal-player mean of the displayed player averages. Game cards label it **Average Player**: the mean player result, not a pooled team rate calculated from total opportunities or innings. Existing swing-weighted team averages, per-player Fall calculations, rankings, sample counts, and game-team pooled rates remain unchanged.

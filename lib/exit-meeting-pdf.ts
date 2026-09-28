@@ -33,7 +33,7 @@ export async function createExitMeetingPdf(report: ExitMeetingReport, options: E
   const logoPaths = [...logoSvg.matchAll(/<path d="([^"]+)"/g)].map(match => match[1]);
   if (!logoPaths.length) throw new Error("The report brand asset could not be loaded.");
   const width = 612, height = 792, margin = 38, content = width-margin*2;
-  let page: PDFPage, y = 0, activeSection = "Player Report";
+  let page!: PDFPage, y = 0, activeSection = "Player Report";
   const draw = (value: string, x: number, top: number, size = 10, strong = false, color = colors.ink) => page.drawText(textSafe(value), { x, y: height-top-size, size, font: strong ? bold : regular, color });
   const line = (top: number) => page.drawLine({start:{x:margin,y:height-top},end:{x:width-margin,y:height-top},thickness:.6,color:colors.line});
   function newPage(label = "Player Report") {
@@ -78,6 +78,50 @@ export async function createExitMeetingPdf(report: ExitMeetingReport, options: E
     const metaTop=y+Math.max(labelLines.length*12,valueLines.length*14,30)+10;
     metaLines.forEach((t,i)=>draw(t,margin+10,metaTop+i*10,7.6,false,colors.muted)); y+=rowHeight;
   }
+  if (report.format === "meeting") {
+    newPage("Meeting Summary");
+    draw("PLAYER DEVELOPMENT / EXIT MEETING",margin,y,8,true,colors.red);y+=17;
+    for(const name of wrap(report.name,bold,25,content)){draw(name,margin,y,25,true);y+=29;}
+    paragraph(`${report.jersey} ${report.position} · ${report.academicClass} · ${report.batsThrows}`,9,colors.ink,true,3);
+    paragraph(`${report.code} · ${report.season} · Meeting ${day(options.meetingDate)} · Last tested ${report.lastTested?day(report.lastTested):"Not recorded"}`,8,colors.muted,false,6);
+    const groups=[{title:"STRENGTHS",items:report.strengths,color:colors.red,empty:"No verified strength yet. A 75th-percentile result and enough teammates are needed."},{title:"DEVELOPMENT",items:report.development,color:colors.blue,empty:"No verified lower-ranked area yet. Missing data is not a weakness."},{title:"BIGGEST JUMPS",items:report.jumps,color:colors.green,empty:"Another comparable test date is needed to show a measured improvement."}];
+    const gap=12, column=(content-gap*2)/3;
+    const layouts=groups.map(group=>({group,items:group.items.map(item=>({title:wrap(`${item.label}${item.percentile!==null?` · ${Math.round(item.percentile)} percentile`:""}`,bold,8.3,column-18),detail:wrap(item.detail,regular,7.2,column-18)})),empty:wrap(group.empty,regular,7.5,column-18)}));
+    const snapshotHeight=Math.max(...layouts.map(layout=>29+(layout.items.length?layout.items.reduce((total,item)=>total+item.title.length*11+item.detail.length*9+10,0):layout.empty.length*10+9)));
+    ensure(snapshotHeight+8,"Meeting Snapshot");
+    layouts.forEach((layout,index)=>{const x=margin+index*(column+gap);page.drawRectangle({x,y:height-y-snapshotHeight,width:column,height:snapshotHeight,color:colors.light});page.drawRectangle({x,y:height-y-3,width:column,height:3,color:layout.group.color});draw(layout.group.title,x+9,y+11,7.8,true,layout.group.color);let top=y+29;
+      if(!layout.items.length)layout.empty.forEach(text=>{draw(text,x+9,top,7.5,false,colors.muted);top+=10;});
+      for(const item of layout.items){item.title.forEach(text=>{draw(text,x+9,top,8.3,true);top+=11;});item.detail.forEach(text=>{draw(text,x+9,top,7.2,false,colors.muted);top+=9;});top+=10;}
+    });y+=snapshotHeight+10;
+    if(options.talkingPoints){ensure(55,"Coach Talking Points");draw("COACH TALKING POINTS",margin,y,8,true,colors.red);y+=15;paragraph(options.talkingPoints,8.5,colors.ink,false,4);}
+    for(const section of report.sections){
+      activeSection=section.title;
+      const shared=(key:"source"|"date"|"basis"|"sample")=>section.rows.every(row=>row[key]===section.rows[0][key])?section.rows[0][key]:null;
+      const sharedSource=shared("source"),sharedDate=shared("date"),sharedBasis=shared("basis"),sharedSample=shared("sample");
+      const context=[section.subtitle,sharedSource,sharedDate,sharedBasis,sharedSample].filter((value,index,all)=>value&&all.indexOf(value)===index).join(" · ");
+      const subtitle=wrap(context,regular,7.2,content-13);
+      const columns=section.id.startsWith("arsenal")?2:3;
+      const cardWidth=(content-12*(columns-1))/columns;
+      const cards=section.rows.map(row=>{const meta=[sharedSource?null:row.source,sharedDate?null:row.date,sharedBasis?null:row.basis,sharedSample?null:row.sample].filter(Boolean).join(" · ");return{row,label:wrap(row.label,bold,8.4,cardWidth-20),value:wrap(row.value,bold,13,cardWidth-20),meta:meta?wrap(meta,regular,7,cardWidth-20):[]};});
+      const cardHeight=(card:typeof cards[number])=>card.label.length*11+card.value.length*15+card.meta.length*9+29;
+      const firstHeight=Math.max(...cards.slice(0,columns).map(cardHeight));
+      ensure(36+subtitle.length*10+firstHeight,section.title);y+=7;
+      page.drawRectangle({x:margin,y:height-y-16,width:3,height:16,color:colors.red});draw(section.title,margin+11,y,13,true);y+=21;
+      subtitle.forEach(text=>{draw(text,margin+11,y,7.2,false,colors.muted);y+=10;});y+=5;
+      for(let index=0;index<cards.length;index+=columns){const pair=cards.slice(index,index+columns),rowHeight=Math.max(...pair.map(cardHeight));ensure(rowHeight+5,`${section.title} Continued`);
+        pair.forEach((card,columnIndex)=>{const x=margin+columnIndex*(cardWidth+12);page.drawRectangle({x,y:height-y-rowHeight,width:cardWidth,height:rowHeight,color:colors.light});let top=y+8;
+          card.label.forEach(text=>{draw(text,x+10,top,8.4,true,colors.muted);top+=11;});card.value.forEach(text=>{draw(text,x+10,top,13,true);top+=15;});card.meta.forEach(text=>{draw(text,x+10,top,7,false,colors.muted);top+=9;});top+=5;
+          if(card.row.percentile!==null){percentile(card.row.percentile,x+10,top+3,columns===2?73:43);draw(`P${Math.round(card.row.percentile)} · ${card.row.peers} teammates`,x+(columns===2?93:63),top,7,true,colors.muted);}
+          else draw(card.row.peers===null?"Unranked":"Unranked · "+card.row.peers+" comparable teammates",x+10,top,7,false,colors.muted);
+        });y+=rowHeight+5;
+      }
+      if(section.note){paragraph(section.note,7.2,colors.muted,false,0);}
+    }
+    if(report.missing.length){y+=7;paragraph(`Still to add: ${report.missing.join(" · ")}. Missing results are not zero.`,7.2,colors.muted,false,2);}
+    y+=8;activeSection="Report Notes";
+    for(const note of report.notes)paragraph(note,7.1,colors.muted,false,3);
+    paragraph(`Game sheets updated ${report.lastGameUpdate?day(exitMeetingPacificDate(report.lastGameUpdate)):"Not available"} · Generated ${day(exitMeetingPacificDate(report.generatedAt))}. Meeting date does not change the testing period. Private player-development report for the selected player and authorized staff. Independent Pacific Baseball project.`,7.1,colors.muted,false,0);
+  } else {
   newPage("Exit Meeting");
   draw("THE NEXT CHAPTER",margin,y,9,true,colors.red);y+=20;
   for(const name of wrap(report.name,bold,32,content)){draw(name,margin,y,32,true);y+=37;}
@@ -98,6 +142,7 @@ export async function createExitMeetingPdf(report: ExitMeetingReport, options: E
   for(const note of report.notes)paragraph(note,10,colors.ink,false,17);
   paragraph(`Game sheets last updated: ${report.lastGameUpdate?day(exitMeetingPacificDate(report.lastGameUpdate)):"Not available"}. Report generated ${day(exitMeetingPacificDate(report.generatedAt))}. Meeting date is a label; it does not change the testing or reporting period.`,9);
   paragraph("Confidential player-development report. Share only with the selected player and authorized staff. PACU Baseball Performance is an independent project for Pacific Baseball; it is not an official university application.",9);
+  }
   const pages=pdf.getPages(); pages.forEach((p,index)=>{p.drawLine({start:{x:margin,y:43},end:{x:width-margin,y:43},thickness:.6,color:colors.line});p.drawText(textSafe(`${report.code} · PRIVATE PLAYER REPORT`),{x:margin,y:28,size:7,font:regular,color:colors.muted});p.drawText(`${index+1} / ${pages.length}`,{x:width-margin-35,y:28,size:7,font:bold,color:colors.muted});});
   return pdf.save();
 }
