@@ -1,3 +1,4 @@
+import { productionComparisons } from "@/lib/advanced-game-stats";
 import { variableKey, type AnalyticsPlayer, type AnalyticsReading } from "@/lib/analytics";
 import { isTimedMetric, PLAYER_METRICS, validatePlayerMetricValue } from "@/lib/player-performance";
 import { formatHeight, formatMetricNumber, isBatSpeedMetric } from "@/lib/measurement-display";
@@ -34,17 +35,19 @@ export function coachingValue(value:number,metric:string,unit:string,source?:str
  if (/^full swing(?:\s*·|$)/i.test(source?.trim() ?? "") || isBatSpeedMetric(metric)) return `${formatMetricNumber(value,metric,source)}${unit==="%"?"%":unit==="ratio"?"":` ${unit}`}`;
  if(metric==="height")return formatHeight(value,unit)??"—";
  if(unit==="s")return `${value.toFixed(2)} s`;
+ if(unit==="index")return value.toFixed(0);
+ if(unit==="decimal")return value.toFixed(2);
  if(unit==="per9")return value.toFixed(2);
  if(unit==="count")return value.toLocaleString("en-US");
  if(unit==="avg")return value.toFixed(3).replace(/^0\./,".");
  if(unit==="ratio")return value.toFixed(3);
  return `${value.toLocaleString("en-US",{maximumFractionDigits:1})}${unit==="%"?"%":` ${unit}`}`.trim();
 }
-export function coachingGames(stats:readonly SharedGameStat[]):CoachingGame[]{
- const output:CoachingGame[]=[];
+export function coachingGames(stats:readonly SharedGameStat[],baselineStats:readonly SharedGameStat[]=stats):CoachingGame[]{
+ const output:CoachingGame[]=[],production=productionComparisons(baselineStats);
  for(const athleteId of new Set(stats.map(r=>r.athlete_id))){
   const own=stats.filter(r=>r.athlete_id===athleteId);
-  for(const item of gameOverviewMetrics(own,[]))output.push({athleteId,snapshotId:own.find(r=>r.source===item.source)!.snapshot_id,metric:item.metric,label:item.label,source:item.source,eventId:item.eventId,value:item.value,unit:item.unit,updatedAt:item.updatedAt,playedOn:item.playedOn,opportunities:item.opportunities,direction:item.direction,insightEligible:item.insightEligible});
+  for(const item of gameOverviewMetrics(own,production.has(athleteId)?[production.get(athleteId)!]:[]))output.push({athleteId,snapshotId:own.find(r=>r.source===item.source)!.snapshot_id,metric:item.metric,label:item.label,source:item.source,eventId:item.eventId,value:item.value,unit:item.unit,updatedAt:item.updatedAt,playedOn:item.playedOn,opportunities:item.opportunities,direction:item.direction,insightEligible:item.insightEligible});
  }
  return output;
 }

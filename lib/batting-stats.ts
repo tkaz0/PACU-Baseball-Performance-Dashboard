@@ -1,5 +1,5 @@
 import type { SharedGameStat } from "@/lib/game-server";
-export type BattingRate = { metric: string; label: string; value: number; unit: "avg" | "%" | "ratio" };
+export type BattingRate = { metric: string; label: string; value: number; unit: "avg" | "%" | "ratio" | "index" | "decimal" };
 /** Owner-confirmed: Base Hit contains all hits; Pumps means home runs. HH fields overlap hits. */
 export function battingRates(rows: readonly SharedGameStat[]): BattingRate[] {
   const qpa=rows.filter(r=>r.source==="qpa_fall_2026");
@@ -22,7 +22,7 @@ export function battingRates(rows: readonly SharedGameStat[]): BattingRate[] {
     if(bottom>0&&top<=bottom)rates.push({metric:"batting_hh_pct",label:"HH %",value:100*top/bottom,unit:"%"});}
   return rates;
 }
-export const formatBattingRate = (rate:BattingRate) => rate.unit==="%"?`${rate.value.toFixed(1)}%`:rate.unit==="ratio"?rate.value.toFixed(3):rate.value.toFixed(3).replace(/^0\./,".");
+export const formatBattingRate = (rate:BattingRate) => rate.unit==="decimal"?rate.value.toFixed(2):rate.unit==="index"?rate.value.toFixed(0):rate.unit==="%"?`${rate.value.toFixed(1)}%`:rate.unit==="ratio"?rate.value.toFixed(3):rate.value.toFixed(3).replace(/^0\./,".");
 
 /** PA can exceed the OBP denominator (for example, sacrifice bunts), but cannot be smaller. */
 export function obpNeedsReview(rows:readonly SharedGameStat[]):boolean {

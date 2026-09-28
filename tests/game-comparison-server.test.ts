@@ -14,3 +14,11 @@ it("validates optional opportunity counts during compatible deployment",async()=
  for(const opportunities of [20,null]){rpc.mockResolvedValue({data:[{...row,opportunities}],error:null});expect((await loadGameLeaderboards(access))[0]).toMatchObject({opportunities,profileId:null});}
  for(const opportunities of [0,-1,NaN,2.5,"20",4000000001]){rpc.mockResolvedValue({data:[{...row,opportunities}],error:null});await expect(loadGameLeaderboards(access)).rejects.toThrow("verified");}
 });
+
+it("accepts estimated and pitching efficiency ranks only with their exact units",async()=>{
+ for(const [source,metric,unit] of [["qpa_fall_2026","batting_production_plus","index"],["qpa_fall_2026","batting_est_slg","avg"],["qpa_fall_2026","batting_est_iso","avg"],["qpa_fall_2026","batting_est_wobacon","avg"],["pitching_fall_2026","pitching_whip","decimal"],["pitching_fall_2026","pitching_k_bb","decimal"]]){
+  const row={source,metric,unit,eventId:source==="qpa_fall_2026"?"":"fall-2026-cumulative",playedOn:null,value:1.2,rank:1,name:"Fictional Player",code:"PAC-0002",profileId:other,updatedAt:"2026-09-28T23:00:00Z",percentile:null,sampleSize:1,opportunities:12};
+  rpc.mockResolvedValue({data:[row],error:null});expect((await loadGameLeaderboards(access))[0]).toMatchObject({metric,unit,profileId:null});
+  rpc.mockResolvedValue({data:[{...row,unit:"count"}],error:null});await expect(loadGameLeaderboards(access)).rejects.toThrow("verified");
+ }
+});

@@ -1,3 +1,5 @@
+import { battingPowerRates,productionComparisons,pitchingExtraRates } from "@/lib/advanced-game-stats";
+import { cumulativePitching } from "@/lib/pitching-cumulative";
 import { PGlite } from "@electric-sql/pglite";
 import { afterAll,beforeAll,beforeEach,describe,expect,it } from "vitest";
 import { readdirSync,readFileSync } from "node:fs";
@@ -23,6 +25,7 @@ beforeAll(async()=>{
  await db.exec(readFileSync(new URL("202609140002_pitching_rates.sql",dir),"utf8"));
  await db.exec(readFileSync(new URL("202609150001_pitching_contact_runs.sql",dir),"utf8"));
  await db.exec(readFileSync(new URL("202609150002_cumulative_pitching.sql",dir),"utf8"));
+ await db.exec(readFileSync(new URL("202609280005_advanced_game_rates.sql",dir),"utf8"));
  await db.exec("create or replace function private.game_sync_now() returns timestamptz language sql stable set search_path='' as $$select '2026-09-15T12:00:00Z'::timestamptz$$;");
  for(const[id,role]of[[admin,"admin"],[coach,"coach"],[player,"player"],[unlinked,"player"]]){await db.query("insert into auth.users values($1)",[id]);await db.query("insert into public.app_accounts(user_id,is_active) values($1,true)",[id]);await db.query("insert into public.account_roles(user_id,role) values($1,$2)",[id,role]);}
  for(const[id,code]of[[a,"PAC-0001"],[b,"PAC-0002"]]){await db.query("insert into public.athletes(id,athlete_code,first_name,last_name) values($1,$2,'Fictional','Player')",[id,code]);await db.query("insert into public.athlete_seasons(athlete_id,season) values($1,'2026-27')",[id]);}
@@ -165,4 +168,35 @@ it("ranks cumulative pitching across weeks using complete summed counts",async()
  expect(ranks.every(r=>r.eventId==="fall-2026-cumulative"&&r.playedOn===null)).toBe(true);
  expect(ranks.find(r=>r.metric==="pitching_k9")).toMatchObject({value:12,opportunities:9});expect(ranks.find(r=>r.metric==="pitching_r9")?.value).toBe(9);expect(ranks.find(r=>r.metric==="hard_contact_pct")).toMatchObject({value:20,opportunities:10});
  expect(await asUser(player,()=>read(a))).toHaveLength(input.length);
+});
+
+
+it("matches new SQL estimates/index to JS without exposing peer source data or inventing triples",async()=>{
+ const columns:Record<string,number>={pa:2,ab:5,base_hit:12,hh_extra_base_hit:10,pumps:11,bb:15,hbp:19,sac_fly:29,punchies:20};
+ const lines=[{pa:13,ab:10,base_hit:4,hh_extra_base_hit:2,pumps:1,bb:1,hbp:1,sac_fly:1,punchies:3},{pa:22,ab:20,base_hit:10,hh_extra_base_hit:3,pumps:2,bb:1,hbp:0,sac_fly:1,punchies:3},...[0,1,2].map(()=>({pa:5,ab:5,base_hit:1,hh_extra_base_hit:0,pumps:0,bb:0,hbp:0,sac_fly:0,punchies:1}))];
+ const input=lines.flatMap((v,i)=>Object.entries(v).map(([metric,value])=>row({athleteCode:`PAC-000${i+1}`,sourceRow:i+2,metric,value,sourceColumn:columns[metric]})));
+ await asUser(admin,()=>save(input));const before=await counts();
+ const ownRows=await asUser(player,()=>read(a));const own=await asUser(player,async()=>(await db.query<{r:Record<string,unknown>[]}>("select public.game_comparisons($1) r",[a])).rows[0].r);
+ for(const expected of battingPowerRates(ownRows as never))expect(own.find(r=>r.metric===expected.metric)?.value).toBeCloseTo(expected.value,12);
+ const all=await asUser(coach,()=>read());const index=productionComparisons(all as never).get(a)!;
+ expect(own.find(r=>r.metric==="batting_production_plus")).toMatchObject({sampleSize:5,snapshotId:index.snapshotId});
+ expect(own.find(r=>r.metric==="batting_production_plus")?.value).toBeCloseTo(index.value,12);
+ const leaders=await asUser(player,async()=>(await db.query<{r:Record<string,unknown>[]}>("select public.game_leaderboards() r")).rows[0].r);
+ for(const [metric,unit,opportunities] of [["batting_est_slg","avg",10],["batting_est_iso","avg",10],["batting_est_wobacon","avg",8],["batting_production_plus","index",13]])expect(leaders.find(r=>r.metric===metric&&r.code==="PAC-0001")).toMatchObject({unit,opportunities,sampleSize:5});
+ expect(leaders.filter(r=>r.code!=="PAC-0001").every(r=>r.profileId===null)).toBe(true);expect(await counts()).toEqual(before);
+ await asUser(admin,()=>save(input.map(r=>r.athleteCode==="PAC-0001"&&r.metric==="hh_extra_base_hit"?{...r,value:4}:r),"9".repeat(64),"2026-09-14T12:00:00Z"));
+ const invalid=await asUser(player,async()=>(await db.query<{r:Record<string,unknown>[]}>("select public.game_comparisons($1) r",[a])).rows[0].r);
+ expect(invalid.some(r=>String(r.metric).startsWith("batting_est_")||r.metric==="batting_production_plus")).toBe(false);expect(invalid.some(r=>r.metric==="batting_avg")).toBe(true);
+});
+it("matches cumulative WHIP/KBB with complete outs, omits zero walks and preserves own-player permissions",async()=>{
+ const cols:Record<string,number>={innings_outs:18,h:19,bb_outcome:21,k:23};
+ const input=[{innings_outs:5,h:2,bb_outcome:1,k:3},{innings_outs:4,h:1,bb_outcome:2,k:1}].flatMap((v,i)=>Object.entries(v).map(([metric,value])=>row({metric,value,sourceColumn:cols[metric],scope:"pitching_event",eventId:`fall-2026-week-${i+1}`,playedOn:null,sourceRow:i===0?40:76,derivedFrom:metric==="innings_outs"?[18]:[]})));
+ await asUser(coach,()=>save(input,"a".repeat(64),"2026-09-14T12:00:00Z","pitching_fall_2026"));
+ const raw=await asUser(player,()=>read(a)),expected=pitchingExtraRates(cumulativePitching(raw as never));
+ const leaders=await asUser(player,async()=>(await db.query<{r:Record<string,unknown>[]}>("select public.game_leaderboards() r")).rows[0].r);
+ for(const e of expected)expect(leaders.find(r=>r.metric===e.metric)?.value).toBeCloseTo(e.value,12);
+ expect(leaders.find(r=>r.metric==="pitching_whip")).toMatchObject({unit:"decimal",opportunities:9});expect(leaders.find(r=>r.metric==="pitching_k_bb")).toMatchObject({unit:"decimal",opportunities:3});
+ await expect(asUser(player,()=>read(b))).rejects.toThrow("Athlete access denied");
+ await asUser(coach,()=>save(input.map(r=>r.metric==="bb_outcome"?{...r,value:0}:r),"b".repeat(64),"2026-09-15T12:00:00Z","pitching_fall_2026"));
+ const zero=await asUser(player,async()=>(await db.query<{r:Record<string,unknown>[]}>("select public.game_leaderboards() r")).rows[0].r);expect(zero.some(r=>r.metric==="pitching_k_bb")).toBe(false);expect(zero.find(r=>r.metric==="pitching_whip")?.value).toBe(1);
 });

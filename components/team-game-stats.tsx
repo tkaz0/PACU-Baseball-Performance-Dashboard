@@ -11,8 +11,8 @@ function Metric({ metric }: { metric: TeamGameMetric }) {
   return <div className="rounded-xl border border-[var(--line-subtle)] bg-[var(--surface-raised)] p-4">
     <dt className="text-xs font-semibold text-[var(--text-secondary)]">{metric.label}<StatInfo metric={metric.metric} label={metric.label}/></dt>
     <dd className="mt-2 text-2xl font-bold tabular-nums">{formatTeamGameMetric(metric)}</dd>
-    <GameRateBar value={metric.value} unit={metric.unit} label={metric.label}/>
-    {metric.pending ? <p className="muted mb-0 mt-2 text-xs">Counts need review</p> : metric.opportunities !== undefined ? <div className="muted mt-2 text-xs">{metric.opportunityLabel==="outs"?`${formatInnings(metric.opportunities)} IP`:`${metric.opportunities.toLocaleString("en-US")} ${metric.opportunityLabel}`}{metric.opportunityLabel!=="outs"&&<LimitedSample count={metric.opportunities} pitching={metric.opportunityLabel === "pitches"} opportunityLabel={metric.opportunityLabel}/>}</div> : null}
+    {!metric.metric.startsWith("batting_est_")&&<GameRateBar value={metric.value} unit={metric.unit} label={metric.label}/>}
+    {metric.pending ? <p className="muted mb-0 mt-2 text-xs">Counts need review</p> : metric.opportunities !== undefined ? <div className="muted mt-2 text-xs">{metric.opportunityLabel==="outs"?`${formatInnings(metric.opportunities)} IP`:`${metric.opportunities.toLocaleString("en-US")} ${metric.opportunityLabel}`}{!["outs","walks"].includes(metric.opportunityLabel??"")&&<LimitedSample count={metric.opportunities} pitching={metric.opportunityLabel === "pitches"} opportunityLabel={metric.opportunityLabel}/>}</div> : null}
   </div>;
 }
 export function TeamGameStats({ stats, names }: { stats: SharedGameStat[]; names: Map<string, string> }) {
@@ -25,7 +25,7 @@ export function TeamGameStats({ stats, names }: { stats: SharedGameStat[]; names
       {!batting.entries ? <p className="muted text-sm">Team batting totals will appear after the first verified QPA update.</p> : <>
         <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">{batting.rates.slice(0, 6).map(m => <Metric key={m.metric} metric={m}/>)}</dl>
         <dl className="team-game-counts">{batting.counts.filter(m=>["pa","pumps","rbi","sb"].includes(m.metric)).map(m=><div key={m.metric}><dt>{m.label}<StatInfo metric={m.metric} label={m.label}/></dt><dd>{formatTeamGameMetric(m)}</dd></div>)}</dl>
-        <details className="team-game-more"><summary>More Team Totals &amp; Rates</summary><dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">{[...batting.counts.filter(m=>!["pa","pumps","rbi","sb"].includes(m.metric)), batting.rates[6], batting.rates[7]].map(m => <Metric key={m.metric} metric={m}/>)}</dl></details>
+        <details className="team-game-more"><summary>More Team Totals &amp; Rates</summary><dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">{[...batting.counts.filter(m=>!["pa","pumps","rbi","sb"].includes(m.metric)), ...batting.rates.slice(6)].map(m => <Metric key={m.metric} metric={m}/>)}</dl></details>
       </>}
     </section>
     <section className="panel p-5 sm:p-6" aria-label="Team pitching statistics">
@@ -43,7 +43,7 @@ export function TeamGameStats({ stats, names }: { stats: SharedGameStat[]; names
       })}</tbody></table></div>}
       {pitching.entries > 0 && <div className="table-wrap mt-4"><table aria-label="Player pitching breakdown"><thead><tr><th>Pitcher</th><th>Pitches</th><th>Strike %</th><th>K</th><th>BB</th></tr></thead><tbody>{playerIds.flatMap(id => {
         const summary = teamGameSummary(stats.filter(r => r.athlete_id === id), "pitching_fall_2026"); if (!summary.entries) return [];
-        return [<tr key={id}><th scope="row"><Link prefetch={false} href={`/athletes/${id}`} className="text-link whitespace-nowrap">{names.get(id) ?? "Player"}</Link></th>{[summary.counts[0], summary.rates[0], summary.counts[2], summary.counts[3]].map(m => <td key={m.metric} className="tabular-nums" title={m.pending ? "Counts need review" : undefined}>{formatTeamGameMetric(m)}</td>)}</tr>];
+        return [<tr key={id}><th scope="row"><Link prefetch={false} href={`/athletes/${id}`} className="text-link whitespace-nowrap">{names.get(id) ?? "Player"}</Link></th>{[summary.counts[0], summary.rates.find(m=>m.metric==="strike_pct")!, summary.counts[2], summary.counts[3]].map(m => <td key={m.metric} className="tabular-nums" title={m.pending ? "Counts need review" : undefined}>{formatTeamGameMetric(m)}</td>)}</tr>];
       })}</tbody></table></div>}
     </details>}
     <p className="muted text-xs leading-5">Team totals include players matched to the saved Fall game sheets. Rows without a confirmed player match are left out. Rates use the team’s combined chances. If a needed count is missing or does not add up, that rate waits for review.</p>

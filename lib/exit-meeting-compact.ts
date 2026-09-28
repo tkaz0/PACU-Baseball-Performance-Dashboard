@@ -6,8 +6,8 @@ import { classifiedPitchSource } from "@/lib/imports/classified-pitch-results";
 const physicality = new Set(["height", "weight", "muscle_mass", "body_score", "body_fat_pct", "grip_strength", "grip_dominant", "grip_non_dominant"]);
 const testing = new Set(["home_to_first", "home_to_second", "boxer_t", "infield_velocity", "outfield_velocity"]);
 const hitting = new Set(["max_exit_velocity", "avg_exit_velocity", "avg_bat_speed", "max_bat_speed", "max_distance"]);
-const batting = new Set(["batting_avg", "batting_obp", "qpa_pct", "batting_hh_pct", "batting_bb_pct", "batting_k_pct", "pumps", "sb"]);
-const pitching = new Set(["pitching_k9", "pitching_bb9", "pitching_r9", "strike_pct", "weak_contact_pct", "hard_contact_pct"]);
+const batting = new Set(["batting_production_plus", "batting_est_slg", "batting_est_wobacon","batting_avg", "batting_obp", "qpa_pct", "batting_hh_pct", "batting_bb_pct", "batting_k_pct", "pumps", "sb"]);
+const pitching = new Set(["pitching_whip", "pitching_k_bb","pitching_k9", "pitching_bb9", "pitching_r9", "strike_pct", "weak_contact_pct", "hard_contact_pct"]);
 
 /** Exact source + pitch type partitions; means require every contributing file's matching count. */
 export function compactExitMeetingArsenal(readings: readonly Measurement[]): ExitMeetingSection[] {
@@ -60,6 +60,7 @@ export function compactExitMeetingReport(report: ExitMeetingReport, classified: 
   if (report.sections.some(s => s.id.startsWith("blast-") && s.id !== "blast-fall") && !sections.some(s => s.id === "blast-fall")) needed.push("Blast Fall averages need complete, non-overlapping reports; weekly detail remains in Detailed Report.");
   const lastTested = sections.flatMap(s => s.rows).filter(r => r.basis !== "Updated snapshot").flatMap(r => /^2026-\d\d-\d\d$/.test(r.date) ? [r.date] : /^2026-\d\d-\d\d to 2026-\d\d-\d\d$/.test(r.date) ? [r.date.slice(-10)] : []).filter(d => d >= "2026-06-01" && d <= "2026-12-31").sort().at(-1) ?? null;
   return { ...report, format: "meeting", lastTested, sections, strengths: report.strengths.slice(0, 2), development: report.development.slice(0, 2), jumps: report.jumps.slice(0, 2), missing: report.missing.filter(m => m !== "Movement screening"), notes: [
+    ...(sections.some(s => s.id === "game-qpa_fall_2026") ? ["Estimated hitting stats treat doubles/triples as doubles; Est. wOBAcon uses fixed 2025 MLB reference weights. PAC Production+ is a custom recorded-production index (team = 100), not wRC+."] : []),
     ...needed,
     "Percentiles: red is higher, blue lower; at least five teammates in the same test/source/unit/period. Unranked means no verified comparison. Body and spin ranks are descriptive, not strengths or weaknesses.",
     "Game stats are Fall to date. Profile test values are latest results; timed tests use best time. Pitch arsenal uses Fall weighted averages and saved bests. In-Game and Practice are separate. Empty readings stay missing.",

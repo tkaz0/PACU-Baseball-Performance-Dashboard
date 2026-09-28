@@ -1,3 +1,4 @@
+import { pitchingExtraRates } from "@/lib/advanced-game-stats";
 import { pitchingRates, pitchingContactRates, pitchSplits } from "@/lib/pitching-stats";
 import { cumulativePitching } from "@/lib/pitching-cumulative";
 import type { SharedGameStat } from "@/lib/game-server";
@@ -32,7 +33,7 @@ export function pitchingAnalytics(stats:readonly SharedGameStat[]):AnalyticsRead
   const base={athleteId:first.athlete_id,date:first.played_on??pacificDate(first.fetched_at),importedAt:first.fetched_at,source:"Pitching · Fall 2026 cumulative (snapshot date)"};
   const add=(metric:string,label:string,unit:string,value:number)=>result.push({...base,id:JSON.stringify([first.snapshot_id,first.athlete_id,first.event_id,metric]),metric,label:`Pitching ${label}`,unit,value});
   for(const row of rows)if(["strike_pct","k","bb_outcome","r","h","pitches"].includes(row.metric))add(row.metric,({strike_pct:"Strike %",k:"Strikeouts",bb_outcome:"Walks",r:"Runs Allowed",h:"Hits Allowed",pitches:"Pitches"}[row.metric]!),row.unit,row.value);
-  for(const r of [...pitchingRates(rows),...pitchingContactRates(rows)])if(r.value!==null)add(r.metric,r.label,r.unit,r.value);
+  for(const r of [...pitchingExtraRates(rows),...pitchingRates(rows),...pitchingContactRates(rows)])if(r.value!==null)add(r.metric,r.label,r.unit,r.value);
   for(const split of pitchSplits(rows)){
    if(split.strikePct!==null)add(`${split.key}_strike_pct`,`${split.label} Strike %`,"%",split.strikePct);
   }

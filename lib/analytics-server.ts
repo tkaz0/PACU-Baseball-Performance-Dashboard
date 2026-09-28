@@ -63,7 +63,10 @@ async function loadTeamSource(includeFullRoster=false, includeGames=true, includ
   },20000);readings.push(...page);if(readings.length>20000)return fail();}
   if(new Set(readings.map(r=>r.id)).size!==readings.length)return fail();
   const games=gameRows.filter(row=>eligible.some(player=>player.id===row.athlete_id));
-  return {players:eligible.map(p=>({id:p.id,code:p.code,name:p.name,academicClass:p.academicClass,position:p.position,secondaryPosition:p.secondaryPosition,playerType:p.playerType,bats:p.bats,throws:p.throws})).sort((a,b)=>a.name.localeCompare(b.name)),readings,games,arsenalReadings};
+  // The whole roster is selectable, but team production uses the ranking-eligible cohort.
+  const rankingIds=new Set(players.filter(p=>p.status===null||p.status==="active"||p.status==="redshirt").map(p=>p.id));
+  const rankingGames=gameRows.filter(row=>rankingIds.has(row.athlete_id));
+  return {players:eligible.map(p=>({id:p.id,code:p.code,name:p.name,academicClass:p.academicClass,position:p.position,secondaryPosition:p.secondaryPosition,playerType:p.playerType,bats:p.bats,throws:p.throws})).sort((a,b)=>a.name.localeCompare(b.name)),readings,games,rankingGames,arsenalReadings};
 }
 export async function loadAnalytics():Promise<AnalyticsDataset>{
   const data=await loadTeamSource();
@@ -79,7 +82,7 @@ export async function loadComparisonData(){
   const data=await loadTeamSource(true,true,true);
   const today=pacificTestingDate();
   const arsenals=data.players.map(player=>({athleteId:player.id,pitches:fallArsenalPitches(data.arsenalReadings.filter(row=>row.athleteId===player.id),today)})).filter(row=>row.pitches.length>0);
-  return {players:data.players,readings:data.readings.filter(coachingReadingVisible),games:coachingGames(data.games),arsenals};
+  return {players:data.players,readings:data.readings.filter(coachingReadingVisible),games:coachingGames(data.games,data.rankingGames),arsenals};
 }
 
 /** Coverage projects only identities, metric availability and dates to the client. */
