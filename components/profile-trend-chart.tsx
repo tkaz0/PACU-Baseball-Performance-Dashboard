@@ -1,4 +1,6 @@
 "use client";
+
+import { pitchSourceLabel } from "@/lib/pitch-display";
 import { useId, useState } from "react";
 import type { ProfileTrend } from "@/lib/profile-trends";
 import { formatHeight, formatMetricNumber } from "@/lib/measurement-display";
@@ -17,7 +19,7 @@ export function ProfileTrendChart({ series }: { series: ProfileTrend[] }) {
   const y = (value: number) => 175 - (value - min) / (max - min) * 145;
   const format = (value: number) => trend.key === "height" ? formatHeight(value, trend.unit) : `${formatMetricNumber(value,trend.key,trend.source,String(Number(value.toFixed(2))))} ${trend.unit}`;
   return <section className="rounded-xl border border-[var(--line-subtle)] bg-[var(--surface-panel)] p-4 sm:p-5" aria-label="Testing progress chart">
-    <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="m-0 text-lg font-bold">Testing Progress</h2><p className="muted mb-0 mt-1 text-xs">{trend.period} · {trend.points.length} test dates · {trend.source}</p></div><div><label className="sr-only" htmlFor={id}>Chart measurement</label><select id={id} className="max-w-full text-sm" value={identity(trend)} onChange={e => setSelected(e.target.value)}>{series.map(item => <option key={identity(item)} value={identity(item)}>{item.label}{series.filter(s => s.key === item.key).length > 1 ? ` · ${item.source} · ${item.unit}` : ""}</option>)}</select></div></div>
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="m-0 text-lg font-bold">Testing Progress</h2><p className="muted mb-0 mt-1 text-xs">{trend.period} · {trend.points.length} test dates · {pitchSourceLabel(trend.source)}</p></div><div><label className="sr-only" htmlFor={id}>Chart measurement</label><select id={id} className="max-w-full text-sm" value={identity(trend)} onChange={e => setSelected(e.target.value)}>{series.map(item => <option key={identity(item)} value={identity(item)}>{item.label}{series.filter(s => s.key === item.key).length > 1 ? ` · ${pitchSourceLabel(item.source)} · ${item.unit}` : ""}</option>)}</select></div></div>
     <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2"><p className="m-0 text-sm font-semibold">{trend.label}</p><p className="m-0 text-sm tabular-nums">{format(first.value)} <span className="muted mx-1">→</span> <strong>{format(last.value)}</strong></p></div>
     <svg viewBox="0 0 430 210" className="mt-2 block w-full" style={{ maxHeight: 250 }} role="img" aria-labelledby={`${id}-title ${id}-desc`}>
       <title id={`${id}-title`}>{`${trend.label} by test date`}</title><desc id={`${id}-desc`}>{trend.points.length} recorded tests from {first.date} to {last.date}. {format(first.value)} to {format(last.value)}. Vertical scale is zoomed to the recorded range. Displayed values follow in chart data.</desc>

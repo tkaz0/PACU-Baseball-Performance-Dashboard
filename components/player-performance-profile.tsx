@@ -1,3 +1,4 @@
+import { pitchSourceLabel } from "@/lib/pitch-display";
 import presentation from "./player-profile-presentation.module.css";
 import { fullSwingFileLabel } from "@/lib/full-swing-file-label";
 import { HittingTeamAverageLine } from "@/components/hitting-team-average";
@@ -81,7 +82,7 @@ function MetricCard({ card, teamAverages=[] }: { card: PlayerMetricCard; teamAve
     {!reading && <p className="mb-0 mt-3 text-[11px] text-[var(--text-secondary)]">Not Yet Tested</p>}
     {card.timedTrials && <p className="mb-0 mt-2 text-sm text-[var(--text-secondary)]">Average <strong className="tabular-nums text-[var(--text-primary)]">{card.timedTrials.average.toFixed(2)} s</strong><span className="ml-2 text-xs">{card.timedTrials.count} {card.timedTrials.count === 1 ? "trial" : "trials"} · Fall 2026</span></p>}
     {reading && <div className={presentation.metricMeta}>
-      {card.metric.group !== "body" && <p className={presentation.metricSource}>{reading.source}</p>}
+      {card.metric.group !== "body" && <p className={presentation.metricSource}>{pitchSourceLabel(reading.source)}</p>}
       <p className={presentation.metricDate}>{parseBlastSource(reading.source) ? <>Reporting Week: {blastPeriodLabel(parseBlastSource(reading.source)!.start,parseBlastSource(reading.source)!.end)}</> : <>Last Tested: <time dateTime={card.timedTrials?.lastTested ?? reading.measuredAt}>{measurementDate(card.timedTrials?.lastTested ?? reading.measuredAt)}</time></>}{reading.derived ? " · Calculated" : ""}</p>
     </div>}
     <Percentile card={card} />
@@ -171,7 +172,7 @@ export function PlayerPerformanceProfile({ athlete, performance, season, blastRe
         <p className="m-0">Baseball performance window: September 1–December 31, 2026. Body comparisons use separate June 1–August 31 and September 1–December 31 testing periods. Each reading carries its recorded test date. Height displays in feet and inches, rounded to one tenth of an inch. Original values and units remain below; different units are never mixed in a percentile. Calculated values marked ≈ are rounded to one decimal in the snapshot; the full result and formula appear below.</p>
         {sourcedCards.length > 0 ? <div className="overflow-x-auto"><table><caption className="sr-only">Sources for the performance snapshot</caption><thead><tr><th>Measurement</th><th>Test Date</th><th>Value</th><th>Source / Method</th></tr></thead><tbody>{sourcedCards.map(card => {
           const reading = card.latest!;
-          return <tr key={`${card.metric.key}:${reading.source}:${reading.unit}`}><td className="font-semibold">{profileMetricLabel(card.metric.key,card.metric.label,reading.source)}<StatInfo metric={card.metric.key} label={card.metric.label} /></td><td className="whitespace-nowrap">{reading.measuredAt}</td><td className="whitespace-nowrap">{formatMetricNumber(reading.value,card.metric.key,reading.source)} {reading.unit}</td><td className="min-w-52 max-w-sm break-words">{reading.derived && reading.derivation && <p className="mb-1 mt-0">{reading.derivation}</p>}<span>{reading.source}</span>{reading.provenance.map(source => <span className="mt-1 block" key={source.id}>{fullSwingFileLabel(source.source_file,reading.source,reading.measuredAt)} · {source.source_sheet || "File"} · Row {source.source_row}</span>)}</td></tr>;
+          return <tr key={`${card.metric.key}:${reading.source}:${reading.unit}`}><td className="font-semibold">{profileMetricLabel(card.metric.key,card.metric.label,reading.source)}<StatInfo metric={card.metric.key} label={card.metric.label} /></td><td className="whitespace-nowrap">{reading.measuredAt}</td><td className="whitespace-nowrap">{formatMetricNumber(reading.value,card.metric.key,reading.source)} {reading.unit}</td><td className="min-w-52 max-w-sm break-words">{reading.derived && reading.derivation && <p className="mb-1 mt-0">{reading.derivation}</p>}<span>{pitchSourceLabel(reading.source)}</span>{reading.provenance.map(source => <span className="mt-1 block" key={source.id}>{fullSwingFileLabel(source.source_file,reading.source,reading.measuredAt)} · {source.source_sheet || "File"} · Row {source.source_row}</span>)}</td></tr>;
         })}</tbody></table></div> : <p className="m-0">Source details appear with the first reviewed measurements.</p>}
       </div>
     </details>}

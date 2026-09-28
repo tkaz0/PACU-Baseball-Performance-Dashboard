@@ -55,7 +55,7 @@ it("renders the full visible Fall arsenal with four one-decimal results and exac
  const rows=prepareClassifiedPitchResults(session,labels,context);
  const earlier=rows.map(r=>({...r,file_hash:"b".repeat(64),measured_at:"2026-09-10",source_file:"Old fictional session.csv"}));
  const html=renderToStaticMarkup(createElement(ClassifiedPitchResults,{readings:[...rows,...earlier]}));
- for(const text of ["81.3","82.5","2050.3","2100.5","n=4","Fastball","Slider"])expect(html).toContain(text);
+ for(const text of ["81.3","82.5","2050.3","2100.5","n=4","Unspecified Pitch","Slider"])expect(html).toContain(text);
  expect(html).not.toContain("82.456");expect(html).not.toContain("Old fictional");expect(html).not.toContain("Fictional Excluded");
  expect(html).toContain("Pitch Arsenal");expect(html).toContain("Pitch Mix");
  expect(html).toContain('aria-label="About Pitch Arsenal chart"');expect(html).toContain('aria-label="About Pitch Mix chart"');

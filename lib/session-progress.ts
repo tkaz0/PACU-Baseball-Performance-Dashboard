@@ -1,3 +1,4 @@
+import { pitchTypeLabel } from "@/lib/imports/pitch-assignments";
 import type { Measurement } from "@/lib/imports/engine";
 import { blastPracticeReports } from "@/lib/blast-metrics";
 import { BLAST_MAIN_METRICS, blastFallSummary } from "@/lib/blast-fall";
@@ -50,7 +51,7 @@ export function pitchProgress(readings: readonly Measurement[], context: "practi
       const counts = rows.filter(row => row.metric === countMetric && row.unit === "count");
       if (values.length !== 1 || counts.length !== 1 || !Number.isSafeInteger(counts[0].value) || counts[0].value < 1) continue;
       const key = `${pitch.pitchType}:${definition.metric}`;
-      const item = series.get(key) ?? { key, label: `${pitch.pitchType} · ${definition.label}`, unit: definition.unit, context, points: [] };
+      const item = series.get(key) ?? { key, label: `${pitchTypeLabel(pitch.pitchType)} · ${definition.label}`, unit: definition.unit, context, points: [] };
       item.points.push({ key: values[0].id, date: values[0].measured_at, label: fullSwingFileLabel(values[0].source_file,values[0].source,values[0].measured_at), value: values[0].value, count: counts[0].value });
       series.set(key, item);
     }

@@ -1,6 +1,11 @@
 import type { FullSwingSession } from "@/lib/imports/full-swing-session";
+/** Stored order defines immutable classified-summary columns. Keep legacy types in place. */
 export const PITCH_TYPES = ["Fastball", "Breaking Ball", "Four-Seam Fastball", "Two-Seam Fastball", "Sinker", "Cutter", "Slider", "Sweeper", "Curveball", "Changeup", "Splitter", "Knuckleball", "Other"] as const;
 export type PitchType = typeof PITCH_TYPES[number];
+export const SELECTABLE_PITCH_TYPES = PITCH_TYPES.filter(type => type !== "Fastball");
+export function pitchTypeLabel(type: string): string {
+  return ({ Fastball: "Unspecified Pitch", "Four-Seam Fastball": "4-Seam Fastball", "Two-Seam Fastball": "2-Seam Fastball" } as Record<string,string>)[type] ?? type;
+}
 export type PitchAssignment = { sourceRow: number; pitchType: PitchType };
 export type PitchAssignmentSnapshot = { version: number; assignments: PitchAssignment[] };
 export function validatePitchAssignments(value: unknown): PitchAssignment[] {
@@ -13,6 +18,7 @@ export function validatePitchAssignments(value: unknown): PitchAssignment[] {
   }).sort((a,b)=>a.sourceRow-b.sourceRow);
 }
 export function assignPitchRows(assignments: PitchAssignment[], sourceRows: number[], pitchType: PitchType | ""): PitchAssignment[] {
+  if (pitchType === "Fastball") throw new Error("Choose a specific pitch type.");
   const selected = new Set(sourceRows);
   return validatePitchAssignments([...assignments.filter(a=>!selected.has(a.sourceRow)), ...(pitchType ? sourceRows.map(sourceRow=>({sourceRow,pitchType})) : [])]);
 }
@@ -48,6 +54,8 @@ export function suggestPitchTypes(pitches: FullSwingSession["pitches"], guidelin
     if(p.velocity>=g.changeMin && p.velocity<=g.changeMax && p.spin<g.changeSpinBelow)candidates.push({pitchType:"Changeup",reason:`${g.changeMin}–${g.changeMax} mph and spin below ${g.changeSpinBelow} RPM.`});
     if(p.velocity>=g.breakingMin && p.velocity<=g.breakingMax && p.spin>g.breakingSpinAbove)candidates.push({pitchType:"Breaking Ball",reason:`${g.breakingMin}–${g.breakingMax} mph and spin above ${g.breakingSpinAbove} RPM. Slider versus curveball needs review.`});
     // Overlapping customized rules do not silently prefer one pitch type.
-    return candidates.length===1?[{sourceRow:p.sourceRow,...candidates[0]}]:[];
+    // Speed and spin cannot establish a four-seam/two-seam subtype. Retain this
+    // family candidate for overlap detection, but require a specific staff label.
+    return candidates.length===1 && candidates[0].pitchType!=="Fastball"?[{sourceRow:p.sourceRow,...candidates[0]}]:[];
   });
 }

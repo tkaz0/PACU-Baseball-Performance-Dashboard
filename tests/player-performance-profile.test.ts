@@ -127,7 +127,7 @@ it("prioritizes a full Fall arsenal in pitcher Overview and hides only broad Ful
  const performance=model(readings),original=structuredClone(performance);
  const html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete:fictionalAthlete("pitcher","P"),performance,blastReadings:readings}));
  const panels=html.split('role="tabpanel"');
- expect(panels[1]).toContain("Full Pitch Arsenal");expect(panels[1]).toContain("Fastball");expect(panels[1]).toContain("81.1");expect(panels[1]).toContain("2100.1");
+ expect(panels[1]).toContain("Full Pitch Arsenal");expect(panels[1]).toContain("Unspecified Pitch");expect(panels[1]).toContain("81.1");expect(panels[1]).toContain("2100.1");
  expect(panels[1]).not.toContain('data-value="85"');expect(panels[3]).not.toContain('data-value="85"');
  expect(panels[3]).toContain("Pitch Mix");expect(panels[3]).not.toContain("No in-game results");
  expect(panels[4]).toContain('data-value="86"');expect(panels[4]).toContain('data-value="87"');

@@ -1,3 +1,4 @@
+import { pitchTypeLabel } from "@/lib/imports/pitch-assignments";
 import Link from "next/link";
 import { LeaderboardPitchSelector } from "@/components/leaderboard-pitch-selector";
 import { LeaderboardNavigation } from "@/components/leaderboard-navigation";
@@ -29,8 +30,8 @@ export function LeaderboardBoard({ group, panels, session = "in_game", pitches =
     </header>}
     {populated.length > 0 ? <div className="space-y-8">
       {general.length > 0 && <section aria-label="Session measurements"><div className="leaderboard-grid">{general.map(results)}</div></section>}
-      {pitchGroups.map(([key, entries]) => <section key={key} aria-label={`${leaderboardPitchType(entries[0].comparison.source)} · ${groupContext(entries[0].comparison)} rankings`}>
-        <header className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-[var(--line-subtle)] pb-3"><h3 className="m-0 text-lg font-bold">{leaderboardPitchType(entries[0].comparison.source)}</h3><p className="muted m-0 text-xs font-medium">{groupContext(entries[0].comparison)}</p></header>
+      {pitchGroups.map(([key, entries]) => <section key={key} aria-label={`${pitchTypeLabel(leaderboardPitchType(entries[0].comparison.source)!)} · ${groupContext(entries[0].comparison)} rankings`}>
+        <header className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-[var(--line-subtle)] pb-3"><h3 className="m-0 text-lg font-bold">{pitchTypeLabel(leaderboardPitchType(entries[0].comparison.source)!)}</h3><p className="muted m-0 text-xs font-medium">{groupContext(entries[0].comparison)}</p></header>
         <div className="leaderboard-grid pitch-leaderboard-grid">{[...entries].sort((a,b) => PITCH_LEADERBOARD_KEYS.indexOf(a.comparison.metricKey as typeof PITCH_LEADERBOARD_KEYS[number]) - PITCH_LEADERBOARD_KEYS.indexOf(b.comparison.metricKey as typeof PITCH_LEADERBOARD_KEYS[number])).map(results)}</div>
       </section>)}
     </div> : <section className="panel px-6 py-10 text-center sm:py-14"><span className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--surface-raised)] text-xs font-bold text-[var(--accent-readable)]"><Trophy size={23} aria-hidden="true" /></span><h2 className="mb-2 text-xl font-bold">No {leaderboardGroupLabels[group]} Results Yet</h2><p className="muted mx-auto mb-0 max-w-md text-sm">{group === "throwing" ? "Infield and Outfield Velocity rankings will appear after throwing results are added." : group !== "physicality" ? `${session === "practice" ? "Practice" : "In-Game"} rankings will appear after reviewed sessions are added.` : "Rankings will appear here as testing results are added."}</p></section>}

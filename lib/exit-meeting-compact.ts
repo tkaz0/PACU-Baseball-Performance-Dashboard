@@ -1,3 +1,4 @@
+import { pitchTypeLabel } from "@/lib/imports/pitch-assignments";
 import type { ExitMeetingReport, ExitMeetingRow, ExitMeetingSection } from "@/lib/exit-meeting";
 import type { Measurement } from "@/lib/imports/engine";
 import { classifiedPitchSource } from "@/lib/imports/classified-pitch-results";
@@ -31,7 +32,7 @@ export function compactExitMeetingArsenal(readings: readonly Measurement[]): Exi
       const maximum = maxima.length ? Math.max(...maxima) : null;
       if (average === null && maximum === null) continue;
       const rows = output.get(pitch.category) ?? [];
-      rows.push({ label: `${pitch.pitchType} · ${family}`, value: `${average === null ? "—" : average.toFixed(1)} avg / ${maximum === null ? "—" : maximum.toFixed(1)} max ${unit}`, source: `Full Swing · ${pitch.category}`, date: dates[0] === dates.at(-1) ? dates[0] : `${dates[0]} to ${dates.at(-1)}`, basis: average === null ? "Fall best · Average needs complete counts" : "Fall weighted average / best", percentile: null, peers: null, sample: count === null ? `Reading count unavailable · ${relevant.length} ${relevant.length === 1 ? "session" : "sessions"}` : `${count} ${family.toLowerCase()} readings · ${relevant.length} ${relevant.length === 1 ? "session" : "sessions"}`, metricKey: `compact_pitch_${family.toLowerCase()}` });
+      rows.push({ label: `${pitchTypeLabel(pitch.pitchType)} · ${family}`, value: `${average === null ? "—" : average.toFixed(1)} avg / ${maximum === null ? "—" : maximum.toFixed(1)} max ${unit}`, source: `Full Swing · ${pitch.category}`, date: dates[0] === dates.at(-1) ? dates[0] : `${dates[0]} to ${dates.at(-1)}`, basis: average === null ? "Fall best · Average needs complete counts" : "Fall weighted average / best", percentile: null, peers: null, sample: count === null ? `Reading count unavailable · ${relevant.length} ${relevant.length === 1 ? "session" : "sessions"}` : `${count} ${family.toLowerCase()} readings · ${relevant.length} ${relevant.length === 1 ? "session" : "sessions"}`, metricKey: `compact_pitch_${family.toLowerCase()}` });
       output.set(pitch.category, rows);
     }
   }

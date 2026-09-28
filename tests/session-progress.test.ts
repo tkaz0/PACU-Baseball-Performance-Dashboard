@@ -20,7 +20,7 @@ it("keeps classified pitch families, contexts and files separate",()=>{
     return [entry(`${suffix}-v`,source,"Pitch Type Average Velocity",velocity,"mph",date,hash),entry(`${suffix}-vc`,source,"Pitch Type Velocity Readings",6,"count",date,hash),entry(`${suffix}-s`,source,"Pitch Type Average Spin",spin,"rpm",date,hash),entry(`${suffix}-sc`,source,"Pitch Type Spin Readings",5,"count",date,hash)];
   };
   const rows=[...make("a","Intrasquad","Fastball","2026-09-11",80,2000),...make("b","Game","Fastball","2026-09-20",82,2100),...make("c","Practice","Fastball","2026-09-18",78,1900),...make("d","Intrasquad","Slider","2026-09-11",69,2300)];
-  expect(pitchProgress(rows,"in_game").find(item=>item.label==="Fastball · Average Velocity")?.points.map(point=>point.value)).toEqual([80,82]);
-  expect(pitchProgress(rows,"practice").find(item=>item.label==="Fastball · Average Velocity")?.points.map(point=>point.value)).toEqual([78]);
+  expect(pitchProgress(rows,"in_game").find(item=>item.label==="Unspecified Pitch · Average Velocity")?.points.map(point=>point.value)).toEqual([80,82]);
+  expect(pitchProgress(rows,"practice").find(item=>item.label==="Unspecified Pitch · Average Velocity")?.points.map(point=>point.value)).toEqual([78]);
   expect(pitchProgress(rows,"in_game").find(item=>item.label==="Slider · Average Spin")?.points[0].count).toBe(5);
 });

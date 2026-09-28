@@ -40,8 +40,8 @@ describe("full arsenal comparison",()=>{
  });
  it("renders every pitch visibly with one decimal, dates, reading counts, and labeled information controls",()=>{
   const comparisons=compare(fictionalComparisonArsenalData),html=renderToStaticMarkup(createElement(PitchArsenalComparison,{comparisons,first:a.name,second:b.name}));
-  for(const label of ["Fastball","Slider","Curveball","Changeup","Average Velocity","Max Velocity","Average Spin","Max Spin","In-Game · Intrasquad","Practice","81.6 mph","2001.2 rpm","36 velocity readings","34 spin readings","Latest session","Not recorded"])expect(html).toContain(label);
-  expect(html).not.toContain("81.567");expect(html).not.toContain("file_hash");expect(html).not.toContain("source_row");expect(html).toContain('aria-label="About Fastball Average Velocity"');expect(html).not.toContain("<details");
+  for(const label of ["Unspecified Pitch","Slider","Curveball","Changeup","Average Velocity","Max Velocity","Average Spin","Max Spin","In-Game · Intrasquad","Practice","81.6 mph","2001.2 rpm","36 velocity readings","34 spin readings","Latest session","Not recorded"])expect(html).toContain(label);
+  expect(html).not.toContain("81.567");expect(html).not.toContain("file_hash");expect(html).not.toContain("source_row");expect(html).toContain('aria-label="About Unspecified Pitch Average Velocity"');expect(html).not.toContain("<details");
  });
 });
 

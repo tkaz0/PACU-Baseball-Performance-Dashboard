@@ -83,21 +83,21 @@ describe("pitch separation display", () => {
   it("provides a labeled reference selector without silently selecting one fastball", () => {
     const other = { ...fastball, source: "Full Swing · Intrasquad · Sinker", pitchType: "Sinker" };
     const html = renderToStaticMarkup(createElement(PitchSeparationChart, { pitches: [fastball, other, slider], category: "Intrasquad", today }));
-    expect(html).toContain("Fastball Reference");expect(html).toContain('<option value="" selected="">Choose a fastball</option>');
+    expect(html).toContain("Reference Pitch");expect(html).toContain('<option value="" selected="">Choose a reference pitch</option>');
     expect(html).toContain("Sinker");expect(html).not.toContain("data-pitch-gap=");
   });
   it("shows honest missing-reference or noncomparable messages without fake zero bars", () => {
     const missing = renderToStaticMarkup(createElement(PitchSeparationChart, { pitches: [slider], category: "Intrasquad", today }));
-    expect(missing).toContain("A classified fastball average is needed");expect(missing).not.toContain("data-pitch-gap=");
+    expect(missing).toContain("A classified fastball-family average is needed");expect(missing).not.toContain("data-pitch-gap=");
     const different = renderToStaticMarkup(createElement(PitchSeparationChart, { pitches: [fastball, { ...slider, velocityAverageLastDate: "2026-09-11" }], category: "Intrasquad", today }));
     expect(different).toContain("Different test dates");expect(different).toContain("72.2 mph");expect(different).not.toContain("data-pitch-gap=");
   });
   it("integrates independently within each profile context and stays out of the compact overview", () => {
     const pitches = [fastball, slider, { ...fastball, source: "Full Swing · Game · Fastball", category: "Game" as const }];
     const full = renderToStaticMarkup(createElement(ClassifiedPitchResults, { pitches }));
-    expect(full.match(/Average speed off your fastball/g)).toHaveLength(2);
+    expect(full.match(/Average speed off your reference pitch/g)).toHaveLength(2);
     const compact = renderToStaticMarkup(createElement(ClassifiedPitchResults, { pitches, showChart: false }));
-    expect(compact).not.toContain("Average speed off your fastball");
+    expect(compact).not.toContain("Average speed off your reference pitch");
     const practice = renderToStaticMarkup(createElement(ClassifiedPitchResults, { pitches, context: "practice" }));
     expect(practice).toBe("");
   });

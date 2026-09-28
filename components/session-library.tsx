@@ -1,5 +1,7 @@
 "use client";
 
+import { pitchTypeLabel } from "@/lib/imports/pitch-assignments";
+
 import { useId, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, CheckCircle2, Circle, FileSpreadsheet, Search, UsersRound } from "lucide-react";
@@ -42,7 +44,7 @@ export function SessionLibrary({ sessions, canCorrect = false, allowRestore = fa
         {!!session.publication?.unresolvedPitchCount && <p className={styles.reviewNote}>{session.publication.unresolvedPitchCount} matched pitches still need a pitch label. Open the original CSV in the Import Center to finish the review.</p>}
         {session.publication && !session.publication.fullyPublished && <p className={styles.reviewNote}><strong>Saved Results Changed.</strong> Results were changed outside this session review. Resolve the separate correction before revising this session. {canCorrect ? <Link href="/admin/csv-corrections">Review Separate Corrections</Link> : "Ask an administrator to review the separate correction."}</p>}
         <details className={styles.details}><summary><UsersRound size={15} aria-hidden="true" /> Players &amp; Saved Details<span aria-hidden="true">+</span></summary><div className={styles.detailBody}>
-          {session.pitchTypes.length > 0 && <p className={styles.pitchTypes}><strong>Pitch Types</strong>{session.pitchTypes.join(" · ")}</p>}
+          {session.pitchTypes.length > 0 && <p className={styles.pitchTypes}><strong>Pitch Types</strong>{session.pitchTypes.map(pitchTypeLabel).join(" · ")}</p>}
           {session.players.length > 0 ? <ul className={styles.players}>{session.players.map(player => <li key={player.id}><Link prefetch={false} href={`/athletes/${player.id}`}>{player.name}<ArrowUpRight size={13} aria-hidden="true" /></Link><span>{[player.hitting && "Hitting", player.pitching && "Pitching", player.contactMap && "Contact Charts"].filter(Boolean).join(" · ")}</span>{canCorrect && !session.publication && session.vendor === "Full Swing" && <Link prefetch={false} className={styles.correct} href={`/admin/csv-corrections?athlete=${player.id}`}>Review Readings</Link>}</li>)}</ul> : <p className={styles.guide}>No active player results remain in this report.</p>}
           <div className={styles.fileDetails}><span>{session.measurementCount} saved measurements · {session.contactCount} contact-chart points</span>{session.publication && <><span>Revision {session.publication.revision} · {session.publication.excludedPlayerCount} export players skipped during review</span>{session.publication.removedValueCount > 0 && <span>{session.publication.removedValueCount} tracking readings removed</span>}</>}<span>Last saved {new Date(session.savedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Los_Angeles" })}</span><details><summary>Original File{session.originalFiles.length === 1 ? "" : " Names"}</summary><ul>{session.originalFiles.map(file => <li key={file}>{file}</li>)}</ul></details>{session.vendor === "Full Swing" && (!session.publication || session.publication.fullyPublished) && <Link href={`/imports?sessionType=${session.category === "game" || session.category === "intrasquad" ? session.category : "practice"}`} className="btn btn-secondary">Review Original CSV</Link>}</div>
         </div></details>

@@ -1,4 +1,6 @@
 "use client";
+
+import { pitchSourceLabel } from "@/lib/pitch-display";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -15,7 +17,7 @@ function Metric({ row }: { row: ExitMeetingRow }) {
   return <div className={styles.metric} data-tone={row.tone}>
     <div><span className={styles.metricName}>{row.label}</span><strong className={styles.metricValue}>{row.value}</strong></div>
     <div className={styles.metricComparison}>{row.percentile !== null ? <><div className={styles.rank}><span>Team Percentile</span><strong>{Math.round(row.percentile)}</strong></div><div className={styles.percentileTrack}><i style={{ left: `${row.percentile}%`, ...percentileColor(row.percentile) }} /></div><small>{row.peers} teammates</small></> : <span className={styles.missingRank}>No team percentile</span>}</div>
-    <p className={styles.metricMeta}>{row.source} · {row.date}<span>{row.basis}{row.sample ? ` · ${row.sample}` : ""}</span></p>
+    <p className={styles.metricMeta}>{pitchSourceLabel(row.source)} · {row.date}<span>{row.basis}{row.sample ? ` · ${row.sample}` : ""}</span></p>
   </div>;
 }
 const today = () => new Intl.DateTimeFormat("en-CA", { timeZone:"America/Los_Angeles",year:"numeric",month:"2-digit",day:"2-digit" }).format(new Date());

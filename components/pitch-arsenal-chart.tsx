@@ -1,5 +1,5 @@
 import type { ArsenalPitch } from "@/lib/pitch-arsenal";
-import { PITCH_TYPES } from "@/lib/imports/pitch-assignments";
+import { PITCH_TYPES, pitchTypeLabel } from "@/lib/imports/pitch-assignments";
 import { formatSourceNumber } from "@/lib/measurement-display";
 import { StatInfo } from "@/components/stat-info";
 import styles from "./pitch-arsenal-chart.module.css";
@@ -37,10 +37,10 @@ function ArsenalScatter({ pitches, scope }: { pitches: readonly ArsenalPitch[]; 
       {points.map((pitch, index) => {
         const cx=x(pitch.averageVelocity!),cy=y(pitch.averageSpin!), color=pitchColor(pitch.pitchType);
         const shape=pointShapes[index%pointShapes.length];
-        return <g key={pitch.source} data-pitch-type={pitch.pitchType}><title>{`${pitch.pitchType}: ${formatSourceNumber(pitch.averageVelocity!,pitch.source)} mph, ${formatSourceNumber(pitch.averageSpin!,pitch.source)} RPM; velocity n=${pitch.velocityReadings ?? "unknown"}, spin n=${pitch.spinReadings ?? "unknown"}`}</title>{shape==="circle"?<circle cx={cx} cy={cy} r="7" fill={color} stroke="var(--surface-panel)" strokeWidth="2"/>:shape==="square"?<rect x={cx-7} y={cy-7} width="14" height="14" rx="2" fill={color} stroke="var(--surface-panel)" strokeWidth="2"/>:<path d={`M ${cx} ${cy-9} L ${cx+9} ${cy} L ${cx} ${cy+9} L ${cx-9} ${cy} Z`} fill={color} stroke="var(--surface-panel)" strokeWidth="2"/>}</g>;
+        return <g key={pitch.source} data-pitch-type={pitch.pitchType}><title>{`${pitchTypeLabel(pitch.pitchType)}: ${formatSourceNumber(pitch.averageVelocity!,pitch.source)} mph, ${formatSourceNumber(pitch.averageSpin!,pitch.source)} RPM; velocity n=${pitch.velocityReadings ?? "unknown"}, spin n=${pitch.spinReadings ?? "unknown"}`}</title>{shape==="circle"?<circle cx={cx} cy={cy} r="7" fill={color} stroke="var(--surface-panel)" strokeWidth="2"/>:shape==="square"?<rect x={cx-7} y={cy-7} width="14" height="14" rx="2" fill={color} stroke="var(--surface-panel)" strokeWidth="2"/>:<path d={`M ${cx} ${cy-9} L ${cx+9} ${cy} L ${cx} ${cy+9} L ${cx-9} ${cy} Z`} fill={color} stroke="var(--surface-panel)" strokeWidth="2"/>}</g>;
       })}
     </svg></div>
-    <ul className={styles.legend}>{points.map(pitch=><li key={pitch.source}><span style={{backgroundColor:pitchColor(pitch.pitchType)}} aria-hidden="true"/><strong>{pitch.pitchType}</strong><small>Average / high: {formatSourceNumber(pitch.averageVelocity!,pitch.source)} / {pitch.maxVelocity===null?"—":formatSourceNumber(pitch.maxVelocity,pitch.source)} mph · {formatSourceNumber(pitch.averageSpin!,pitch.source)} / {pitch.maxSpin===null?"—":formatSourceNumber(pitch.maxSpin,pitch.source)} RPM</small></li>)}</ul>
+    <ul className={styles.legend}>{points.map(pitch=><li key={pitch.source}><span style={{backgroundColor:pitchColor(pitch.pitchType)}} aria-hidden="true"/><strong>{pitchTypeLabel(pitch.pitchType)}</strong><small>Average / high: {formatSourceNumber(pitch.averageVelocity!,pitch.source)} / {pitch.maxVelocity===null?"—":formatSourceNumber(pitch.maxVelocity,pitch.source)} mph · {formatSourceNumber(pitch.averageSpin!,pitch.source)} / {pitch.maxSpin===null?"—":formatSourceNumber(pitch.maxSpin,pitch.source)} RPM</small></li>)}</ul>
     <p className={styles.note}>Speed and spin can be recorded on different pitches. See the results table for how many readings went into each average.</p>
   </figure>;
 }
@@ -61,10 +61,10 @@ function ArsenalMix({ pitches, scope }: { pitches: readonly ArsenalPitch[]; scop
       {shown.map((item,index)=>{
         const length=item.count/total*circumference;
         const offset=shown.slice(0,index).reduce((sum,previous)=>sum+previous.count,0)/total*circumference;
-        return <circle key={item.label} cx="110" cy="110" r="68" fill="none" stroke={item.label==="Other classified types"?"#7d8692":pitchColor(item.label)} strokeWidth="23" strokeDasharray={`${length} ${circumference-length}`} strokeDashoffset={-offset} transform="rotate(-90 110 110)"><title>{`${item.label}: ${item.count} of ${total} classified pitches`}</title></circle>;
+        return <circle key={item.label} cx="110" cy="110" r="68" fill="none" stroke={item.label==="Other classified types"?"#7d8692":pitchColor(item.label)} strokeWidth="23" strokeDasharray={`${length} ${circumference-length}`} strokeDashoffset={-offset} transform="rotate(-90 110 110)"><title>{`${pitchTypeLabel(item.label)}: ${item.count} of ${total} classified pitches`}</title></circle>;
       })}
       <text x="110" y="105" textAnchor="middle" fill="var(--text-primary)" fontSize="28" fontWeight="800">{total}</text><text x="110" y="124" textAnchor="middle" fill="var(--text-secondary)" fontSize="11">assigned</text>
-    </svg><ul className={styles.mixLegend}>{shown.map(item=><li key={item.label}><span style={{backgroundColor:item.label==="Other classified types"?"#7d8692":pitchColor(item.label)}} aria-hidden="true"/><span>{item.label}</span><strong>{item.count} · {(item.count/total*100).toFixed(0)}%</strong></li>)}</ul></div>
+    </svg><ul className={styles.mixLegend}>{shown.map(item=><li key={item.label}><span style={{backgroundColor:item.label==="Other classified types"?"#7d8692":pitchColor(item.label)}} aria-hidden="true"/><span>{pitchTypeLabel(item.label)}</span><strong>{item.count} · {(item.count/total*100).toFixed(0)}%</strong></li>)}</ul></div>
     <p className={styles.note}>Pitches without a staff-assigned type are left out of this chart.</p>
   </figure>;
 }

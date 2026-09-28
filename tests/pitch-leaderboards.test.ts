@@ -18,7 +18,7 @@ it("splits ordinary hitting and pitching protocols before selecting the displaye
 it("groups pitch rankings with clear labels, one decimal and session links without mixing results",()=>{
  const row:LeaderboardRow={rank:1,athleteCode:"SYN-001",name:"Fictional Pitcher",jerseyNumber:1,position:"P",profileId:null,value:81.234,measuredAt:"2026-09-11",source:base.source,derived:false};
  const html=renderToStaticMarkup(createElement(LeaderboardBoard,{group:"pitching",session:"in_game",pitches:["Four-Seam Fastball", "Slider"], selectedPitch:"Four-Seam Fastball",panels:[{comparison:base,rows:[row]}]}));
- expect(html).toContain("Four-Seam Fastball");expect(html).toContain("FB (4-Seam) · Average Velocity");expect(html).toContain("81.2");expect(html).not.toContain("81.234");
+ expect(html).toContain("4-Seam Fastball");expect(html).toContain("FB (4-Seam) · Average Velocity");expect(html).toContain("81.2");expect(html).not.toContain("81.234");
  expect(html).toContain('aria-label="Leaderboard session"');expect(html).toContain('session=practice');expect(html).toContain('<select');expect(html).toContain('name="pitch"');expect(html).toContain('value="Four-Seam Fastball"');
  const empty=renderToStaticMarkup(createElement(LeaderboardBoard,{group:"hitting",session:"practice",panels:[]}));
  expect(empty).toContain("Practice rankings will appear");expect(empty).not.toContain("<table");
@@ -60,7 +60,7 @@ it("renders the entire arsenal in separate pitch and context sections with all f
  const panels=sources.flatMap((source,index)=>PITCH_LEADERBOARD_KEYS.map(metricKey=>({comparison:{...base,source,metricKey,unit:metricKey.endsWith("spin")?"rpm":"mph"},rows:[{...row,source,value:metricKey.endsWith("spin")?1900.234+index*100:81.234-index*10}]})));
  const output=renderToStaticMarkup(createElement(LeaderboardBoard,{group:"pitching",session:"in_game",pitches:["Four-Seam Fastball","Slider"],panels}));
  expect(output).toContain('<option value="all" selected="">All Pitches</option>');
- expect(output).toContain('aria-label="Four-Seam Fastball · Full Swing · Intrasquad · Fall 2026 rankings"');
+ expect(output).toContain('aria-label="4-Seam Fastball · Full Swing · Intrasquad · Fall 2026 rankings"');
  expect(output).toContain('aria-label="Slider · Full Swing · Intrasquad · Fall 2026 rankings"');
  expect(output).toContain('aria-label="Slider · Full Swing · Game · Fall 2026 rankings"');
  expect(output.match(/Mean of 1 player /g)).toHaveLength(12);

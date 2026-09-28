@@ -1,3 +1,4 @@
+import { pitchTypeLabel } from "@/lib/imports/pitch-assignments";
 import { parseBlastSource } from "@/lib/blast-metrics";
 import { classifiedPitchSource } from "@/lib/imports/classified-pitch-results";
 import { RENPHO_SEGMENTS } from "@/lib/renpho-segments";
@@ -27,7 +28,7 @@ export function analyticsDisplayLabel(row: Pick<AnalyticsReading,"metric"|"label
     .replace(/^(?:Game|Pitching)\s+/i, "")
     .replace(/\s*\((?:In[- ]Game|Practice)\)$/i, "");
   const pitch=classifiedPitchSource(row.source);
-  const base=pitch ? `${pitch.pitchType} ${raw.replace(/^Pitch Type\s+/i, "")}` : raw;
+  const base=pitch ? `${pitchTypeLabel(pitch.pitchType)} ${raw.replace(/^Pitch Type\s+/i, "")}` : raw;
   const inGame=/^(?:QPA|Pitching)(?:\s*·|$)/i.test(row.source.trim()) ||
     /^Full Swing\s*·\s*(?:Game|Intrasquad)(?:\s*·|$)/i.test(row.source.trim());
   return `${base} (${inGame ? "In Game" : "Practice"})`;

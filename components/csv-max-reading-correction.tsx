@@ -1,4 +1,6 @@
 "use client";
+
+import { pitchSourceLabel } from "@/lib/pitch-display";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { archiveCsvMaxReading } from "@/app/(workspace)/admin/csv-corrections/actions";
@@ -18,7 +20,7 @@ function Reading({athleteId,row}:{athleteId:string;row:CsvMaxReading}) {
   finally {setPending(false);}
  }
  return <li className="border-b border-[var(--line-subtle)] py-4 last:border-b-0">
-  <div className="flex flex-wrap items-start justify-between gap-3"><div><strong>{label} · {row.value.toFixed(1)} {row.unit}</strong><p className="muted mb-0 mt-1 text-xs">{row.source} · {row.measuredAt} · {fullSwingFileLabel(row.sourceFile,"Full Swing · Intrasquad",row.measuredAt)}</p></div>
+  <div className="flex flex-wrap items-start justify-between gap-3"><div><strong>{label} · {row.value.toFixed(1)} {row.unit}</strong><p className="muted mb-0 mt-1 text-xs">{pitchSourceLabel(row.source)} · {row.measuredAt} · {fullSwingFileLabel(row.sourceFile,"Full Swing · Intrasquad",row.measuredAt)}</p></div>
    <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={approved} onChange={event=>setApproved(event.target.checked)} disabled={pending||done||!!attempt}/>Review this exact reading</label>
   </div>
   {!done&&<button type="button" className="btn btn-secondary mt-3 text-xs" disabled={!approved||pending} onClick={()=>void remove()}>{pending?"Saving…":attempt?"Retry Same Removal":"Flag & Remove Reading"}</button>}

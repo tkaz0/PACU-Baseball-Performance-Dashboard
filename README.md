@@ -174,3 +174,5 @@ Full pitching arsenals now appear in profiles, staff player comparison and the d
 ## Personal tools and development progress
 
 Staff can save named Analytics views, set numeric goals on a player’s Overview, and save a read-only meeting summary in Exit Meetings. Player Home and staff Home show results added since the previous visit. The full pitching arsenal now includes a fastball-reference speed-separation chart. Existing source partitions and own-player permissions remain in force. See [Personal Dashboard](docs/PERSONAL_DASHBOARD.md), [Player Goals](docs/PLAYER_GOALS.md), [Pitch Arsenal](docs/PITCH_ARSENAL.md) and [Exit Meetings](docs/EXIT_MEETINGS.md).
+
+Pitch assignments now use specific pitch types. Older generic labels remain visible as **Unspecified Pitch** until reviewed; Admins can verify the original CSV and correct a saved legacy group to **4-Seam Fastball**, with guarded restoration in Pitch Label History. See [Session Library](docs/SESSION_LIBRARY.md).

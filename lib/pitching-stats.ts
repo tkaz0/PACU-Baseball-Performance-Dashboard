@@ -1,6 +1,6 @@
 import type { SharedGameStat } from "@/lib/game-server";
 export const PITCH_FAMILIES = [
-  { key: "fb", strikes: "fb_k", label: "Fastball", color: "#ef4444" },
+  { key: "fb", strikes: "fb_k", label: "Fastball Family", color: "#ef4444" },
   { key: "bb_pitch_family", strikes: "bb_pitch_family_k", label: "Breaking Ball", color: "#3b82f6" },
   { key: "ch", strikes: "ch_k", label: "Changeup", color: "#f59e0b" },
 ] as const;

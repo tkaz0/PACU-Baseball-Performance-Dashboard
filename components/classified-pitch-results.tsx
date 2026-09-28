@@ -1,3 +1,4 @@
+import { pitchTypeLabel } from "@/lib/imports/pitch-assignments";
 import { leaderboardTestDate } from "@/lib/leaderboards";
 import type { Measurement } from "@/lib/imports/engine";
 import { formatSourceNumber } from "@/lib/measurement-display";
@@ -31,7 +32,7 @@ export function ClassifiedPitchResults({ readings, pitches, context = "in_game",
       return <div key={category} className={styles.sourceGroup}>
         <div className={styles.sourceHeading}><h3>Full Swing · {category}</h3><p>Every recorded pitch type · Averages and bests across saved Fall sessions</p></div>
         <div className={styles.tableWrap}><table><caption className="sr-only">All {category.toLowerCase()} pitch types with average and maximum velocity and spin</caption><thead><tr><th scope="col">Pitch Type</th><th scope="col">Avg Velocity <small>mph</small></th><th scope="col">Max Velocity <small>mph</small></th><th scope="col">Avg Spin <small>RPM</small></th><th scope="col">Max Spin <small>RPM</small></th></tr></thead><tbody>{group.map(pitch => <tr key={pitch.source}>
-          <th scope="row"><strong>{pitch.pitchType}</strong><small>{pitch.sessionCount} {pitch.sessionCount === 1 ? "session" : "sessions"}{pitch.count === null ? "" : ` · ${pitch.count} pitches`}</small><small>{dateRange(pitch.firstDate, pitch.lastDate)}</small></th>
+          <th scope="row"><strong>{pitchTypeLabel(pitch.pitchType)}</strong><small>{pitch.sessionCount} {pitch.sessionCount === 1 ? "session" : "sessions"}{pitch.count === null ? "" : ` · ${pitch.count} pitches`}</small><small>{dateRange(pitch.firstDate, pitch.lastDate)}</small></th>
           <Average pitch={pitch} family="velocity"/><Maximum pitch={pitch} family="velocity"/><Average pitch={pitch} family="spin"/><Maximum pitch={pitch} family="spin"/>
         </tr>)}</tbody></table></div>
         {showChart && <PitchArsenalChart pitches={group} scope="fall"/>}

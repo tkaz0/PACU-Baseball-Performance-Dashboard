@@ -1,3 +1,4 @@
+import { pitchSourceLabel } from "@/lib/pitch-display";
 import { randomUUID } from "node:crypto";
 import { Flag, Target } from "lucide-react";
 import { PlayerGoalForm } from "@/components/player-goal-form";
@@ -8,7 +9,7 @@ function GoalCard({goal,staff}:{goal:PlayerNumericGoal;staff:boolean}){
   const label=goal.completedAt?"Coach marked complete":progress.status==="unavailable"?"Starting reading needs review":progress.status==="awaiting"?"Waiting for a newer test":progress.status==="reached"?"Target reached":progress.status==="away"?"Below starting progress":`${Math.round(progress.percent!)}% toward target`;
   return <article className={styles.card}>
     <header><h3>{goal.title}</h3>{staff&&<span>{goal.shared?"Shared":"Staff Only"}</span>}</header>
-    <p className={styles.metric}>{goal.metricLabel}</p><p className={styles.source}>{goal.source} · Fall 2026</p>
+    <p className={styles.metric}>{goal.metricLabel}</p><p className={styles.source}>{pitchSourceLabel(goal.source)} · Fall 2026</p>
     <div className={styles.values}><div><span>Starting Point</span><strong>{format(goal.baselineValue)}</strong><small>{goalDateLabel(goal.baselineDate)}</small></div><div><span>{goal.completedAt?"At Completion":"Latest Reading"}</span><strong>{goal.currentValue===null?"—":format(goal.currentValue)}</strong><small>{goal.currentDate?goalDateLabel(goal.currentDate):"Unavailable"}</small></div><div><span>Coach Target</span><strong>{format(goal.targetValue)}</strong><small>{goal.targetDate?`By ${goalDateLabel(goal.targetDate)}`:"No date set"}</small></div></div>
     <div className={styles.progressLabel}><span>{label}</span>{progress.status==="away"&&!goal.completedAt&&<span>{Math.abs(Math.round(progress.percent!))}% behind start</span>}</div>
     {progress.percent!==null?<div role="progressbar" aria-label={`${goal.title}: progress from starting point to coach target`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress.barPercent} aria-valuetext={label} className={styles.track}><span style={{width:`${progress.barPercent}%`}}/></div>:<p className={styles.hint}>The original reading changed or is unavailable. A coach can close this goal and choose a fresh starting point.</p>}

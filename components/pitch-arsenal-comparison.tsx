@@ -1,3 +1,4 @@
+import { pitchTypeLabel } from "@/lib/imports/pitch-assignments";
 import type { ArsenalComparison, ArsenalComparisonValue, ArsenalComparisonMetric } from "@/lib/player-comparison-arsenal";
 import { leaderboardTestDate } from "@/lib/leaderboards";
 import { StatInfo } from "@/components/stat-info";
@@ -13,7 +14,7 @@ function PitchRow({ metric, row, first, second }: {metric: ArsenalComparisonMetr
  const maximum = Math.max(metric.first?.value ?? 0, metric.second?.value ?? 0);
  return <div className={styles.arsenalRow}>
   <Result result={metric.first} name={first} unit={metric.unit} maximum={maximum} side="a" leading={metric.lead === "a"} eligible={row.eligibleA} review={row.reviewA}/>
-  <div className={styles.compareLabel}><h4>{metric.label}<StatInfo metric={metric.key} label={`${row.pitchType} ${metric.label}`}/></h4><p className={styles.compareNote}>{metric.lead === "tie" ? "Equal result" : metric.note}</p></div>
+  <div className={styles.compareLabel}><h4>{metric.label}<StatInfo metric={metric.key} label={`${pitchTypeLabel(row.pitchType)} ${metric.label}`}/></h4><p className={styles.compareNote}>{metric.lead === "tie" ? "Equal result" : metric.note}</p></div>
   <Result result={metric.second} name={second} unit={metric.unit} maximum={maximum} side="b" leading={metric.lead === "b"} eligible={row.eligibleB} review={row.reviewB}/>
  </div>;
 }
@@ -23,6 +24,6 @@ export function PitchArsenalComparison({ comparisons, first, second }: {comparis
  const categories = ["Game","Intrasquad","Practice"] as const;
  return <section className={styles.arsenalComparison} aria-label="Pitch arsenal comparison">
   <header className={styles.arsenalHeading}><div><span className={styles.arsenalEyebrow}>THROWING / FULL SWING</span><h2>Pitch Arsenal</h2><p className={styles.meta}>Every classified pitch · Fall 2026</p></div><p className={styles.meta}>Fall averages use matching reading counts.<br/>Spin shows how the pitches differ, without a winner.</p></header>
-  {categories.map(category=>{const rows=comparisons.filter(row=>row.category===category);return rows.length?<section className={styles.arsenalContext} key={category} aria-label={`${category} pitch comparison`}><h3>{category === "Practice" ? "Practice" : `In-Game · ${category}`}</h3><div className={styles.arsenalPlayerHead}><span className={styles.a}>{first}</span><span>Pitch / Result</span><span className={styles.b}>{second}</span></div>{rows.map(row=><section className={styles.arsenalPitch} key={row.key} aria-label={`${row.pitchType} · ${category}`}><header><strong>{row.pitchType}</strong><span>Full Swing · {category}</span></header>{row.metrics.map(metric=><PitchRow key={metric.key} metric={metric} row={row} first={first} second={second}/>)}</section>)}</section>:null;})}
+  {categories.map(category=>{const rows=comparisons.filter(row=>row.category===category);return rows.length?<section className={styles.arsenalContext} key={category} aria-label={`${category} pitch comparison`}><h3>{category === "Practice" ? "Practice" : `In-Game · ${category}`}</h3><div className={styles.arsenalPlayerHead}><span className={styles.a}>{first}</span><span>Pitch / Result</span><span className={styles.b}>{second}</span></div>{rows.map(row=><section className={styles.arsenalPitch} key={row.key} aria-label={`${pitchTypeLabel(row.pitchType)} · ${category}`}><header><strong>{pitchTypeLabel(row.pitchType)}</strong><span>Full Swing · {category}</span></header>{row.metrics.map(metric=><PitchRow key={metric.key} metric={metric} row={row} first={first} second={second}/>)}</section>)}</section>:null;})}
  </section>;
 }
