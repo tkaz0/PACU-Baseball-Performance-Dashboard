@@ -477,3 +477,5 @@ Advanced-performance presentation checks in tests/advanced-performance-presentat
 
 
 September 28 owner label cleanup: visible advanced hitting names are SLG, ISO, wOBAcon and PAC Production+, with no Est. prefix or suffix. Preserve canonical batting_est_* keys, calculations, source values, ranks and immutable saved snapshots. Calculation assumptions remain explained in stat-info buttons and report notes; removing the label does not make the double/triple split exact. This is an application-only display update requiring no migration.
+
+Leaderboard layout checks: game rank badges remain inside ordinary table cells, with competition ties retained across the expanded continuation. Shared cards use aligned Rank/Player/Result columns, mean references and the same “Show More” footer. Fictional component previews cover desktop and phone grids, long names, actual opportunity labels, early samples and pitch controls; live checks return only structural counts/dimensions. No ranking, source, sample or access rules change.

@@ -1,58 +1,80 @@
-.card { min-width: 0; align-self: start; overflow: hidden; border-radius: 12px; }
-.heading { padding: 16px 18px 14px; border-bottom: 1px solid var(--line-subtle); }
-.eyebrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--text-secondary); font-size: 10px; font-weight: 700; letter-spacing: .045em; text-transform: uppercase; }
-.eyebrow span:last-child { flex-shrink: 0; font-weight: 500; letter-spacing: 0; text-transform: none; }
-.heading h2 { margin: 9px 0 5px; font-size: 19px; line-height: 1.15; font-weight: 750; letter-spacing: -.045em; }
+.board { min-width: 0; }
+.controls { display: grid; gap: 10px; margin-bottom: 24px; }
+.controls :global(.leaderboard-navigation) { margin: 0; }
+.controls :global(.leaderboard-navigation[aria-label="Leaderboard group"]) { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); overflow: visible; }
+.controls :global(.leaderboard-navigation) a { min-width: 0; padding: 11px 8px; line-height: 1.4; }
+.controls > nav:last-child:not(:first-child) { width: fit-content; max-width: 100%; }
+.controls > nav:last-child:not(:first-child) a { min-width: 104px; padding-inline: 18px; }
+.sections { display: grid; gap: 32px; }
+.board .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 20px; }
+.sectionHeading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; margin-bottom: 16px; }
+.sectionHeading h2, .sectionHeading h3, .toolbar h2 { margin: 0; font-size: 20px; font-weight: 750; line-height: 1.35; letter-spacing: -.025em; }
+.sectionHeading p { width: 100%; max-width: 760px; margin: 0; color: var(--text-secondary); font-size: 12px; line-height: 1.65; }
+.gameHeading { display: block; }
+.gameHeading p { margin-top: 6px; }
+.pitchHeading { padding-bottom: 12px; border-bottom: 1px solid var(--line-subtle); }
+.pitchHeading p { width: auto; font-size: 11px; }
+.toolbar { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.toolbar > form { width: 256px; max-width: 100%; flex-shrink: 0; }
+.toolbar p { margin: 4px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+.notes { margin-top: 24px; color: var(--text-secondary); font-size: 12px; }
+.notes > summary { width: fit-content; cursor: pointer; font-weight: 600; padding-block: 8px; }
+.board .card { min-width: 0; align-self: start; overflow: hidden; border-radius: 14px; border-top: 3px solid #990000; }
+.heading { min-height: 104px; padding: 16px 18px 14px; border-bottom: 1px solid var(--line-subtle); }
+.eyebrow { display: flex; align-items: baseline; justify-content: space-between; gap: 8px 12px; color: var(--text-secondary); font-size: 9px; line-height: 1.5; font-weight: 700; letter-spacing: .045em; text-transform: uppercase; }
+.eyebrow > span:first-child { min-width: 0; }
+.eyebrow > span:last-child { flex-shrink: 0; font-weight: 500; letter-spacing: 0; text-transform: none; }
+.heading h2, .heading h3 { display: flex; align-items: center; gap: 4px; margin: 7px 0 5px; font-size: 18px; line-height: 1.3; font-weight: 750; letter-spacing: -.025em; }
 .heading p { margin: 0; color: var(--text-secondary); font-size: 10px; line-height: 1.6; }
-.tableWrap { width: 100%; overflow-x: auto; }
-.tableWrap table { width: 100%; border-collapse: collapse; }
+.heading .contextNote { margin-top: 5px; }
+.tableWrap { width: 100%; }
+.tableWrap table { width: 100%; table-layout: fixed; border-collapse: collapse; }
 .tableWrap thead th { padding: 9px 12px; background: var(--surface-raised); color: var(--text-secondary); font-size: 9px; font-weight: 650; letter-spacing: .09em; text-transform: uppercase; }
-.tableWrap thead th:first-child { width: 50px; text-align: center; }
-.tableWrap thead th:last-child { text-align: right; padding-right: 20px; }
-.tableWrap tbody td, .tableWrap tbody th { padding: 11px 12px; border-bottom: 1px solid var(--line-subtle); vertical-align: middle; }
+.tableWrap thead th:first-child { width: 48px; text-align: center; padding-inline: 6px; }
+.tableWrap thead th:last-child { width: 124px; text-align: right; padding-right: 18px; }
+.tableWrap tbody tr { height: 76px; }
+.tableWrap tbody td, .tableWrap tbody th { padding: 10px 12px; border-bottom: 1px solid var(--line-subtle); vertical-align: middle; }
 .tableWrap tbody tr:last-child > * { border-bottom: 0; }
-.tableWrap tbody td:first-child { padding-left: 14px; padding-right: 0; text-align: center; }
+.tableWrap tbody td:first-child { padding-inline: 6px; text-align: center; }
 .card .tableWrap table tbody th { text-align: left; font-weight: 400; text-transform: none; letter-spacing: normal; white-space: normal; background: transparent; }
 .leading { background: color-mix(in srgb, var(--accent-readable) 4%, var(--surface-panel)); }
-.rank { display: inline-flex; justify-content: center; align-items: center; width: 26px; height: 28px; font-size: 14px; font-weight: 700; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
-.first { border-radius: 6px; background: #990000; color: #fff; }
-.player { display: block; color: var(--text-primary); font-size: 13px; font-weight: 650; line-height: 1.35; overflow-wrap: anywhere; }
-.playerMeta { display: block; margin-top: 5px; font-size: 10px; color: var(--text-secondary); line-height: 1.4; }
-.date { display: inline; }
-.date::before { content: ' · '; }
-.tableWrap tbody .result { padding-right: 20px; text-align: right; font-size: 19px; font-weight: 750; letter-spacing: -.045em; font-variant-numeric: tabular-nums; min-width: 85px; }
+.rank { display: inline-flex; justify-content: center; align-items: center; width: 26px; height: 28px; font-size: 12px; font-weight: 700; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.first { border-radius: 7px; background: #990000; color: #fff; }
+.player { display: block; color: var(--text-primary); font-size: 13px; font-weight: 650; line-height: 1.4; overflow-wrap: anywhere; }
+.playerMeta { display: block; margin-top: 3px; font-size: 9px; color: var(--text-secondary); line-height: 1.45; }
+.date { display: block; margin-top: 2px; }
+.tableWrap tbody .result { padding-right: 18px; text-align: right; font-size: 18px; font-weight: 750; letter-spacing: -.025em; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .unit { display: inline-block; margin-left: 3px; color: var(--text-secondary); font-size: 10px; font-weight: 500; letter-spacing: 0; }
+.resultContext, .latestContext, .sample { display: block; margin-top: 3px; font-size: 10px; line-height: 1.4; font-weight: 500; letter-spacing: 0; white-space: normal; color: var(--text-secondary); }
+.latestContext { color: var(--accent-readable); }
+.gameSample { display: block; white-space: normal; letter-spacing: normal; }
+.gameSample > span { font-size: 10px; line-height: 1.4; }
 .more { border-top: 1px solid var(--line-subtle); }
-.more summary { padding: 13px 20px; color: var(--accent-readable); font-size: 11px; font-weight: 700; cursor: pointer; text-align: center; }
+.more summary { display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 10px 18px; color: var(--accent-readable); font-size: 11px; font-weight: 700; cursor: pointer; text-align: center; list-style: none; }
 .more summary:hover { background: var(--surface-raised); }
-@media (max-width: 480px) { .heading { padding: 18px 16px 14px; } .heading h2 { font-size: 19px; } .tableWrap tbody .result { padding-right: 16px; } }
-
-.barTrack { display: block; height: 4px; margin-top: 7px; border-radius: 9px; background: var(--line-subtle); overflow: hidden; }
+.more summary:focus-visible { outline: 2px solid var(--accent-readable); outline-offset: -3px; }
+.more summary::-webkit-details-marker { display: none; }
+.more summary::after { content: '+'; margin-left: 8px; font-size: 15px; }
+.more[open] summary::after { content: '−'; }
+.barTrack { display: block; height: 4px; margin-top: 6px; border-radius: 9px; background: var(--line-subtle); overflow: hidden; }
 .valueBar, .spinBar { display: block; height: 100%; border-radius: inherit; background: var(--accent-readable); }
 .spinBar { background: #5286cf; }
-
-/* Keep the full ranking available without making each card needlessly tall. */
-.heading { padding:12px 15px 10px; }
-.heading h2 { margin:6px 0 3px;font-size:18px; }
-.eyebrow { font-size:9px; }
-.tableWrap thead th { padding:7px 10px; }
-.tableWrap tbody td,.tableWrap tbody th { padding:7px 10px; }
-.tableWrap tbody td:first-child { padding-left:10px; }
-.rank { width:24px;height:25px;font-size:12px; }
-.playerMeta { margin-top:2px;font-size:9px;line-height:1.3; }
-.tableWrap tbody .result { padding-right:15px;font-size:17px;min-width:72px; }
-.barTrack { margin-top:4px;height:3px; }
-.more summary { padding:10px 15px; }
-
-.resultContext,.latestContext,.sample { display:block;margin-top:3px;font-size:10px;line-height:1.35;font-weight:500;letter-spacing:0;white-space:nowrap;color:var(--text-secondary); }
-.latestContext { color:var(--accent-readable); }
-.heading .contextNote { margin-top:5px;font-size:10px; }
-.heading h2 { display:flex;align-items:center;gap:4px;line-height:1.3;letter-spacing:-.025em; }
-.tableWrap tbody .result { white-space:nowrap; }
-.date { display:block;margin-top:2px; }
-.date::before { content:none; }
-.barTrack { height:4px;margin-top:6px; }
-.more summary { list-style:none;min-height:42px;display:flex;align-items:center;justify-content:center; }
-.more summary::-webkit-details-marker { display:none; }
-.more summary::after { content:' +';margin-left:7px;font-size:15px; }
-.more[open] summary::after { content:' −'; }
+@media (min-width: 1640px) { .board .grid:not(.gameGrid):not(.pitchGrid) { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 1050px) { .board .grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 600px) {
+  .controls { gap: 8px; margin-bottom: 20px; }
+  .controls :global(.leaderboard-navigation[aria-label="Leaderboard group"]) { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .controls :global(.leaderboard-navigation[aria-label="Leaderboard group"]) a { grid-column: span 2; }
+  .controls :global(.leaderboard-navigation[aria-label="Leaderboard group"]) a:nth-child(n+4) { grid-column: span 3; }
+  .controls :global(.leaderboard-navigation) a { padding: 10px 5px; font-size: 11px; }
+  .controls > nav:last-child:not(:first-child) { width: 100%; }
+  .controls > nav:last-child:not(:first-child) a { min-width: 0; padding-inline: 10px; }
+  .toolbar { display: grid; gap: 12px; }
+  .toolbar > form { width: 100%; }
+  .sections { gap: 26px; }
+  .board .grid { gap: 16px; }
+  .sectionHeading { margin-bottom: 12px; }
+  .heading { padding-inline: 16px; }
+  .tableWrap thead th:last-child { width: 112px; padding-right: 16px; }
+  .tableWrap tbody .result { padding-right: 16px; }
+}

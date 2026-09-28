@@ -1,1 +1,6 @@
-.reference{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line-subtle);background:color-mix(in srgb,var(--surface-raised) 50%,var(--surface-panel));min-width:0}.reference>div{min-width:0}.reference span{display:block;font-size:11px;line-height:1.5;font-weight:650;color:var(--text-secondary)}.reference small{display:block;font-size:9px;line-height:1.5;color:var(--text-secondary);margin-top:2px}.reference>strong{font-size:15px;line-height:1.4;font-weight:750;color:var(--text-primary);font-variant-numeric:tabular-nums;white-space:nowrap}
+.reference { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 62px; padding: 11px 18px; border-bottom: 1px solid var(--line-subtle); background: color-mix(in srgb, var(--surface-raised) 50%, var(--surface-panel)); min-width: 0; }
+.reference > div { min-width: 0; }
+.reference span { display: block; font-size: 11px; line-height: 1.5; font-weight: 650; color: var(--text-secondary); }
+.reference small { display: block; font-size: 9px; line-height: 1.5; color: var(--text-secondary); margin-top: 2px; }
+.reference > strong { font-size: 15px; line-height: 1.4; font-weight: 750; color: var(--text-primary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (max-width: 600px) { .reference { padding-inline: 16px; } }

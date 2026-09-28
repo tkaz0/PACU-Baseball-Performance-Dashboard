@@ -62,6 +62,19 @@ it("places advanced rankings before classic stats and preserves samples and play
   expect(pitch).toContain('aria-label="Advanced pitching rankings"');
 });
 
+it("keeps game rank cells in table flow and identifies ties across the expanded rankings", () => {
+  const rows: GameLeaderboardRow[] = Array.from({ length: 7 }, (_, index) => ({ source: "qpa_fall_2026", metric: "batting_avg", eventId: "", playedOn: null, value: .4 - index * .01, unit: "avg", opportunities: 12, rank: index === 5 ? 5 : index + 1, code: `SYN-${index + 1}`, name: `Fictional Player ${index + 1}`, profileId: null, updatedAt: "2026-09-28T01:00:00Z", sampleSize: 7, percentile: null }));
+  const html = renderToStaticMarkup(createElement(GameLeaderboard, { rows }));
+  expect(html.match(/<td><span[^>]*aria-label=/g)).toHaveLength(7);
+  expect(html.match(/aria-label="Tied for rank 5"/g)).toHaveLength(2);
+  expect(html).not.toContain('aria-label="Rank 6"');
+  expect(html).toContain("Show 2 More");
+  expect(html).toContain("Fictional Player 7");
+  expect(html).toContain("12 AB");
+  expect(html).toContain("Early sample");
+  expect(html).not.toContain("/athletes/");
+});
+
 it("shows pooled team power estimates in the main cards without fabricating a team Production+ index", () => {
   const html = renderToStaticMarkup(createElement(TeamGameStats, { stats: [...batting, ...pitching], names: new Map([["fictional-player", "Fictional Player"]]) }));
   const main = html.split("More Team Totals &amp; Rates")[0];
