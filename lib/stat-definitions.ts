@@ -80,7 +80,7 @@ export const STAT_DEFINITIONS: Readonly<Record<string, string>> = {
   batting_obp: "On-base percentage: (all hits + walks + hit-by-pitches) / (at-bats + walks + hit-by-pitches + sacrifice flies). Sacrifice bunts are excluded.",
   batting_hh_pct: "Share of eligible at-bats marked hard hit in the QPA sheet. The team counts HH Base Hit, 3–8 HH, HH Extra Base Hit, and Pumps; opportunities are AB minus strikeouts and sac bunts. This is the team’s scoring rule, not a Statcast exit-speed cutoff.",
   sac_fly: "Recorded sacrifice flies; included in the OBP denominator, excluded from at-bats.",
-  batting_avg: "Batting average: all hits divided by official at-bats. The team confirmed Base Hit contains every hit; overlapping hard-hit columns are not added again. Displayed to three decimals.",
+  batting_avg: "Batting average: all hits divided by official at-bats. The team confirmed Base Hit contains every hit; overlapping hard-hit columns are not added again. Legacy QPA totals that already include sacrifice flies have those SF removed from official AB. Displayed to three decimals.",
   batting_bb_pct: "Batting walk rate: walks divided by plate appearances, multiplied by 100. This is not the pitching walk-rate metric.",
   batting_k_pct: "Batting strikeout rate: recorded Punchies divided by plate appearances, multiplied by 100.",
   base_hit: "All hits recorded in the QPA sheet, as confirmed by the team. Hard-hit columns overlap this total and are not added to it.",

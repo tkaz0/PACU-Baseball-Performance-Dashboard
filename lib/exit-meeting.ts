@@ -1,3 +1,4 @@
+import { gameCountMap } from "@/lib/advanced-game-stats";
 import { pitchTypeLabel } from "@/lib/imports/pitch-assignments";
 import type { Measurement } from "@/lib/imports/engine";
 import type { ImportBatch } from "@/lib/local-workspace";
@@ -149,7 +150,7 @@ export function buildExitMeetingReport(input: {
   if (input.movement) add("movement", "Movement Screening", `Capstone · ${input.movement.screenedOn}`, input.movement.readings.filter(r => r.value !== null).map(r => row(MOVEMENT_LABELS[r.row - 2], `${r.value}${isMovementRom(r.row) ? "°" : /^[1-5]$/.test(r.value!) ? " / 5" : ""}`, "Capstone", input.movement!.screenedOn, isMovementRom(r.row) ? "Range of motion" : "Recorded rating", { tone: movementTone(r) })), "Color preserves the source review rating: green good, yellow middle, red watch. Ratings use 1-5; shoulder/hip range of motion uses degrees. Ankle flexion/extension use ratings. This is not a diagnosis.");
   for (const [source, counts] of [["qpa_fall_2026", input.games.filter(g => g.source === "qpa_fall_2026")], ["pitching_fall_2026", cumulative]] as const) {
     if (source === "qpa_fall_2026" ? !layout.showHitting : !pitchingRole) continue;
-    add(`counts-${source}`, `${source === "qpa_fall_2026" ? "Hitting" : "Pitching"} · Supporting Totals`, "Fall to date · All recorded supporting counts", counts.filter(g => g.metric !== "earned_runs").map(g => row(gameLabels[g.metric] ?? g.metric, g.metric === "innings_outs" ? formatInnings(g.value) : gameValue(g.value, g.unit), source === "qpa_fall_2026" ? "QPA Fall Sheet" : "Pitching Fall Sheet", dateOf(counts), "Updated snapshot")));
+    add(`counts-${source}`, `${source === "qpa_fall_2026" ? "Hitting" : "Pitching"} · Supporting Totals`, "Fall to date · All recorded supporting counts", counts.filter(g => g.metric !== "earned_runs").map(g => row(gameLabels[g.metric] ?? g.metric, g.metric === "innings_outs" ? formatInnings(g.value) : gameValue(source === "qpa_fall_2026" && g.metric === "ab" ? gameCountMap(counts,"qpa_fall_2026")?.get("ab") ?? g.value : g.value, g.unit), source === "qpa_fall_2026" ? "QPA Fall Sheet" : "Pitching Fall Sheet", dateOf(counts), "Updated snapshot")));
   }
   report.strengths.sort((a, b) => (b.percentile ?? 0) - (a.percentile ?? 0)); report.strengths = report.strengths.slice(0, 5);
   report.development.sort((a, b) => (a.percentile ?? 100) - (b.percentile ?? 100)); report.development = report.development.slice(0, 5);

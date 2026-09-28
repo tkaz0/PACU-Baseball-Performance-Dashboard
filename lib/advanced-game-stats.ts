@@ -1,3 +1,4 @@
+import { qpaBattingCounts } from "@/lib/qpa-at-bats";
 import type { SharedGameStat } from "@/lib/game-server";
 import type { GameComparison } from "@/lib/game-metrics";
 
@@ -11,7 +12,7 @@ export function gameCountMap(rows:readonly SharedGameStat[],source:SharedGameSta
  if(!selected.length||["athlete_id","snapshot_id","event_id"].some(key=>new Set(selected.map(r=>r[key as keyof SharedGameStat])).size!==1))return null;
  const v=new Map<string,number>();
  for(const r of selected){if(v.has(r.metric)||!Number.isFinite(r.value)||r.value<0||(r.unit==="count"&&!Number.isSafeInteger(r.value)))return null;v.set(r.metric,r.value);}
- return v;
+ return source==="qpa_fall_2026"?qpaBattingCounts(v):v;
 }
 /** XBH is all doubles/triples, excluding Pumps. No triple share is invented. */
 export function battingPowerParts(v:ReadonlyMap<string,number>):{bases:number;weightedHits:number;weightedHitsUpper:number;ab:number;hits:number;xbh:number;hr:number}|null {

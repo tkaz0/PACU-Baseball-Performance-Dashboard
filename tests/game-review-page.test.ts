@@ -1,0 +1,21 @@
+import { renderToStaticMarkup } from "react-dom/server";
+import { expect, it, vi } from "vitest";
+const mock = vi.hoisted(() => ({ access: vi.fn(), stats: vi.fn(), logs: vi.fn(), roster: vi.fn() }));
+vi.mock("@/lib/auth", () => ({ requireImportAccess: mock.access }));
+vi.mock("@/lib/game-server", () => ({ loadGameStats: mock.stats }));
+vi.mock("@/lib/game-log-server", () => ({ loadGameLogs: mock.logs }));
+vi.mock("@/lib/testing-checklist-server", () => ({ loadTestingRoster: mock.roster }));
+import Page from "@/app/(workspace)/game-stats/review/page";
+it("shows the official hitting line and SF accounting without an obsolete conflict", async () => {
+ const access = { roles: ["coach"] }; mock.access.mockResolvedValue(access);
+ mock.roster.mockResolvedValue([{id:"fictional",name:"Fictional Player"}]); mock.logs.mockResolvedValue([]);
+ mock.stats.mockResolvedValue(Object.entries({pa:5,ab:5,base_hit:2,pumps:1,hh_extra_base_hit:0,bb:0,hbp:0,sac_fly:1,sac_bunt:0,punchies:0}).map(([metric,value])=>({source:"qpa_fall_2026",athlete_id:"fictional",metric,value,snapshot_id:"fictional",fetched_at:"2026-09-28T01:00:00Z"})));
+ const html = renderToStaticMarkup(await Page());
+ expect(html).toContain("Recorded Counts Check Out");
+ expect(html).toContain("Sacrifice Flies Accounted For");
+ expect(html).toContain("2-for-4");
+ expect(html).toContain("1 HR · 1 single · 1 SF · 5 PA");
+ expect(html).toContain("Sheet AB 5 − 1 SF = 4 official AB");
+ expect(html).not.toContain("exceeds PA");
+ expect(mock.stats).toHaveBeenCalledExactlyOnceWith(access);
+});

@@ -1,3 +1,4 @@
+import { qpaBattingCounts } from "@/lib/qpa-at-bats";
 import type {SharedGameStat} from "@/lib/game-server";
 import {countIssues,type GameLog} from "@/lib/game-log";
 import {battingRates} from "@/lib/batting-stats";
@@ -10,7 +11,7 @@ export function reviewGameData(stats:readonly SharedGameStat[],logs:readonly Gam
  const href=`https://docs.google.com/spreadsheets/d/${source.spreadsheetId}/edit#gid=${source.sheetId}&range=A${first.source_row}:${qpa?"AC":"AE"}${first.source_row}`;
  const add=(id:string,message:string)=>issues.push({id:`${group}:${id}`,athleteId:first.athlete_id,source:qpa?"QPA · Fall totals":`Pitching · ${first.played_on}`,message,href,action:"Open Source Row"});
  if(qpa){
-  const mapped=Object.fromEntries(Object.entries(v).map(([k,n])=>[{base_hit:"h",pumps:"hr",sac_fly:"sf",sac_bunt:"sh",punchies:"k"}[k]??k,n]));
+  const mapped=Object.fromEntries([...qpaBattingCounts(new Map(Object.entries(v)))].map(([k,n])=>[{base_hit:"h",pumps:"hr",sac_fly:"sf",sac_bunt:"sh",punchies:"k"}[k]??k,n]));
   for(const [i,message]of countIssues(mapped,{}).entries())add(`counts-${i}`,message);
   if(["base_hit","hh_extra_base_hit","pumps"].every(k=>v[k]!==undefined)&&v.hh_extra_base_hit+v.pumps>v.base_hit)add("xbh","Doubles/triples plus home runs exceed total hits. Power stats are withheld until the counts are corrected.");
   const missing=["pa","ab","base_hit","bb","hbp","sac_fly"].filter(k=>v[k]===undefined);if(missing.length)add("missing",`Missing counts for batting rates: ${missing.map(k=>({base_hit:"Hits",sac_fly:"Sac Fly"}[k]??k.toUpperCase())).join(", ")}.`);
@@ -28,3 +29,20 @@ export function reviewGameData(stats:readonly SharedGameStat[],logs:readonly Gam
  return issues;
 }
 export function obpReadyCount(stats:readonly SharedGameStat[]):number{return new Set(stats.map(r=>r.athlete_id)).size?[...new Set(stats.map(r=>r.athlete_id))].filter(id=>battingRates(stats.filter(r=>r.athlete_id===id)).some(r=>r.metric==="batting_obp")).length:0;}
+
+export type QpaAtBatAdjustment={athleteId:string;hits:number|null;sheetAB:number;officialAB:number;pa:number;sf:number;hr:number|null;singles:number|null};
+/** Staff-only review context; all values come from one player's exact saved snapshot. */
+export function qpaAtBatAdjustments(stats:readonly SharedGameStat[]):QpaAtBatAdjustment[]{
+ const groups=new Map<string,SharedGameStat[]>();
+ for(const row of stats.filter(row=>row.source==="qpa_fall_2026"))groups.set(row.athlete_id,[...(groups.get(row.athlete_id)??[]),row]);
+ return [...groups].flatMap(([athleteId,rows])=>{
+  if(new Set(rows.map(row=>row.snapshot_id)).size!==1||new Set(rows.map(row=>row.metric)).size!==rows.length)return [];
+  const raw=new Map(rows.map(row=>[row.metric,row.value])),official=qpaBattingCounts(raw),ab=official.get("ab"),sheetAB=raw.get("ab");
+  if(ab===undefined||sheetAB===undefined||ab===sheetAB)return [];
+  const hit=raw.get("base_hit"),hr=raw.get("pumps"),xbh=raw.get("hh_extra_base_hit");
+  const hits=Number.isSafeInteger(hit)&&hit!>=0&&hit!<=ab?hit!:null;
+  const homeRuns=Number.isSafeInteger(hr)&&hr!>=0&&hits!==null&&hr!<=hits?hr!:null;
+  const singles=hits!==null&&homeRuns!==null&&Number.isSafeInteger(xbh)&&xbh!>=0&&xbh!+homeRuns<=hits?hits-xbh!-homeRuns:null;
+  return [{athleteId,hits,sheetAB,officialAB:ab,pa:raw.get("pa")!,sf:raw.get("sac_fly")!,hr:homeRuns,singles}];
+ });
+}

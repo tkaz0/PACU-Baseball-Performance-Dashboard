@@ -1,3 +1,4 @@
+import { qpaBattingCounts, qpaSheetAB } from "@/lib/qpa-at-bats";
 import { battingPowerParts } from "@/lib/advanced-game-stats";
 import type { SharedGameStat } from "@/lib/game-server";
 
@@ -26,7 +27,7 @@ export function teamGameSummary(stats: readonly SharedGameStat[], source: Shared
     if (values.has(row.metric) || !Number.isFinite(row.value) || row.value < 0 || (row.unit === "count" && !Number.isSafeInteger(row.value))) valid = false;
     values.set(row.metric, row.value); groups.set(key, values);
   }
-  const entries = [...groups.values()];
+  const entries = [...groups.values()].map(v => qpa ? qpaBattingCounts(v) : v);
   const count = (metric: string, label: string): TeamGameMetric => {
     const complete = valid && entries.length > 0 && entries.every(v => v.has(metric));
     return { metric, label, unit: "count", value: complete ? entries.reduce((n, v) => n + v.get(metric)!, 0) : null, pending: entries.length > 0 && !complete };
@@ -50,7 +51,7 @@ export function teamGameSummary(stats: readonly SharedGameStat[], source: Shared
     simple("qpa_pct", "QPA %", "qpa", "pa", "%", "PA"),
     rate("batting_hh_pct", "HH %", "%", ["hh_base_hit", "three_eight_hh", "hh_extra_base_hit", "pumps", "ab", "punchies", "sac_bunt"], v => ({
       top: v.get("hh_base_hit")! + v.get("three_eight_hh")! + v.get("hh_extra_base_hit")! + v.get("pumps")!,
-      bottom: v.get("ab")! - v.get("punchies")! - v.get("sac_bunt")!,
+      bottom: qpaSheetAB(v)! - v.get("punchies")! - v.get("sac_bunt")!,
     }), "HH opportunities"),
     simple("batting_bb_pct", "BB %", "bb", "pa", "%", "PA"),
     simple("batting_k_pct", "K %", "punchies", "pa", "%", "PA"),
