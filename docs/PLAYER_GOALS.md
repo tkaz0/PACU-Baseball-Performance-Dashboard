@@ -1,0 +1,23 @@
+# Coach-set numeric goals
+
+The profile Overview includes Goals beside Coach Focus. Active Admins and Coaches, including interactive Coach View, can choose an existing Fall 2026 result as a starting point, enter a numeric target and optional date, add a private note, explicitly share the goal, edit it, and mark it complete or reopen it. No default targets or goals are generated. Each athlete can have four active numeric goals and up to 100 retained goals.
+
+A goal pins the original athlete, canonical metric, exact source, unit, Fall period, observation ID, value and date. Editing cannot switch that starting point. The staff starting-point menu presents the latest saved raw reading for each supported metric/source/unit, with its value and date for review. Same-date ties follow measured date, import time, file hash, then observation ID. Current source values are checked again inside the save transaction. Changing a measurement after opening the form rejects a stale baseline value. A staff member can intentionally choose a starting point that predates a subsequently imported result; the goal will then show the newer result.
+
+Supported baselines are recorded physicality, grip, timed tests, hitting/throwing metrics and classified velocity/spin. Weekly Blast reports and cumulative game-sheet statistics are excluded: they cannot safely be compared to a later report by an exact fixed source. No weekly P95, weighted Fall aggregate, team percentile or invented source observation becomes a goal baseline. Targets retain the same units, mathematical bounds and source. There are no body-composition recommendations, health thresholds or implied spin-quality judgments.
+
+## Progress rules
+
+Progress is `(latest reading − starting value) / (target − starting value) × 100`. It supports either an explicitly higher or lower target. The chart is capped at 0–100 while labels distinguish moving away and reaching/passing the target. Starting/latest/target values, source, dates and unit stay visible. This is progress toward a coach's chosen target, not a percentile.
+
+The latest reading comes only from the same athlete, metric, exact source and unit on a strictly later test date through December 31, 2026 and no later than the current Pacific date. It is a latest raw reading, not the best reading or a cumulative average. No newer test means Waiting for a newer test. If the original observation was corrected, removed or reassigned, progress becomes unavailable and the coach can close the old goal and create one from a reviewed current reading. Existing saved goal baselines do not change silently.
+
+Reaching a target does not automatically complete it. The coach marks completion explicitly; the current value/date are captured at completion and remain a historical completion snapshot. Reopening resumes newer-reading tracking. A completed goal remains visible to the player only while explicitly shared. Source corrections can invalidate the starting point even after completion, in which case the progress bar stays unavailable.
+
+## Access and persistence
+
+Apply `supabase/migrations/202609280001_player_goals.sql` before deploying the consuming profile reader. It introduces no actual goals or account permissions. The `player_numeric_goals` table has RLS enabled and no direct authenticated table privileges. The narrowly projected `athlete_numeric_goals` RPC checks live active own-athlete/staff access; Players never receive staff notes or baseline choices. The application repeats that projection for Admin-as-Player, where the underlying JWT remains an Admin. No actual Player or Player View as gets edit forms or mutation access.
+
+`staff_save_numeric_goal` uses the ordinary authenticated session, rechecks active Coach/Admin rights, locks in the existing account → roster order, and checks the expected revision under a row lock. New forms carry a stable UUID, so a repeated create cannot create duplicate goals. Edits preserve baseline identity. Stale or uncertain saves prompt review and are not retried automatically. Coach notes and numeric targets are not written to audit event details; audits contain only goal ID, revision, share and completion flags. No service-role access, source edits, roster/account changes or invitation sends are involved.
+
+Validation covers the real PGlite migration, sharing boundaries, anonymous/peer/revoked access, source/unit/date isolation, revisions, changed baselines, completion snapshots, limits, progress math, presentation, fresh server-action authorization and malformed RPC projections. PGlite is not a live Supabase Auth/API integration test. Root-level browser checks use fictional goals only.

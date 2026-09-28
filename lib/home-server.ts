@@ -7,10 +7,12 @@ import { loadGameStats } from "@/lib/game-server";
 import { profileMeasurementVisible } from "@/lib/player-profile-layout";
 import { buildHomeSummary } from "@/lib/home-summary";
 import { pacificTestingDate } from "@/lib/testing-checklist";
+import { buildVisitDigest, visitMetricKey } from "@/lib/dashboard-visit-digest";
+import type { DashboardVisitWindow } from "@/lib/personal-dashboard-server";
 import type { RosterAthlete } from "@/lib/types";
 
-export async function loadHomeSummary(access:Awaited<ReturnType<typeof requireAccess>>) {
-  if(canImportPresentedAccess(access))return loadStaffHomeSummary();
+export async function loadHomeSummary(access:Awaited<ReturnType<typeof requireAccess>>,visit?:DashboardVisitWindow) {
+  if(canImportPresentedAccess(access))return visit?loadStaffHomeSummary(visit):loadStaffHomeSummary();
   if(!access.athleteId)return null;
   // Presented athlete is applied before any query, including Admin-as-Player.
   const {data,error}=await access.supabase.from("athletes").select("id,athlete_code,athlete_seasons(*)").eq("id",access.athleteId).maybeSingle();
@@ -20,5 +22,9 @@ export async function loadHomeSummary(access:Awaited<ReturnType<typeof requireAc
   const [performance,games]=await Promise.all([loadAthletePerformance(access,athlete,{includePercentiles:false}),loadGameStats(access,athlete.id)]);
   const batches=new Map(performance.batches.map(b=>[b.id,b.importedAt]));
   const readings=performance.measurements.filter(r=>profileMeasurementVisible(r,season)).map(r=>({athleteId:athlete.id,source:r.source,date:r.measured_at,importedAt:batches.get(r.batch_id)!}));
-  return buildHomeSummary([athlete.id],readings,games,pacificTestingDate());
+  const summary=buildHomeSummary([athlete.id],readings,games,pacificTestingDate());
+  if(!visit)return summary;
+  const activity=performance.measurements.filter(r=>profileMeasurementVisible(r,season)).map(r=>({id:r.id,athleteId:athlete.id,metric:visitMetricKey(r.metric,r.unit),label:r.metric,unit:r.unit,value:r.value,source:r.source,date:r.measured_at,importedAt:batches.get(r.batch_id)!}));
+  const player={id:athlete.id,playerType:season?.player_type,position:season?.primary_position,secondaryPosition:season?.secondary_position};
+  return {...summary,visitDigest:buildVisitDigest([player],activity,games,visit,pacificTestingDate())};
 }

@@ -9,6 +9,9 @@ import type { coachUpdateDigest } from "@/lib/coach-update-digest";
 import type { HomeLeaderboard, HomeRank } from "@/lib/home-leaderboards";
 import type { DueCoachFocus } from "@/lib/coach-focus-server";
 import styles from "./dashboard-home.module.css";
+import { DashboardVisit } from "@/components/dashboard-visit";
+import type { DashboardVisitWindow } from "@/lib/personal-dashboard-server";
+import type { VisitDigest } from "@/lib/dashboard-visit-digest";
 
 const date = (value: string, withYear = false) => new Date(value.length === 10 ? `${value}T12:00:00Z` : value).toLocaleDateString("en-US", { month: "short", day: "numeric", ...(withYear ? { year: "numeric" as const } : {}), timeZone: value.length === 10 ? "UTC" : "America/Los_Angeles" });
 const opportunity = (metric: TeamGameMetric) => metric.pending ? "Counts need review" : metric.opportunities === undefined ? "No chances recorded yet" : metric.opportunityLabel === "outs" ? `${formatInnings(metric.opportunities)} IP` : `${metric.opportunities} ${metric.opportunityLabel}`;
@@ -67,7 +70,7 @@ function ResultsCoverage({ summary, staff, profile }: { summary: HomeSummary; st
   </section>;
 }
 
-export function DashboardHome({ staff, athleteId, summary, leaderboards = [], dueFocus = [] }: { staff: boolean; athleteId: string | null; summary: (HomeSummary & { coachDigest?: ReturnType<typeof coachUpdateDigest> }) | null; leaderboards?: HomeLeaderboard[]; dueFocus?: DueCoachFocus[] }) {
+export function DashboardHome({ staff, athleteId, summary, leaderboards = [], dueFocus = [], visit }: { visit?:DashboardVisitWindow; staff: boolean; athleteId: string | null; summary: (HomeSummary & { visitDigest?:VisitDigest; coachDigest?: ReturnType<typeof coachUpdateDigest> }) | null; leaderboards?: HomeLeaderboard[]; dueFocus?: DueCoachFocus[] }) {
   const profile = athleteId ? `/athletes/${athleteId}` : null;
   const actions = staff ? [
     { href: "/roster", title: "Roster", detail: "Player profiles", icon: UsersRound },
@@ -89,6 +92,7 @@ export function DashboardHome({ staff, athleteId, summary, leaderboards = [], du
     </header>
     {summary && <div className={styles.freshness} aria-label="Dashboard update dates"><span><span className={styles.statusDot}/>{latestUpdate ? <>Latest Update <strong>{date(latestUpdate.date, true)}</strong></> : "Awaiting Fall results"}</span><span><Clock3 size={13} aria-hidden="true"/>Game Stats <strong>{latestGameUpdate ? date(latestGameUpdate, true) : "Awaiting results"}</strong></span></div>}
     <nav className={styles.quickLinks} data-staff={staff || undefined} aria-label="Home shortcuts">{actions.map(({ href, title, detail, icon: Icon }) => <Link prefetch={false} key={href} href={href}><span className={styles.actionIcon}><Icon size={18}/></span><span><strong>{title}</strong><small>{detail}</small></span><ArrowUpRight className={styles.actionArrow} size={14}/></Link>)}</nav>
+    {summary?.visitDigest && visit && <DashboardVisit visit={visit} digest={summary.visitDigest} staff={staff} athleteId={athleteId}/>}
     {!summary ? <section className={styles.panel}><h2>Your profile is being connected</h2><p className={styles.empty}>Your administrator will link your account to the correct player profile. Your results will appear here once it is connected.</p></section> : <>
       <section aria-label="Fall game summary"><div className={styles.blockHeading}><div><p className={styles.kicker}>Competition</p><h2>{staff ? "Team Game Snapshot" : "My Game Snapshot"}</h2></div><Link prefetch={false} href="/game-stats" className={styles.panelLink}>All Game Stats<ArrowRight size={15}/></Link></div><div className={styles.gameGrid}>{(staff || summary.batting.entries > 0) && <GameSnapshot summary={summary.batting} kind="Hitting"/>}{(staff || summary.pitching.entries > 0) && <GameSnapshot summary={summary.pitching} kind="Pitching"/>}{!staff && !summary.batting.entries && !summary.pitching.entries && <p className={styles.empty}>Your game stats will appear after your first verified Fall update.</p>}</div></section>
       <section aria-label="Featured team leaderboards"><div className={styles.blockHeading}><div><p className={styles.kicker}>Around the Team</p><h2>Featured Leaderboards</h2></div><Link prefetch={false} href="/leaderboards" className={styles.panelLink}>All Leaderboards<ArrowRight size={15}/></Link></div>{leaderboards.length ? <div className={styles.rankGrid}>{leaderboards.map(board => <HomeRankCard board={board} key={board.key}/>)}</div> : <div className={styles.rankEmpty}><Trophy size={23} aria-hidden="true"/><p>Team rankings will appear when Fall results are saved.</p></div>}</section>

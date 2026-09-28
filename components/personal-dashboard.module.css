@@ -1,0 +1,21 @@
+.savedViews { padding:16px 20px; display:flex; flex-wrap:wrap; gap:16px 24px; align-items:end; }
+.savedViews h2 { display:flex; gap:7px; align-items:center; font-size:15px; margin:0; }
+.savedViews p { margin:5px 0 0; color:var(--text-secondary); font-size:12px; }
+.viewControls { display:flex; flex-wrap:wrap; gap:8px; align-items:end; }
+.viewControls label { font-size:11px; font-weight:650; display:grid; gap:5px; }
+.viewControls input,.viewControls select { min-width:180px; }
+.message { flex-basis:100%; }
+.visit { padding:20px; border:1px solid var(--line-subtle); border-radius:16px; background:var(--surface-panel); }
+.visit header { display:flex; align-items:start; justify-content:space-between; gap:14px; }
+.visit h2 { margin:0; font-size:20px; letter-spacing:-.02em; }
+.visit p { margin:5px 0 0; color:var(--text-secondary); font-size:12px; line-height:1.6; }
+.visitNumbers { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:16px; }
+.visitNumbers:has(>a:nth-child(2):last-child) { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.visitNumbers a { padding:14px; border:1px solid var(--line-subtle); border-radius:10px; text-decoration:none; background:var(--surface-raised); }
+.visitNumbers strong { display:block; color:var(--text-primary); font-size:27px; font-variant-numeric:tabular-nums; }
+.visitNumbers span { display:block; margin-top:3px; color:var(--text-secondary); font-size:12px; }
+.bestList { display:grid; gap:8px; list-style:none; padding:0; margin:16px 0 0; }
+.bestList li { display:flex; justify-content:space-between; gap:15px; padding:10px 0; border-top:1px solid var(--line-subtle); font-size:13px; }
+.bestList small { display:block; color:var(--text-secondary); margin-top:4px; font-size:11px; }
+.bestList strong { white-space:nowrap; font-variant-numeric:tabular-nums; }
+@media(max-width:600px) { .savedViews { padding:16px; } .viewControls { width:100%; } .viewControls label { flex:1; min-width:0; } .viewControls input,.viewControls select { min-width:0; width:100%; } .visit { padding:16px; } .visitNumbers { gap:6px; } .visitNumbers a { padding:10px; } .visitNumbers strong { font-size:23px; } }

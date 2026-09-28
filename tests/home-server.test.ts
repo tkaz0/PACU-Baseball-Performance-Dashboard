@@ -14,3 +14,24 @@ it("Admin-as-Player reads only the presented athlete and never requests team sum
 it("fails rather than displaying another player's data or fabricated zeros",async()=>{
  const query={select:vi.fn(),eq:vi.fn(),maybeSingle:vi.fn().mockResolvedValue({data:{id:"other"},error:null})};query.select.mockReturnValue(query);query.eq.mockReturnValue(query);mocks.from.mockReturnValue(query);await expect(loadHomeSummary(access(["player"]))).rejects.toThrow("could not be loaded");expect(mocks.performance).not.toHaveBeenCalled();
 });
+
+it("passes the presented player's role and normalized core Blast readings into the visit digest",async()=>{
+ const season={season:"2026-27",player_type:"position",primary_position:"OF",secondary_position:null};
+ const athlete={id,athlete_code:"SYN-001",athlete_seasons:[season]};
+ const query={select:vi.fn(),eq:vi.fn(),maybeSingle:vi.fn().mockResolvedValue({data:athlete,error:null})};query.select.mockReturnValue(query);query.eq.mockReturnValue(query);mocks.from.mockReturnValue(query);
+ const blastSource="Blast Motion · Average · 2026-09-13:2026-09-20";
+ const measurements=[
+  {id:"hand",metric:"Peak Hand Speed",unit:"mph",value:21,source:blastSource},
+  {id:"angle",metric:"Vertical Bat Angle",unit:"deg",value:-30,source:blastSource},
+  {id:"hitting",metric:"Max Exit Velocity",unit:"mph",value:90,source:"Full Swing · Intrasquad"},
+  {id:"pitch",metric:"Pitch Type Max Velocity",unit:"mph",value:80,source:"Full Swing · Intrasquad · Fastball"},
+ ].map(row=>({...row,athlete_code:"SYN-001",measured_at:"2026-09-20",batch_id:"fictional-batch"}));
+ mocks.performance.mockResolvedValue({measurements,batches:[{id:"fictional-batch",importedAt:"2026-09-25T00:00:00Z"}],percentileOverrides:[]});mocks.games.mockResolvedValue([]);
+ const visit={since:"2026-09-21T00:00:00Z",viewedAt:"2026-09-27T00:00:00Z",record:true};
+ const hitter=await loadHomeSummary(access(["player"]),visit);
+ expect(hitter).toMatchObject({visitDigest:{newResults:3,updatedPlayers:1,newBests:0}});
+ season.player_type="pitcher";season.primary_position="P";
+ const pitcher=await loadHomeSummary(access(["player"]),visit);
+ expect(pitcher).toMatchObject({visitDigest:{newResults:1,updatedPlayers:1,newBests:0}});
+ expect(mocks.staff).not.toHaveBeenCalled();expect(query.eq).toHaveBeenCalledWith("id",id);
+});

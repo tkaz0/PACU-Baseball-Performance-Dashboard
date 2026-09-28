@@ -3,6 +3,7 @@ import type { Measurement } from "@/lib/imports/engine";
 import { formatSourceNumber } from "@/lib/measurement-display";
 import { fallArsenalPitches, type FallArsenalPitch } from "@/lib/pitch-arsenal";
 import { PitchArsenalChart } from "@/components/pitch-arsenal-chart";
+import { PitchSeparationChart } from "@/components/pitch-separation-chart";
 import styles from "./classified-pitch-results.module.css";
 
 const dateRange = (first: string | null, last: string | null) => !first || !last ? "Date unavailable" : first === last ? leaderboardTestDate(first) : `${leaderboardTestDate(first)} – ${leaderboardTestDate(last)}`;
@@ -24,7 +25,7 @@ export function ClassifiedPitchResults({ readings, pitches, context = "in_game",
   if (!selected.length) return null;
   return <section aria-label={`${context === "practice" ? "Practice" : "In-Game"} pitch arsenal`} className={styles.section}>
     <header className={styles.heading}><div><p>{context === "practice" ? "Practice" : "In-Game"} · Fall 2026</p><h2>Full Pitch Arsenal</h2></div><span>{selected.length} recorded pitch {selected.length === 1 ? "type" : "types"}</span></header>
-    {["Game", "Intrasquad", "Practice"].map(category => {
+    {(["Game", "Intrasquad", "Practice"] as const).map(category => {
       const group = selected.filter(pitch => pitch.category === category);
       if (!group.length) return null;
       return <div key={category} className={styles.sourceGroup}>
@@ -34,6 +35,7 @@ export function ClassifiedPitchResults({ readings, pitches, context = "in_game",
           <Average pitch={pitch} family="velocity"/><Maximum pitch={pitch} family="velocity"/><Average pitch={pitch} family="spin"/><Maximum pitch={pitch} family="spin"/>
         </tr>)}</tbody></table></div>
         {showChart && <PitchArsenalChart pitches={group} scope="fall"/>}
+        {showChart && <PitchSeparationChart pitches={group} category={category}/>}
       </div>;
     })}
     <p className={styles.note}>Fall averages use each session’s matching speed or spin reading count. If counts are incomplete, an available latest-session average is labeled separately. Maxima are the best saved Fall readings. Spin is descriptive; higher is not automatically better.</p>

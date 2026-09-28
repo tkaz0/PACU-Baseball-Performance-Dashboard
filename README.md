@@ -170,3 +170,7 @@ Read-page loads share authorization checks only within one server render, run in
 
 
 Full pitching arsenals now appear in profiles, staff player comparison and the default All Pitches leaderboards. Every recorded pitch keeps its own average/max velocity and spin, metric-specific samples and dates, with Game, Intrasquad and Practice separated. Fall averages use verified reading counts; missing counts retain a labeled latest-session average. No stored readings or access rules change.
+
+## Personal tools and development progress
+
+Staff can save named Analytics views, set numeric goals on a player’s Overview, and save a read-only meeting summary in Exit Meetings. Player Home and staff Home show results added since the previous visit. The full pitching arsenal now includes a fastball-reference speed-separation chart. Existing source partitions and own-player permissions remain in force. See [Personal Dashboard](docs/PERSONAL_DASHBOARD.md), [Player Goals](docs/PLAYER_GOALS.md), [Pitch Arsenal](docs/PITCH_ARSENAL.md) and [Exit Meetings](docs/EXIT_MEETINGS.md).

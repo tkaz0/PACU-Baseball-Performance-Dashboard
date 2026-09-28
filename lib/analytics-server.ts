@@ -10,6 +10,8 @@ import { coachingReadingVisible, coachingGames } from "@/lib/coaching-tools";
 import { requireRenderImportAccess as requireImportAccess } from "@/lib/render-access";
 import { UUID_PATTERN } from "@/lib/types";
 import { analyticsReadingVisible } from "@/lib/analytics";
+import { buildVisitDigest } from "@/lib/dashboard-visit-digest";
+import type { DashboardVisitWindow } from "@/lib/personal-dashboard-server";
 import type { AnalyticsDataset, AnalyticsPlayer, AnalyticsReading } from "@/lib/analytics";
 import { classifiedPitchSource, CLASSIFIED_METRICS } from "@/lib/imports/classified-pitch-results";
 import { fallArsenalPitches, type ArsenalReading } from "@/lib/pitch-arsenal";
@@ -87,8 +89,8 @@ export async function loadDataCoverage(){
 }
 
 /** Same fresh staff guard; only aggregated coverage and source freshness leave the server. */
-export async function loadStaffHomeSummary(){
+export async function loadStaffHomeSummary(visit?:DashboardVisitWindow){
   const data=await loadTeamSource();
   const today=pacificTestingDate();
-  return {...buildHomeSummary(data.players.map(p=>p.id),data.readings,data.games,today),coachDigest:coachUpdateDigest({players:data.players,readings:data.readings.filter(coachingReadingVisible),games:coachingGames(data.games)},today)};
+  return {...buildHomeSummary(data.players.map(p=>p.id),data.readings,data.games,today),...(visit?{visitDigest:buildVisitDigest(data.players,data.readings,data.games,visit,today)}:{}),coachDigest:coachUpdateDigest({players:data.players,readings:data.readings.filter(coachingReadingVisible),games:coachingGames(data.games)},today)};
 }

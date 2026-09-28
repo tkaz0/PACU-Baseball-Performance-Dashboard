@@ -9,6 +9,8 @@ vi.mock("@/lib/home-server", () => ({loadHomeSummary: fake.home}));
 vi.mock("@/lib/home-leaderboards-server", () => ({loadHomeLeaderboards: fake.leaderboards}));
 vi.mock("@/lib/coach-focus-server", () => ({loadDueCoachFocus: fake.due}));
 vi.mock("@/lib/render-access", () => ({ requireRenderAccess: fake.access }));
+vi.mock("@/lib/personal-dashboard-server", () => ({ loadDashboardVisit: async () => ({ since: null, viewedAt: "2026-09-27T12:00:00Z", record: false }) }));
+vi.mock("@/app/(workspace)/overview/visit-actions", () => ({ recordDashboardVisit: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw new Error(`REDIRECT:${path}`); }, usePathname: () => "/roster" }));
 vi.mock("next/link", () => ({ default: ({ href, children, ...props }: { href: string; children: ReactNode }) => createElement("a", { href, ...props }, children) }));
 import Overview from "@/app/(workspace)/overview/page";
@@ -27,7 +29,7 @@ describe("role-aware dashboard landing", () => {
     const current=access([role],athleteId,role==="player");fake.access.mockResolvedValue(current);fake.home.mockResolvedValue(null);
     expect(workspaceHome(current)).toBe("/overview");
     const html=renderToStaticMarkup(await Overview({searchParams:Promise.resolve({})}));
-    expect(fake.home).toHaveBeenCalledWith(current);expect(fake.leaderboards).toHaveBeenCalledWith(current);expect(html).toContain(role==="player"?"My Dashboard":"Team Dashboard");
+    expect(fake.home).toHaveBeenCalledWith(current,{since:null,viewedAt:"2026-09-27T12:00:00Z",record:false});expect(fake.leaderboards).toHaveBeenCalledWith(current);expect(html).toContain(role==="player"?"My Dashboard":"Team Dashboard");
     expect(fake.due).toHaveBeenCalledTimes(role==="player"?0:1);
     expect(html.includes('href="/imports"')).toBe(role!=="player");expect(fake.from).not.toHaveBeenCalled();
   });

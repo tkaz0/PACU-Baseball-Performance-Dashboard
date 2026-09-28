@@ -1,0 +1,11 @@
+# Saved views and visit updates
+
+Staff can save up to 20 named Analytics views to their own account. A view stores the two exact metric/source/unit choices, period, date window, class/position filters, coloring and hidden color groups. It contains no player readings. Open View restores those settings only if the selected stats and filters still exist; otherwise the current chart remains unchanged. Archive removes a view from the picker without deleting its record. Another staff account cannot read or change it.
+
+Home adds **Since Your Last Visit**. A visible, authenticated Home page records only the account's visit time and effective scope; prefetching, a hidden tab, an unlinked player and View as do not advance it. The first visit establishes a starting point. Visits within 30 minutes keep the same comparison window so refreshing does not immediately clear updates. Timestamp writes are monotonic, and older/repeated submissions cannot move the saved time backward.
+
+New-result counts use valid Fall readings added after the prior visit, with the existing player-role visibility rules. The card distinguishes import time from the actual testing date. A newly added Fall best requires an earlier saved comparable result from the same athlete, metric, source and unit; initial readings and ties are not claimed as improvements. Timed tests use lower values; directional maximum metrics use higher values. Body composition and spin are not called performance improvements. Core Blast readings count as updates, but weekly percentiles/averages do not become Fall-best claims. Game-sheet refreshes are reported as refreshed sources, never invented games or new measurements.
+
+Migration `202609280003_personal_dashboard_tools.sql` adds private, RLS-enabled `saved_analytics_views` and `dashboard_visits` tables with ordinary-session RPCs. Direct table access is denied. Every action checks current account status and presented access; no service-role client or persistent data cache is used. Apply it before deploying the consuming Home and Analytics pages.
+
+The same release also adds [coach-set goals](PLAYER_GOALS.md), [pitch separation](PITCH_ARSENAL.md) and deliberately saved [exit-meeting history](EXIT_MEETINGS.md). All are separate from source imports and existing roster/account identities.

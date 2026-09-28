@@ -1,13 +1,13 @@
 # Exit Meetings
 
-`/exit-meetings` is a staff-only player meeting workspace. Choose a current 2026–27 roster player, review a concise Meeting Summary (the default) or explicitly choose Detailed Report, choose the meeting date, optionally add talking points, and download a real PDF. It supports a staff profile shortcut with `?athlete=<existing UUID>`.
+`/exit-meetings` is a staff-only player meeting workspace. Choose a current 2026–27 roster player, review a concise Meeting Summary (the default) or explicitly choose Detailed Report, choose the meeting date, optionally add talking points, and download a real PDF. A separate reviewed **Save Meeting Snapshot** action permanently saves a condensed report for the staff. It supports a staff profile shortcut with `?athlete=<existing UUID>`.
 
 ## Access and privacy
 
 - The page uses request-only `requireRenderImportAccess`; both server reader and download route enforce the effective staff role. Actual Coaches and Admins in interactive Coach View are allowed. Players and Player View are blocked before any roster or result query.
 - Every PDF request rechecks the live signed-in account with `getAccess` and uses ordinary-session, player-scoped readers. No admin Auth key or service role is involved.
 - The POST body contains only the selected UUID, meeting date, optional talking points, and optional `format` (`meeting` or `detailed`, default `meeting`). Client-supplied statistics, roles, and other keys are rejected. Same-origin requests only, bounded 12 KB request body, valid calendar date, and at most 1,600 note characters.
-- All PDF and error responses use private `no-store` caching. PDF bytes are generated in memory and downloaded; reports and meeting notes are not persisted or emailed. Changing players resets unsaved notes, including browser back/forward navigation. Switching the report format preserves the selected meeting date and drafted talking points.
+- All PDF, save, and error responses use private `no-store` caching. Downloading a current PDF or opening a page does not save a meeting. PDF bytes are generated in memory and never persisted or emailed. Notes are stored only through the explicit reviewed snapshot action. Changing players or opening a different saved meeting resets unsaved notes, including browser back/forward navigation. Switching the current report format preserves the selected meeting date and drafted talking points.
 - The report model whitelists display values. It excludes emails, RENPHO aliases, source filenames/hashes/row coordinates, account details, and private staff notes.
 
 ## Report contents and calculation rules
@@ -34,8 +34,20 @@ The compact arsenal aggregates only identical classified pitch/source contexts a
 
 The UI opens report sections from its contents links and provides all results for review. The PDF re-reads current saved data when downloaded; it does not treat a stale browser preview as the data source. A failed source reader blocks the PDF rather than silently generating an incomplete report.
 
+## Saved meeting history
+
+Migration `202609280002_exit_meeting_history.sql` adds immutable `exit_meeting_snapshots` behind RLS with no direct table privileges. Active Admins and Coaches use ordinary-session staff RPCs. The page and both POST routes enforce presented-role access: Player View is denied, interactive Coach View is allowed. Database functions independently recheck the live account and role. No new account grants, player-visible history, email sending, or service-role key is involved.
+
+The save POST accepts only athlete UUID, unique request UUID, meeting date, optional explicitly entered talking points, and `reviewed: true`. It first inspects the current actor's prior request receipt, then uses the existing authorized reader to build a new Meeting Summary. No report values arrive from the browser. A strict versioned whitelist bounds display-only report content to 256 KiB, 24 sections and 300 rows; strips are not used to hide invalid payloads. Unknown fields, raw provenance, unsupported comparisons, invalid dates, control characters, and bidirectional text controls are rejected. SQL repeats the shape and bound checks, validates the report's permanent PAC code and fresh generation time, then saves under account-before-roster locks. Notes have the existing 1,600-character limit. A count-only audit identifies the saved snapshot; it never copies report values or notes.
+
+Each save stores the report exactly as built, meeting date, notes, source dates/context, and generation timestamp. Stored snapshots cannot be updated or deleted, including through direct privileged table updates. Later measurements and rankings do not change an earlier meeting. The latest 50 metadata-only history entries appear for the selected player; the bounded store allows at most 500 snapshots per athlete. No saved date is invented from a PDF download or site visit.
+
+The same actor/request UUID replays the original saved receipt when player/date/notes match, even if current results have changed. Changing those options with the same request is rejected. After an uncertain response, the browser locks the original command and offers **Retry Same Save**; the server checks the prior receipt before loading current data or issuing another insert. Different staff accounts can read saved meetings but cannot claim each other's request IDs.
+
+Opening `?athlete=<UUID>&meeting=<snapshot UUID>` loads the exact stored model and read-only notes. It does not fetch today's performance to recreate history. **Download Saved PDF** accepts only that athlete/snapshot pair, rechecks current staff authorization, and renders the saved model, date and notes. These PDFs preserve historical content; the renderer may evolve, so byte-for-byte historical PDF reproduction is not claimed. Current Summary/Detailed downloads remain available and unchanged.
+
 ## Validation
 
-Tests: `exit-meeting.test.ts`, `exit-meeting-compact.test.ts`, `exit-meeting-access.test.ts`, `exit-meeting-pdf.test.ts`. They cover source/context isolation, correct batting and pitching calculations, role scope, data minimization, sample/cohort gates, Blast overlaps, movement units, authentication and request validation, no-store responses, source failures, and real multi-page PDF generation.
+Tests: `exit-meeting.test.ts`, `exit-meeting-compact.test.ts`, `exit-meeting-access.test.ts`, `exit-meeting-pdf.test.ts`, and the four `exit-meeting-history*.test.ts` files. They cover source/context isolation, calculations, role scope, data minimization, sample/cohort gates, Blast overlaps, movement units, request validation, no-store responses, source failures, immutable history, exact historical downloads, original-receipt retries, database authorization/deactivation, schema bounds, and real multi-page PDF generation.
 
-For synthetic visual QA only, set `EXIT_MEETING_QA_DIR` while running the PDF tests. It writes clearly fictional detailed normal/stress and concise hitter/pitcher/two-way reports outside Git for Poppler rendering. Production exports are never fixtures or screenshots. No database migration, identity changes, or invitation sends are required for this feature.
+For synthetic visual QA only, set `EXIT_MEETING_QA_DIR` while running the PDF tests. It writes clearly fictional detailed normal/stress and concise hitter/pitcher/two-way reports outside Git for Poppler rendering. Production exports are never fixtures or screenshots. Apply the reviewed history migration before deploying history-enabled pages. QA must not create actual player meeting snapshots; use fictional PGlite records and local fixtures. No identity changes or invitation sends are required.

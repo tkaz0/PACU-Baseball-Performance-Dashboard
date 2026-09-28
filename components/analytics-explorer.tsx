@@ -6,6 +6,8 @@ import { StatInfo } from "@/components/stat-info";
 import { formatHeight, formatMetricNumber } from "@/lib/measurement-display";
 import { ANALYTICS_GROUPS, COLOR_GROUPS, analyticsVariableGroup, analyticsVariables, readingsForPeriod, pairAnalytics, pointGroup, prettyGroup, linearFit, chartDomain, type AnalyticsDataset, type AnalyticsPoint, type AnalyticsVariable, type ColorGroup } from "@/lib/analytics";
 import styles from "./analytics.module.css";
+import { SavedAnalyticsViews } from "@/components/saved-analytics-views";
+import type { AnalyticsViewConfig, SavedAnalyticsView } from "@/lib/saved-analytics";
 
 const COLORS=["#4996d5","#d5ae45","#dd8758","#90a657","#cf7fb6"];
 const number=(n:number)=>new Intl.NumberFormat("en-US",{maximumSignificantDigits:4}).format(n);
@@ -16,7 +18,7 @@ function Mark({index,cx,cy,size=6}:{index:number;cx:number;cy:number;size?:numbe
   if(Math.floor(index/COLORS.length)%3===2)return <path d={`M${cx},${cy-size-2} L${cx+size+1},${cy+size} L${cx-size-1},${cy+size} Z`} {...common}/>;
   return <circle cx={cx} cy={cy} r={size} {...common}/>;
 }
-export function AnalyticsExplorer({data,initialX="",initialY="",initialPeriod="fall",initialWindow=30}:{data:AnalyticsDataset;initialX?:string;initialY?:string;initialPeriod?:"fall"|"earlier";initialWindow?:number}) {
+export function AnalyticsExplorer({data,initialX="",initialY="",initialPeriod="fall",initialWindow=30,savedViews=[]}:{savedViews?:SavedAnalyticsView[];data:AnalyticsDataset;initialX?:string;initialY?:string;initialPeriod?:"fall"|"earlier";initialWindow?:number}) {
   const chartId=useId(),[period,setPeriod]=useState<"fall"|"earlier">(initialPeriod),[xChoice,setXChoice]=useState(initialX),[yChoice,setYChoice]=useState(initialY),[group,setGroup]=useState<ColorGroup>("academicClass"),[classFilter,setClassFilter]=useState(""),[positionFilter,setPositionFilter]=useState(""),[maxGap,setMaxGap]=useState([0,7,30,90,366].includes(initialWindow)?initialWindow:30),[hidden,setHidden]=useState<string[]>([]),[active,setActive]=useState<string|null>(null);
   const readings=useMemo(()=>readingsForPeriod(data.readings,period),[data.readings,period]);
   const variables=useMemo(()=>analyticsVariables(readings),[readings]);
@@ -41,7 +43,15 @@ export function AnalyticsExplorer({data,initialX="",initialY="",initialPeriod="f
   const metricOptions=ANALYTICS_GROUPS.map(group=>({group,items:variables.filter(v=>analyticsVariableGroup(v)===group)})).filter(item=>item.items.length);
   const axisOptions=metricOptions.map(({group,items})=><optgroup label={group} key={group}>{items.map(v=><option key={v.key} value={v.key}>{optionLabel(v)}</option>)}</optgroup>);
   function reset(){setXChoice("");setYChoice("");setPeriod("fall");setGroup("academicClass");setClassFilter("");setPositionFilter("");setMaxGap(30);setHidden([]);setActive(null);}
+  const viewConfig: AnalyticsViewConfig | null = x && y && x.key !== y.key ? {version:1,x:x.key,y:y.key,period,colorBy:group,classFilter,positionFilter,window:maxGap,hidden} : null;
+  function openView(view: SavedAnalyticsView): string | null {
+    const config=view.config, available=analyticsVariables(readingsForPeriod(data.readings,config.period));
+    if(![config.x,config.y].every(key=>available.some(v=>v.key===key)))return "One of this view’s stats is not currently available. Your chart has not changed.";
+    if((config.classFilter&&!data.players.some(p=>(p.academicClass||"__unknown")===config.classFilter))||(config.positionFilter&&!data.players.some(p=>(p.position||"__unknown")===config.positionFilter)))return "This view’s class or position is no longer on the roster. Your chart has not changed.";
+    setPeriod(config.period);setXChoice(config.x);setYChoice(config.y);setGroup(config.colorBy);setClassFilter(config.classFilter);setPositionFilter(config.positionFilter);setMaxGap(config.window);setHidden(config.hidden);setActive(null);return null;
+  }
   return <div className={styles.explorer}>
+    <SavedAnalyticsViews initialViews={savedViews} current={viewConfig} onLoad={openView}/>
     <section className={`panel ${styles.controls}`} aria-label="Analytics controls">
       <div className={styles.axes}><label>First Stat<select value={x?.key??""} onChange={e=>{setXChoice(e.target.value);setActive(null);}}><option value="" disabled>Waiting for results</option>{axisOptions}</select></label><button className="btn btn-secondary" type="button" aria-label="Swap chart stats" disabled={!x||!y} onClick={()=>{if(x&&y){setXChoice(y.key);setYChoice(x.key);}}}><ArrowLeftRight size={18}/></button><label>Second Stat<select value={y?.key??""} onChange={e=>{setYChoice(e.target.value);setActive(null);}}><option value="" disabled>Choose another stat</option>{axisOptions}</select></label></div>
       <details className={styles.filterDisclosure}><summary><strong>Filters &amp; Colors</strong><span>{period === "fall" ? "Fall 2026" : "Jun–Aug 2026"} · {classFilter ? prettyGroup(classFilter) : "All classes"} · {positionFilter || "All positions"} · {maxGap === 0 ? "Same-day tests" : maxGap === 366 ? "Any test date" : `${maxGap}-day test window`}</span></summary><div className={styles.filters}><label>Color By<select value={group} onChange={e=>{setGroup(e.target.value as ColorGroup);setHidden([]);}}>{COLOR_GROUPS.map(g=><option key={g.key} value={g.key}>{g.label}</option>)}</select></label><label>Class<select value={classFilter} onChange={e=>setClassFilter(e.target.value)}><option value="">All Classes</option>{[...new Set(data.players.map(p=>p.academicClass))].sort().map(c=><option key={c||"unknown"} value={c||"__unknown"}>{prettyGroup(c)||"Not Listed"}</option>)}</select></label><label>Primary Position<select value={positionFilter} onChange={e=>setPositionFilter(e.target.value)}><option value="">All Positions</option>{[...new Set(data.players.map(p=>p.position))].sort().map(p=><option key={p||"unknown"} value={p||"__unknown"}>{p||"Not Listed"}</option>)}</select></label><label>Testing Period<select value={period} onChange={e=>{setPeriod(e.target.value as "fall"|"earlier");setActive(null);}}><option value="fall">Fall 2026</option><option value="earlier">Jun–Aug 2026 · Body</option></select></label><label>Tests Within<select value={maxGap} onChange={e=>setMaxGap(Number(e.target.value))}><option value={0}>Same Day</option><option value={7}>7 Days</option><option value={30}>30 Days</option><option value={90}>90 Days</option><option value={366}>Any in This Period</option></select></label><button type="button" className="btn btn-secondary" onClick={reset}><RotateCcw size={15}/>Reset</button></div></details>

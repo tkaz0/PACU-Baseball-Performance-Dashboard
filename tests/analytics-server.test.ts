@@ -2,7 +2,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 const mocks=vi.hoisted(()=>({access:vi.fn(),from:vi.fn(),games:vi.fn()}));
 vi.mock("server-only",()=>({}));vi.mock("@/lib/render-access",()=>({requireRenderImportAccess:mocks.access}));
 vi.mock("@/lib/game-server",()=>({loadGameStats:mocks.games}));
-import { analyticsPages, loadAnalytics, loadCoachingData, loadComparisonData, loadDataCoverage } from "@/lib/analytics-server";
+import { analyticsPages, loadAnalytics, loadCoachingData, loadComparisonData, loadDataCoverage, loadStaffHomeSummary } from "@/lib/analytics-server";
 import { CLASSIFIED_METRICS } from "@/lib/imports/classified-pitch-results";
 beforeEach(()=>{vi.resetAllMocks();mocks.games.mockResolvedValue([]);});
 it("denies unauthorized access before any team query",async()=>{mocks.access.mockRejectedValue(Error("DENIED"));await expect(loadAnalytics()).rejects.toThrow("DENIED");await expect(loadCoachingData()).rejects.toThrow("DENIED");await expect(loadComparisonData()).rejects.toThrow("DENIED");await expect(loadDataCoverage()).rejects.toThrow("DENIED");expect(mocks.from).not.toHaveBeenCalled();expect(mocks.games).not.toHaveBeenCalled();});
@@ -34,7 +34,12 @@ it("accepts validated signed Blast angles without allowing arbitrary negative re
  const athlete={id,athlete_code:"SYN-001",first_name:"Fictional",last_name:"Player",preferred_name:null,athlete_seasons:[{season:"2026-27",academic_class:null,primary_position:"OF",player_type:"position",bats:null,throws:null,roster_status:"active"}]};
  const measurement={observation_id:"fictional-angle",athlete_id:id,metric_key:"blast_vertical_bat_angle",metric:"Vertical Bat Angle",unit:"deg",value:-30,measured_at:"2026-09-20",source:"Blast Motion · Average · 2026-09-13:2026-09-20",imported_at:"2026-09-20T12:00:00Z"};
  mocks.from.mockImplementation(table=>{const data=table==="athletes"?[athlete]:[measurement];const chain={select:vi.fn(),eq:vi.fn(),in:vi.fn(),gte:vi.fn(),lte:vi.fn(),order:vi.fn(),range:vi.fn().mockResolvedValue({data,count:data.length,error:null})};for(const k of ["select","eq","in","gte","lte","order"] as const)chain[k].mockReturnValue(chain);return chain;});mocks.access.mockResolvedValue({supabase:{from:mocks.from}});
- await expect(loadCoachingData()).resolves.toBeDefined();measurement.source="RENPHO";await expect(loadCoachingData()).rejects.toThrow("could not be verified");
+ await expect(loadCoachingData()).resolves.toBeDefined();
+ const visit={since:"2026-09-19T00:00:00Z",viewedAt:"2026-09-27T00:00:00Z",record:true};
+ expect((await loadStaffHomeSummary(visit)).visitDigest).toMatchObject({newResults:1,updatedPlayers:1,newBests:0});
+ athlete.athlete_seasons[0].player_type="pitcher";athlete.athlete_seasons[0].primary_position="P";
+ expect((await loadStaffHomeSummary(visit)).visitDigest).toMatchObject({newResults:0,updatedPlayers:0,newBests:0});
+ measurement.source="RENPHO";await expect(loadCoachingData()).rejects.toThrow("could not be verified");
 });
 
 it("bounds parallel pages to three and preserves source order despite out-of-order completion",async()=>{

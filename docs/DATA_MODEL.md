@@ -366,3 +366,9 @@ This release adds no tables, catalog metrics, source observations, roles or RLS 
 
 
 September 27 follow-up: the Exit Meeting default is now a concise numerical projection; the explicit detailed option retains available full tables. Neither mode saves a report or changes source observations. Leaderboard reference means give each displayed athlete one equal weight; they do not replace pooled team game rates or swing-weighted Blast averages. Read optimizations add no DB objects: React memoization is limited to a server render, independent authorized reads run concurrently, and data validation is unchanged. Every new request and every mutation/download revalidates live access.
+
+## September 28 personal tools and saved development records
+
+This supersedes the earlier statement that Home is entirely read-only and exit reports cannot be stored. Source reads remain unchanged. New account-owned `saved_analytics_views` stores bounded chart settings and recoverable archive timestamps; `dashboard_visits` stores only current/previous visit timestamps per authorized own-player or staff scope. Both deny direct table access and use live-authorized private RPCs.
+
+`player_numeric_goals` holds explicit coach targets, an immutable observation baseline, exact metric/source/unit/Fall partition, revisions and optional player sharing. `exit_meeting_snapshots` holds deliberately saved, immutable and bounded summary reports and notes, accessible only to current staff. Current-report downloads remain unsaved. See [Player Goals](PLAYER_GOALS.md), [Exit Meetings](EXIT_MEETINGS.md), and [Personal Dashboard](PERSONAL_DASHBOARD.md) for validation, retry, projection and temporal rules. No existing source values, athlete identities or permissions are rewritten.

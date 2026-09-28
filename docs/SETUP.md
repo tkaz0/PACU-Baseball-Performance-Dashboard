@@ -416,3 +416,9 @@ The follow-up performance release also needs no schema or environment change. It
 
 
 The September 27 full-arsenal display update requires no new migration or environment setting. It consumes existing classified readings and the installed Fall leaderboard aggregation. Profiles remain own-player/staff only, comparison remains staff-only, and the approved narrow team leaderboard projection is unchanged.
+
+## September 28 feature migrations
+
+Before the consuming app deploys, apply the three additive migrations in order: `202609280001_player_goals.sql`, `202609280002_exit_meeting_history.sql`, and `202609280003_personal_dashboard_tools.sql`. Inspect hosted state first; do not replay existing migrations. They add no accounts, role links, invitations, source observations or default targets. All feature reads/writes use the existing ordinary signed-in session.
+
+Staff walkthrough: **Analytics → My Saved Views** saves chart settings; **Player Profile → Overview → Goals** creates an explicit target from a recorded starting point, optionally shared with the player; **Exit Meetings → Save Snapshot** deliberately preserves a summary, then **Saved Meetings** reopens/downloads it. Players see only explicitly shared own goals. Pitch Separation appears under each classified arsenal source and asks for a fastball reference when multiple types exist. Home visit tracking starts on the first visible visit after this release. See [Personal Dashboard](PERSONAL_DASHBOARD.md).

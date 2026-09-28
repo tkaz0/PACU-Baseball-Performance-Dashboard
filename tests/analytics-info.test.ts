@@ -1,6 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
+vi.mock("@/app/(workspace)/analytics/view-actions", () => ({ saveAnalyticsView: vi.fn(), archiveAnalyticsView: vi.fn() }));
 import { AnalyticsExplorer } from "@/components/analytics-explorer";
 
 it("puts accessible explanations beside both correlation scores even before results arrive", () => {

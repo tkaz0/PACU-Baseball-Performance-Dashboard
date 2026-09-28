@@ -1,0 +1,7 @@
+import type { ExitMeetingReport } from "@/lib/exit-meeting";
+import type { SavedExitMeeting } from "@/lib/exit-meeting-history";
+export const fictionalHistoryAthlete="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+export const fictionalHistorySnapshot="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+export const fictionalHistoryRequest="cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+export function fictionalHistoryReport(generatedAt="2026-09-28T12:00:00.000Z"):ExitMeetingReport{return {format:"meeting",name:"Fictional Player",code:"PAC-9999",jersey:"#0",position:"SS",academicClass:"Junior",batsThrows:"Bats R / Throws R",season:"Fall 2026",generatedAt,lastTested:"2026-09-16",lastGameUpdate:null,strengths:[],development:[],jumps:[],sections:[{id:"physicality",title:"Physicality",subtitle:"Latest measurements",rows:[{label:"Muscle Mass",metricKey:"muscle_mass",value:"160 lb",source:"RENPHO",date:"2026-09-16",basis:"Latest profile result",percentile:80,peers:10,sample:null}]}],missing:[],notes:["Fictional saved report used only in tests."]};}
+export function fictionalSavedMeeting(patch:Partial<SavedExitMeeting>={}):SavedExitMeeting{return {id:fictionalHistorySnapshot,athleteId:fictionalHistoryAthlete,meetingDate:"2026-10-01",createdAt:"2026-09-28T12:00:01.000Z",generatedAt:"2026-09-28T12:00:00.000Z",metricCount:1,hasNotes:true,schemaVersion:1,talkingPoints:"Fictional coach talking points",report:fictionalHistoryReport(),...patch};}
