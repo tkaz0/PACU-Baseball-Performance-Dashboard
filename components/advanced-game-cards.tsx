@@ -25,7 +25,7 @@ export function AdvancedGameCards({ metrics }: { metrics: readonly GameOverviewM
         <GameOpportunity source={item.source} metric={item.metric} count={item.opportunities}/>
         {item.comparison ? <div className={styles.percentile}><PercentileBar value={item.comparison.percentile!} sampleSize={item.comparison.sampleSize} label={item.label}/><span>{item.comparison.sampleSize} teammates</span></div> : <p className={styles.missing}>Team percentile needs five comparable players.</p>}</dd>
       </div>)}</dl>
-      <p className={styles.note}>{group.source === "qpa_fall_2026" ? "Estimated power stats count doubles/triples as doubles. PAC Production+ compares recorded production with the team; it is not wRC+." : "Strikeouts and walks help explain the approach. WHIP shows the hits and walks allowed."}</p>
+      <p className={styles.note}>{group.source === "qpa_fall_2026" ? "Power stats count doubles/triples as doubles. PAC Production+ compares recorded production with the team; it is not wRC+." : "Strikeouts and walks help explain the approach. WHIP shows the hits and walks allowed."}</p>
     </section>)}
     <p className={styles.note}>These stats still reflect results and sample size; they do not remove luck.</p>
   </section>;

@@ -33,13 +33,13 @@ export function productionParts(v:ReadonlyMap<string,number>):{top:number;bottom
 export function battingPowerRates(rows:readonly SharedGameStat[]):AdvancedGameRate[]{
  const v=gameCountMap(rows,"qpa_fall_2026"),p=v&&battingPowerParts(v);if(!v||!p)return [];
  const result:AdvancedGameRate[]=[
-  {metric:"batting_est_slg",label:"Est. SLG",value:p.bases/p.ab,unit:"avg",opportunities:p.ab,opportunityLabel:"AB"},
-  {metric:"batting_est_iso",label:"Est. ISO",value:(p.xbh+3*p.hr)/p.ab,unit:"avg",opportunities:p.ab,opportunityLabel:"AB"}
+  {metric:"batting_est_slg",label:"SLG",value:p.bases/p.ab,unit:"avg",opportunities:p.ab,opportunityLabel:"AB"},
+  {metric:"batting_est_iso",label:"ISO",value:(p.xbh+3*p.hr)/p.ab,unit:"avg",opportunities:p.ab,opportunityLabel:"AB"}
  ];
  const k=v.get("punchies"),sf=v.get("sac_fly");
  if(Number.isSafeInteger(k)&&Number.isSafeInteger(sf)&&k!>=0&&sf!>=0&&k!+p.hits<=p.ab){
   const contacts=p.ab-k!+sf!;
-  if(contacts>0)result.push({metric:"batting_est_wobacon",label:"Est. wOBAcon",value:p.weightedHits/contacts,unit:"avg",opportunities:contacts,opportunityLabel:"contacts"});
+  if(contacts>0)result.push({metric:"batting_est_wobacon",label:"wOBAcon",value:p.weightedHits/contacts,unit:"avg",opportunities:contacts,opportunityLabel:"contacts"});
  }
  return result;
 }
@@ -47,7 +47,7 @@ export function battingPowerRates(rows:readonly SharedGameStat[]):AdvancedGameRa
 export function battingAdvancedRates(rows:readonly SharedGameStat[],comparisons:readonly GameComparison[]=[]):AdvancedGameRate[]{
  const rates=battingPowerRates(rows),qpa=rows.filter(r=>r.source==="qpa_fall_2026"),v=gameCountMap(qpa,"qpa_fall_2026"),p=v&&productionParts(v);
  const matches=comparisons.filter(c=>c.source==="qpa_fall_2026"&&c.metric==="batting_production_plus"&&c.eventId===""&&c.snapshotId===qpa[0]?.snapshot_id);
- if(p&&matches.length===1&&matches[0].sampleSize>=5&&Number.isFinite(matches[0].value)&&matches[0].value>=0)rates.unshift({metric:"batting_production_plus",label:"PAC Production+ (Est.)",value:matches[0].value,unit:"index",opportunities:p.bottom,opportunityLabel:"PA"});
+ if(p&&matches.length===1&&matches[0].sampleSize>=5&&Number.isFinite(matches[0].value)&&matches[0].value>=0)rates.unshift({metric:"batting_production_plus",label:"PAC Production+",value:matches[0].value,unit:"index",opportunities:p.bottom,opportunityLabel:"PA"});
  return rates;
 }
 /** Staff-only callers supply the already eligible roster projection. Do not fetch peer rows for a player. */

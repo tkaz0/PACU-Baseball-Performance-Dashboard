@@ -61,7 +61,7 @@ it("team estimates pool valid numerators/denominators rather than player rate av
 });
 it("labels estimates, shows chances, preserves unclipped power and formats comparison results",()=>{
  const html=renderToStaticMarkup(createElement(AthleteGameStats,{stats:rows(line)}));
- for(const label of ["Est. SLG","Est. ISO","Est. wOBAcon","8 contacts","10 AB","count doubles/triples as doubles"])expect(html).toContain(label);
+ for(const label of ["SLG","ISO","wOBAcon","8 contacts","10 AB","count doubles/triples as doubles"])expect(html).toContain(label);
  expect(html).not.toContain(".900, on a 0 to 1.000");
  expect(coachingValue(123.55,"batting_production_plus","index")).toBe("124");expect(coachingValue(1.8,"pitching_whip","decimal")).toBe("1.80");
 });

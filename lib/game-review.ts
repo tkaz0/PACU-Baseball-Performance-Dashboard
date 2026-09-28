@@ -12,7 +12,7 @@ export function reviewGameData(stats:readonly SharedGameStat[],logs:readonly Gam
  if(qpa){
   const mapped=Object.fromEntries(Object.entries(v).map(([k,n])=>[{base_hit:"h",pumps:"hr",sac_fly:"sf",sac_bunt:"sh",punchies:"k"}[k]??k,n]));
   for(const [i,message]of countIssues(mapped,{}).entries())add(`counts-${i}`,message);
-  if(["base_hit","hh_extra_base_hit","pumps"].every(k=>v[k]!==undefined)&&v.hh_extra_base_hit+v.pumps>v.base_hit)add("xbh","Doubles/triples plus home runs exceed total hits. Estimated power stats are withheld until the counts are corrected.");
+  if(["base_hit","hh_extra_base_hit","pumps"].every(k=>v[k]!==undefined)&&v.hh_extra_base_hit+v.pumps>v.base_hit)add("xbh","Doubles/triples plus home runs exceed total hits. Power stats are withheld until the counts are corrected.");
   const missing=["pa","ab","base_hit","bb","hbp","sac_fly"].filter(k=>v[k]===undefined);if(missing.length)add("missing",`Missing counts for batting rates: ${missing.map(k=>({base_hit:"Hits",sac_fly:"Sac Fly"}[k]??k.toUpperCase())).join(", ")}.`);
   if(v.qpa!==undefined&&v.pa!==undefined&&v.qpa>v.pa)add("qpa","QPA count exceeds PA.");
   if(["hh_base_hit","three_eight_hh","hh_extra_base_hit","pumps","ab","punchies","sac_bunt"].every(k=>v[k]!==undefined)){

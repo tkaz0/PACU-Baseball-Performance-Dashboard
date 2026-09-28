@@ -474,3 +474,6 @@ Pitch-label regression checks cover stable legacy coordinate indices, absence of
 ## Advanced performance presentation
 
 Advanced-performance presentation checks in tests/advanced-performance-presentation.test.ts verify prominence before insights, two-way discipline separation, no duplicate advanced bars, sample denominators, missing/zero-walk/stale-snapshot withholding, advanced-first rankings and no fabricated aggregate Production+ index. Home tests verify advanced leader selection, classic fallback, unchanged narrow readers and PA/contact/walk/innings labels. Responsive visual checks use explicitly fictional values; live checks return structural counts only, with no roster or readings in screenshots.
+
+
+September 28 owner label cleanup: visible advanced hitting names are SLG, ISO, wOBAcon and PAC Production+, with no Est. prefix or suffix. Preserve canonical batting_est_* keys, calculations, source values, ranks and immutable saved snapshots. Calculation assumptions remain explained in stat-info buttons and report notes; removing the label does not make the double/triple split exact. This is an application-only display update requiring no migration.

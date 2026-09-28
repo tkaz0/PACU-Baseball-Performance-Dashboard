@@ -53,7 +53,7 @@ it("places advanced rankings before classic stats and preserves samples and play
   const row = (metric: string, source = "qpa_fall_2026"): GameLeaderboardRow => ({ source, metric, eventId: source === "qpa_fall_2026" ? "" : "fall-2026-cumulative", playedOn: null, value: 1.2, unit: "decimal", opportunities: 30, rank: 1, code: "SYN-0001", name: "Fictional Player", profileId: null, updatedAt: "2026-09-28T01:00:00Z", sampleSize: 8, percentile: 80 });
   const html = renderToStaticMarkup(createElement(GameLeaderboard, { rows: [row("batting_avg"), { ...row("batting_production_plus"), unit: "index", value: 120 }, row("batting_est_slg")] }));
   expect(html.indexOf('aria-label="Advanced hitting rankings"')).toBeLessThan(html.indexOf('aria-label="More game rankings"'));
-  expect(html.indexOf('>PAC Production+ (Est.)')).toBeLessThan(html.indexOf('>Est. SLG'));
+  expect(html.indexOf('>PAC Production+')).toBeLessThan(html.indexOf('>SLG'));
   expect(html).toContain("30 PA");
   expect(html).not.toContain("/athletes/");
   expect(html).toContain("not luck-adjusted predictions");
@@ -66,6 +66,6 @@ it("shows pooled team power estimates in the main cards without fabricating a te
   const html = renderToStaticMarkup(createElement(TeamGameStats, { stats: [...batting, ...pitching], names: new Map([["fictional-player", "Fictional Player"]]) }));
   const main = html.split("More Team Totals &amp; Rates")[0];
   expect(main).toContain("Advanced Hitting");
-  for (const label of ["Est. SLG", "Est. ISO", "Est. wOBAcon"]) expect(main).toContain(label);
+  for (const label of ["SLG", "ISO", "wOBAcon"]) expect(main).toContain(label);
   expect(html).not.toContain("PAC Production+");
 });

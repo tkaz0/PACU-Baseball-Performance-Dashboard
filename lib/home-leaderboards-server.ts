@@ -14,7 +14,7 @@ export async function loadHomeLeaderboards(access: Access): Promise<HomeLeaderbo
   const body = visibleLeaderboardComparisons("physicality", options).find(option => option.metricKey === "body_score");
   const practice = visibleLeaderboardComparisons("hitting", options, "practice").find(option => option.metricKey === "avg_bat_speed");
   const [bodyRows, practiceRows] = await Promise.all([body ? loadLeaderboard(access, body) : [], practice ? loadLeaderboard(access, practice) : []]);
-  const production = homeGameBoard("production", "Advanced Hitting · In Game", "PAC Production+ (Est.)", "/leaderboards?group=games&discipline=hitting", gameRows, "qpa_fall_2026", "", "batting_production_plus", access.athleteId);
+  const production = homeGameBoard("production", "Advanced Hitting · In Game", "PAC Production+", "/leaderboards?group=games&discipline=hitting", gameRows, "qpa_fall_2026", "", "batting_production_plus", access.athleteId);
   const command = homeGameBoard("command", "Advanced Pitching · In Game", "K/BB", "/leaderboards?group=games&discipline=pitching", gameRows, "pitching_fall_2026", "fall-2026-cumulative", "pitching_k_bb", access.athleteId);
   const boards = [
     production.total ? production : homeGameBoard("avg", "Hitting · In Game", "Batting AVG", "/leaderboards?group=games&discipline=hitting", gameRows, "qpa_fall_2026", "", "batting_avg", access.athleteId),
