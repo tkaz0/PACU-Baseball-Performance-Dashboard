@@ -39,19 +39,19 @@ function geometricAngle(value: number | null): number | null {
 export function attackPath(value: number | null): AttackPath | null {
   const angle = geometricAngle(value);
   if (angle === null) return null;
-  if (angle < 0) return { key: "downhill", label: "Descending path", name: "Downhill Swing", description: "The recorded average attack angle points below horizontal." };
-  if (angle < 10) return { key: "flat", label: "Flatter path", name: "Flat Driver", description: "The recorded average attack angle is horizontal or slightly upward." };
-  if (angle < 20) return { key: "rising", label: "Upward path", name: "Rising Driver", description: "The recorded average attack angle points upward." };
-  return { key: "high_lift", label: "Steeper upward path", name: "High-Lift Swing", description: "The recorded average attack angle has a steeper upward direction." };
+  if (angle < 0) return { key: "downhill", label: "Down through contact", name: "Downhill Path", description: "The recorded average attack angle points below horizontal." };
+  if (angle < 10) return { key: "flat", label: "Flat through contact", name: "Flat Path", description: "The recorded average attack angle is horizontal or slightly upward." };
+  if (angle < 20) return { key: "rising", label: "Up through contact", name: "Lift Path", description: "The recorded average attack angle points upward." };
+  return { key: "high_lift", label: "Steep lift through contact", name: "Steep Path", description: "The recorded average attack angle has a steeper upward direction." };
 }
 
 /** Custom PAC descriptions of the signed barrel angle, with no quality ordering. */
 export function barrelTilt(value: number | null): BarrelTilt | null {
   const angle = geometricAngle(value);
   if (angle === null) return null;
-  if (angle < -40) return { key: "deep", label: "Deep Barrel", description: "The recorded average barrel angle points farther below horizontal." };
-  if (angle < -20) return { key: "mid", label: "Mid-Tilt Barrel", description: "The recorded average barrel angle points below horizontal." };
-  if (angle <= 0) return { key: "shallow", label: "Shallow Barrel", description: "The recorded average barrel angle is nearer horizontal or level." };
+  if (angle < -40) return { key: "deep", label: "Deep Barrel Tilt", description: "The recorded average barrel angle points farther below horizontal." };
+  if (angle < -20) return { key: "mid", label: "Angled Barrel", description: "The recorded average barrel angle points below horizontal." };
+  if (angle <= 0) return { key: "shallow", label: "Flat Barrel", description: "The recorded average barrel angle is nearer horizontal or level." };
   return { key: "up", label: "Barrel Up", description: "The recorded average barrel angle points above horizontal." };
 }
 

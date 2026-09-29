@@ -22,17 +22,17 @@ const performance = (readings: Measurement[] = [], athleteCode = code) => getPla
 
 describe("custom descriptive PAC swing bands", () => {
   it.each([
-    [-90, "downhill", "Downhill Swing"], [-0.001, "downhill", "Downhill Swing"],
-    [0, "flat", "Flat Driver"], [9.999, "flat", "Flat Driver"],
-    [10, "rising", "Rising Driver"], [19.999, "rising", "Rising Driver"],
-    [20, "high_lift", "High-Lift Swing"], [90, "high_lift", "High-Lift Swing"],
+    [-90, "downhill", "Downhill Path"], [-0.001, "downhill", "Downhill Path"],
+    [0, "flat", "Flat Path"], [9.999, "flat", "Flat Path"],
+    [10, "rising", "Lift Path"], [19.999, "rising", "Lift Path"],
+    [20, "high_lift", "Steep Path"], [90, "high_lift", "Steep Path"],
   ])("preserves the exact attack-angle boundary at %s degrees", (value, key, name) => {
     expect(attackPath(value as number)).toMatchObject({ key, name });
   });
   it.each([
-    [-90, "deep", "Deep Barrel"], [-40.001, "deep", "Deep Barrel"],
-    [-40, "mid", "Mid-Tilt Barrel"], [-20.001, "mid", "Mid-Tilt Barrel"],
-    [-20, "shallow", "Shallow Barrel"], [0, "shallow", "Shallow Barrel"],
+    [-90, "deep", "Deep Barrel Tilt"], [-40.001, "deep", "Deep Barrel Tilt"],
+    [-40, "mid", "Angled Barrel"], [-20.001, "mid", "Angled Barrel"],
+    [-20, "shallow", "Flat Barrel"], [0, "shallow", "Flat Barrel"],
     [0.001, "up", "Barrel Up"], [90, "up", "Barrel Up"],
   ])("preserves the exact signed vertical-angle boundary at %s degrees", (value, key, label) => {
     expect(barrelTilt(value as number)).toMatchObject({ key, label });
@@ -68,7 +68,7 @@ describe("hitter Swing Profile measurement model", () => {
     const cards = performance([body("Height", 180, "cm"), body("Weight", 85, "kg")]);
     const before = structuredClone({ readings, cards });
     const model = hitterSwingProfile(readings, cards);
-    expect(model).toMatchObject({ averageBatSpeed: 80, attackAngle: 16, verticalBatAngle: -35, path: { name: "Rising Driver" }, tilt: { label: "Mid-Tilt Barrel" }, summary: { totalSwings: 40, reportCount: 2 } });
+    expect(model).toMatchObject({ averageBatSpeed: 80, attackAngle: 16, verticalBatAngle: -35, path: { name: "Lift Path" }, tilt: { label: "Angled Barrel" }, summary: { totalSwings: 40, reportCount: 2 } });
     expect(model.summary?.metrics.find(metric => metric.key === "blast_attack_angle")?.peak).toBe(80);
     expect({ readings, cards }).toEqual(before);
   });
