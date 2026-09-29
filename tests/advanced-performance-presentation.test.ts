@@ -19,21 +19,24 @@ const batting = counts({ pa: 30, ab: 24, base_hit: 8, hh_extra_base_hit: 2, pump
 const pitching = counts({ innings_outs: 18, k: 7, bb_outcome: 2, h: 4, r: 2, pitches: 88, strikes: 57 }, true);
 const production: GameComparison = { source: "qpa_fall_2026", metric: "batting_production_plus", eventId: "", snapshotId: "fictional-snapshot", value: 120, percentile: 80, sampleSize: 8 };
 
-it("puts verified advanced cards before overview insights without repeating them in the lower game bars", () => {
+it("keeps overview headlines compact and presents full advanced cards in the In-Game detail", () => {
   const html = renderToStaticMarkup(createElement(PlayerOverview, { cards: [], gameStats: [...batting, ...pitching], gameComparisons: [production], twoWay: true }));
-  expect(html.indexOf('aria-label="Advanced performance"')).toBeLessThan(html.indexOf('aria-label="Strengths"'));
-  expect(html).toContain('aria-label="Advanced hitting performance"');
-  expect(html).toContain('aria-label="Advanced pitching performance"');
+  expect(html.indexOf('aria-label="Key performance results"')).toBeLessThan(html.indexOf('aria-label="Strengths"'));
+  expect(html).toContain('aria-label="Detailed team comparisons"');
+  expect(html).not.toContain('aria-label="Advanced performance"');
+  const detailed = renderToStaticMarkup(createElement(AdvancedGameCards, { metrics: gameOverviewMetrics([...batting, ...pitching], [production]) }));
+  expect(detailed).toContain('aria-label="Advanced hitting performance"');
+  expect(detailed).toContain('aria-label="Advanced pitching performance"');
   for (const key of ["batting_production_plus", "batting_est_slg", "batting_est_iso", "batting_est_wobacon", "pitching_k_bb", "pitching_k9", "pitching_bb9", "pitching_whip"]) {
-    expect(html.split(`data-advanced-metric="${key}"`)).toHaveLength(2);
+    expect(detailed.split(`data-advanced-metric="${key}"`)).toHaveLength(2);
     expect(html).not.toContain(`data-overview-game-metric="${key}"`);
   }
-  expect(html).toContain('aria-valuenow="80"');
-  expect(html).toContain("30 PA");
-  expect(html).toContain("6.0 IP");
-  expect(html).toContain("2 walks");
-  expect(html).toContain("not wRC+");
-  expect(html).toContain("do not remove luck");
+  expect(detailed).toContain('aria-valuenow="80"');
+  expect(detailed).toContain("30 PA");
+  expect(detailed).toContain("6.0 IP");
+  expect(detailed).toContain("2 walks");
+  expect(detailed).toContain("not wRC+");
+  expect(detailed).toContain("do not remove luck");
 });
 
 it("does not invent an advanced card, finite K/BB or percentile when its basis is unavailable", () => {

@@ -3,11 +3,13 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Role } from "@/lib/types";
 import { workspaceHome, workspacePreviewQuery } from "@/lib/workspace-home";
+import { buildHomeSummary } from "@/lib/home-summary";
 
-const fake = vi.hoisted(() => ({ access: vi.fn(), from: vi.fn(), home: vi.fn(), leaderboards: vi.fn(), due: vi.fn() }));
+const fake = vi.hoisted(() => ({ access: vi.fn(), from: vi.fn(), home: vi.fn(), leaderboards: vi.fn(), due: vi.fn(), status: vi.fn() }));
 vi.mock("@/lib/home-server", () => ({loadHomeSummary: fake.home}));
 vi.mock("@/lib/home-leaderboards-server", () => ({loadHomeLeaderboards: fake.leaderboards}));
 vi.mock("@/lib/coach-focus-server", () => ({loadDueCoachFocus: fake.due}));
+vi.mock("@/lib/weekly-source-checks", () => ({loadWeeklySourceStatus: fake.status}));
 vi.mock("@/lib/render-access", () => ({ requireRenderAccess: fake.access }));
 vi.mock("@/lib/personal-dashboard-server", () => ({ loadDashboardVisit: async () => ({ since: null, viewedAt: "2026-09-27T12:00:00Z", record: false }) }));
 vi.mock("@/app/(workspace)/overview/visit-actions", () => ({ recordDashboardVisit: vi.fn() }));
@@ -22,15 +24,16 @@ const access = (roles: Role[], linked: string | null = athleteId, preview = fals
   roles, athleteId: linked, actualRoles: preview ? ["admin"] : roles,
   preview: preview ? { role: roles[0], athleteId: linked } : null, supabase: { from: fake.from },
 });
-beforeEach(() => { vi.resetAllMocks(); fake.leaderboards.mockResolvedValue([]); fake.due.mockResolvedValue([]); });
+beforeEach(() => { vi.resetAllMocks(); fake.leaderboards.mockResolvedValue([]); fake.due.mockResolvedValue([]); fake.status.mockResolvedValue([]); });
 
 describe("role-aware dashboard landing", () => {
   it.each(["admin","coach","player"] as Role[])("opens Home for %s while preserving presented scope",async role=>{
-    const current=access([role],athleteId,role==="player");fake.access.mockResolvedValue(current);fake.home.mockResolvedValue(null);
+    const current=access([role],athleteId,role==="player");fake.access.mockResolvedValue(current);fake.home.mockResolvedValue(buildHomeSummary([],[],[],"2026-09-29"));
     expect(workspaceHome(current)).toBe("/overview");
     const html=renderToStaticMarkup(await Overview({searchParams:Promise.resolve({})}));
     expect(fake.home).toHaveBeenCalledWith(current,{since:null,viewedAt:"2026-09-27T12:00:00Z",record:false});expect(fake.leaderboards).toHaveBeenCalledWith(current);expect(html).toContain(role==="player"?"My Dashboard":"Team Dashboard");
     expect(fake.due).toHaveBeenCalledTimes(role==="player"?0:1);
+    expect(fake.status).toHaveBeenCalledTimes(role==="player"?0:1);
     expect(html.includes('href="/imports"')).toBe(role!=="player");expect(fake.from).not.toHaveBeenCalled();
   });
   it("keeps the connection message for an unlinked player",async()=>{

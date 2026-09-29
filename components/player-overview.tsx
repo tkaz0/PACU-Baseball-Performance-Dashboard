@@ -1,4 +1,3 @@
-import { AdvancedGameCards } from "@/components/advanced-game-cards";
 import { isAdvancedGameMetric } from "@/lib/advanced-game-presentation";
 import { pitchSourceLabel } from "@/lib/pitch-display";
 import { HittingTeamAverageLine } from "@/components/hitting-team-average";
@@ -114,10 +113,18 @@ export function PlayerOverview({ cards, gameStats = [], gameComparisons = [], sh
   const hasPhysicalityRadar = physicalityRadarPoints(physicality).length === 3;
   const testingGroups = profileOverviewGroups(testing);
   const trends = profileTrends([...physicality, ...testing]);
+  const headlineKeys = ["batting_production_plus", "pitching_k_bb", "body_score", "muscle_mass", "max_exit_velocity", "max_pitch_velocity", "body_fat_pct"];
+  const headline = headlineKeys.flatMap(key => {
+    const game = games.find(item => item.metric === key);
+    if (game) return [{key, label:game.label, value:gameValue(game.value,game.unit), detail:game.opportunities == null ? "In-Game · Fall 2026" : `${game.opportunities} chances · In-Game`}];
+    const card = availableCards.find(item => item.metric.key === key);
+    if (!card?.latest) return [];
+    return [{key,label:profileMetricLabel(key,leaderboardMetricLabel(card.metric),card.latest.source),value:`${formatMetricNumber(card.latest.value,key,card.latest.source)} ${card.latest.unit === "ratio" ? "" : card.latest.unit}`.trim(),detail:`Tested ${leaderboardTestDate(card.latest.measuredAt)}`}];
+  }).slice(0,3);
   return <section aria-label="Player overview" className={styles.overview} data-testid="player-overview">
     <div className={overview.snapshotHeader}><div className={overview.snapshotIntro}><h2 className="m-0 text-xl font-bold tracking-tight">Performance Snapshot</h2><p className="mb-0 mt-1.5 text-sm leading-6 text-[var(--text-secondary)]">{games.length ? "Your latest tests and Fall game stats, alongside the Pacific team." : bodyResultsOnly ? comparisonCards.length ? "Your latest body results compared with the team. More highlights will appear as testing continues." : "Your body results are in Physicality. More highlights will appear as testing continues." : "Where you stand now and how you have changed since earlier tests."}</p></div>{(lastTested || games.length > 0) && <dl className={overview.snapshotFacts}><div><dt className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Stats Available</dt><dd className="m-0 mt-1 font-bold tabular-nums">{availableCards.length + games.length}</dd></div>{lastTested && <div><dt className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Last Tested</dt><dd className="m-0 mt-1 font-semibold"><time dateTime={lastTested}>{leaderboardTestDate(lastTested)}</time></dd></div>}{games.length > 0 && <div><dt className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Game Stats Updated</dt><dd className="m-0 mt-1 font-semibold">{leaderboardTestDate(gameDate(games.map(g=>g.updatedAt).sort().at(-1)!))}</dd></div>}</dl>}</div>
-    <AdvancedGameCards metrics={games}/>
-    <div className={overview.insights}>
+    {!!headline.length && <dl className={overview.headlineStats} aria-label="Key performance results">{headline.map(item=><div key={item.key}><dt>{item.label}<StatInfo metric={item.key} label={item.label}/></dt><dd>{item.value}</dd><p>{item.detail}</p></div>)}</dl>}
+    <div className={overview.insights} data-has-jumps={insights.biggestJumps.length > 0 || undefined}>
       {[
         { title: "Strengths", icon: TrendingUp, items: strengths, note: "Results in the top quarter of the team", empty: "No results are in the top quarter right now." },
         { title: "Areas to Work On", icon: Crosshair, items: weaknesses, note: "Results in the bottom quarter of the team", empty: "No results fall in the bottom quarter right now." },
@@ -137,14 +144,15 @@ export function PlayerOverview({ cards, gameStats = [], gameComparisons = [], sh
       </section>
     </div>
     {!comparableCount && <p className="m-0 max-w-3xl text-xs leading-6 text-[var(--text-secondary)]">Team comparisons need at least five players with the same test or game stat. Your own results are available in the other tabs.</p>}
-    {(physicality.some(card=>card.latest) || games.length > 0 || testingGroups.length > 0) && <section className={overview.comparisonBoard} aria-label="Team Comparison Board">
-      <header className={overview.boardHeader}><div><ChartNoAxesCombined size={20} aria-hidden="true"/><h2>Team Comparison Board</h2></div><PercentileLegend/></header>
+    {(physicality.some(card=>card.latest) || games.length > 0 || testingGroups.length > 0) && <details className={overview.comparisonBoard} aria-label="Detailed team comparisons">
+      <summary className={overview.boardHeader}><div><ChartNoAxesCombined size={20} aria-hidden="true"/><span>Detailed Team Comparisons</span></div><span>Percentiles, testing and game stats <ChevronDown size={16} aria-hidden="true"/></span></summary>
+      <PercentileLegend/>
       {(physicality.some(card=>card.latest) || games.length > 0) && <div className={overview.primaryComparisons} data-has-body={physicality.some(card=>card.latest)} data-has-games={games.length>0}>
         {physicality.some(card=>card.latest) && <div className={overview.physicalityComparison}>{hasPhysicalityRadar ? <PhysicalityRadar cards={physicality}/> : <TestingComparisons teamAverages={teamAverages} title="Physicality" cards={physicality.filter(card => card.latest)}/>}</div>}
         <GameComparisons metrics={games.filter(item => !isAdvancedGameMetric(item.metric))}/>
       </div>}
       {testingGroups.length > 0 && <div className={overview.testingCards} aria-label="Testing percentiles">{testingGroups.map(group=><TestingComparisons key={group.id} teamAverages={teamAverages} title={group.title} context={group.context} cards={group.cards}/>)}</div>}
-    </section>}
+    </details>}
     {trends.length > 0 && <details className={overview.moreTesting}><summary>Testing Trends <ChevronDown size={16} aria-hidden="true"/></summary><ProfileTrendChart series={trends}/></details>}
     {showMethods && <details className="group border-t border-[var(--line-subtle)] pt-4 text-xs text-[var(--text-secondary)]"><summary className="flex min-h-8 w-fit cursor-pointer list-none items-center gap-2 font-semibold">How These Highlights Work<ChevronDown size={14} className="transition-transform group-open:rotate-180" aria-hidden="true" /></summary>
       <div className="mt-3 max-w-3xl space-y-2 leading-relaxed">

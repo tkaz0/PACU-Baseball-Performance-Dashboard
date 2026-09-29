@@ -115,7 +115,7 @@ it("shows earlier in-game readings separately from newer practice readings and c
  expect(panels[4]).toContain('data-value="95"');expect(panels[4]).not.toContain('data-value="85"');expect(panels[4]).not.toContain("Fictional cumulative stats");
 });
 
-it("prioritizes a full Fall arsenal in pitcher Overview and hides only broad Full Swing velocity in the matching context", () => {
+it("keeps the full Fall arsenal in the In-Game tab and hides only broad Full Swing velocity in the matching context", () => {
  const classified = [
   ["Pitch Type Average Velocity",81.123,"mph"], ["Pitch Type Max Velocity",84.456,"mph"], ["Pitch Type Velocity Readings",5,"count"],
   ["Pitch Type Average Spin",2001.234,"rpm"], ["Pitch Type Max Spin",2100.123,"rpm"], ["Pitch Type Spin Readings",3,"count"], ["Pitch Type Count",6,"count"],
@@ -127,7 +127,8 @@ it("prioritizes a full Fall arsenal in pitcher Overview and hides only broad Ful
  const performance=model(readings),original=structuredClone(performance);
  const html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete:fictionalAthlete("pitcher","P"),performance,blastReadings:readings}));
  const panels=html.split('role="tabpanel"');
- expect(panels[1]).toContain("Full Pitch Arsenal");expect(panels[1]).toContain("Unspecified Pitch");expect(panels[1]).toContain("81.1");expect(panels[1]).toContain("2100.1");
+ expect(panels[1]).not.toContain("Full Pitch Arsenal");
+ expect(panels[3]).toContain("Full Pitch Arsenal");expect(panels[3]).toContain("Unspecified Pitch");expect(panels[3]).toContain("81.1");expect(panels[3]).toContain("2100.1");
  expect(panels[1]).not.toContain('data-value="85"');expect(panels[3]).not.toContain('data-value="85"');
  expect(panels[3]).toContain("Pitch Mix");expect(panels[3]).not.toContain("No in-game results");
  expect(panels[4]).toContain('data-value="86"');expect(panels[4]).toContain('data-value="87"');

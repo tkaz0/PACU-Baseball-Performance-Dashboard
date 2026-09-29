@@ -24,6 +24,8 @@ import type { ReactNode } from "react";
 import { PacificLogo } from "@/components/pacific-brand";
 import { ProfileTabs, type ProfileTab } from "@/components/profile-tabs";
 import { PlayerOverview } from "@/components/player-overview";
+import { AdvancedGameCards } from "@/components/advanced-game-cards";
+import { gameOverviewMetrics } from "@/lib/game-overview";
 import { ClassifiedPitchResults } from "@/components/classified-pitch-results";
 import { fallArsenalPitches } from "@/lib/pitch-arsenal";
 import { ArrowDown, ArrowUp, ChevronDown } from "lucide-react";
@@ -134,7 +136,7 @@ export function PlayerPerformanceProfile({ athlete, performance, season, blastRe
   const latestBlast = layout.showHitting ? blastReadings?.flatMap(r => { const period=parseBlastSource(r.source); return period?[period]:[]; }).sort((a,b)=>b.end.localeCompare(a.end))[0] : undefined;
   const newerReport = latestBlast && latestBlast.end > (lastTested ?? "") ? latestBlast : null;
   const tabs: ProfileTab[] = [
-    { id: "overview", label: "Overview", content: <>{gameArsenal && <ClassifiedPitchResults pitches={arsenal} showChart={false}/>} {practiceArsenal && <ClassifiedPitchResults pitches={arsenal} context="practice" showChart={false}/>}<PlayerOverview teamAverages={teamAverages} twoWay={selectedSeason?.player_type?.trim().toLowerCase() === "two_way"} showMethods={!simplified} cards={[...cards, ...(bodyScoreCard ? [bodyScoreCard] : [])]} gameStats={overviewGameStats} gameComparisons={gameComparisons} />{coachFocus}{goals}{layout.showHitting&&<PracticeGameBridge performance={performance} blastReadings={blastReadings}/>}</> },
+    { id: "overview", label: "Overview", content: <><PlayerOverview teamAverages={teamAverages} twoWay={selectedSeason?.player_type?.trim().toLowerCase() === "two_way"} showMethods={!simplified} cards={[...cards, ...(bodyScoreCard ? [bodyScoreCard] : [])]} gameStats={overviewGameStats} gameComparisons={gameComparisons} />{coachFocus}{goals}{layout.showHitting&&<PracticeGameBridge performance={performance} blastReadings={blastReadings}/>}</> },
     { id: "physicality", label: "Physicality", content: <>
       {!layout.physicality.length && !layout.additionalBody.length && !bodyScore && <p className={presentation.emptyState}>No physicality measurements recorded yet.</p>}
       <MetricGroup id="body-measurements" title="Physicality" cards={layout.physicality} />
@@ -148,7 +150,7 @@ export function PlayerPerformanceProfile({ athlete, performance, season, blastRe
       <ProfileTrendChart series={profileTrends([...layout.physicality, ...layout.additionalBody, ...(bodyScoreCard ? [bodyScoreCard] : []), ...layout.speedAgility])} />
       {!simplified && physicalityDetails}
     </> },
-    { id: "in-game", label: "In-Game", content: <>{gamePitchResults}<SessionMeasurements teamAverages={teamAverages} performance={classifiedPerformance} season={selectedSeason} context="in_game" hasArsenal={gameArsenal} />{layout.showHitting && contactResults}{gameStats && <section aria-label="Cumulative game statistics" className="space-y-4 border-t border-[var(--line-subtle)] pt-6"><h2 className="m-0 text-xl font-bold">Cumulative Game Stats · Fall 2026</h2>{gameStats}</section>}</> },
+    { id: "in-game", label: "In-Game", content: <>{gamePitchResults}<SessionMeasurements teamAverages={teamAverages} performance={classifiedPerformance} season={selectedSeason} context="in_game" hasArsenal={gameArsenal} />{layout.showHitting && contactResults}<AdvancedGameCards metrics={gameOverviewMetrics(overviewGameStats,gameComparisons)}/>{gameStats && <section aria-label="Cumulative game statistics" className="space-y-4 border-t border-[var(--line-subtle)] pt-6"><h2 className="m-0 text-xl font-bold">Cumulative Game Stats · Fall 2026</h2>{gameStats}</section>}</> },
     { id: "practice", label: "Practice", content: <>{practiceResults}{layout.showHitting && hasBlast && <BlastPracticeReports teamAverages={teamAverages} readings={blastReadings!}/>}<SessionMeasurements teamAverages={teamAverages} performance={displayPerformance} season={selectedSeason} context="practice" hasBlast={hasBlast && layout.showHitting} hasArsenal={practiceArsenal} />{layout.showHitting && practiceContactResults}</> },
     { id: "progress", label: "Timeline", content: <><SessionTimeline readings={timelineReadings}/><SessionProgress blast={layout.showHitting ? blastProgress(blastReadings ?? []) : []} pitchingGame={pitchProgress(blastReadings ?? [],"in_game")} pitchingPractice={pitchProgress(blastReadings ?? [],"practice")} /></> },
   ];

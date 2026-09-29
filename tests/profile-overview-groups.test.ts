@@ -16,7 +16,7 @@ describe("source-separated profile comparison board", () => {
     expect(groups.map(g=>`${g.title}:${g.context}`)).toEqual(["Hitting:In-Game","Hitting:Practice"]);
     expect(groups.map(g=>g.cards[0].latest?.value)).toEqual([64.123,71.987]);
     const html=renderToStaticMarkup(createElement(PlayerOverview,{cards:performance.hitting}));
-    expect(html).toContain('aria-label="Team Comparison Board"');
+    expect(html).toContain('aria-label="Detailed team comparisons"');
     expect(html).toContain('aria-label="Hitting · In-Game percentiles"');
     expect(html).toContain('aria-label="Hitting · Practice percentiles"');
     expect(html).toContain("64.1 mph");expect(html).toContain("72.0 mph");
