@@ -5,10 +5,10 @@ import type { Measurement } from "@/lib/imports/engine";
 import { getPlayerPerformance, type PlayerPerformance } from "@/lib/player-performance";
 
 const code = "SYN-SWING-001";
-function report({ hash = "a", start = "2026-09-01", end = "2026-09-07", count = 10, attack = 4, vertical = -20, kind = "average", athleteCode = code }: {
-  hash?: string; start?: string; end?: string; count?: number; attack?: number; vertical?: number; kind?: BlastSummaryKind; athleteCode?: string;
+function report({ hash = "a", start = "2026-09-01", end = "2026-09-07", count = 10, attack = 4, vertical = -20, speed = 65, kind = "average", athleteCode = code }: {
+  hash?: string; start?: string; end?: string; count?: number; attack?: number; vertical?: number; speed?: number; kind?: BlastSummaryKind; athleteCode?: string;
 } = {}): Measurement[] {
-  return [["Blast Swing Count", count, "count"], ["Attack Angle", attack, "deg"], ["Vertical Bat Angle", vertical, "deg"]].map(([metric, value, unit], index) => ({
+  return [["Blast Swing Count", count, "count"], ["Attack Angle", attack, "deg"], ["Vertical Bat Angle", vertical, "deg"], [kind === "average" ? "Average Bat Speed" : "Peak Bat Speed (95th)", speed, "mph"]].map(([metric, value, unit], index) => ({
     id: `fictional-${hash}-${athleteCode}-${index}`, athlete_code: athleteCode, measured_at: end,
     source: blastSource(kind, start, end), metric: String(metric), value: Number(value), unit: String(unit),
     source_file: "fictional-swing-profile.csv", source_sheet: "CSV", source_row: 2, file_hash: hash.repeat(64),
@@ -45,25 +45,25 @@ describe("custom descriptive PAC swing bands", () => {
 
 describe("hitter Swing Profile measurement model", () => {
   it("uses unrounded swing-count-weighted Fall averages, preserving signed angles and inputs", () => {
-    const readings = [...report(), ...report({ hash: "b", start: "2026-09-08", end: "2026-09-14", count: 30, attack: 20, vertical: -40 }),
-      ...report({ hash: "c", start: "2026-09-08", end: "2026-09-14", count: 30, attack: 80, vertical: 70, kind: "p95" })];
+    const readings = [...report(), ...report({ hash: "b", start: "2026-09-08", end: "2026-09-14", count: 30, attack: 20, vertical: -40, speed: 85 }),
+      ...report({ hash: "c", start: "2026-09-08", end: "2026-09-14", count: 30, attack: 80, vertical: 70, speed: 99, kind: "p95" })];
     const cards = performance([body("Height", 180, "cm"), body("Weight", 85, "kg")]);
     const before = structuredClone({ readings, cards });
     const model = hitterSwingProfile(readings, cards);
-    expect(model).toMatchObject({ attackAngle: 16, verticalBatAngle: -35, path: { name: "Rising Driver" }, tilt: { label: "Mid-Tilt Barrel" }, summary: { totalSwings: 40, reportCount: 2 } });
+    expect(model).toMatchObject({ averageBatSpeed: 80, attackAngle: 16, verticalBatAngle: -35, path: { name: "Rising Driver" }, tilt: { label: "Mid-Tilt Barrel" }, summary: { totalSwings: 40, reportCount: 2 } });
     expect(model.summary?.metrics.find(metric => metric.key === "blast_attack_angle")?.peak).toBe(80);
     expect({ readings, cards }).toEqual(before);
   });
 
   it("does not replace missing Fall averages with a P95-only report or another device", () => {
     const readings = [...report({ kind: "p95" }), ...report({ hash: "b" }).map(reading => ({ ...reading, source: "Full Swing · Practice" }))];
-    expect(hitterSwingProfile(readings, performance())).toMatchObject({ attackAngle: null, verticalBatAngle: null, path: null, tilt: null, summary: { totalSwings: null } });
-    expect(hitterSwingProfile([], performance())).toMatchObject({ summary: null, attackAngle: null, verticalBatAngle: null, height: null, weight: null });
+    expect(hitterSwingProfile(readings, performance())).toMatchObject({ averageBatSpeed: null, attackAngle: null, verticalBatAngle: null, path: null, tilt: null, summary: { totalSwings: null } });
+    expect(hitterSwingProfile([], performance())).toMatchObject({ summary: null, averageBatSpeed: null, attackAngle: null, verticalBatAngle: null, height: null, weight: null });
   });
 
   it("withholds only an angle missing from a contributing Average report", () => {
     const readings = [...report(), ...report({ hash: "b", start: "2026-09-08", end: "2026-09-14", attack: 20, vertical: -40 }).filter(reading => reading.metric !== "Attack Angle")];
-    expect(hitterSwingProfile(readings, performance())).toMatchObject({ attackAngle: null, path: null, verticalBatAngle: -30, tilt: { key: "mid" }, summary: { totalSwings: 20, issues: [] } });
+    expect(hitterSwingProfile(readings, performance())).toMatchObject({ averageBatSpeed: 65, attackAngle: null, path: null, verticalBatAngle: -30, tilt: { key: "mid" }, summary: { totalSwings: 20, issues: [] } });
   });
 
   it.each([
@@ -75,13 +75,13 @@ describe("hitter Swing Profile measurement model", () => {
   ])("withholds angles and custom labels for $issue", ({ issue, readings }) => {
     const model = hitterSwingProfile(readings, performance());
     expect(model.summary?.issues).toContain(issue);
-    expect(model).toMatchObject({ attackAngle: null, verticalBatAngle: null, path: null, tilt: null });
+    expect(model).toMatchObject({ averageBatSpeed: null, attackAngle: null, verticalBatAngle: null, path: null, tilt: null });
   });
 
   it("withholds impossible display angles while preserving their recorded summary values", () => {
     const readings = report({ attack: 91, vertical: -91 });
     const model = hitterSwingProfile(readings, performance());
-    expect(model).toMatchObject({ attackAngle: null, verticalBatAngle: null, path: null, tilt: null });
+    expect(model).toMatchObject({ averageBatSpeed: 65, attackAngle: null, verticalBatAngle: null, path: null, tilt: null });
     expect(model.summary?.metrics.find(metric => metric.key === "blast_attack_angle")?.average).toBe(91);
     expect(model.summary?.metrics.find(metric => metric.key === "blast_vertical_bat_angle")?.average).toBe(-91);
     expect(readings.find(reading => reading.metric === "Attack Angle")?.value).toBe(91);
@@ -95,6 +95,25 @@ describe("hitter Swing Profile measurement model", () => {
   it("deduplicates identical observations and retains full angle precision", () => {
     const readings = report({ attack: 9.9999, vertical: -20.0001 });
     expect(hitterSwingProfile([...readings, ...readings], performance())).toMatchObject({ attackAngle: 9.9999, verticalBatAngle: -20.0001, path: { key: "flat" }, tilt: { key: "mid" }, summary: { totalSwings: 10 } });
+  });
+
+  it("retains a verified bat-speed average independently of missing angle geometry", () => {
+    const readings = report({ speed: 65.123456789 }).filter(reading => !["Attack Angle", "Vertical Bat Angle"].includes(reading.metric));
+    expect(hitterSwingProfile(readings, performance())).toMatchObject({ averageBatSpeed: 65.123456789, attackAngle: null, verticalBatAngle: null, path: null, tilt: null });
+  });
+
+  it.each([-1, NaN, Infinity, -Infinity])("withholds invalid bat-speed averages %s", speed => {
+    expect(hitterSwingProfile(report({ speed }), performance()).averageBatSpeed).toBeNull();
+  });
+
+  it("preserves zero bat speed and withholds incomplete cumulative speed instead of using P95", () => {
+    expect(hitterSwingProfile(report({ speed: 0 }), performance()).averageBatSpeed).toBe(0);
+    const readings = [...report(), ...report({ hash: "b", start: "2026-09-08", end: "2026-09-14" }).filter(reading => reading.metric !== "Average Bat Speed"),
+      ...report({ hash: "c", start: "2026-09-08", end: "2026-09-14", kind: "p95", speed: 98 })];
+    const model = hitterSwingProfile(readings, performance());
+    expect(model.averageBatSpeed).toBeNull();
+    expect(model.attackAngle).toBe(4);
+    expect(model.summary?.metrics.find(metric => metric.key === "avg_bat_speed")).toMatchObject({ average: null, peak: 98, missingReports: 1 });
   });
 
   it.each([
@@ -133,7 +152,7 @@ describe("hitter Swing Profile measurement model", () => {
   it("never combines another athlete's canonical body cards with a Blast report", () => {
     const otherCode = "SYN-SWING-002";
     const cards = performance([body("Height", 75, "in", "2026-09-18", otherCode), body("Weight", 210, "lb", "2026-09-18", otherCode)], otherCode);
-    expect(hitterSwingProfile(report(), cards)).toMatchObject({ attackAngle: null, verticalBatAngle: null, path: null, tilt: null, height: null, weight: null });
+    expect(hitterSwingProfile(report(), cards)).toMatchObject({ averageBatSpeed: null, attackAngle: null, verticalBatAngle: null, path: null, tilt: null, height: null, weight: null });
   });
 
   it("rejects mixed-athlete body cards even when no Blast report is available", () => {

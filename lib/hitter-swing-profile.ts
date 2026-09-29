@@ -17,6 +17,7 @@ export type BarrelTilt = {
 export type SwingBodyMeasurement<Unit extends "in" | "lb"> = { value: number; unit: Unit; date: string };
 export type HitterSwingProfile = {
   summary: BlastFallSummary | null;
+  averageBatSpeed: number | null;
   attackAngle: number | null;
   verticalBatAngle: number | null;
   path: AttackPath | null;
@@ -66,16 +67,18 @@ export function hitterSwingProfile(readings: readonly Measurement[], performance
   // No filtering may turn a mixed-athlete input into an apparently valid rollup.
   const sameAthlete = athleteCodes.size <= 1 && !athleteCodes.has("");
   const average = (key: string) => sameAthlete && summary && !summary.issues.length
-    ? geometricAngle(summary.metrics.find(metric => metric.key === key)?.average ?? null)
+    ? summary.metrics.find(metric => metric.key === key)?.average ?? null
     : null;
-  const attackAngle = average("blast_attack_angle");
-  const verticalBatAngle = average("blast_vertical_bat_angle");
+  const batSpeed = average("avg_bat_speed");
+  const averageBatSpeed = batSpeed !== null && Number.isFinite(batSpeed) && batSpeed >= 0 ? batSpeed : null;
+  const attackAngle = geometricAngle(average("blast_attack_angle"));
+  const verticalBatAngle = geometricAngle(average("blast_vertical_bat_angle"));
   const heightReading = sameAthlete ? positiveReading(performance.body.find(card => card.metric.key === "height")?.latest) : null;
   const weightReading = sameAthlete ? positiveReading(performance.body.find(card => card.metric.key === "weight")?.latest) : null;
   const heightValue = heightReading?.unit === "in" ? heightReading.value : heightReading?.unit === "cm" ? heightReading.value / 2.54 : null;
   const weightValue = weightReading?.unit === "lb" ? weightReading.value : weightReading?.unit === "kg" ? weightReading.value * 2.20462262185 : weightReading?.unit === "st" ? weightReading.value * 14 : null;
   return {
-    summary, attackAngle, verticalBatAngle,
+    summary, averageBatSpeed, attackAngle, verticalBatAngle,
     path: attackPath(attackAngle), tilt: barrelTilt(verticalBatAngle),
     height: heightReading && heightValue !== null && Number.isFinite(heightValue) && heightValue > 0 ? { value: heightValue, unit: "in", date: heightReading.measuredAt } : null,
     weight: weightReading && weightValue !== null && Number.isFinite(weightValue) && weightValue > 0 ? { value: weightValue, unit: "lb", date: weightReading.measuredAt } : null,

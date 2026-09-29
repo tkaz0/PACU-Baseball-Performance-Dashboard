@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { blastSource, type BlastSummaryKind } from "@/lib/blast-metrics";
-import { hitterStudyMatches, HITTER_STUDY_WINDOWS } from "@/lib/hitter-study-matches";
-import type { HitterStudyReference } from "@/lib/hitter-study-references";
+import { compatibleBattingSide, hitterStudyMatches, HITTER_STUDY_WINDOWS, proBatSpeedPercentile } from "@/lib/hitter-study-matches";
+import { HITTER_STUDY_REFERENCES, type HitterStudyReference } from "@/lib/hitter-study-references";
+import { FEATURED_HITTER_STUDY_IDS } from "@/lib/hitter-study-featured";
 import { attackPath, hitterSwingProfile } from "@/lib/hitter-swing-profile";
 import type { Measurement } from "@/lib/imports/engine";
 import { getPlayerPerformance } from "@/lib/player-performance";
 
 const reference = (id: number, attackAngle = 12, heightInches = 72, weightLb = 190): HitterStudyReference =>
-  ({ id, name: `Fictional Study Hitter ${id}`, attackAngle, averageBatSpeed: null, heightInches, weightLb, competitiveSwings: 600 });
+  ({ id, name: `Fictional Study Hitter ${id}`, bats: "R", attackAngle, averageBatSpeed: null, heightInches, weightLb, competitiveSwings: 600 });
 
 function profile(angle = 12, size: { height?: number; weight?: number } = {}, kind: BlastSummaryKind = "average") {
   const source = blastSource(kind, "2026-09-01", "2026-09-07");
@@ -169,7 +170,164 @@ describe("descriptive professional hitter study examples", () => {
     for (const match of result.matches) {
       expect(attackPath(match.attackAngle)?.key).toBe("rising");
       expect(Math.abs(match.attackAngle - 12)).toBeLessThanOrEqual(5);
-      expect(Object.keys(match).sort()).toEqual(["attackAngle", "averageBatSpeed", "competitiveSwings", "heightInches", "id", "name", "weightLb"]);
+      expect(Object.keys(match).sort()).toEqual(["attackAngle", "averageBatSpeed", "bats", "competitiveSwings", "heightInches", "id", "name", "weightLb"]);
     }
+  });
+});
+
+describe("public MLB bat-speed percentiles", () => {
+  const speeds = (values: (number | null)[]) => values.map((averageBatSpeed, index) => ({ ...reference(index + 1), averageBatSpeed }));
+
+  it("uses one hitter per value, shared tied midranks, and inclusive endpoints", () => {
+    const corpus = speeds([60, 70, 70, 80, 90, 100]);
+    expect(proBatSpeedPercentile(corpus[0], corpus)).toEqual({ value: 0, sampleSize: 6 });
+    expect(proBatSpeedPercentile(corpus[1], corpus)).toEqual({ value: 30, sampleSize: 6 });
+    expect(proBatSpeedPercentile(corpus[2], corpus)).toEqual({ value: 30, sampleSize: 6 });
+    expect(proBatSpeedPercentile(corpus[5], corpus)).toEqual({ value: 100, sampleSize: 6 });
+  });
+
+  it("requires at least five valid measured hitters and gives an all-tied cohort its midpoint", () => {
+    const corpus = speeds([70, 70, 70, 70, 70]);
+    expect(proBatSpeedPercentile(corpus[0], corpus.slice(0, 4))).toBeNull();
+    expect(proBatSpeedPercentile(corpus[0], corpus)).toEqual({ value: 50, sampleSize: 5 });
+  });
+
+  it("uses the complete supplied cohort across path, size and side instead of the suggested three", () => {
+    const corpus = speeds([50, 60, 70, 80, 90, 100]).map((item, index) => ({ ...item,
+      attackAngle: index < 3 ? 5 : 12, heightInches: index < 3 ? 80 : 72, bats: index < 3 ? "L" as const : "R" as const,
+    }));
+    const selected = hitterStudyMatches(profile(), corpus, { bats: "R" }).matches;
+    expect(selected).toHaveLength(3);
+    expect(proBatSpeedPercentile(corpus[3], corpus)).toEqual({ value: 60, sampleSize: 6 });
+    expect(proBatSpeedPercentile(corpus[3], selected)).toBeNull();
+  });
+
+  it("excludes all duplicate IDs and retains order-independent percentiles", () => {
+    const corpus = speeds([60, 70, 80, 90, 100, 110]);
+    const duplicated = [...corpus, { ...corpus[0], averageBatSpeed: 90 }];
+    expect(proBatSpeedPercentile(corpus[0], duplicated)).toBeNull();
+    expect(proBatSpeedPercentile(corpus[1], duplicated)).toEqual({ value: 0, sampleSize: 5 });
+    expect(proBatSpeedPercentile(corpus[5], [...duplicated].reverse())).toEqual({ value: 100, sampleSize: 5 });
+  });
+
+  it("keeps recorded zero but excludes missing, invalid and non-member values", () => {
+    const corpus = speeds([0, 60, 70, 80, 90, null, NaN, Infinity, -1]);
+    expect(proBatSpeedPercentile(corpus[0], corpus)).toEqual({ value: 0, sampleSize: 5 });
+    for (const reference of corpus.slice(5)) expect(proBatSpeedPercentile(reference, corpus)).toBeNull();
+    expect(proBatSpeedPercentile({ ...corpus[2], averageBatSpeed: 71 }, corpus)).toBeNull();
+    expect(proBatSpeedPercentile({ ...corpus[2], id: 99999 }, corpus)).toBeNull();
+  });
+
+  it("uses the source-backed default cohort without changing the records", () => {
+    const target = HITTER_STUDY_REFERENCES.find(item => item.averageBatSpeed !== null)!;
+    const before = structuredClone(HITTER_STUDY_REFERENCES);
+    const value = proBatSpeedPercentile(target);
+    expect(value?.sampleSize).toBe(226);
+    expect(value?.value).toBeGreaterThanOrEqual(0);
+    expect(value?.value).toBeLessThanOrEqual(100);
+    expect(HITTER_STUDY_REFERENCES).toEqual(before);
+  });
+});
+
+describe("handedness and recognizable study preferences", () => {
+  const featuredIds = FEATURED_HITTER_STUDY_IDS.slice(0, 4);
+  const sideReference = (id: number, bats: HitterStudyReference["bats"], angle = 12, height = 72, weight = 190) => ({ ...reference(id, angle, height, weight), bats });
+
+  it.each([
+    ["R", "R", true], ["R", "L", false], ["R", "S", true],
+    ["L", "L", true], ["L", "R", false], ["L", "S", true],
+    [" r ", "R", true], ["S", "L", true], ["S", "R", true],
+    [null, "L", true], [undefined, "R", true], ["unknown", "L", true],
+  ] as const)("handles own %s and professional %s side without inventing a missing side", (own, professional, compatible) => {
+    expect(compatibleBattingSide(own, professional)).toBe(compatible);
+  });
+
+  it("prefers familiar eligible names while retaining the same path and angle window", () => {
+    const corpus = [reference(1, 12), reference(featuredIds[0], 13), reference(featuredIds[1], 13.5), reference(featuredIds[2], 14), reference(featuredIds[3], 18)];
+    expect(ids(hitterStudyMatches(profile(), corpus, { bats: "R" }))).toEqual(featuredIds.slice(0, 3));
+    expect(ids(hitterStudyMatches(profile(), corpus))).toEqual([1, featuredIds[0], featuredIds[1]]);
+  });
+
+  it("uses same-side or switch hitters when three are available and opposite candidates lack an exceptional basis", () => {
+    const corpus = [sideReference(featuredIds[0], "R", 14), sideReference(featuredIds[1], "R", 14.5), sideReference(featuredIds[2], "S", 15), sideReference(featuredIds[3], "L", 12)];
+    const matches = hitterStudyMatches(profile(), corpus, { bats: "R" }).matches;
+    expect(matches).toHaveLength(3);
+    expect(matches.every(item => item.bats === "R" || item.bats === "S")).toBe(true);
+  });
+
+  it("allows opposite-side references to fill a short compatible list", () => {
+    const corpus = [sideReference(featuredIds[0], "R"), sideReference(featuredIds[1], "L"), sideReference(featuredIds[2], "L")];
+    const result = hitterStudyMatches(profile(), corpus, { bats: "R" });
+    expect(result.matches).toHaveLength(3);
+    expect(result.matches[0].bats).toBe("R");
+    expect(result.matches.filter(item => item.bats === "L")).toHaveLength(2);
+  });
+
+  it("lets an exceptionally close opposite-side size example override the usual preference", () => {
+    const corpus = [sideReference(featuredIds[0], "L"), ...[1, 2, 3].map(id => sideReference(id, "R", 17, 75, 220))];
+    const result = hitterStudyMatches(profile(12, { height: 72, weight: 190 }), corpus, { bats: "R" });
+    expect(result.matches[0].id).toBe(featuredIds[0]);
+    expect(result.matches[0].bats).toBe("L");
+    expect(result.matches).toHaveLength(3);
+  });
+
+  it.each([
+    { angle: 14, height: 73, weight: 205, eligible: true },
+    { angle: 14.00001, height: 73, weight: 205, eligible: false },
+    { angle: 14, height: 73.00001, weight: 205, eligible: false },
+    { angle: 14, height: 73, weight: 205.00001, eligible: false },
+  ])("honors exceptional geometry boundaries $angle/$height/$weight", ({ angle, height, weight, eligible }) => {
+    const corpus = [sideReference(featuredIds[0], "L", angle, height, weight), ...[1, 2, 3].map(id => sideReference(id, "R", 17, 75, 220))];
+    const result = hitterStudyMatches(profile(12, { height: 72, weight: 190 }), corpus, { bats: "R" });
+    expect(ids(result).includes(featuredIds[0])).toBe(eligible);
+  });
+
+  it("uses relative bat-speed rank rather than raw speed to admit an exceptional opposite-side example", () => {
+    const corpus = [
+      { ...sideReference(featuredIds[0], "L"), averageBatSpeed: 30 },
+      { ...sideReference(1, "R", 17), averageBatSpeed: 0 },
+      { ...sideReference(2, "R", 17), averageBatSpeed: 100 },
+      { ...sideReference(3, "R", 17), averageBatSpeed: 40 },
+      { ...sideReference(4, "L", 5), averageBatSpeed: 20 },
+    ];
+    expect(proBatSpeedPercentile(corpus[0], corpus)).toEqual({ value: 50, sampleSize: 5 });
+    expect(hitterStudyMatches(profile(), corpus, { bats: "R", batSpeedPercentile: 50 }).matches[0].id).toBe(featuredIds[0]);
+    expect(ids(hitterStudyMatches(profile(), corpus, { bats: "R" }))).not.toContain(featuredIds[0]);
+  });
+
+  it("preserves the inclusive 15-point exceptional percentile boundary", () => {
+    const corpus = [
+      { ...sideReference(featuredIds[0], "L"), averageBatSpeed: 30 },
+      { ...sideReference(1, "R", 17, 75, 220), averageBatSpeed: 10 },
+      { ...sideReference(2, "R", 17, 75, 220), averageBatSpeed: 50 },
+      { ...sideReference(3, "R", 17, 75, 220), averageBatSpeed: 60 },
+      { ...sideReference(4, "L", 5), averageBatSpeed: 20 },
+      { ...sideReference(5, "L", 5), averageBatSpeed: 40 },
+    ];
+    const model = profile(12, { height: 72, weight: 190 });
+    expect(proBatSpeedPercentile(corpus[0], corpus)).toEqual({ value: 40, sampleSize: 6 });
+    expect(ids(hitterStudyMatches(model, corpus, { bats: "R", batSpeedPercentile: 55 }))).toContain(featuredIds[0]);
+    expect(ids(hitterStudyMatches(model, corpus, { bats: "R", batSpeedPercentile: 55.00001 }))).not.toContain(featuredIds[0]);
+  });
+
+  it("lets an exceptionally close unfeatured player override recognizable names", () => {
+    const corpus = [reference(1), ...featuredIds.slice(0, 3).map(id => reference(id, 15, 74, 210))];
+    expect(hitterStudyMatches(profile(12, { height: 72, weight: 190 }), corpus, { bats: "R" }).matches[0].id).toBe(1);
+  });
+
+  it.each([NaN, Infinity, -1, 100.00001])("ignores invalid personal percentile preference %s", batSpeedPercentile => {
+    const corpus = [reference(1), reference(featuredIds[0], 13), reference(featuredIds[1], 14)];
+    expect(hitterStudyMatches(profile(), corpus, { bats: "R", batSpeedPercentile })).toEqual(hitterStudyMatches(profile(), corpus, { bats: "R", batSpeedPercentile: null }));
+  });
+
+  it("keeps preference results deterministic and input records unchanged", () => {
+    const model = profile(12, { height: 72, weight: 190 });
+    const corpus = [sideReference(featuredIds[0], "L"), sideReference(featuredIds[1], "R", 14), sideReference(featuredIds[2], "S", 13), sideReference(1, "R", 17, 75, 220), sideReference(2, "R", 17, 75, 220)];
+    const preferences = { bats: "R", batSpeedPercentile: 50 };
+    const before = structuredClone({ model, corpus, preferences });
+    const result = hitterStudyMatches(model, corpus, preferences);
+    expect(hitterStudyMatches(model, [...corpus].reverse(), preferences)).toEqual(result);
+    expect({ model, corpus, preferences }).toEqual(before);
+    expect(Object.keys(result).sort()).toEqual(["basis", "matches", "sizeFallback"]);
   });
 });

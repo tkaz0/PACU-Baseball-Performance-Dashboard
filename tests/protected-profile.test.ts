@@ -4,8 +4,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Role, RosterAthlete } from "@/lib/types";
 import type { Measurement } from "@/lib/imports/engine";
 
-const fake = vi.hoisted(() => ({ access: vi.fn(), from: vi.fn(), select: vi.fn(), eq: vi.fn(), single: vi.fn(), rpc: vi.fn(), load: vi.fn(), contacts: vi.fn(), charts: vi.fn(), games: vi.fn(), comparisons: vi.fn(), logs: vi.fn(), team: vi.fn(), movement: vi.fn(), goals: vi.fn() }));
+const fake = vi.hoisted(() => ({ access: vi.fn(), from: vi.fn(), select: vi.fn(), eq: vi.fn(), single: vi.fn(), rpc: vi.fn(), load: vi.fn(), contacts: vi.fn(), charts: vi.fn(), games: vi.fn(), comparisons: vi.fn(), logs: vi.fn(), team: vi.fn(), speed: vi.fn(), movement: vi.fn(), goals: vi.fn() }));
 vi.mock("server-only", () => ({}));
+vi.mock("@/lib/blast-speed-percentile-server", () => ({ loadBlastBatSpeedPercentile: fake.speed }));
 vi.mock("@/lib/player-goals-server", () => ({ loadPlayerGoals: fake.goals }));
 vi.mock("@/lib/movement-server", () => ({ loadMovementScreening: fake.movement }));
 vi.mock("@/lib/render-access", () => ({ requireRenderAccess: fake.access }));
@@ -37,7 +38,7 @@ function access(roles: Role[] = ["player"], athleteId: string | null = ownId, pr
     user: { id: "fictional-user", email: "private-login@example.com" }, supabase: { from: fake.from, rpc: fake.rpc } };
 }
 beforeEach(() => {
-  vi.resetAllMocks(); fake.goals.mockResolvedValue({goals:[],choices:[]}); fake.movement.mockResolvedValue(null); fake.comparisons.mockResolvedValue([]); fake.team.mockResolvedValue([]);
+  vi.resetAllMocks(); fake.speed.mockResolvedValue(null); fake.goals.mockResolvedValue({goals:[],choices:[]}); fake.movement.mockResolvedValue(null); fake.comparisons.mockResolvedValue([]); fake.team.mockResolvedValue([]);
   const chain = { select: fake.select, eq: fake.eq, maybeSingle: fake.single };
   fake.from.mockReturnValue(chain); fake.select.mockReturnValue(chain); fake.eq.mockReturnValue(chain);
   fake.single.mockResolvedValue({ data: athlete, error: null });
@@ -84,6 +85,7 @@ describe("protected profile route authorization and integration", () => {
     expect(fake.games).toHaveBeenCalledExactlyOnceWith(trusted, athlete.id);
     expect(fake.logs).not.toHaveBeenCalled();
     expect(fake.team).toHaveBeenCalledExactlyOnceWith(trusted);
+    expect(fake.speed).toHaveBeenCalledExactlyOnceWith(trusted,athlete.id);
     expect(fake.movement).toHaveBeenCalledExactlyOnceWith(trusted,athlete.id,athlete.athlete_code);
     expect(fake.rpc).toHaveBeenCalledExactlyOnceWith("athlete_focus_items",{p_athlete_id:athlete.id});
     expect(html).toContain("Game Stats");

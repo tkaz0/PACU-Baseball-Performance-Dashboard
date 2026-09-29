@@ -126,7 +126,7 @@ describe("Practice swing blueprint", () => {
   it("links the actual selected public references and source without fabricated similarity scores", () => {
     const readings = report();
     const model = hitterSwingProfile(readings, performance(readings));
-    const study = hitterStudyMatches(model);
+    const study = hitterStudyMatches(model,undefined,{batSpeedPercentile:null});
     const html = renderBlueprint(readings);
     const playerLinks = [...html.matchAll(/<a\b[^>]*href="https:\/\/www\.mlb\.com\/player\/(\d+)"[^>]*>/g)];
     expect(playerLinks.map(match => Number(match[1]))).toEqual(study.matches.map(reference => reference.id));
@@ -143,25 +143,31 @@ describe("Practice swing blueprint", () => {
     expect(html).toContain(HITTER_STUDY_REFERENCE_SOURCE.leaderboardUrl.replaceAll("&", "&amp;"));
     expect(html).toContain(HITTER_STUDY_REFERENCE_SOURCE.sampleDefinitionUrl);
     expect(html).toMatch(/different systems|different.*swing samples/i);
-    expect(html).not.toMatch(/data-(?:similarity|score)=|role="meter"|\d+(?:\.\d+)?%\s*(?:match|similar)/i);
+    expect(html).not.toMatch(/data-(?:similarity|score)=|\d+(?:\.\d+)?%\s*(?:match|similar)/i);
     expect(html).not.toContain("fictional-blueprint.csv");
     expect(html).not.toContain("a".repeat(64));
   });
 
-  it("shows average bat speed to one decimal without substituting weekly P95", () => {
-    const readings = [...report(), ...report({ kind: "p95", hash: "b" }).map(reading => reading.metric === "Peak Bat Speed (95th)" ? { ...reading, value: 98.765 } : reading)];
-    const html = renderBlueprint(readings);
-    const references = hitterStudyMatches(hitterSwingProfile(readings, performance(readings))).matches;
-    expect(html).toContain("Average Bat Speed");
-    expect((html.match(/Your Practice <strong>65\.3<\/strong>/g) ?? []).length).toBe(references.length);
-    expect(html).not.toContain("98.8");
-    expect(html).not.toContain("65.25");
-    for (const reference of references) {
-      expect(html).toContain(`MLB <strong>${reference.averageBatSpeed?.toFixed(1) ?? "—"}</strong>`);
-    }
-    expect(html).toMatch(/bat speed is extra context|does not select or rank/i);
-    expect(html).toMatch(/P95 values are never compared with MLB means/i);
+  it("uses own-environment percentiles and keeps raw practice speed separate from pro mph", () => {
+    const readings = [...report(), ...report({kind:"p95",hash:"b"}).map(row=>row.metric==="Peak Bat Speed (95th)"?{...row,value:98.765}:row)];
+    const reference={athleteId:"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",observedValue:65.25,percentile:75,sampleSize:9,swingCount:25,reportCount:1,firstDate:"2026-09-01",lastDate:"2026-09-07"};
+    const html=renderToStaticMarkup(createElement(HitterSwingBlueprint,{readings,performance:performance(readings),batSpeedReference:reference,bats:"R"}));
+    expect(html).toContain("65.3 mph"); expect(html).not.toContain("98.8"); expect(html).not.toContain("65.25");
+    expect(html).toContain("75th"); expect(html).toContain("9 Pacific hitters"); expect(html).toContain("226 MLB hitters");
+    expect(html).toContain('aria-label="Your Blast bat speed Pacific percentile"');
+    expect(html).toMatch(/aria-label="[^"]+ bat speed MLB percentile"/);
+    expect(html).toContain("not equal mph"); expect(html).not.toContain("Their Average Bat Speed");
+    expect(html).toContain("Weekly P95 reports are never used");
   });
+  it("withholds Pacific percentiles when the aggregate describes different reports",()=>{
+    const readings=report();
+    const valid={athleteId:"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",observedValue:65.25,percentile:75,sampleSize:9,swingCount:25,reportCount:1,firstDate:"2026-09-01",lastDate:"2026-09-07"};
+    for(const patch of [{observedValue:65.4},{swingCount:26},{reportCount:2},{firstDate:"2026-09-02"},{lastDate:"2026-09-08"},{sampleSize:4,percentile:null}]){
+      const html=renderToStaticMarkup(createElement(HitterSwingBlueprint,{readings,performance:performance(readings),batSpeedReference:{...valid,...patch}}));
+      expect(html).not.toContain('aria-label="Your Blast bat speed Pacific percentile"');
+    }
+  });
+
 });
 
 describe("profile integration and hitter role boundaries", () => {
