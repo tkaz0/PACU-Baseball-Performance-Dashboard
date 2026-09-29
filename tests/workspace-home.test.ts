@@ -57,6 +57,7 @@ describe("workspace navigation and preview notices", () => {
     const html = renderToStaticMarkup(createElement(Sidebar, { roles: [role], athleteId }));
     expect(html).toContain('href="/overview"'); expect(html).toContain(">Home<");
     expect(html).toContain('href="/game-stats"'); expect(html).toContain('href="/leaderboards"');
+    expect(html).toContain('href="/swing-design"');
     expect(html).toContain('href="/" class="sidebar-brand-link"');
     expect(html.includes('href="/roster"')).toBe(role !== "player");
     expect(html.includes('href="/imports"')).toBe(role !== "player");
@@ -78,6 +79,17 @@ describe("workspace navigation and preview notices", () => {
   it("keeps Player view import navigation absent", () => {
     const html = renderToStaticMarkup(createElement(Sidebar, { roles: ["player"], athleteId, isPreview: true }));
     expect(html).not.toContain('href="/imports"'); expect(html).not.toContain('href="/testing/coverage"'); expect(html).not.toContain('href="/admin/access"');
+  });
+  it.each([false, true])("keeps Swing Design own-player navigation in Player View (preview=%s)", isPreview => {
+    const linked = renderToStaticMarkup(createElement(Sidebar, { roles: ["player"], athleteId, isPreview }));
+    expect(linked).toContain('href="/swing-design"');
+    expect(linked).not.toContain('href="/roster"');
+    const unlinked = renderToStaticMarkup(createElement(Sidebar, { roles: ["player"], athleteId: null, isPreview }));
+    expect(unlinked).not.toContain('href="/swing-design"');
+  });
+  it.each(["admin", "coach"] as Role[])("keeps Swing Design available to %s without a player link", role => {
+    const html = renderToStaticMarkup(createElement(Sidebar, { roles: [role], athleteId: null, isPreview: role === "coach" }));
+    expect(html).toContain('href="/swing-design"');
   });
   it("only labels an actual preview as read-only", () => {
     expect(renderToStaticMarkup(createElement(AccessPreviewNotice, { status: "read-only", isPreview: false }))).toBe("");

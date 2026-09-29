@@ -176,25 +176,27 @@ describe("profile integration and hitter role boundaries", () => {
     { playerType: "two_way", primaryPosition: "P", visible: true },
     { playerType: "pitcher", primaryPosition: "P", visible: false },
     { playerType: null, primaryPosition: "P", visible: false },
-  ])("keeps the blueprint in Practice for $playerType/$primaryPosition", ({ playerType, primaryPosition, visible }) => {
+  ])("keeps only a Swing Design shortcut in Practice for $playerType/$primaryPosition", ({ playerType, primaryPosition, visible }) => {
     const readings = report();
-    const html = renderToStaticMarkup(createElement(PlayerPerformanceProfile, { athlete: athlete(playerType, primaryPosition), performance: performance(readings), blastReadings: readings, fictional: true }));
+    const html = renderToStaticMarkup(createElement(PlayerPerformanceProfile, { athlete: athlete(playerType, primaryPosition), performance: performance(readings), blastReadings: readings, swingDesignHref: "/swing-design?athlete=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" }));
     const panels = html.split('role="tabpanel"').slice(1);
     expect(panels).toHaveLength(5);
     for (const panel of panels) {
       const isPractice = /id="[^"]*-panel-practice"/.test(panel);
-      expect(panel.includes('data-testid="hitter-swing-blueprint"')).toBe(visible && isPractice);
+      expect(panel.includes('href="/swing-design?athlete=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"')).toBe(visible && isPractice);
+      expect(panel).not.toContain('data-testid="hitter-swing-blueprint"');
     }
-    expect((html.match(/data-testid="hitter-swing-blueprint"/g) ?? []).length).toBe(visible ? 1 : 0);
+    expect((html.match(/href="\/swing-design\?/g) ?? []).length).toBe(visible ? 1 : 0);
   });
 
-  it("retains the blueprint comparison guide in the simplified player presentation", () => {
+  it("keeps local previews free of shared player links while retaining Blast summary cards", () => {
     const readings = report();
     const html = renderToStaticMarkup(createElement(PlayerPerformanceProfile, { athlete: athlete(), performance: performance(readings), blastReadings: readings, simplified: true, fictional: true }));
     const practice = html.split('role="tabpanel"').find(panel => /id="[^"]*-panel-practice"/.test(panel))!;
-    expect(practice).toContain('data-testid="hitter-swing-blueprint"');
-    expect(practice).toMatch(/<details[\s\S]*<summary[\s\S]*Comparison Guide/);
-    expect(practice).toMatch(/custom.*search rules|custom.*descriptions/i);
+    expect(practice).not.toContain('data-testid="hitter-swing-blueprint"');
+    expect(practice).not.toContain('href="/swing-design');
+    expect(practice).toContain("Attack Angle");
+    expect(practice).toContain("Vertical Bat Angle");
     expect(html).not.toContain('data-testid="player-performance-methods"');
     expect(html).not.toContain("fictional.blueprint@example.com");
   });

@@ -4,8 +4,7 @@ import { fullSwingFileLabel } from "@/lib/full-swing-file-label";
 import { HittingTeamAverageLine } from "@/components/hitting-team-average";
 import { hittingTeamAverage, type HittingTeamAverage } from "@/lib/hitting-team-averages";
 import { BlastPracticeReports } from "@/components/blast-practice-reports";
-import { HitterSwingBlueprint } from "@/components/hitter-swing-blueprint";
-import type { BlastBatSpeedPercentile } from "@/lib/blast-speed-percentile";
+import Link from "next/link";
 import type { Measurement } from "@/lib/imports/engine";
 import { profileMetricLabel } from "@/lib/profile-metric-label";
 import { parseBlastSource, blastPeriodLabel, formatBlastValue } from "@/lib/blast-metrics";
@@ -28,14 +27,14 @@ import { ProfileTabs, type ProfileTab } from "@/components/profile-tabs";
 import { PlayerOverview } from "@/components/player-overview";
 import { ClassifiedPitchResults } from "@/components/classified-pitch-results";
 import { fallArsenalPitches } from "@/lib/pitch-arsenal";
-import { ArrowDown, ArrowUp, ChevronDown } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpRight, ChevronDown, DraftingCompass } from "lucide-react";
 import { athleteName, display, type AthleteSeason, type RosterAthlete } from "@/lib/types";
 import { getPlayerProfileLayout, getSessionPerformance, profileShowsPitching, withoutUnclassifiedPitchVelocity, withoutWeeklyBlastCards } from "@/lib/player-profile-layout";
 import { formatHeight, formatMetricNumber } from "@/lib/measurement-display";
 import { isTimedMetric, type getPlayerPerformance, type PlayerMetricCard, type PlayerMetricReading } from "@/lib/player-performance";
 
 export type PlayerPerformanceProfileProps = {
-  batSpeedReference?: BlastBatSpeedPercentile|null;
+  swingDesignHref?: string;
   athlete: RosterAthlete; performance: ReturnType<typeof getPlayerPerformance>; season?: AthleteSeason | null;
   overviewGameStats?: SharedGameStat[]; gameComparisons?: GameComparison[];
   teamAverages?: readonly HittingTeamAverage[]; blastReadings?: readonly Measurement[]; timelineReadings?: readonly Measurement[]; pitchResults?: ReactNode; practicePitchResults?: ReactNode; contactResults?: ReactNode; practiceContactResults?: ReactNode; coachFocus?:ReactNode; goals?:ReactNode; simplified?: boolean; fictional?: boolean; action?: ReactNode; muscleBalance?: ReactNode; movementScreening?: ReactNode; physicalityDetails?: ReactNode; history?: ReactNode; gameStats?: ReactNode;
@@ -113,7 +112,7 @@ function SessionMeasurements({ performance, season, context, hasBlast=false, has
     <ProfileTrendChart series={profileTrends([...hitting, ...throwing])} />
   </section>;
 }
-export function PlayerPerformanceProfile({ athlete, performance, season, blastReadings, batSpeedReference, timelineReadings=[], teamAverages=[], pitchResults, practicePitchResults, contactResults, practiceContactResults, coachFocus, goals, fictional = false, simplified = false, action, muscleBalance, movementScreening, physicalityDetails, history, gameStats, overviewGameStats = [], gameComparisons = [] }: PlayerPerformanceProfileProps) {
+export function PlayerPerformanceProfile({ athlete, performance, season, blastReadings, swingDesignHref, timelineReadings=[], teamAverages=[], pitchResults, practicePitchResults, contactResults, practiceContactResults, coachFocus, goals, fictional = false, simplified = false, action, muscleBalance, movementScreening, physicalityDetails, history, gameStats, overviewGameStats = [], gameComparisons = [] }: PlayerPerformanceProfileProps) {
   const hasBlast = !!blastReadings?.some(r=>parseBlastSource(r.source));
   const bodyScoreCard = performance.body.find(card => card.metric.key === "body_score" && card.latest);
   const bodyScore = bodyScoreCard?.latest ?? null;
@@ -152,7 +151,7 @@ export function PlayerPerformanceProfile({ athlete, performance, season, blastRe
       {!simplified && physicalityDetails}
     </> },
     { id: "in-game", label: "In-Game", content: <>{gamePitchResults}<SessionMeasurements teamAverages={teamAverages} performance={classifiedPerformance} season={selectedSeason} context="in_game" hasArsenal={gameArsenal} />{layout.showHitting && contactResults}{gameStats && <section aria-label="Cumulative game statistics" className="space-y-4 border-t border-[var(--line-subtle)] pt-6"><h2 className="m-0 text-xl font-bold">Cumulative Game Stats · Fall 2026</h2>{gameStats}</section>}</> },
-    { id: "practice", label: "Practice", content: <>{practiceResults}{layout.showHitting && hasBlast && <><HitterSwingBlueprint readings={blastReadings!} performance={performance} teamAverages={teamAverages} bats={selectedSeason?.bats} batSpeedReference={batSpeedReference?.athleteId===athlete.id?batSpeedReference:null}/><BlastPracticeReports teamAverages={teamAverages} readings={blastReadings!}/></>}<SessionMeasurements teamAverages={teamAverages} performance={displayPerformance} season={selectedSeason} context="practice" hasBlast={hasBlast && layout.showHitting} hasArsenal={practiceArsenal} />{layout.showHitting && practiceContactResults}</> },
+    { id: "practice", label: "Practice", content: <>{layout.showHitting && swingDesignHref && <Link prefetch={false} href={swingDesignHref} className="mb-5 flex items-center justify-between gap-4 rounded-xl border border-[var(--line-subtle)] bg-[var(--surface-panel)] px-4 py-3 text-[var(--text-primary)] transition-colors hover:border-[var(--accent-readable)]"><span className="flex items-center gap-3"><DraftingCompass size={20} className="shrink-0 text-[var(--accent-readable)]" aria-hidden="true"/><span><span className="block text-sm font-semibold">Swing Design</span><span className="block text-xs text-[var(--text-secondary)]">Swing angles, bat-speed comparisons &amp; hitters to study</span></span></span><ArrowUpRight size={18} className="shrink-0" aria-hidden="true"/></Link>}{practiceResults}{layout.showHitting && hasBlast && <BlastPracticeReports teamAverages={teamAverages} readings={blastReadings!}/> }<SessionMeasurements teamAverages={teamAverages} performance={displayPerformance} season={selectedSeason} context="practice" hasBlast={hasBlast && layout.showHitting} hasArsenal={practiceArsenal} />{layout.showHitting && practiceContactResults}</> },
     { id: "progress", label: "Timeline", content: <><SessionTimeline readings={timelineReadings}/><SessionProgress blast={layout.showHitting ? blastProgress(blastReadings ?? []) : []} pitchingGame={pitchProgress(blastReadings ?? [],"in_game")} pitchingPractice={pitchProgress(blastReadings ?? [],"practice")} /></> },
   ];
   return <div className={`min-w-0 space-y-4 sm:space-y-5 ${presentation.profile}`} data-testid="player-performance-profile">

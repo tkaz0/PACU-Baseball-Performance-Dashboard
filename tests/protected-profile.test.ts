@@ -85,7 +85,9 @@ describe("protected profile route authorization and integration", () => {
     expect(fake.games).toHaveBeenCalledExactlyOnceWith(trusted, athlete.id);
     expect(fake.logs).not.toHaveBeenCalled();
     expect(fake.team).toHaveBeenCalledExactlyOnceWith(trusted);
-    expect(fake.speed).toHaveBeenCalledExactlyOnceWith(trusted,athlete.id);
+    expect(fake.speed).not.toHaveBeenCalled();
+    expect(html).toContain(`href="/swing-design?athlete=${athlete.id}"`);
+    expect(html).not.toContain('data-testid="hitter-swing-blueprint"');
     expect(fake.movement).toHaveBeenCalledExactlyOnceWith(trusted,athlete.id,athlete.athlete_code);
     expect(fake.rpc).toHaveBeenCalledExactlyOnceWith("athlete_focus_items",{p_athlete_id:athlete.id});
     expect(html).toContain("Game Stats");
@@ -137,6 +139,7 @@ describe("protected profile route authorization and integration", () => {
     expect(html).not.toContain("Measurement History"); expect(html).toContain('data-value="180"');
     expect(measurements).toHaveLength(2);
     expect(fake.contacts).not.toHaveBeenCalled(); expect(fake.team).not.toHaveBeenCalled();
+    expect(fake.speed).not.toHaveBeenCalled(); expect(html).not.toContain('href="/swing-design');
   });
   it("does not present a failed performance load as a successful empty profile", async () => {
     fake.load.mockRejectedValueOnce(new Error("Fictional performance unavailable"));
