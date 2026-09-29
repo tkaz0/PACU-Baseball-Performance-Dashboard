@@ -38,6 +38,29 @@ it("accepts recorded zero opportunities but never divides by zero", () => {
   expect(metric([...rows("fictional-a", counts), ...zero], "batting_avg").value).toBe(.25);
   expect(teamGameSummary([], "qpa_fall_2026").counts.every(m => m.value === null && !m.pending)).toBe(true);
 });
+it("does not let a valid zero-AB line block pooled power and contact rates", () => {
+  const zero = rows("fictional-b", Object.fromEntries(Object.keys(counts).map(k => [k, 0])));
+  const baseline=teamGameSummary(rows("fictional-a",counts),"qpa_fall_2026");
+  const team=teamGameSummary([...rows("fictional-a",counts),...zero],"qpa_fall_2026");
+  for(const key of ["batting_est_slg","batting_est_iso","batting_est_wobacon"]){
+    expect(team.rates.find(r=>r.metric===key)).toEqual(baseline.rates.find(r=>r.metric===key));
+    expect(metric(zero,key)).toMatchObject({value:null,pending:false});
+  }
+  expect(metric([...rows("fictional-a",counts),...rows("fictional-b",{...counts,ab:0})],"batting_est_slg")).toMatchObject({value:null,pending:true,pendingReason:"conflict"});
+});
+it("distinguishes missing counts from conflicting counts without zero-filling or dropping entries",()=>{
+  const missing=rows("fictional-b",counts).filter(r=>r.metric!=="hh_extra_base_hit");
+  const team=teamGameSummary([...rows("fictional-a",counts),...missing],"qpa_fall_2026");
+  expect(team.rates.find(r=>r.metric==="batting_est_slg")).toMatchObject({value:null,pending:true,pendingReason:"missing"});
+  expect(team.players).toBe(2);
+  expect(metric(rows("fictional-a",{...counts,hh_extra_base_hit:2}),"batting_est_slg")).toMatchObject({value:null,pending:true,pendingReason:"conflict"});
+  const pitch=teamGameSummary(rows("fictional-a",{pitches:10,strikes:5,weak_contact:2},true),"pitching_fall_2026");
+  expect(pitch.rates.find(r=>r.metric==="weak_contact_pct")).toMatchObject({value:null,pending:true,pendingReason:"missing"});
+  const html=renderToStaticMarkup(createElement(TeamGameStats,{stats:[...rows("fictional-a",counts),...missing],names:new Map()}));
+  expect(html).toContain("Awaiting counts");
+  expect(html).not.toContain("Counts need review");
+  expect(html).not.toContain("Open Data Review");
+});
 it("rejects mixed snapshots, duplicates and invalid player-level ratios", () => {
   for (const stats of [
     [...rows("fictional-a", counts), ...rows("fictional-b", counts).map(r => ({ ...r, snapshot_id: "older" }))],

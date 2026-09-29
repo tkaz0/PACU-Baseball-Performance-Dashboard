@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowUpRight, ArrowRight, Activity, Upload, UsersRound, ChartNoAxesCombined, Trophy, Clock3, Crosshair, UserRound, ClipboardCheck, FolderOpen, FileChartColumn, Check } from "lucide-react";
 import { PacificLogo } from "@/components/pacific-brand";
 import { StatInfo } from "@/components/stat-info";
-import { formatTeamGameMetric, type TeamGameMetric, type TeamGameSummary } from "@/lib/team-game-stats";
+import { formatTeamGameMetric, teamGameMetricStatus, type TeamGameMetric, type TeamGameSummary } from "@/lib/team-game-stats";
 import { formatInnings } from "@/lib/pitching-stats";
 import type { HomeSummary } from "@/lib/home-summary";
 import type { coachUpdateDigest } from "@/lib/coach-update-digest";
@@ -14,7 +14,7 @@ import type { DashboardVisitWindow } from "@/lib/personal-dashboard-server";
 import type { VisitDigest } from "@/lib/dashboard-visit-digest";
 
 const date = (value: string, withYear = false) => new Date(value.length === 10 ? `${value}T12:00:00Z` : value).toLocaleDateString("en-US", { month: "short", day: "numeric", ...(withYear ? { year: "numeric" as const } : {}), timeZone: value.length === 10 ? "UTC" : "America/Los_Angeles" });
-const opportunity = (metric: TeamGameMetric) => metric.pending ? "Counts need review" : metric.opportunities === undefined ? "No chances recorded yet" : metric.opportunityLabel === "outs" ? `${formatInnings(metric.opportunities)} IP` : `${metric.opportunities} ${metric.opportunityLabel}`;
+const opportunity = (metric: TeamGameMetric) => metric.pending ? teamGameMetricStatus(metric) : metric.opportunities === undefined ? "No chances recorded yet" : metric.opportunityLabel === "outs" ? `${formatInnings(metric.opportunities)} IP` : `${metric.opportunities} ${metric.opportunityLabel}`;
 
 function GameSnapshot({ summary, kind }: { summary: TeamGameSummary; kind: "Hitting" | "Pitching" }) {
   const metrics = (kind === "Hitting" ? ["batting_est_slg", "batting_est_iso", "batting_est_wobacon", "batting_hh_pct"] : ["pitching_k_bb", "pitching_k9", "pitching_bb9", "pitching_whip"]).flatMap(key => summary.rates.filter(m => m.metric === key));
@@ -96,7 +96,7 @@ export function DashboardHome({ staff, athleteId, summary, leaderboards = [], du
     {!summary ? <section className={styles.panel}><h2>Your profile is being connected</h2><p className={styles.empty}>Your administrator will link your account to the correct player profile. Your results will appear here once it is connected.</p></section> : <>
       <section aria-label="Fall game summary"><div className={styles.blockHeading}><div><p className={styles.kicker}>Competition</p><h2>{staff ? "Team Advanced Performance" : "My Advanced Performance"}</h2></div><Link prefetch={false} href="/game-stats" className={styles.panelLink}>All Game Stats<ArrowRight size={15}/></Link></div><div className={styles.gameGrid}>{(staff || summary.batting.entries > 0) && <GameSnapshot summary={summary.batting} kind="Hitting"/>}{(staff || summary.pitching.entries > 0) && <GameSnapshot summary={summary.pitching} kind="Pitching"/>}{!staff && !summary.batting.entries && !summary.pitching.entries && <p className={styles.empty}>Your game stats will appear after your first verified Fall update.</p>}</div></section>
       <section aria-label="Featured team leaderboards"><div className={styles.blockHeading}><div><p className={styles.kicker}>Around the Team</p><h2>Performance Leaders</h2></div><Link prefetch={false} href="/leaderboards" className={styles.panelLink}>All Leaderboards<ArrowRight size={15}/></Link></div>{leaderboards.length ? <div className={styles.rankGrid}>{leaderboards.map(board => <HomeRankCard board={board} key={board.key}/>)}</div> : <div className={styles.rankEmpty}><Trophy size={23} aria-hidden="true"/><p>Team rankings will appear when Fall results are saved.</p></div>}</section>
-      {staff && summary.coachDigest && <CoachThisWeek digest={summary.coachDigest} dueFocus={dueFocus} reviewCount={[...summary.batting.rates, ...summary.pitching.rates].filter(rate => rate.pending).length}/>}
+      {staff && summary.coachDigest && <CoachThisWeek digest={summary.coachDigest} dueFocus={dueFocus} reviewCount={[...summary.batting.rates, ...summary.pitching.rates].filter(rate => rate.pending && rate.pendingReason !== "missing").length}/>}
       <div className={styles.mainGrid}>
         <ResultsCoverage summary={summary} staff={staff} profile={profile}/>
         <section className={styles.panel} aria-label="Recent data updates"><div className={styles.sectionTitle}><div><p className={styles.kicker}>Fresh from the Field</p><h2>Recent Updates</h2></div><Clock3 size={20} className={styles.subtleIcon}/></div>{summary.updates.length ? <ol className={styles.updates}>{summary.updates.slice(0, 3).map(update => <li key={update.key}><span className={styles.updateDot}/><div><strong>{update.label}</strong><span>{update.kind} to the dashboard</span></div><time dateTime={update.date}>{date(update.date)}</time></li>)}</ol> : <p className={styles.empty}>Updates appear when Fall measurements or game stats are saved.</p>}<div className={styles.panelFoot}><span>Most recent activity</span><Link prefetch={false} href={staff ? "/testing/changes" : profile ?? "/settings"}>{staff ? "See What Changed" : "Open My Profile"}<ArrowRight size={14}/></Link></div></section>

@@ -15,11 +15,11 @@ export function gameCountMap(rows:readonly SharedGameStat[],source:SharedGameSta
  return source==="qpa_fall_2026"?qpaBattingCounts(v):v;
 }
 /** XBH is all doubles/triples, excluding Pumps. No triple share is invented. */
-export function battingPowerParts(v:ReadonlyMap<string,number>):{bases:number;weightedHits:number;weightedHitsUpper:number;ab:number;hits:number;xbh:number;hr:number}|null {
+export function battingPowerParts(v:ReadonlyMap<string,number>,allowZeroAB=false):{bases:number;weightedHits:number;weightedHitsUpper:number;ab:number;hits:number;xbh:number;hr:number}|null {
  const keys=["base_hit","hh_extra_base_hit","pumps","ab"];
  if(keys.some(k=>!Number.isSafeInteger(v.get(k))||v.get(k)!<0))return null;
  const [hits,xbh,hr,ab]=keys.map(k=>v.get(k)!);
- if(ab<=0||hits>ab||xbh+hr>hits)return null;
+ if((allowZeroAB?ab<0:ab<=0)||hits>ab||xbh+hr>hits)return null;
  const singles=hits-xbh-hr;
  return {hits,xbh,hr,ab,bases:hits+xbh+3*hr,
   weightedHits:CONTACT_WEIGHTS.single*singles+CONTACT_WEIGHTS.double*xbh+CONTACT_WEIGHTS.homeRun*hr,
