@@ -14,7 +14,7 @@ export type BlastFallSummary = {
 };
 
 /** Display-only Fall rollup. Never pool vendors, sum paired exports, or average percentiles. */
-export function blastFallSummary(readings: readonly Measurement[]): BlastFallSummary | null {
+export function blastFallSummary(readings: readonly Measurement[], metricKeys: readonly string[] = BLAST_MAIN_KEYS): BlastFallSummary | null {
   const original = readings.filter(r => parseBlastSource(r.source));
   if (!original.length) return null;
   const issues = new Set<BlastFallIssue>(), unique = new Map<string, Measurement>();
@@ -43,7 +43,7 @@ export function blastFallSummary(readings: readonly Measurement[]): BlastFallSum
     issues:[...issues], totalSwings:averages.length && !issues.size ? sum : null, reportCount:averages.length,
     firstDate:averages[0]?.start??null,lastDate:averages.map(r=>r.end).sort().at(-1)??null,
     peakPeriod:peakSafe?{start:latestPeak.start,end:latestPeak.end}:null,
-    metrics:BLAST_MAIN_METRICS.map(metric=>{
+    metrics:[...new Set(metricKeys)].flatMap(key => BLAST_REPORT_METRICS.filter(metric => metric.key === key)).map(metric=>{
       let weighted=0, n=0, missingReports=0;
       for (let i=0;i<averages.length;i++) {
         const values=averages[i].average.filter(r=>r.metric===metric.label&&r.unit===metric.unit);
@@ -52,7 +52,7 @@ export function blastFallSummary(readings: readonly Measurement[]): BlastFallSum
         weighted=weighted*(n/(n+count))+values[0].value*(count/(n+count));n+=count;
       }
       const peak=peakSafe?latestPeak.p95.find(r=>r.metric===blastMetricFor(metric.column,"p95").label&&r.unit===metric.unit):undefined;
-      return {key:metric.key,label:metric.displayLabel,unit:metric.unit,average:!issues.size&&!missingReports&&n>0&&Number.isFinite(weighted)?weighted:null,missingReports,peak:peak?.value??null};
+      return {key:metric.key,label:BLAST_MAIN_METRICS.find(main => main.key === metric.key)?.displayLabel ?? metric.label,unit:metric.unit,average:!issues.size&&!missingReports&&n>0&&Number.isFinite(weighted)?weighted:null,missingReports,peak:peak?.value??null};
     }),
   };
 }

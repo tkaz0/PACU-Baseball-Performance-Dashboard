@@ -5,10 +5,10 @@ import type { Measurement } from "@/lib/imports/engine";
 import { getPlayerPerformance, type PlayerPerformance } from "@/lib/player-performance";
 
 const code = "SYN-SWING-001";
-function report({ hash = "a", start = "2026-09-01", end = "2026-09-07", count = 10, attack = 4, vertical = -20, speed = 65, kind = "average", athleteCode = code }: {
-  hash?: string; start?: string; end?: string; count?: number; attack?: number; vertical?: number; speed?: number; kind?: BlastSummaryKind; athleteCode?: string;
+function report({ hash = "a", start = "2026-09-01", end = "2026-09-07", count = 10, attack = 4, vertical = -20, bodyTilt = 25, speed = 65, kind = "average", athleteCode = code }: {
+  hash?: string; start?: string; end?: string; count?: number; attack?: number; vertical?: number; bodyTilt?: number; speed?: number; kind?: BlastSummaryKind; athleteCode?: string;
 } = {}): Measurement[] {
-  return [["Blast Swing Count", count, "count"], ["Attack Angle", attack, "deg"], ["Vertical Bat Angle", vertical, "deg"], [kind === "average" ? "Average Bat Speed" : "Peak Bat Speed (95th)", speed, "mph"]].map(([metric, value, unit], index) => ({
+  return [["Blast Swing Count", count, "count"], ["Attack Angle", attack, "deg"], ["Vertical Bat Angle", vertical, "deg"], [kind === "average" ? "Average Bat Speed" : "Peak Bat Speed (95th)", speed, "mph"], ["Body Tilt Angle", bodyTilt, "deg"]].map(([metric, value, unit], index) => ({
     id: `fictional-${hash}-${athleteCode}-${index}`, athlete_code: athleteCode, measured_at: end,
     source: blastSource(kind, start, end), metric: String(metric), value: Number(value), unit: String(unit),
     source_file: "fictional-swing-profile.csv", source_sheet: "CSV", source_row: 2, file_hash: hash.repeat(64),
@@ -44,6 +44,24 @@ describe("custom descriptive PAC swing bands", () => {
 });
 
 describe("hitter Swing Profile measurement model", () => {
+  it("weights saved body tilt by swings without changing the five main practice metrics", () => {
+    const readings = [...report({bodyTilt:20}), ...report({hash:"b",start:"2026-09-08",end:"2026-09-14",count:30,bodyTilt:40}), ...report({kind:"p95",hash:"c",bodyTilt:80})];
+    expect(hitterSwingProfile(readings,performance()).bodyTiltAngle).toBe(35);
+    expect(hitterSwingProfile(readings.filter(row=>row.metric!=="Body Tilt Angle"||row.file_hash!=="b".repeat(64)),performance()).bodyTiltAngle).toBeNull();
+    expect(hitterSwingProfile(report({kind:"p95"}),performance()).bodyTiltAngle).toBeNull();
+    for (const value of [NaN,Infinity,91,-91]) expect(hitterSwingProfile(report({bodyTilt:value}),performance()).bodyTiltAngle).toBeNull();
+  });
+
+  it("takes height and weight ranks only from the exact validated own canonical cards", () => {
+    const readings = [body("Height",71,"in"),body("Weight",180,"lb")];
+    const overrides = readings.map(row=>({athleteCode:code,metricKey:row.metric==="Height"?"height" as const:"weight" as const,measuredAt:row.measured_at,observedValue:row.value,source:row.source,value:75,sampleSize:9,period:"summer_2026" as const,unit:row.unit,direction:"neutral" as const}));
+    const model = (values = overrides) => hitterSwingProfile(report(),getPlayerPerformance({readings,athleteCode:code,cohortAthleteCodes:[],percentileOverrides:values}));
+    expect(model()).toMatchObject({heightRank:{value:75,sampleSize:9},weightRank:{value:75,sampleSize:9}});
+    for (const patch of [{athleteCode:"SYN-OTHER"},{observedValue:200},{measuredAt:"2026-08-21"},{source:"Other protocol"},{unit:"kg"},{sampleSize:4},{value:101}]) {
+      expect(model(overrides.map(item=>({...item,...patch})))).toMatchObject({heightRank:null,weightRank:null});
+    }
+    expect(model([...overrides,...overrides])).toMatchObject({heightRank:null,weightRank:null});
+  });
   it("uses unrounded swing-count-weighted Fall averages, preserving signed angles and inputs", () => {
     const readings = [...report(), ...report({ hash: "b", start: "2026-09-08", end: "2026-09-14", count: 30, attack: 20, vertical: -40, speed: 85 }),
       ...report({ hash: "c", start: "2026-09-08", end: "2026-09-14", count: 30, attack: 80, vertical: 70, speed: 99, kind: "p95" })];

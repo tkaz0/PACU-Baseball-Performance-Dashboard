@@ -403,6 +403,8 @@ Blast weekly reports: `tests/blast-performance.test.ts` checks exact export head
 
 `tests/blast-fall.test.ts` verifies weighted Fall means, distinct-source isolation, single-count paired exports, latest-week P95, negative angles, duplicate/overlap/count guards, missing metric coverage, the five main metrics and profile context labels. The Blast database suite also tests overlap rejection with valid paired and subsequent-week imports.
 
+Swing Design: `tests/hitter-swing-profile.test.ts` covers weighted body tilt, independent missing angles, unchanged source readings and exact canonical body-rank binding. `tests/hitter-study-matches.test.ts` checks strict batting-side matching, the verified 75-name shortlist, full-cohort MLB tied percentiles and relative height/weight/speed fitting without absolute size windows. `tests/hitter-swing-blueprint.test.ts` validates signed geometry (body tilt from vertical), missing-data displays, source limitations and separate Pacific/MLB ranks. `tests/swing-design-page.test.ts` keeps own-player and Player View access scoped before reads, including percentile summaries. Verify desktop/mobile layouts with fictional data only; the final live check may return counts/status but never player values or screenshots of private measurements.
+
 
 Launch design validation includes Home distinct-player/Fall scope, empty states, presented Player isolation, access-denied guards, signed Blast angle handling, and navigation. Inspect fictional desktop/mobile Home, hitting cards, metric help and sign-in in both themes through the in-app browser. Run full lint/typecheck/test/build; never capture live player data in screenshots.
 

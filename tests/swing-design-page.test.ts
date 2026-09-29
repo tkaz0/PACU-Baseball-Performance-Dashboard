@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Role, RosterAthlete } from "@/lib/types";
 import type { Measurement } from "@/lib/imports/engine";
 import { blastSource } from "@/lib/blast-metrics";
+import type { PlayerPerformance } from "@/lib/player-performance";
 
 const fake = vi.hoisted(() => ({ access: vi.fn(), choices: vi.fn(), from: vi.fn(), select: vi.fn(), eq: vi.fn(), single: vi.fn(), load: vi.fn(), team: vi.fn(), speed: vi.fn(), blueprint: vi.fn() }));
 vi.mock("server-only", () => ({}));
@@ -60,7 +61,7 @@ describe("Swing Design access and routing", () => {
     expect(fake.choices).not.toHaveBeenCalled();
     expect(fake.eq).toHaveBeenCalledExactlyOnceWith("id", ownId);
     expect(fake.select).toHaveBeenCalledExactlyOnceWith("id,athlete_code,first_name,last_name,preferred_name,athlete_seasons(*)");
-    expect(fake.load).toHaveBeenCalledExactlyOnceWith(trusted, athlete, { includePercentiles: false });
+    expect(fake.load).toHaveBeenCalledExactlyOnceWith(trusted, athlete, { includePercentiles: true });
     expect(fake.team).toHaveBeenCalledExactlyOnceWith(trusted); expect(fake.speed).toHaveBeenCalledExactlyOnceWith(trusted, ownId);
     expect(fake.blueprint.mock.calls[0][0]).toMatchObject({ readings, batSpeedReference: reference, bats: "R" });
     expect(html).toContain("Swing Design"); expect(html).toContain("Fictional Hitter");
@@ -87,7 +88,7 @@ describe("Swing Design access and routing", () => {
   it("loads only the staff-selected athlete", async () => {
     const trusted = access(["coach"], null); fake.access.mockResolvedValueOnce(trusted);
     renderToStaticMarkup(await page({ athlete: ownId }));
-    expect(fake.load).toHaveBeenCalledExactlyOnceWith(trusted, athlete, { includePercentiles: false });
+    expect(fake.load).toHaveBeenCalledExactlyOnceWith(trusted, athlete, { includePercentiles: true });
     expect(fake.eq).toHaveBeenCalledExactlyOnceWith("id", ownId);
   });
   it("rejects missing or mismatched database identities and handles query errors", async () => {
@@ -103,6 +104,27 @@ describe("Swing Design access and routing", () => {
     fake.speed.mockResolvedValueOnce({ ...reference, athleteId: otherId });
     renderToStaticMarkup(await page());
     expect(fake.blueprint.mock.calls[0][0].batSpeedReference).toBeNull();
+  });
+  it.each([false, true])("uses only the linked player's exact body-rank summaries (Player View %s)", async preview => {
+    const trusted = access(["player"], ownId, preview); fake.access.mockResolvedValueOnce(trusted);
+    const ownBody: Measurement = { ...readings[0], id: "fictional-body-height", metric: "Height", value: 71, unit: "in", source: "Fictional body testing", measured_at: "2026-09-18", file_hash: "f".repeat(64) };
+    fake.load.mockResolvedValueOnce({ measurements: [...readings, ownBody], batches: [], percentileOverrides: [{ athleteCode: athlete.athlete_code, metricKey: "height", measuredAt: ownBody.measured_at, observedValue: 71, unit: "in", source: ownBody.source, period: "fall_2026", direction: "neutral", sampleSize: 8, value: 60 }] });
+    renderToStaticMarkup(await page());
+    const model = fake.blueprint.mock.calls[0][0].performance as PlayerPerformance;
+    expect(model.body.find(card => card.metric.key === "height")).toMatchObject({ latest: { athleteCode: athlete.athlete_code, value: 71, measuredAt: ownBody.measured_at }, percentile: { value: 60, sampleSize: 8, unit: "in", period: "fall_2026", direction: "neutral" } });
+    expect(fake.load).toHaveBeenCalledExactlyOnceWith(trusted, athlete, { includePercentiles: true });
+    expect(fake.choices).not.toHaveBeenCalled();
+    expect(fake.eq).toHaveBeenCalledExactlyOnceWith("id", ownId);
+  });
+  it.each([
+    { athleteCode: "SYN-002" }, { measuredAt: "2026-09-17" }, { observedValue: 70 },
+    { source: "Different protocol" }, { unit: "cm" }, { sampleSize: 4, value: null },
+  ])("does not attach mismatched or unavailable body ranks %j", async patch => {
+    const ownBody: Measurement = { ...readings[0], id: "fictional-body-height", metric: "Height", value: 71, unit: "in", source: "Fictional body testing", measured_at: "2026-09-18", file_hash: "f".repeat(64) };
+    fake.load.mockResolvedValueOnce({ measurements: [...readings, ownBody], batches: [], percentileOverrides: [{ athleteCode: athlete.athlete_code, metricKey: "height", measuredAt: ownBody.measured_at, observedValue: 71, unit: "in", source: ownBody.source, period: "fall_2026", direction: "neutral", sampleSize: 8, value: 60, ...patch }] });
+    renderToStaticMarkup(await page());
+    const model = fake.blueprint.mock.calls[0][0].performance as PlayerPerformance;
+    expect(model.body.find(card => card.metric.key === "height")?.percentile).toBeNull();
   });
   it("keeps pitcher-only profiles outside hitting measurements", async () => {
     fake.single.mockResolvedValueOnce({ data: { ...athlete, athlete_seasons: [{ ...athlete.athlete_seasons[0], player_type: "pitcher", primary_position: "P" }] }, error: null });

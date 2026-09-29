@@ -1,7 +1,7 @@
-import { blastFallSummary, type BlastFallSummary } from "@/lib/blast-fall";
+import { BLAST_MAIN_KEYS, blastFallSummary, type BlastFallSummary } from "@/lib/blast-fall";
 import { parseBlastSource } from "@/lib/blast-metrics";
 import type { Measurement } from "@/lib/imports/engine";
-import type { PlayerMetricReading, PlayerPerformance } from "@/lib/player-performance";
+import type { PlayerMetricCard, PlayerMetricReading, PlayerPerformance } from "@/lib/player-performance";
 
 export type AttackPath = {
   key: "downhill" | "flat" | "rising" | "high_lift";
@@ -15,15 +15,19 @@ export type BarrelTilt = {
   description: string;
 };
 export type SwingBodyMeasurement<Unit extends "in" | "lb"> = { value: number; unit: Unit; date: string };
+export type SwingBodyRank = { value: number; sampleSize: number };
 export type HitterSwingProfile = {
   summary: BlastFallSummary | null;
   averageBatSpeed: number | null;
   attackAngle: number | null;
   verticalBatAngle: number | null;
+  bodyTiltAngle: number | null;
   path: AttackPath | null;
   tilt: BarrelTilt | null;
   height: SwingBodyMeasurement<"in"> | null;
   weight: SwingBodyMeasurement<"lb"> | null;
+  heightRank: SwingBodyRank | null;
+  weightRank: SwingBodyRank | null;
 };
 
 /** Display geometry only. Never clamp, correct, or overwrite an original reading. */
@@ -55,9 +59,18 @@ function positiveReading(reading: PlayerMetricReading | null | undefined) {
   return reading && Number.isFinite(reading.value) && reading.value > 0 ? reading : null;
 }
 
+/** Percentiles have already been bound to this exact canonical reading by getPlayerPerformance. */
+function bodyRank(card: PlayerMetricCard | undefined): SwingBodyRank | null {
+  const rank = card?.percentile, reading = card?.latest;
+  return card?.percentileStatus === "available" && reading && positiveReading(reading) && rank &&
+    rank.unit === reading.unit && rank.period === reading.period && rank.direction === "neutral" &&
+    Number.isSafeInteger(rank.sampleSize) && rank.sampleSize >= 5 && Number.isFinite(rank.value) && rank.value >= 0 && rank.value <= 100
+    ? { value: rank.value, sampleSize: rank.sampleSize } : null;
+}
+
 /** Use only the authorized athlete's verified Fall averages and canonical body cards. */
 export function hitterSwingProfile(readings: readonly Measurement[], performance: PlayerPerformance): HitterSwingProfile {
-  const summary = blastFallSummary(readings);
+  const summary = blastFallSummary(readings, [...BLAST_MAIN_KEYS, "blast_body_tilt"]);
   const latestReadings = Object.values(performance).flatMap(cards => cards.flatMap(card => [card.latest, ...(card.sourceCards ?? []).map(source => source.latest)]))
     .filter((reading): reading is PlayerMetricReading => reading !== null);
   const athleteCodes = new Set([
@@ -73,14 +86,17 @@ export function hitterSwingProfile(readings: readonly Measurement[], performance
   const averageBatSpeed = batSpeed !== null && Number.isFinite(batSpeed) && batSpeed >= 0 ? batSpeed : null;
   const attackAngle = geometricAngle(average("blast_attack_angle"));
   const verticalBatAngle = geometricAngle(average("blast_vertical_bat_angle"));
+  const bodyTiltAngle = geometricAngle(average("blast_body_tilt"));
   const heightReading = sameAthlete ? positiveReading(performance.body.find(card => card.metric.key === "height")?.latest) : null;
   const weightReading = sameAthlete ? positiveReading(performance.body.find(card => card.metric.key === "weight")?.latest) : null;
   const heightValue = heightReading?.unit === "in" ? heightReading.value : heightReading?.unit === "cm" ? heightReading.value / 2.54 : null;
   const weightValue = weightReading?.unit === "lb" ? weightReading.value : weightReading?.unit === "kg" ? weightReading.value * 2.20462262185 : weightReading?.unit === "st" ? weightReading.value * 14 : null;
   return {
-    summary, averageBatSpeed, attackAngle, verticalBatAngle,
+    summary, averageBatSpeed, attackAngle, verticalBatAngle, bodyTiltAngle,
     path: attackPath(attackAngle), tilt: barrelTilt(verticalBatAngle),
     height: heightReading && heightValue !== null && Number.isFinite(heightValue) && heightValue > 0 ? { value: heightValue, unit: "in", date: heightReading.measuredAt } : null,
     weight: weightReading && weightValue !== null && Number.isFinite(weightValue) && weightValue > 0 ? { value: weightValue, unit: "lb", date: weightReading.measuredAt } : null,
+    heightRank: heightReading && heightValue !== null && Number.isFinite(heightValue) && heightValue > 0 ? bodyRank(performance.body.find(card => card.metric.key === "height")) : null,
+    weightRank: weightReading && weightValue !== null && Number.isFinite(weightValue) && weightValue > 0 ? bodyRank(performance.body.find(card => card.metric.key === "weight")) : null,
   };
 }

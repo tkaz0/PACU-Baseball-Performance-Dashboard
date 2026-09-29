@@ -1,16 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { blastSource, type BlastSummaryKind } from "@/lib/blast-metrics";
-import { compatibleBattingSide, hitterStudyMatches, HITTER_STUDY_WINDOWS, proBatSpeedPercentile } from "@/lib/hitter-study-matches";
+import { compatibleBattingSide, hitterStudyMatches, HITTER_STUDY_WINDOWS, proBatSpeedPercentile, proBodyPercentile } from "@/lib/hitter-study-matches";
 import { HITTER_STUDY_REFERENCES, type HitterStudyReference } from "@/lib/hitter-study-references";
 import { FEATURED_HITTER_STUDY_IDS } from "@/lib/hitter-study-featured";
 import { attackPath, hitterSwingProfile } from "@/lib/hitter-swing-profile";
 import type { Measurement } from "@/lib/imports/engine";
 import { getPlayerPerformance } from "@/lib/player-performance";
 
-const reference = (id: number, attackAngle = 12, heightInches = 72, weightLb = 190): HitterStudyReference =>
-  ({ id, name: `Fictional Study Hitter ${id}`, bats: "R", attackAngle, averageBatSpeed: null, heightInches, weightLb, competitiveSwings: 600 });
-
-function profile(angle = 12, size: { height?: number; weight?: number } = {}, kind: BlastSummaryKind = "average") {
+const id = (index: number) => FEATURED_HITTER_STUDY_IDS[index - 1];
+const reference = (index: number, attackAngle = 12, heightInches = 72, weightLb = 190): HitterStudyReference =>
+  ({ id: id(index), name: `Fictional Study Hitter ${index}`, bats: "R", attackAngle, averageBatSpeed: null, heightInches, weightLb, competitiveSwings: 600 });
+const right = { bats: "R" };
+function profile(angle = 12, size: { height?: number; weight?: number; heightRank?: number; weightRank?: number } = {}, kind: BlastSummaryKind = "average") {
   const source = blastSource(kind, "2026-09-01", "2026-09-07");
   const measurement = (metric: string, value: number, unit: string, device = source): Measurement => ({
     id: `fictional-${metric}`, athlete_code: "SYN-STUDY-001", measured_at: "2026-09-07", source: device,
@@ -21,113 +22,140 @@ function profile(angle = 12, size: { height?: number; weight?: number } = {}, ki
     ...(size.height === undefined ? [] : [measurement("Height", size.height, "in", "Fictional body testing")]),
     ...(size.weight === undefined ? [] : [measurement("Weight", size.weight, "lb", "Fictional body testing")]),
   ];
-  return hitterSwingProfile(readings, getPlayerPerformance({ readings: body, athleteCode: "SYN-STUDY-001" }));
+  return { ...hitterSwingProfile(readings, getPlayerPerformance({ readings: body, athleteCode: "SYN-STUDY-001" })),
+    heightRank: size.heightRank === undefined ? null : { value: size.heightRank, sampleSize: 10 },
+    weightRank: size.weightRank === undefined ? null : { value: size.weightRank, sampleSize: 10 },
+  };
 }
 const ids = (result: ReturnType<typeof hitterStudyMatches>) => result.matches.map(match => match.id);
+const bodyCorpus = () => [68, 70, 72, 74, 76].map((height, index) => reference(index + 1, 12, height, 140 + index * 20));
 
-describe("descriptive professional hitter study examples", () => {
+describe("same-side recognizable MLB study examples", () => {
   it("requires the same custom path and an inclusive five-degree angle window", () => {
-    const result = hitterStudyMatches(profile(15), [reference(1, 10), reference(2, 19.999), reference(3, 9.999), reference(4, 20)]);
-    expect(ids(result)).toEqual([2, 1]);
+    const result = hitterStudyMatches(profile(15), [reference(1, 10), reference(2, 19.999), reference(3, 9.999), reference(4, 20)], right);
+    expect(ids(result)).toEqual([id(2), id(1)]);
     expect(result).toMatchObject({ basis: "path_only", sizeFallback: false });
-    expect(ids(hitterStudyMatches(profile(10), [reference(1, 15), reference(2, 15.00001), reference(3, 9.99999)]))).toEqual([1]);
-    expect(HITTER_STUDY_WINDOWS).toEqual({ attackAngle: 5, heightInches: 3, weightLb: 30 });
+    expect(ids(hitterStudyMatches(profile(10), [reference(1, 15), reference(2, 15.00001), reference(3, 9.99999)], right))).toEqual([id(1)]);
+    expect(HITTER_STUDY_WINDOWS).toEqual({ attackAngle: 5, percentile: 25 });
   });
 
-  it("requires both inclusive size windows when both measurements are available", () => {
-    const result = hitterStudyMatches(profile(12, { height: 72, weight: 190 }), [
-      reference(1, 12, 75, 220), reference(2, 12, 69, 160),
-      reference(3, 12, 75.00001, 190), reference(4, 12, 72, 220.00001), reference(5, 12, 72, 159.99999),
-    ]);
-    expect(ids(result)).toEqual([1, 2]);
-    expect(result).toMatchObject({ basis: "path_and_size", sizeFallback: false });
+  it("limits candidates to the 75 curated verified names without limiting rank denominators", () => {
+    expect(FEATURED_HITTER_STUDY_IDS).toHaveLength(75);
+    expect(new Set(FEATURED_HITTER_STUDY_IDS).size).toBe(75);
+    expect(FEATURED_HITTER_STUDY_IDS.every(featuredId => HITTER_STUDY_REFERENCES.some(item => item.id === featuredId))).toBe(true);
+    const corpus = [{ ...reference(1), id: 1 }, reference(2, 13), reference(3, 14), reference(4, 15)];
+    expect(ids(hitterStudyMatches(profile(), corpus, right))).toEqual([id(2), id(3), id(4)]);
   });
 
-  it("uses height alone when weight is missing", () => {
-    const result = hitterStudyMatches(profile(12, { height: 72 }), [reference(1, 12, 73, 400), reference(2, 12, 76, 190)]);
-    expect(ids(result)).toEqual([1]);
-    expect(result).toMatchObject({ basis: "path_and_height", sizeFallback: false });
+  it.each([
+    ["R", "R", true], ["R", "L", false], ["R", "S", false],
+    ["L", "L", true], ["L", "R", false], ["L", "S", false],
+    ["S", "S", true], ["S", "R", false], ["S", "L", false],
+    [" r ", "R", true], [null, "L", false], [undefined, "R", false], ["unknown", "L", false], ["R", null, false],
+  ] as const)("keeps own %s and professional %s batting sides exact", (own, professional, compatible) => {
+    expect(compatibleBattingSide(own, professional)).toBe(compatible);
   });
 
-  it("uses weight alone when height is missing", () => {
-    const result = hitterStudyMatches(profile(12, { weight: 190 }), [reference(1, 12, 90, 200), reference(2, 12, 72, 221)]);
-    expect(ids(result)).toEqual([1]);
-    expect(result).toMatchObject({ basis: "path_and_weight", sizeFallback: false });
+  it("never pads short lists with opposite-side or pooled switch-hitter references", () => {
+    const corpus = [reference(1, 16), { ...reference(2), bats: "L" as const }, { ...reference(3), bats: "S" as const }];
+    expect(ids(hitterStudyMatches(profile(12, { height: 72, weight: 190, heightRank: 50, weightRank: 50 }), corpus, { bats: "R", batSpeedPercentile: 50 }))).toEqual([id(1)]);
+    expect(ids(hitterStudyMatches(profile(), corpus, { bats: "L" }))).toEqual([id(2)]);
+    expect(ids(hitterStudyMatches(profile(), corpus, { bats: "S" }))).toEqual([id(3)]);
   });
 
-  it("sorts size-qualified examples by normalized size distance before angle and numeric ID", () => {
-    const references = [
-      reference(12, 13, 72, 205), // .5 size distance, 1 degree
-      reference(2, 13, 73.5, 190), // .5 size distance, 1 degree
-      reference(4, 12, 72, 208), // .6 size distance, exact angle
-      reference(8, 16, 72, 190), // exact size, 4 degrees
-      reference(3, 13, 72, 205), // .5 size distance, 1 degree
-    ];
-    const result = hitterStudyMatches(profile(12, { height: 72, weight: 190 }), references);
-    expect(ids(result)).toEqual([8, 2, 3]);
+  it.each([undefined, null, "", "unknown"])("withholds examples until the player's batting side is known: %s", bats => {
+    expect(hitterStudyMatches(profile(), [reference(1)], { bats })).toEqual({ matches: [], basis: "none", sizeFallback: false });
+  });
+  it("does not silently infer a side when preferences are omitted", () => {
+    expect(hitterStudyMatches(profile(), [reference(1)])).toEqual({ matches: [], basis: "none", sizeFallback: false });
+  });
+
+  it("uses relative height rank rather than an absolute inch window", () => {
+    const corpus = bodyCorpus();
+    const result = hitterStudyMatches(profile(12, { height: 65, heightRank: 100 }), corpus, right);
+    expect(ids(result)).toEqual([id(5), id(4), id(3)]);
+    expect(result.basis).toBe("path_and_height");
+    expect(result.sizeFallback).toBe(false);
+  });
+
+  it("uses relative weight rank rather than an absolute pound window", () => {
+    const result = hitterStudyMatches(profile(12, { weight: 135, weightRank: 100 }), bodyCorpus(), right);
+    expect(ids(result)).toEqual([id(5), id(4), id(3)]);
+    expect(result.basis).toBe("path_and_weight");
+  });
+
+  it("uses both available body ranks and the normalized angle gap", () => {
+    const corpus = bodyCorpus().map((item, index) => index === 2 ? { ...item, attackAngle: 14 } : item);
+    const result = hitterStudyMatches(profile(12, { height: 65, weight: 135, heightRank: 50, weightRank: 50 }), corpus, right);
+    expect(result.matches[0]).toBe(corpus[2]);
+    expect(result.basis).toBe("path_and_size");
     expect(result.matches).toHaveLength(3);
-    expect(Object.keys(result).sort()).toEqual(["basis", "matches", "sizeFallback"]);
-    expect(result.matches[0]).toBe(references[3]);
   });
 
-  it("uses the sum of both normalized size differences", () => {
-    const result = hitterStudyMatches(profile(12, { height: 72, weight: 190 }), [
-      reference(1, 12, 75, 220), // 2.0
-      reference(2, 12, 72, 220), // 1.0
-      reference(3, 12, 73.5, 199), // .8
-    ]);
-    expect(ids(result)).toEqual([3, 2, 1]);
+  it("keeps relative bat-speed fit independent of raw practice mph", () => {
+    const corpus = bodyCorpus().map((item, index) => ({ ...item, averageBatSpeed: 65 + index * 5 }));
+    const model = { ...profile(), averageBatSpeed: 40 };
+    const preferences = { bats: "R", batSpeedPercentile: 100 };
+    expect(ids(hitterStudyMatches(model, corpus, preferences))).toEqual([id(5), id(4), id(3)]);
+    expect(hitterStudyMatches({ ...model, averageBatSpeed: 100 }, corpus, preferences)).toEqual(hitterStudyMatches(model, corpus, preferences));
   });
 
-  it("falls back only to path candidates when the available size has no candidates", () => {
-    const references = [reference(3, 12.5, 80, 260), reference(12, 13, 80, 260), reference(2, 13, 80, 260), reference(1, 7, 72, 190)];
-    for (const size of [{ height: 72, weight: 190 }, { height: 72 }, { weight: 190 }]) {
-      const result = hitterStudyMatches(profile(12, size), references);
-      expect(ids(result)).toEqual([3, 2, 12]);
-      expect(result).toMatchObject({ basis: "path_only", sizeFallback: true });
+  it("withholds missing ranks rather than falling back to absolute body matching", () => {
+    const corpus = bodyCorpus();
+    const expected = hitterStudyMatches(profile(), corpus, right);
+    expect(hitterStudyMatches(profile(12, { height: 76, weight: 220 }), corpus, right)).toEqual(expected);
+    expect(hitterStudyMatches(profile(12, { heightRank: 100, weightRank: 100 }), corpus, right)).toEqual(expected);
+    expect(expected.basis).toBe("path_only");
+  });
+
+  it("does not use body ranks when the complete MLB cohort has fewer than five references", () => {
+    const corpus = bodyCorpus().slice(0, 4);
+    const result = hitterStudyMatches(profile(12, { height: 65, weight: 135, heightRank: 100, weightRank: 100 }), corpus, right);
+    expect(result).toEqual(hitterStudyMatches(profile(), corpus, right));
+    expect(result.basis).toBe("path_only");
+  });
+
+  it.each([null, { value: NaN, sampleSize: 10 }, { value: Infinity, sampleSize: 10 }, { value: -1, sampleSize: 10 }, { value: 101, sampleSize: 10 }, { value: 50, sampleSize: 4 }, { value: 50, sampleSize: 5.5 }])("ignores invalid or unavailable Pacific body ranks %j", rank => {
+    const model = profile(12, { height: 70, weight: 160 });
+    expect(hitterStudyMatches({ ...model, heightRank: rank, weightRank: rank }, bodyCorpus(), right)).toEqual(hitterStudyMatches(model, bodyCorpus(), right));
+  });
+
+  it.each([0, -1, NaN, Infinity])("does not attach a valid rank to an invalid own body measurement %s", value => {
+    const model = profile(12, { height: 70, weight: 160, heightRank: 100, weightRank: 100 });
+    const result = hitterStudyMatches({ ...model, height: { ...model.height!, value }, weight: { ...model.weight!, value } }, bodyCorpus(), right);
+    expect(result).toEqual(hitterStudyMatches(profile(), bodyCorpus(), right));
+  });
+
+  it.each([NaN, Infinity, -1, 100.00001])("ignores invalid bat-speed percentile %s", batSpeedPercentile => {
+    const corpus = bodyCorpus().map((item, index) => ({ ...item, averageBatSpeed: 65 + index * 5 }));
+    expect(hitterStudyMatches(profile(), corpus, { bats: "R", batSpeedPercentile })).toEqual(hitterStudyMatches(profile(), corpus, right));
+  });
+
+  it("does not infer professional VBA or body tilt from attack angle", () => {
+    const model = profile();
+    expect(hitterStudyMatches({ ...model, verticalBatAngle: -20, bodyTiltAngle: 10 }, bodyCorpus(), right)).toEqual(
+      hitterStudyMatches({ ...model, verticalBatAngle: -60, bodyTiltAngle: 50 }, bodyCorpus(), right));
+  });
+
+  it.each([-5, 25])("does not force a different-path fallback for unsupported %s-degree paths", angle => {
+    expect(hitterStudyMatches(profile(angle), [reference(1, 2), reference(2, 18)], right)).toEqual({ matches: [], basis: "none", sizeFallback: false });
+  });
+  it("preserves signed and zero angle references", () => {
+    expect(ids(hitterStudyMatches(profile(-5), [reference(1, -6), reference(2, 1)], right))).toEqual([id(1)]);
+    expect(ids(hitterStudyMatches(profile(0), [reference(1, 0), reference(2, -0.01)], right))).toEqual([id(1)]);
+  });
+  it.each([null, NaN, Infinity, -Infinity, 90.001, -90.001])("returns no examples for unavailable angle %s", angle => {
+    const model = { ...profile(), attackAngle: angle, path: attackPath(angle) };
+    expect(hitterStudyMatches(model, [reference(1)], right)).toEqual({ matches: [], basis: "none", sizeFallback: false });
+  });
+  it("rejects mismatched paths, source-review issues and P95-only reports", () => {
+    const model = profile();
+    for (const invalid of [{ ...model, path: null }, { ...model, path: attackPath(5) }, { ...model, summary: { ...model.summary!, issues: ["overlapping_periods" as const] } }, profile(12, {}, "p95")]) {
+      expect(hitterStudyMatches(invalid, [reference(1)], right).basis).toBe("none");
     }
   });
 
-  it("does not pad a short size-qualified list with path-only candidates", () => {
-    const result = hitterStudyMatches(profile(12, { height: 72, weight: 190 }), [reference(1), reference(2, 12, 80, 190), reference(3, 12, 72, 250)]);
-    expect(ids(result)).toEqual([1]);
-    expect(result).toMatchObject({ basis: "path_and_size", sizeFallback: false });
-  });
-
-  it("sorts missing-size matches by angle then numeric ID with a three-example limit", () => {
-    const result = hitterStudyMatches(profile(), [reference(12, 13), reference(2, 13), reference(1, 14), reference(4, 12), reference(3, 13)]);
-    expect(ids(result)).toEqual([4, 2, 3]);
-    expect(result).toMatchObject({ basis: "path_only", sizeFallback: false });
-  });
-
-  it.each([-5, 25])("does not force a different-path fallback for an unsupported %s-degree path", angle => {
-    expect(hitterStudyMatches(profile(angle, { height: 72 }), [reference(1, 2), reference(2, 18)])).toEqual({ matches: [], basis: "none", sizeFallback: false });
-  });
-
-  it("keeps signed and zero angle references when they are valid study candidates", () => {
-    expect(ids(hitterStudyMatches(profile(-5), [reference(1, -6), reference(2, 1)]))).toEqual([1]);
-    expect(ids(hitterStudyMatches(profile(0), [reference(1, 0), reference(2, -0.01)]))).toEqual([1]);
-  });
-
-  it.each([null, NaN, Infinity, -Infinity, 90.001, -90.001])("returns no examples for an unavailable display angle %s", angle => {
-    const model = { ...profile(), attackAngle: angle, path: attackPath(angle) };
-    expect(hitterStudyMatches(model, [reference(1)])).toEqual({ matches: [], basis: "none", sizeFallback: false });
-  });
-
-  it("rejects missing or mismatched paths and a summary requiring review", () => {
-    const model = profile();
-    expect(hitterStudyMatches({ ...model, path: null }, [reference(1)]).basis).toBe("none");
-    expect(hitterStudyMatches({ ...model, path: attackPath(5) }, [reference(1)]).basis).toBe("none");
-    expect(hitterStudyMatches({ ...model, summary: { ...model.summary!, issues: ["overlapping_periods"] } }, [reference(1)]).basis).toBe("none");
-  });
-
-  it("does not produce examples from P95-only data", () => {
-    const model = profile(12, { height: 72, weight: 190 }, "p95");
-    expect(model.summary?.metrics.find(metric => metric.key === "blast_attack_angle")?.peak).toBe(12);
-    expect(hitterStudyMatches(model, [reference(1)])).toEqual({ matches: [], basis: "none", sizeFallback: false });
-  });
-
-  it("skips invalid corpus records instead of filling missing dimensions or sample counts", () => {
+  it("skips invalid reference records and every occurrence of a duplicate ID", () => {
     const invalid: HitterStudyReference[] = [
       { ...reference(2), id: 0 }, { ...reference(3), id: NaN }, { ...reference(4), id: 1.5 },
       { ...reference(5), name: " " }, { ...reference(6), attackAngle: NaN }, { ...reference(7), attackAngle: 95 },
@@ -135,39 +163,32 @@ describe("descriptive professional hitter study examples", () => {
       { ...reference(10), weightLb: -1 }, { ...reference(11), weightLb: NaN },
       { ...reference(12), competitiveSwings: 0 }, { ...reference(13), competitiveSwings: Infinity }, { ...reference(14), competitiveSwings: 3.5 },
     ];
-    expect(ids(hitterStudyMatches(profile(), [...invalid, reference(1)]))).toEqual([1]);
+    expect(ids(hitterStudyMatches(profile(), [...invalid, reference(1)], right))).toEqual([id(1)]);
+    const duplicated = [reference(1), reference(2), reference(1, 13), reference(3)];
+    const expected = [id(2), id(3)].sort((a, b) => a - b);
+    expect(ids(hitterStudyMatches(profile(), duplicated, right))).toEqual(expected);
+    expect(ids(hitterStudyMatches(profile(), [...duplicated].reverse(), right))).toEqual(expected);
   });
 
-  it("omits all duplicate IDs regardless of record order", () => {
-    const references = [reference(1), reference(2), reference(1, 13), reference(3)];
-    expect(ids(hitterStudyMatches(profile(), references))).toEqual([2, 3]);
-    expect(ids(hitterStudyMatches(profile(), [...references].reverse()))).toEqual([2, 3]);
+  it("keeps deterministic ties, caps three examples, and never mutates or exposes a computed score", () => {
+    const model = profile(12, { height: 70, weight: 160, heightRank: 50, weightRank: 50 });
+    const corpus = bodyCorpus().map(item => ({ ...item, heightInches: 72, weightLb: 190 }));
+    const preferences = { bats: "R", batSpeedPercentile: 50 };
+    const before = structuredClone({ model, corpus, preferences });
+    const result = hitterStudyMatches(model, corpus, preferences);
+    expect(ids(result)).toEqual(corpus.map(item => item.id).sort((a, b) => a - b).slice(0, 3));
+    expect(hitterStudyMatches(model, [...corpus].reverse(), preferences)).toEqual(result);
+    expect({ model, corpus, preferences }).toEqual(before);
+    expect(Object.keys(result).sort()).toEqual(["basis", "matches", "sizeFallback"]);
+    expect(result.matches[0]).toBe(corpus.find(item => item.id === result.matches[0].id));
   });
 
-  it("treats invalid body dimensions as missing instead of forcing a size fallback", () => {
-    const model = profile(12, { height: 72, weight: 190 });
-    for (const value of [0, -1, NaN, Infinity]) {
-      const result = hitterStudyMatches({ ...model, height: { ...model.height!, value }, weight: { ...model.weight!, value } }, [reference(1)]);
-      expect(result).toMatchObject({ basis: "path_only", sizeFallback: false });
-      expect(ids(result)).toEqual([1]);
-    }
-  });
-
-  it("is deterministic and does not mutate the profile or reference corpus", () => {
-    const model = profile(12, { height: 72, weight: 190 });
-    const references = [reference(12, 13, 73, 195), reference(2, 13, 73, 195), reference(4, 12, 74, 200), reference(8, 16, 72, 190)];
-    const before = structuredClone({ model, references });
-    const expected = ids(hitterStudyMatches(model, references));
-    expect(ids(hitterStudyMatches(model, [...references].reverse()))).toEqual(expected);
-    expect({ model, references }).toEqual(before);
-    expect(hitterStudyMatches(model, []).basis).toBe("none");
-  });
-
-  it("can select from the source-backed default corpus without exposing a computed score", () => {
-    const result = hitterStudyMatches(profile(12));
+  it.each(["R", "L", "S"])("selects only curated %s hitters from the source-backed default corpus", bats => {
+    const result = hitterStudyMatches(profile(12), undefined, { bats });
     expect(result.basis).toBe("path_only");
     expect(result.matches).toHaveLength(3);
     for (const match of result.matches) {
+      expect(match.bats).toBe(bats); expect(FEATURED_HITTER_STUDY_IDS).toContain(match.id);
       expect(attackPath(match.attackAngle)?.key).toBe("rising");
       expect(Math.abs(match.attackAngle - 12)).toBeLessThanOrEqual(5);
       expect(Object.keys(match).sort()).toEqual(["attackAngle", "averageBatSpeed", "bats", "competitiveSwings", "heightInches", "id", "name", "weightLb"]);
@@ -175,159 +196,71 @@ describe("descriptive professional hitter study examples", () => {
   });
 });
 
-describe("public MLB bat-speed percentiles", () => {
-  const speeds = (values: (number | null)[]) => values.map((averageBatSpeed, index) => ({ ...reference(index + 1), averageBatSpeed }));
+describe("public MLB relative ranks", () => {
+  it.each(["height", "weight"] as const)("gives tied %s neutral ranks, complete endpoints and a five-person minimum", dimension => {
+    const corpus = [60, 70, 70, 80, 90, 100].map((value, index) => ({ ...reference(index + 1), [dimension === "height" ? "heightInches" : "weightLb"]: value }));
+    expect(proBodyPercentile(corpus[0], dimension, corpus)).toEqual({ value: 0, sampleSize: 6 });
+    expect(proBodyPercentile(corpus[1], dimension, corpus)).toEqual({ value: 30, sampleSize: 6 });
+    expect(proBodyPercentile(corpus[2], dimension, corpus)).toEqual({ value: 30, sampleSize: 6 });
+    expect(proBodyPercentile(corpus[5], dimension, corpus)).toEqual({ value: 100, sampleSize: 6 });
+    expect(proBodyPercentile(corpus[0], dimension, corpus.slice(0, 4))).toBeNull();
+    const tied = corpus.slice(0, 5).map(item => ({ ...item, heightInches: 72, weightLb: 190 }));
+    expect(proBodyPercentile(tied[0], dimension, tied)).toEqual({ value: 50, sampleSize: 5 });
+  });
 
-  it("uses one hitter per value, shared tied midranks, and inclusive endpoints", () => {
-    const corpus = speeds([60, 70, 70, 80, 90, 100]);
+  it("uses the full population across batting sides, paths and unfeatured names", () => {
+    const corpus = bodyCorpus().map((item, index) => ({ ...item, averageBatSpeed: 50 + index * 10,
+      ...(index < 2 ? { id: index + 1, attackAngle: 5, bats: "L" as const } : {}),
+    }));
+    const selected = hitterStudyMatches(profile(), corpus, right).matches;
+    expect(selected).toHaveLength(3);
+    expect(proBodyPercentile(corpus[2], "height", corpus)).toEqual({ value: 50, sampleSize: 5 });
+    expect(proBodyPercentile(corpus[2], "weight", corpus)).toEqual({ value: 50, sampleSize: 5 });
+    expect(proBatSpeedPercentile(corpus[2], corpus)).toEqual({ value: 50, sampleSize: 5 });
+    expect(proBodyPercentile(corpus[2], "height", selected)).toBeNull();
+  });
+
+  it("omits duplicated IDs from all relative ranks and keeps order-independent results", () => {
+    const corpus = [...bodyCorpus(), reference(6, 12, 78, 240)].map((item, index) => ({ ...item, averageBatSpeed: 60 + index * 10 }));
+    const duplicated = [...corpus, { ...corpus[0], heightInches: 90, weightLb: 400, averageBatSpeed: 90 }];
+    for (const dimension of ["height", "weight"] as const) {
+      expect(proBodyPercentile(corpus[0], dimension, duplicated)).toBeNull();
+      expect(proBodyPercentile(corpus[1], dimension, duplicated)).toEqual({ value: 0, sampleSize: 5 });
+      expect(proBodyPercentile(corpus[5], dimension, [...duplicated].reverse())).toEqual({ value: 100, sampleSize: 5 });
+    }
+    expect(proBatSpeedPercentile(corpus[0], duplicated)).toBeNull();
+    expect(proBatSpeedPercentile(corpus[1], duplicated)).toEqual({ value: 0, sampleSize: 5 });
+  });
+
+  it("rejects absent, changed or invalid reference values without inventing measurements", () => {
+    const corpus = bodyCorpus();
+    for (const dimension of ["height", "weight"] as const) {
+      const key = dimension === "height" ? "heightInches" : "weightLb";
+      for (const value of [0, -1, NaN, Infinity]) expect(proBodyPercentile({ ...corpus[0], [key]: value }, dimension, corpus)).toBeNull();
+      expect(proBodyPercentile({ ...corpus[0], [key]: corpus[0][key] + 1 }, dimension, corpus)).toBeNull();
+      expect(proBodyPercentile({ ...corpus[0], id: 999999 }, dimension, corpus)).toBeNull();
+    }
+  });
+
+  it("preserves speed zero, tied midranks and incomplete speed cohorts", () => {
+    const corpus = [0, 70, 70, 80, 90, 100, null, NaN, Infinity, -1].map((averageBatSpeed, index) => ({ ...reference(index + 1), averageBatSpeed }));
     expect(proBatSpeedPercentile(corpus[0], corpus)).toEqual({ value: 0, sampleSize: 6 });
     expect(proBatSpeedPercentile(corpus[1], corpus)).toEqual({ value: 30, sampleSize: 6 });
     expect(proBatSpeedPercentile(corpus[2], corpus)).toEqual({ value: 30, sampleSize: 6 });
     expect(proBatSpeedPercentile(corpus[5], corpus)).toEqual({ value: 100, sampleSize: 6 });
-  });
-
-  it("requires at least five valid measured hitters and gives an all-tied cohort its midpoint", () => {
-    const corpus = speeds([70, 70, 70, 70, 70]);
     expect(proBatSpeedPercentile(corpus[0], corpus.slice(0, 4))).toBeNull();
-    expect(proBatSpeedPercentile(corpus[0], corpus)).toEqual({ value: 50, sampleSize: 5 });
+    for (const item of corpus.slice(6)) expect(proBatSpeedPercentile(item, corpus)).toBeNull();
+    expect(proBatSpeedPercentile({ ...corpus[1], averageBatSpeed: 71 }, corpus)).toBeNull();
+    const tied = corpus.slice(0, 5).map(item => ({ ...item, averageBatSpeed: 70 }));
+    expect(proBatSpeedPercentile(tied[0], tied)).toEqual({ value: 50, sampleSize: 5 });
   });
 
-  it("uses the complete supplied cohort across path, size and side instead of the suggested three", () => {
-    const corpus = speeds([50, 60, 70, 80, 90, 100]).map((item, index) => ({ ...item,
-      attackAngle: index < 3 ? 5 : 12, heightInches: index < 3 ? 80 : 72, bats: index < 3 ? "L" as const : "R" as const,
-    }));
-    const selected = hitterStudyMatches(profile(), corpus, { bats: "R" }).matches;
-    expect(selected).toHaveLength(3);
-    expect(proBatSpeedPercentile(corpus[3], corpus)).toEqual({ value: 60, sampleSize: 6 });
-    expect(proBatSpeedPercentile(corpus[3], selected)).toBeNull();
-  });
-
-  it("excludes all duplicate IDs and retains order-independent percentiles", () => {
-    const corpus = speeds([60, 70, 80, 90, 100, 110]);
-    const duplicated = [...corpus, { ...corpus[0], averageBatSpeed: 90 }];
-    expect(proBatSpeedPercentile(corpus[0], duplicated)).toBeNull();
-    expect(proBatSpeedPercentile(corpus[1], duplicated)).toEqual({ value: 0, sampleSize: 5 });
-    expect(proBatSpeedPercentile(corpus[5], [...duplicated].reverse())).toEqual({ value: 100, sampleSize: 5 });
-  });
-
-  it("keeps recorded zero but excludes missing, invalid and non-member values", () => {
-    const corpus = speeds([0, 60, 70, 80, 90, null, NaN, Infinity, -1]);
-    expect(proBatSpeedPercentile(corpus[0], corpus)).toEqual({ value: 0, sampleSize: 5 });
-    for (const reference of corpus.slice(5)) expect(proBatSpeedPercentile(reference, corpus)).toBeNull();
-    expect(proBatSpeedPercentile({ ...corpus[2], averageBatSpeed: 71 }, corpus)).toBeNull();
-    expect(proBatSpeedPercentile({ ...corpus[2], id: 99999 }, corpus)).toBeNull();
-  });
-
-  it("uses the source-backed default cohort without changing the records", () => {
+  it("uses the complete 226-player official source corpus without changing records", () => {
     const target = HITTER_STUDY_REFERENCES.find(item => item.averageBatSpeed !== null)!;
     const before = structuredClone(HITTER_STUDY_REFERENCES);
-    const value = proBatSpeedPercentile(target);
-    expect(value?.sampleSize).toBe(226);
-    expect(value?.value).toBeGreaterThanOrEqual(0);
-    expect(value?.value).toBeLessThanOrEqual(100);
+    for (const result of [proBatSpeedPercentile(target), proBodyPercentile(target, "height"), proBodyPercentile(target, "weight")]) {
+      expect(result?.sampleSize).toBe(226); expect(result?.value).toBeGreaterThanOrEqual(0); expect(result?.value).toBeLessThanOrEqual(100);
+    }
     expect(HITTER_STUDY_REFERENCES).toEqual(before);
-  });
-});
-
-describe("handedness and recognizable study preferences", () => {
-  const featuredIds = FEATURED_HITTER_STUDY_IDS.slice(0, 4);
-  const sideReference = (id: number, bats: HitterStudyReference["bats"], angle = 12, height = 72, weight = 190) => ({ ...reference(id, angle, height, weight), bats });
-
-  it.each([
-    ["R", "R", true], ["R", "L", false], ["R", "S", true],
-    ["L", "L", true], ["L", "R", false], ["L", "S", true],
-    [" r ", "R", true], ["S", "L", true], ["S", "R", true],
-    [null, "L", true], [undefined, "R", true], ["unknown", "L", true],
-  ] as const)("handles own %s and professional %s side without inventing a missing side", (own, professional, compatible) => {
-    expect(compatibleBattingSide(own, professional)).toBe(compatible);
-  });
-
-  it("prefers familiar eligible names while retaining the same path and angle window", () => {
-    const corpus = [reference(1, 12), reference(featuredIds[0], 13), reference(featuredIds[1], 13.5), reference(featuredIds[2], 14), reference(featuredIds[3], 18)];
-    expect(ids(hitterStudyMatches(profile(), corpus, { bats: "R" }))).toEqual(featuredIds.slice(0, 3));
-    expect(ids(hitterStudyMatches(profile(), corpus))).toEqual([1, featuredIds[0], featuredIds[1]]);
-  });
-
-  it("uses same-side or switch hitters when three are available and opposite candidates lack an exceptional basis", () => {
-    const corpus = [sideReference(featuredIds[0], "R", 14), sideReference(featuredIds[1], "R", 14.5), sideReference(featuredIds[2], "S", 15), sideReference(featuredIds[3], "L", 12)];
-    const matches = hitterStudyMatches(profile(), corpus, { bats: "R" }).matches;
-    expect(matches).toHaveLength(3);
-    expect(matches.every(item => item.bats === "R" || item.bats === "S")).toBe(true);
-  });
-
-  it("allows opposite-side references to fill a short compatible list", () => {
-    const corpus = [sideReference(featuredIds[0], "R"), sideReference(featuredIds[1], "L"), sideReference(featuredIds[2], "L")];
-    const result = hitterStudyMatches(profile(), corpus, { bats: "R" });
-    expect(result.matches).toHaveLength(3);
-    expect(result.matches[0].bats).toBe("R");
-    expect(result.matches.filter(item => item.bats === "L")).toHaveLength(2);
-  });
-
-  it("lets an exceptionally close opposite-side size example override the usual preference", () => {
-    const corpus = [sideReference(featuredIds[0], "L"), ...[1, 2, 3].map(id => sideReference(id, "R", 17, 75, 220))];
-    const result = hitterStudyMatches(profile(12, { height: 72, weight: 190 }), corpus, { bats: "R" });
-    expect(result.matches[0].id).toBe(featuredIds[0]);
-    expect(result.matches[0].bats).toBe("L");
-    expect(result.matches).toHaveLength(3);
-  });
-
-  it.each([
-    { angle: 14, height: 73, weight: 205, eligible: true },
-    { angle: 14.00001, height: 73, weight: 205, eligible: false },
-    { angle: 14, height: 73.00001, weight: 205, eligible: false },
-    { angle: 14, height: 73, weight: 205.00001, eligible: false },
-  ])("honors exceptional geometry boundaries $angle/$height/$weight", ({ angle, height, weight, eligible }) => {
-    const corpus = [sideReference(featuredIds[0], "L", angle, height, weight), ...[1, 2, 3].map(id => sideReference(id, "R", 17, 75, 220))];
-    const result = hitterStudyMatches(profile(12, { height: 72, weight: 190 }), corpus, { bats: "R" });
-    expect(ids(result).includes(featuredIds[0])).toBe(eligible);
-  });
-
-  it("uses relative bat-speed rank rather than raw speed to admit an exceptional opposite-side example", () => {
-    const corpus = [
-      { ...sideReference(featuredIds[0], "L"), averageBatSpeed: 30 },
-      { ...sideReference(1, "R", 17), averageBatSpeed: 0 },
-      { ...sideReference(2, "R", 17), averageBatSpeed: 100 },
-      { ...sideReference(3, "R", 17), averageBatSpeed: 40 },
-      { ...sideReference(4, "L", 5), averageBatSpeed: 20 },
-    ];
-    expect(proBatSpeedPercentile(corpus[0], corpus)).toEqual({ value: 50, sampleSize: 5 });
-    expect(hitterStudyMatches(profile(), corpus, { bats: "R", batSpeedPercentile: 50 }).matches[0].id).toBe(featuredIds[0]);
-    expect(ids(hitterStudyMatches(profile(), corpus, { bats: "R" }))).not.toContain(featuredIds[0]);
-  });
-
-  it("preserves the inclusive 15-point exceptional percentile boundary", () => {
-    const corpus = [
-      { ...sideReference(featuredIds[0], "L"), averageBatSpeed: 30 },
-      { ...sideReference(1, "R", 17, 75, 220), averageBatSpeed: 10 },
-      { ...sideReference(2, "R", 17, 75, 220), averageBatSpeed: 50 },
-      { ...sideReference(3, "R", 17, 75, 220), averageBatSpeed: 60 },
-      { ...sideReference(4, "L", 5), averageBatSpeed: 20 },
-      { ...sideReference(5, "L", 5), averageBatSpeed: 40 },
-    ];
-    const model = profile(12, { height: 72, weight: 190 });
-    expect(proBatSpeedPercentile(corpus[0], corpus)).toEqual({ value: 40, sampleSize: 6 });
-    expect(ids(hitterStudyMatches(model, corpus, { bats: "R", batSpeedPercentile: 55 }))).toContain(featuredIds[0]);
-    expect(ids(hitterStudyMatches(model, corpus, { bats: "R", batSpeedPercentile: 55.00001 }))).not.toContain(featuredIds[0]);
-  });
-
-  it("lets an exceptionally close unfeatured player override recognizable names", () => {
-    const corpus = [reference(1), ...featuredIds.slice(0, 3).map(id => reference(id, 15, 74, 210))];
-    expect(hitterStudyMatches(profile(12, { height: 72, weight: 190 }), corpus, { bats: "R" }).matches[0].id).toBe(1);
-  });
-
-  it.each([NaN, Infinity, -1, 100.00001])("ignores invalid personal percentile preference %s", batSpeedPercentile => {
-    const corpus = [reference(1), reference(featuredIds[0], 13), reference(featuredIds[1], 14)];
-    expect(hitterStudyMatches(profile(), corpus, { bats: "R", batSpeedPercentile })).toEqual(hitterStudyMatches(profile(), corpus, { bats: "R", batSpeedPercentile: null }));
-  });
-
-  it("keeps preference results deterministic and input records unchanged", () => {
-    const model = profile(12, { height: 72, weight: 190 });
-    const corpus = [sideReference(featuredIds[0], "L"), sideReference(featuredIds[1], "R", 14), sideReference(featuredIds[2], "S", 13), sideReference(1, "R", 17, 75, 220), sideReference(2, "R", 17, 75, 220)];
-    const preferences = { bats: "R", batSpeedPercentile: 50 };
-    const before = structuredClone({ model, corpus, preferences });
-    const result = hitterStudyMatches(model, corpus, preferences);
-    expect(hitterStudyMatches(model, [...corpus].reverse(), preferences)).toEqual(result);
-    expect({ model, corpus, preferences }).toEqual(before);
-    expect(Object.keys(result).sort()).toEqual(["basis", "matches", "sizeFallback"]);
   });
 });

@@ -49,11 +49,11 @@ export default async function SwingDesignPage({ searchParams }: { searchParams?:
   const showHitting = !!athlete && !!season && profileShowsHitting(season);
   const content = athlete && showHitting ? await (async () => {
     const [shared, teamAverages, speedReference] = await Promise.all([
-      loadAthletePerformance(access, athlete, { includePercentiles: false }),
+      loadAthletePerformance(access, athlete, { includePercentiles: true }),
       loadHittingTeamAverages(access),
       loadBlastBatSpeedPercentile(access, athlete.id),
     ]);
-    const performance = getPlayerPerformance({ readings: shared.measurements, batches: shared.batches, athleteCode: athlete.athlete_code, cohortAthleteCodes: [] });
+    const performance = getPlayerPerformance({ readings: shared.measurements, batches: shared.batches, athleteCode: athlete.athlete_code, cohortAthleteCodes: [], percentileOverrides: shared.percentileOverrides });
     if (!hitterSwingProfile(shared.measurements, performance).summary) return <EmptySwingDesign title="Practice Results Coming Soon">The swing diagrams and MLB study cards will appear after a Blast average report is saved for this player.</EmptySwingDesign>;
     return <HitterSwingBlueprint readings={shared.measurements} performance={performance} teamAverages={teamAverages} bats={season?.bats} batSpeedReference={speedReference?.athleteId === athlete.id ? speedReference : null}/>;
   })() : null;

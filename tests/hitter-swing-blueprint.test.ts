@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { HitterSwingBlueprint, SwingAngleDiagram } from "@/components/hitter-swing-blueprint";
+import { BodyTiltDiagram, HitterSwingBlueprint, SwingAngleDiagram } from "@/components/hitter-swing-blueprint";
 import { PlayerPerformanceProfile } from "@/components/player-performance-profile";
 import { blastSource, type BlastSummaryKind } from "@/lib/blast-metrics";
 import { hitterStudyMatches } from "@/lib/hitter-study-matches";
@@ -16,19 +16,19 @@ function report({ attack = 12, vertical = -30, kind = "average", hash = "a", sta
   attack?: number; vertical?: number; kind?: BlastSummaryKind; hash?: string; start?: string; end?: string;
 } = {}): Measurement[] {
   const values: [string, number, string][] = [["Blast Swing Count", 25, "count"], [kind === "average" ? "Average Bat Speed" : "Peak Bat Speed (95th)", 65.25, "mph"],
-    ["Peak Hand Speed", 18, "mph"], ["Attack Angle", attack, "deg"], ["Early Connection", 90, "deg"], ["Vertical Bat Angle", vertical, "deg"]];
+    ["Peak Hand Speed", 18, "mph"], ["Attack Angle", attack, "deg"], ["Early Connection", 90, "deg"], ["Vertical Bat Angle", vertical, "deg"], ["Body Tilt Angle", 28, "deg"]];
   return values.map(([metric, value, unit], index) => ({ id: `fictional-${hash}-${index}`, athlete_code: code, measured_at: end,
     source: blastSource(kind, start, end), metric, value, unit, source_file: "fictional-blueprint.csv", source_sheet: "CSV", source_row: 2, file_hash: hash.repeat(64) }));
 }
 const performance = (readings: Measurement[] = []) => getPlayerPerformance({ readings, athleteCode: code });
-const renderBlueprint = (readings: Measurement[]) => renderToStaticMarkup(createElement(HitterSwingBlueprint, { readings, performance: performance(readings) }));
+const renderBlueprint = (readings: Measurement[]) => renderToStaticMarkup(createElement(HitterSwingBlueprint, { readings, performance: performance(readings), bats:"R" }));
 function athlete(playerType: string | null = "position", primaryPosition = "CF"): RosterAthlete {
   return { id: code, athlete_code: code, first_name: "Fictional", preferred_name: null, last_name: "Blueprint", pacific_email: "fictional.blueprint@example.com", profile_photo_url: null, created_at: "", updated_at: "",
     athlete_seasons: [{ athlete_id: code, season: "2026-27", jersey_number: 0, primary_position: primaryPosition, secondary_position: playerType === "two_way" ? "P" : null,
       player_type: playerType, bats: "R", throws: "R", academic_class: null, eligibility_year: null, graduation_year: null, roster_status: "active" }] };
 }
 
-function diagram(html: string, kind: "attack" | "vertical") {
+function diagram(html: string, kind: "attack" | "vertical" | "body") {
   const svg = [...html.matchAll(/<svg\b[^>]*>[\s\S]*?<\/svg>/g)].map(match => match[0]).find(svg => svg.includes(`data-angle-kind="${kind}"`));
   expect(svg).toBeDefined();
   return svg!;
@@ -47,6 +47,17 @@ function highlightedSegment(svg: string, width: 4 | 5) {
 }
 
 describe("measured angle illustrations", () => {
+  it.each([-25,0,25])("draws body tilt %s from vertical rather than inventing spine coordinates",angle=>{
+    const svg=renderToStaticMarkup(createElement(BodyTiltDiagram,{angle}));
+    const segment=highlightedSegment(svg,5);
+    expect(90-Math.atan2(segment.y1-segment.y2,segment.x2-segment.x1)*180/Math.PI).toBeCloseTo(angle,8);
+    expect(svg).toContain("not measured spine motion");
+  });
+  it("keeps unavailable body tilt unmeasured",()=>{
+    const svg=renderToStaticMarkup(createElement(BodyTiltDiagram,{angle:null}));
+    expect(svg).not.toContain("data-angle=");
+    expect(svg).not.toContain('stroke-width="5"');
+  });
   it.each([12, -12, 0])("draws signed attack angle %s in the correct screen direction", angle => {
     const svg = renderToStaticMarkup(createElement(SwingAngleDiagram, { angle, kind: "attack" }));
     const segment = highlightedSegment(svg, 4);
@@ -82,6 +93,7 @@ describe("Practice swing blueprint", () => {
     expect(html).toContain('data-testid="hitter-swing-blueprint"');
     expect(diagram(html, "attack")).toContain('data-angle="12"');
     expect(diagram(html, "vertical")).toContain('data-angle="-30"');
+    expect(diagram(html, "body")).toContain('data-angle="28"');
     expect(html).toContain("+12.0°");
     expect(html).toContain("-30.0°");
     expect(html).toMatch(/illustrat(?:ed|ive|ion)/i);
@@ -126,7 +138,7 @@ describe("Practice swing blueprint", () => {
   it("links the actual selected public references and source without fabricated similarity scores", () => {
     const readings = report();
     const model = hitterSwingProfile(readings, performance(readings));
-    const study = hitterStudyMatches(model,undefined,{batSpeedPercentile:null});
+    const study = hitterStudyMatches(model,undefined,{bats:"R",batSpeedPercentile:null});
     const html = renderBlueprint(readings);
     const playerLinks = [...html.matchAll(/<a\b[^>]*href="https:\/\/www\.mlb\.com\/player\/(\d+)"[^>]*>/g)];
     expect(playerLinks.map(match => Number(match[1]))).toEqual(study.matches.map(reference => reference.id));
@@ -158,6 +170,29 @@ describe("Practice swing blueprint", () => {
     expect(html).toMatch(/aria-label="[^"]+ bat speed MLB percentile"/);
     expect(html).toContain("not equal mph"); expect(html).not.toContain("Their Average Bat Speed");
     expect(html).toContain("Weekly P95 reports are never used");
+  });
+  it("shows relative body ranks and clearly separates unsupported MLB angle comparisons",()=>{
+    const readings=report(), cards=performance(readings);
+    for(const [metricKey,value,unit,rank] of [["height",70,"in",75],["weight",175,"lb",50]] as const){
+      const card=cards.body.find(item=>item.metric.key===metricKey)!;
+      card.latest={id:`fictional-${metricKey}`,athleteCode:code,metricKey,value,unit,measuredAt:"2026-09-15",period:"fall_2026",source:"Fictional body testing",importedAt:"",provenance:[],derived:false};
+      card.percentile={value:rank,sampleSize:9,unit,period:"fall_2026",direction:"neutral"}; card.percentileStatus="available";
+    }
+    const html=renderToStaticMarkup(createElement(HitterSwingBlueprint,{readings,performance:cards,bats:"R"}));
+    expect(html).toContain("75 familiar MLB names");
+    expect(html).toContain("Height: 75th percentile among 9 Pacific players");
+    expect(html).toContain("Weight: 50th percentile among 9 Pacific players");
+    expect(html).toMatch(/Height: \d+(?:st|nd|rd|th) percentile among 226 MLB players/);
+    expect(html).toContain("No verified MLB vertical bat angle or body tilt measurements");
+    expect(html).not.toContain("Opposite-Side");
+    expect(html).not.toContain("within 3 inches");
+  });
+  it("withholds professional cards when batting side is unknown",()=>{
+    const readings=report();
+    const html=renderToStaticMarkup(createElement(HitterSwingBlueprint,{readings,performance:performance(readings)}));
+    expect(html).not.toMatch(/href="https:\/\/www\.mlb\.com\/player\/\d+/);
+    expect(html).toContain("Add a verified batting side");
+    expect(html).toContain("Body Tilt Angle");
   });
   it("withholds Pacific percentiles when the aggregate describes different reports",()=>{
     const readings=report();
