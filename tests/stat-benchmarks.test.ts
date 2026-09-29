@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { StatInfo } from "@/components/stat-info";
-import { benchmarkGrade, benchmarkRows, blastReference, pacificBenchmark, statBenchmark } from "@/lib/stat-benchmarks";
+import { benchmarkGrade, benchmarkRows, blastReference, collegePitchReference, pacificBenchmark, statBenchmark } from "@/lib/stat-benchmarks";
 import reference from "@/lib/nwc-benchmarks.json";
 
 it("uses separate, inspectable D3 team and published-player populations",()=>{
@@ -41,6 +41,24 @@ it("restricts Blast college targets to compatible average device readings",()=>{
  expect(blastReference("avg_bat_speed",{source:"Full Swing · Practice",unit:"mph"})).toBeNull();
  expect(blastReference("avg_bat_speed",{source:"Blast Motion · P95 · 2026-09-13:2026-09-20",unit:"mph"})).toBeNull();
  expect(blastReference("avg_bat_speed",{source:"blast_fall",unit:"km/h"})).toBeNull();
+});
+it("keeps published college pitch means separate from max values, generic types and incompatible units",()=>{
+ const context={source:"Full Swing · Intrasquad · Four-Seam Fastball",unit:"mph"};
+ expect(collegePitchReference("classified_avg_velocity",context)).toEqual({right:85,left:83,unit:"mph"});
+ expect(collegePitchReference("classified_avg_spin",{source:"full swing · practice · Changeup",unit:"rpm"})).toEqual({right:1167,left:1629,unit:"rpm"});
+ for(const metric of ["classified_max_velocity","classified_max_spin","avg_pitch_velocity","max_pitch_velocity"])
+   expect(collegePitchReference(metric,context)).toBeNull();
+ expect(collegePitchReference("classified_avg_velocity",{...context,unit:"km/h"})).toBeNull();
+ for(const type of ["Fastball","Breaking Ball","Sweeper","Sinker","Other"])
+   expect(collegePitchReference("classified_avg_velocity",{source:`Full Swing · Game · ${type}`,unit:"mph"})).toBeNull();
+ expect(collegePitchReference("classified_avg_velocity",{source:"Rapsodo · Four-Seam Fastball",unit:"mph"})).toBeNull();
+});
+it("explains the external population and device while keeping Pacific grading separate",()=>{
+ const html=renderToStaticMarkup(createElement(StatInfo,{metric:"classified_avg_spin",source:"Full Swing · Practice · Slider",unit:"rpm"}));
+ for(const text of ["College Pitch Average","2086.0 RPM","2036.0 RPM","JUCO through D1","not a device-matched grade","averages, not maximums","Pacific Comparison Guide"])
+   expect(html).toContain(text);
+ const max=renderToStaticMarkup(createElement(StatInfo,{metric:"classified_max_spin",source:"Full Swing · Practice · Slider",unit:"rpm"}));
+ expect(max).not.toContain("College Pitch Average");
 });
 it("renders all five ranges, source and observed grade in the accessible information dialog",()=>{
  const html=renderToStaticMarkup(createElement(StatInfo,{metric:"pitching_whip",label:"WHIP",value:1.2}));

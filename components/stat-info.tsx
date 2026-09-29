@@ -3,7 +3,7 @@
 import { useId, useState } from "react";
 import { Info, X } from "lucide-react";
 import { statDefinition } from "@/lib/stat-definitions";
-import { benchmarkGrade, benchmarkMetric, benchmarkRows, blastReference, GRADE_LABELS, NEUTRAL_LABELS, metricDirection, statBenchmark, ungradedMetric, type Benchmark, type StatGuideContext } from "@/lib/stat-benchmarks";
+import { benchmarkGrade, benchmarkMetric, benchmarkRows, blastReference, collegePitchReference, GRADE_LABELS, NEUTRAL_LABELS, metricDirection, statBenchmark, ungradedMetric, type Benchmark, type StatGuideContext } from "@/lib/stat-benchmarks";
 import styles from "./stat-info.module.css";
 
 /** References are public; Pacific ranges use only the existing signed-in ranking projection. */
@@ -12,6 +12,7 @@ export function StatInfo({ metric, label = metric, ...context }: { metric: strin
   const [remote,setRemote]=useState<{key:string;benchmark:Benchmark|null}|null>(null),[loading,setLoading]=useState(false);
   const local=statBenchmark(metric,context),b=local??(remote?.key===key?remote.benchmark:null);
   const target=blastReference(metric,context),neutral=metricDirection(metric)==="neutral",ungraded=ungradedMetric(benchmarkMetric(metric));
+  const collegePitch=collegePitchReference(metric,context);
   const current=b&&typeof context.value==="number"&&Number.isFinite(context.value)?benchmarkGrade(context.value,b):null;
   const percentileGrade=!b&&!neutral&&typeof context.percentile==="number"&&context.percentile>=0&&context.percentile<=100?Math.min(4,Math.floor(context.percentile/20)):null;
   async function load(){
@@ -40,6 +41,7 @@ export function StatInfo({ metric, label = metric, ...context }: { metric: strin
         <span className={styles.note}>*Upper bound excluded. At least five comparable teammates are needed. These are Pacific bands, not national D3 standards. {neutral?"Low/high describes the number, not good/bad. ":""}{context.scope==="team"?"A pooled team rate is not graded against individual teammates. ":""}Absolute ranges appear when the exact source, unit and period has a supported comparison.</span>
       </span>}
       {target&&<span className={styles.target}><strong>Blast College Reference</strong><span>{target}</span><span className={styles.note}>Vendor guidance, not D3 percentile cutoffs. Pitch location and swing intent matter. Not applied to Full Swing or weekly 95th-percentile results.</span><a className={styles.source} href="https://blastmotion.com/products/baseball/" target="_blank" rel="noreferrer">View Blast reference ↗</a></span>}
+      {collegePitch&&<span className={styles.target}><strong>College Pitch Average</strong><span>Right-handed pitchers: {collegePitch.right.toFixed(1)} {collegePitch.unit === "rpm" ? "RPM" : "mph"}</span><span>Left-handed pitchers: {collegePitch.left.toFixed(1)} {collegePitch.unit === "rpm" ? "RPM" : "mph"}</span><span className={styles.note}>Rapsodo’s June 2023 reference covers college sessions from JUCO through D1. Your readings use Full Swing, so this is outside context, not a device-matched grade or D3 percentile. These are averages, not maximums. Spin depends on the pitch; higher is not always better.</span><a className={styles.source} href="https://rapsodo.com/blogs/baseball/college-pitching-averages-and-how-to-reach-them" target="_blank" rel="noreferrer">View Rapsodo college reference ↗</a></span>}
     </span>
   </span>;
 }

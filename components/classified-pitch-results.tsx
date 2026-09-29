@@ -5,6 +5,7 @@ import { formatSourceNumber } from "@/lib/measurement-display";
 import { fallArsenalPitches, type FallArsenalPitch } from "@/lib/pitch-arsenal";
 import { PitchArsenalChart } from "@/components/pitch-arsenal-chart";
 import { PitchSeparationChart } from "@/components/pitch-separation-chart";
+import { StatInfo } from "@/components/stat-info";
 import styles from "./classified-pitch-results.module.css";
 
 const dateRange = (first: string | null, last: string | null) => !first || !last ? "Date unavailable" : first === last ? leaderboardTestDate(first) : `${leaderboardTestDate(first)} – ${leaderboardTestDate(last)}`;
@@ -12,7 +13,7 @@ function Average({ pitch, family }: { pitch: FallArsenalPitch; family: "velocity
   const velocity = family === "velocity", value = velocity ? pitch.averageVelocity : pitch.averageSpin;
   const basis = velocity ? pitch.velocityBasis : pitch.spinBasis, count = velocity ? pitch.velocityReadings : pitch.spinReadings;
   const first = velocity ? pitch.velocityAverageFirstDate : pitch.spinAverageFirstDate, last = velocity ? pitch.velocityAverageLastDate : pitch.spinAverageLastDate;
-  return <td data-label={velocity ? "Avg Velocity · mph" : "Avg Spin · RPM"}><strong>{value === null ? "—" : formatSourceNumber(value, pitch.source)}</strong><small>{value === null ? "Needs complete readings" : basis === "fall" ? "Fall average" : "Latest session"}</small>{value !== null && <small>{dateRange(first, last)} · n={count ?? "—"}</small>}</td>;
+  return <td data-label={velocity ? "Avg Velocity · mph" : "Avg Spin · RPM"}><strong>{value === null ? "—" : formatSourceNumber(value, pitch.source)}</strong><StatInfo metric={velocity ? "classified_avg_velocity" : "classified_avg_spin"} label={`${pitchTypeLabel(pitch.pitchType)} Average ${velocity ? "Velocity" : "Spin"}`} source={pitch.source} unit={velocity ? "mph" : "rpm"} value={value}/><small>{value === null ? "Needs complete readings" : basis === "fall" ? "Fall average" : "Latest session"}</small>{value !== null && <small>{dateRange(first, last)} · n={count ?? "—"}</small>}</td>;
 }
 function Maximum({ pitch, family }: { pitch: FallArsenalPitch; family: "velocity" | "spin" }) {
   const value = family === "velocity" ? pitch.maxVelocity : pitch.maxSpin, date = family === "velocity" ? pitch.maxVelocityDate : pitch.maxSpinDate;

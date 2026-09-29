@@ -67,6 +67,26 @@ export function blastReference(metric:string,context:StatGuideContext):string|nu
   if(!(context.source==="blast_fall"||/^blast motion · average · /i.test(context.source??"")))return null;
   return ({avg_bat_speed:"College bat speed: 66–75 mph",blast_peak_hand_speed:"College peak hand speed: 21–25 mph",blast_attack_angle:"College attack angle: 2–15°",blast_vertical_bat_angle:"Vertical bat angle: −40 to −10°; depends on pitch location",blast_early_connection:"Early connection target: 90° (reference window 80–105°)",blast_connection_impact:"Connection at impact target: 90° (reference window 80–95°)",blast_time_to_contact:"College time to contact: 0.14–0.17 s",blast_power:"College power: 3.83–5.074 kW",blast_on_plane_efficiency:"On-plane efficiency target: 70% or more"} as Record<string,string>)[metric]??null;
 }
+/** Published session means, not percentile cutoffs or maximum-velocity targets. */
+export function collegePitchReference(metric:string,context:StatGuideContext) {
+  const unit=metric==="classified_avg_velocity"?"mph":metric==="classified_avg_spin"?"rpm":null;
+  if(!unit||context.unit!==unit)return null;
+  const pitch=/^full swing · (?:game|intrasquad|practice) · (.+)$/i.exec(context.source??"")?.[1].toLowerCase();
+  const averages:Record<string,{velocity:[number,number];spin:[number,number]}>= {
+    "four-seam fastball":{velocity:[85,83],spin:[2055,2005]},
+    "two-seam fastball":{velocity:[84,82],spin:[1983,1933]},
+    cutter:{velocity:[79,79],spin:[2073,1988]},
+    curveball:{velocity:[73,72],spin:[2056,1995]},
+    slider:{velocity:[76,75],spin:[2086,2036]},
+    changeup:{velocity:[78,77],spin:[1167,1629]},
+    splitter:{velocity:[77,75],spin:[1221,1295]},
+    knuckleball:{velocity:[68,70],spin:[795,989]},
+  };
+  const entry=pitch?averages[pitch]:null;
+  if(!entry)return null;
+  const [right,left]=unit==="mph"?entry.velocity:entry.spin;
+  return {right,left,unit};
+}
 export function ungradedMetric(metric:string):boolean {
   return ["innings_outs","earned_runs","hh_base_hit","hh_extra_base_hit","three_eight_hh","qpa","eight_plus_pitches","moving_runner","ab_control","fb","fb_k","ch","ch_k","bb_pitch_family","bb_pitch_family_k","baf","fps","weak_contact","hard_contact"].includes(metric)||/(?:^|_)(?:count|pa|ab|pitches|strikes|hits|rbi|pumps|sb|gdp|k|bb|h|r|hbp|sac_fly|sac_bunt)$/.test(metric)||["pearson_r","r_squared","spray_chart","hitter_contact_chart","pitch_arsenal_chart","pitching_contact_chart","pitch_splits"].includes(metric);
 }

@@ -12,9 +12,9 @@
 .tableWrap th,.tableWrap td { padding:14px 15px; text-align:left; vertical-align:top; border-bottom:1px solid var(--line-subtle); }
 .tableWrap thead th { font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-secondary); }
 .tableWrap tbody th { width:23%; }
-.tableWrap strong { font-size:16px; font-weight:750; font-variant-numeric:tabular-nums; }
-.tableWrap tbody th strong { font-size:13px; }
-.tableWrap small { display:block; color:var(--text-secondary); font-size:10px; font-weight:400; line-height:1.5; margin-top:3px; }
+.tableWrap :is(th,td) > strong { font-size:16px; font-weight:750; font-variant-numeric:tabular-nums; }
+.tableWrap tbody th > strong { font-size:13px; }
+.tableWrap :is(th,td) > small { display:block; color:var(--text-secondary); font-size:10px; font-weight:400; line-height:1.5; margin-top:3px; }
 .tableWrap tbody tr:last-child > * { border-bottom:0; }
 .sourceGroup > div[aria-label] { padding:16px; border-top:1px solid var(--line-subtle); margin:0; }
 .note { margin:0; color:var(--text-secondary); font-size:11px; line-height:1.6; }
@@ -31,5 +31,5 @@
   .tableWrap tbody td:nth-child(even) { border-right:1px solid var(--line-subtle); }
   .tableWrap tbody td:nth-child(2),.tableWrap tbody td:nth-child(3) { border-bottom:1px solid var(--line-subtle); }
   .tableWrap td::before { content:attr(data-label); display:block; font-size:10px; color:var(--text-secondary); font-weight:650; margin-bottom:6px; }
-  .tableWrap tbody th strong { font-size:15px; }
+  .tableWrap tbody th > strong { font-size:15px; }
 }

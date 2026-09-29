@@ -14,7 +14,7 @@ function PitchRow({ metric, row, first, second }: {metric: ArsenalComparisonMetr
  const maximum = Math.max(metric.first?.value ?? 0, metric.second?.value ?? 0);
  return <div className={styles.arsenalRow}>
   <Result result={metric.first} name={first} unit={metric.unit} maximum={maximum} side="a" leading={metric.lead === "a"} eligible={row.eligibleA} review={row.reviewA}/>
-  <div className={styles.compareLabel}><h4>{metric.label}<StatInfo metric={metric.key} label={`${pitchTypeLabel(row.pitchType)} ${metric.label}`}/></h4><p className={styles.compareNote}>{metric.lead === "tie" ? "Equal result" : metric.note}</p></div>
+  <div className={styles.compareLabel}><h4>{metric.label}<StatInfo metric={metric.key} label={`${pitchTypeLabel(row.pitchType)} ${metric.label}`} source={row.source} unit={metric.unit}/></h4><p className={styles.compareNote}>{metric.lead === "tie" ? "Equal result" : metric.note}</p></div>
   <Result result={metric.second} name={second} unit={metric.unit} maximum={maximum} side="b" leading={metric.lead === "b"} eligible={row.eligibleB} review={row.reviewB}/>
  </div>;
 }
