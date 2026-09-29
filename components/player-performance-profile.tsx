@@ -4,6 +4,7 @@ import { fullSwingFileLabel } from "@/lib/full-swing-file-label";
 import { HittingTeamAverageLine } from "@/components/hitting-team-average";
 import { hittingTeamAverage, type HittingTeamAverage } from "@/lib/hitting-team-averages";
 import { BlastPracticeReports } from "@/components/blast-practice-reports";
+import { HitterSwingBlueprint } from "@/components/hitter-swing-blueprint";
 import type { Measurement } from "@/lib/imports/engine";
 import { profileMetricLabel } from "@/lib/profile-metric-label";
 import { parseBlastSource, blastPeriodLabel, formatBlastValue } from "@/lib/blast-metrics";
@@ -149,7 +150,7 @@ export function PlayerPerformanceProfile({ athlete, performance, season, blastRe
       {!simplified && physicalityDetails}
     </> },
     { id: "in-game", label: "In-Game", content: <>{gamePitchResults}<SessionMeasurements teamAverages={teamAverages} performance={classifiedPerformance} season={selectedSeason} context="in_game" hasArsenal={gameArsenal} />{layout.showHitting && contactResults}{gameStats && <section aria-label="Cumulative game statistics" className="space-y-4 border-t border-[var(--line-subtle)] pt-6"><h2 className="m-0 text-xl font-bold">Cumulative Game Stats · Fall 2026</h2>{gameStats}</section>}</> },
-    { id: "practice", label: "Practice", content: <>{practiceResults}{layout.showHitting && hasBlast && <BlastPracticeReports teamAverages={teamAverages} readings={blastReadings!}/>}<SessionMeasurements teamAverages={teamAverages} performance={displayPerformance} season={selectedSeason} context="practice" hasBlast={hasBlast && layout.showHitting} hasArsenal={practiceArsenal} />{layout.showHitting && practiceContactResults}</> },
+    { id: "practice", label: "Practice", content: <>{practiceResults}{layout.showHitting && hasBlast && <><HitterSwingBlueprint readings={blastReadings!} performance={performance}/><BlastPracticeReports teamAverages={teamAverages} readings={blastReadings!}/></>}<SessionMeasurements teamAverages={teamAverages} performance={displayPerformance} season={selectedSeason} context="practice" hasBlast={hasBlast && layout.showHitting} hasArsenal={practiceArsenal} />{layout.showHitting && practiceContactResults}</> },
     { id: "progress", label: "Timeline", content: <><SessionTimeline readings={timelineReadings}/><SessionProgress blast={layout.showHitting ? blastProgress(blastReadings ?? []) : []} pitchingGame={pitchProgress(blastReadings ?? [],"in_game")} pitchingPractice={pitchProgress(blastReadings ?? [],"practice")} /></> },
   ];
   return <div className={`min-w-0 space-y-4 sm:space-y-5 ${presentation.profile}`} data-testid="player-performance-profile">

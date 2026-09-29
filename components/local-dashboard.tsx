@@ -121,7 +121,7 @@ export function LocalAthleteProfile({ id }: { id: string }) {
     </details>;
   return <>
     {view.role !== "player" && <Link href="/preview/roster" className="profile-back"><ArrowLeft size={15} />Master roster</Link>}
-    <PlayerPerformanceProfile athlete={athlete} performance={getPerformance(athlete.athlete_code)} season={selectedSeason} fictional={mode === "sample"}
+    <PlayerPerformanceProfile athlete={athlete} performance={getPerformance(athlete.athlete_code)} season={selectedSeason} fictional={mode === "sample"} blastReadings={readings}
       action={canImport ? <Link href="/preview/import" className="text-link">Import Information <ArrowRight size={15} /></Link> : undefined}
       muscleBalance={<RenphoMuscleBalance report={getRenphoReports(readings,batches,athlete.athlete_code)[0]} />} physicalityDetails={physicalityDetails} history={history} />
 
