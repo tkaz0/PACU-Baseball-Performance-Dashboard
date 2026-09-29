@@ -88,6 +88,21 @@ describe("measured angle illustrations", () => {
 });
 
 describe("Practice swing blueprint", () => {
+  it("leads with angles and film study while keeping speed behind a closed supporting disclosure", () => {
+    const html=renderBlueprint(report());
+    const details=/<details\b[^>]*data-testid="swing-supporting-speed"[^>]*>/.exec(html);
+    expect(details).not.toBeNull();
+    expect(details![0]).not.toMatch(/\bopen(?:=|\s|>)/);
+    const primary=html.slice(0,details!.index);
+    expect(primary).toContain('data-angle-kind="attack"');
+    expect(primary).toContain('data-angle-kind="vertical"');
+    expect(primary).toContain('data-angle-kind="body"');
+    expect(primary).toContain('aria-label="Professional hitters to study"');
+    expect(primary).not.toContain('data-testid="swing-team-bat-speed"');
+    expect(primary).not.toContain('data-testid="study-bat-speed-percentiles"');
+    expect(html.slice(details!.index)).toContain('data-testid="swing-team-bat-speed"');
+    expect(html).toContain("Bat speed does not affect selection");
+  });
   it("shows measured averages beside an explicit illustrative-posture explanation", () => {
     const html = renderBlueprint(report());
     expect(html).toContain('data-testid="hitter-swing-blueprint"');
@@ -138,7 +153,7 @@ describe("Practice swing blueprint", () => {
   it("links the actual selected public references and source without fabricated similarity scores", () => {
     const readings = report();
     const model = hitterSwingProfile(readings, performance(readings));
-    const study = hitterStudyMatches(model,undefined,{bats:"R",batSpeedPercentile:null});
+    const study = hitterStudyMatches(model,undefined,{bats:"R"});
     const html = renderBlueprint(readings);
     const playerLinks = [...html.matchAll(/<a\b[^>]*href="https:\/\/www\.mlb\.com\/player\/(\d+)"[^>]*>/g)];
     expect(playerLinks.map(match => Number(match[1]))).toEqual(study.matches.map(reference => reference.id));

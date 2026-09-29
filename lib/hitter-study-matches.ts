@@ -3,13 +3,14 @@ import { HITTER_STUDY_REFERENCES, type HitterStudyReference } from "@/lib/hitter
 import { FEATURED_HITTER_STUDY_IDS } from "@/lib/hitter-study-featured";
 
 /** Custom PAC browsing scales, not cross-device calibration or ideal ranges. */
-export const HITTER_STUDY_WINDOWS = { attackAngle: 5, percentile: 25 } as const;
+export const HITTER_STUDY_WINDOWS = { attackAngle: 5, percentile: 100 } as const;
+export const HITTER_STUDY_FIT_WEIGHTS = { attackAngle: 0.7, build: 0.3 } as const;
 export type HitterStudyMatches = {
   matches: readonly HitterStudyReference[];
   basis: "path_and_size" | "path_and_height" | "path_and_weight" | "path_only" | "none";
   sizeFallback: boolean;
 };
-export type HitterStudyPreferences = { bats?: string | null; batSpeedPercentile?: number | null };
+export type HitterStudyPreferences = { bats?: string | null };
 type RelativeRank = { value: number; sampleSize: number };
 
 const positive = (value: number | undefined) => value !== undefined && Number.isFinite(value) && value > 0 ? value : null;
@@ -56,7 +57,7 @@ export function compatibleBattingSide(own: string | null | undefined, profession
   return (side === "R" || side === "L" || side === "S") && professional === side;
 }
 
-/** Same-side study examples use direction plus each available environment-relative rank. */
+/** Swing direction leads; environment-relative build is secondary. Bat speed is display-only. */
 export function hitterStudyMatches(profile: HitterSwingProfile, references: readonly HitterStudyReference[] = HITTER_STUDY_REFERENCES, preferences?: HitterStudyPreferences): HitterStudyMatches {
   const none: HitterStudyMatches = { matches: [], basis: "none", sizeFallback: false };
   const angle = profile.attackAngle;
@@ -70,21 +71,22 @@ export function hitterStudyMatches(profile: HitterSwingProfile, references: read
 
   const heightRank = profile.height?.unit === "in" && positive(profile.height.value) !== null ? ownRankValue(profile.heightRank) : null;
   const weightRank = profile.weight?.unit === "lb" && positive(profile.weight.value) !== null ? ownRankValue(profile.weightRank) : null;
-  const speedRank = percentileValue(preferences?.batSpeedPercentile);
   const relativeRanks = new Map(candidates.map(reference => [reference.id, {
     height: proBodyPercentile(reference, "height", references)?.value ?? null,
     weight: proBodyPercentile(reference, "weight", references)?.value ?? null,
-    speed: proBatSpeedPercentile(reference, references)?.value ?? null,
   }]));
   const usesHeight = heightRank !== null && candidates.some(reference => relativeRanks.get(reference.id)?.height !== null);
   const usesWeight = weightRank !== null && candidates.some(reference => relativeRanks.get(reference.id)?.weight !== null);
   const fit = (reference: HitterStudyReference) => {
-    const parts = [Math.abs(reference.attackAngle - angle) / HITTER_STUDY_WINDOWS.attackAngle];
+    const angleGap = Math.abs(reference.attackAngle - angle) / HITTER_STUDY_WINDOWS.attackAngle;
+    const bodyGaps: number[] = [];
     const ranks = relativeRanks.get(reference.id)!;
-    for (const [ownRank, proRank] of [[heightRank, ranks.height], [weightRank, ranks.weight], [speedRank, ranks.speed]]) {
-      if (ownRank !== null && proRank !== null) parts.push(Math.abs(ownRank - proRank) / HITTER_STUDY_WINDOWS.percentile);
+    for (const [ownRank, proRank] of [[heightRank, ranks.height], [weightRank, ranks.weight]]) {
+      if (ownRank !== null && proRank !== null) bodyGaps.push(Math.abs(ownRank - proRank) / HITTER_STUDY_WINDOWS.percentile);
     }
-    return parts.reduce((sum, value) => sum + value, 0) / parts.length;
+    if (!bodyGaps.length) return angleGap;
+    const meanBodyGap = bodyGaps.reduce((sum, value) => sum + value, 0) / bodyGaps.length;
+    return HITTER_STUDY_FIT_WEIGHTS.attackAngle * angleGap + HITTER_STUDY_FIT_WEIGHTS.build * meanBodyGap;
   };
   return {
     matches: [...candidates].sort((a, b) => fit(a) - fit(b) || a.id - b.id).slice(0, 3),

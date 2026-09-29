@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { blastSource, type BlastSummaryKind } from "@/lib/blast-metrics";
-import { compatibleBattingSide, hitterStudyMatches, HITTER_STUDY_WINDOWS, proBatSpeedPercentile, proBodyPercentile } from "@/lib/hitter-study-matches";
+import { compatibleBattingSide, hitterStudyMatches, HITTER_STUDY_WINDOWS, HITTER_STUDY_FIT_WEIGHTS, proBatSpeedPercentile, proBodyPercentile } from "@/lib/hitter-study-matches";
 import { HITTER_STUDY_REFERENCES, type HitterStudyReference } from "@/lib/hitter-study-references";
 import { FEATURED_HITTER_STUDY_IDS } from "@/lib/hitter-study-featured";
 import { attackPath, hitterSwingProfile } from "@/lib/hitter-swing-profile";
@@ -36,7 +36,8 @@ describe("same-side recognizable MLB study examples", () => {
     expect(ids(result)).toEqual([id(2), id(1)]);
     expect(result).toMatchObject({ basis: "path_only", sizeFallback: false });
     expect(ids(hitterStudyMatches(profile(10), [reference(1, 15), reference(2, 15.00001), reference(3, 9.99999)], right))).toEqual([id(1)]);
-    expect(HITTER_STUDY_WINDOWS).toEqual({ attackAngle: 5, percentile: 25 });
+    expect(HITTER_STUDY_WINDOWS).toEqual({ attackAngle: 5, percentile: 100 });
+    expect(HITTER_STUDY_FIT_WEIGHTS).toEqual({ attackAngle: 0.7, build: 0.3 });
   });
 
   it("limits candidates to the 75 curated verified names without limiting rank denominators", () => {
@@ -58,7 +59,7 @@ describe("same-side recognizable MLB study examples", () => {
 
   it("never pads short lists with opposite-side or pooled switch-hitter references", () => {
     const corpus = [reference(1, 16), { ...reference(2), bats: "L" as const }, { ...reference(3), bats: "S" as const }];
-    expect(ids(hitterStudyMatches(profile(12, { height: 72, weight: 190, heightRank: 50, weightRank: 50 }), corpus, { bats: "R", batSpeedPercentile: 50 }))).toEqual([id(1)]);
+    expect(ids(hitterStudyMatches(profile(12, { height: 72, weight: 190, heightRank: 50, weightRank: 50 }), corpus, right))).toEqual([id(1)]);
     expect(ids(hitterStudyMatches(profile(), corpus, { bats: "L" }))).toEqual([id(2)]);
     expect(ids(hitterStudyMatches(profile(), corpus, { bats: "S" }))).toEqual([id(3)]);
   });
@@ -84,20 +85,37 @@ describe("same-side recognizable MLB study examples", () => {
     expect(result.basis).toBe("path_and_weight");
   });
 
-  it("uses both available body ranks and the normalized angle gap", () => {
-    const corpus = bodyCorpus().map((item, index) => index === 2 ? { ...item, attackAngle: 14 } : item);
+  it("uses both available body ranks as the secondary fit when angles are equal", () => {
+    const corpus = bodyCorpus();
     const result = hitterStudyMatches(profile(12, { height: 65, weight: 135, heightRank: 50, weightRank: 50 }), corpus, right);
     expect(result.matches[0]).toBe(corpus[2]);
     expect(result.basis).toBe("path_and_size");
     expect(result.matches).toHaveLength(3);
   });
 
-  it("keeps relative bat-speed fit independent of raw practice mph", () => {
+  it("prioritizes closer attack angles over a much closer build", () => {
+    const corpus = bodyCorpus().map((item, index) => ({ ...item, attackAngle: [12, 17, 15, 17, 17][index] }));
+    const result = hitterStudyMatches(profile(12, { height: 65, weight: 135, heightRank: 50, weightRank: 50 }), corpus, right);
+    // Exact path with 50-point build gaps: .7*0 + .3*.5 = .15.
+    // Exact build with 3-degree path gap: .7*.6 + .3*0 = .42.
+    expect(result.matches[0]).toBe(corpus[0]);
+    expect(result.matches[1]).toBe(corpus[2]);
+  });
+
+  it.each([null, 0, 40, 100, 200])("never uses the player's average bat speed %s to choose swings", averageBatSpeed => {
     const corpus = bodyCorpus().map((item, index) => ({ ...item, averageBatSpeed: 65 + index * 5 }));
-    const model = { ...profile(), averageBatSpeed: 40 };
-    const preferences = { bats: "R", batSpeedPercentile: 100 };
-    expect(ids(hitterStudyMatches(model, corpus, preferences))).toEqual([id(5), id(4), id(3)]);
-    expect(hitterStudyMatches({ ...model, averageBatSpeed: 100 }, corpus, preferences)).toEqual(hitterStudyMatches(model, corpus, preferences));
+    const model = profile(12, { height: 65, weight: 135, heightRank: 50, weightRank: 50 });
+    expect(hitterStudyMatches({ ...model, averageBatSpeed }, corpus, right)).toEqual(hitterStudyMatches(model, corpus, right));
+  });
+
+  it("keeps match IDs unchanged when pro bat speeds reverse, become extreme or disappear", () => {
+    const corpus = bodyCorpus().map((item, index) => ({ ...item, averageBatSpeed: 65 + index * 5 }));
+    const model = profile(12, { height: 65, weight: 135, heightRank: 50, weightRank: 50 });
+    const expected = ids(hitterStudyMatches(model, corpus, right));
+    for (const speeds of [[100, 90, 80, 70, 60], [0, 20, 200, 500, 1000], [null, NaN, Infinity, -1, null]]) {
+      const changed = corpus.map((item, index) => ({ ...item, averageBatSpeed: speeds[index] }));
+      expect(ids(hitterStudyMatches(model, changed, right))).toEqual(expected);
+    }
   });
 
   it("withholds missing ranks rather than falling back to absolute body matching", () => {
@@ -126,9 +144,10 @@ describe("same-side recognizable MLB study examples", () => {
     expect(result).toEqual(hitterStudyMatches(profile(), bodyCorpus(), right));
   });
 
-  it.each([NaN, Infinity, -1, 100.00001])("ignores invalid bat-speed percentile %s", batSpeedPercentile => {
+  it.each([0, 50, 100, NaN, Infinity, -1, 100.00001])("ignores obsolete bat-speed percentile preferences %s", batSpeedPercentile => {
     const corpus = bodyCorpus().map((item, index) => ({ ...item, averageBatSpeed: 65 + index * 5 }));
-    expect(hitterStudyMatches(profile(), corpus, { bats: "R", batSpeedPercentile })).toEqual(hitterStudyMatches(profile(), corpus, right));
+    const obsoletePreferences = { bats: "R", batSpeedPercentile };
+    expect(hitterStudyMatches(profile(), corpus, obsoletePreferences)).toEqual(hitterStudyMatches(profile(), corpus, right));
   });
 
   it("does not infer professional VBA or body tilt from attack angle", () => {
@@ -173,7 +192,7 @@ describe("same-side recognizable MLB study examples", () => {
   it("keeps deterministic ties, caps three examples, and never mutates or exposes a computed score", () => {
     const model = profile(12, { height: 70, weight: 160, heightRank: 50, weightRank: 50 });
     const corpus = bodyCorpus().map(item => ({ ...item, heightInches: 72, weightLb: 190 }));
-    const preferences = { bats: "R", batSpeedPercentile: 50 };
+    const preferences = { bats: "R" };
     const before = structuredClone({ model, corpus, preferences });
     const result = hitterStudyMatches(model, corpus, preferences);
     expect(ids(result)).toEqual(corpus.map(item => item.id).sort((a, b) => a - b).slice(0, 3));

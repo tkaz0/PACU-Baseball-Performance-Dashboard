@@ -58,12 +58,12 @@ export default async function SwingDesignPage({ searchParams }: { searchParams?:
     return <HitterSwingBlueprint readings={shared.measurements} performance={performance} teamAverages={teamAverages} bats={season?.bats} batSpeedReference={speedReference?.athleteId === athlete.id ? speedReference : null}/>;
   })() : null;
   return <>
-    <PageHeading section="Pacific Baseball / Player Development" title="Swing Design" description="Practice bat path, swing type, and MLB hitters to study."/>
+    <PageHeading section="Pacific Baseball / Player Development" title="Swing Design" description="Bat path, barrel angle, posture, and same-side MLB swings to study."/>
     {staff && <SwingDesignPlayerPicker key={athlete?.id ?? "none"} players={players} selectedId={athlete?.id ?? ""}/>}
     {athlete && <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--line-subtle)] bg-[var(--surface-panel)] px-5 py-4">
       <div className="min-w-0"><h2 className="break-words text-lg font-semibold">{athleteName(athlete)}</h2><p className="mt-1 text-xs text-[var(--text-secondary)]">{athlete.athlete_code}{season?.bats ? ` · Bats ${season.bats}` : ""} · Fall 2026</p></div>
       <Link prefetch={false} className="text-link text-sm" href={`/athletes/${athlete.id}`}>Player Profile <ArrowUpRight size={15} aria-hidden="true"/></Link>
     </div>}
-    {content ?? (athlete ? <EmptySwingDesign title={season ? "Built for Hitting Practice" : "No Fall Roster Entry"}>{season ? "Swing Design is available for position players and two-way players. Pitching results remain on the player profile." : "This player needs a 2026–27 roster entry before Fall swing results can appear."}</EmptySwingDesign> : staff ? <EmptySwingDesign title="Choose a Hitter">Open a player’s swing blueprint, compare practice bat speed, and find MLB swings to study.</EmptySwingDesign> : <EmptySwingDesign title="Your Player Profile Is Not Linked">Ask a coach or administrator to link your account to your existing player profile.</EmptySwingDesign>)}
+    {content ?? (athlete ? <EmptySwingDesign title={season ? "Built for Hitting Practice" : "No Fall Roster Entry"}>{season ? "Swing Design is available for position players and two-way players. Pitching results remain on the player profile." : "This player needs a 2026–27 roster entry before Fall swing results can appear."}</EmptySwingDesign> : staff ? <EmptySwingDesign title="Choose a Hitter">Open a player’s angles and posture, then find same-side MLB swings to study.</EmptySwingDesign> : <EmptySwingDesign title="Your Player Profile Is Not Linked">Ask a coach or administrator to link your account to your existing player profile.</EmptySwingDesign>)}
   </>;
 }
