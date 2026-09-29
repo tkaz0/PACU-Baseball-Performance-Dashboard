@@ -1,0 +1,327 @@
+{
+  "source": "https://nwcsports.com/stats.aspx?path=baseball&year=2025",
+  "season": 2025,
+  "retrievedOn": "2026-09-28",
+  "method": "Linear-interpolated 20th, 40th, 60th and 80th percentiles. Coaching labels are dashboard bands, not official NWC grades.",
+  "team": {
+    "batting_avg": {
+      "cuts": [
+        0.262783,
+        0.275675,
+        0.280599,
+        0.29123
+      ],
+      "mean": 0.278719,
+      "n": 9,
+      "direction": "higher"
+    },
+    "batting_obp": {
+      "cuts": [
+        0.36245,
+        0.374938,
+        0.382245,
+        0.389603
+      ],
+      "mean": 0.377335,
+      "n": 9,
+      "direction": "higher"
+    },
+    "batting_est_slg": {
+      "cuts": [
+        0.351128,
+        0.405106,
+        0.427483,
+        0.440266
+      ],
+      "mean": 0.405106,
+      "n": 9,
+      "direction": "higher"
+    },
+    "batting_est_iso": {
+      "cuts": [
+        0.096208,
+        0.128123,
+        0.13988,
+        0.156391
+      ],
+      "mean": 0.126387,
+      "n": 9,
+      "direction": "higher"
+    },
+    "batting_est_wobacon": {
+      "cuts": [
+        0.330365,
+        0.372074,
+        0.379338,
+        0.388343
+      ],
+      "mean": 0.364826,
+      "n": 9,
+      "direction": "higher"
+    },
+    "batting_bb_pct": {
+      "cuts": [
+        9.100708,
+        9.981644,
+        10.441753,
+        10.884692
+      ],
+      "mean": 10.101807,
+      "n": 9,
+      "direction": "higher"
+    },
+    "batting_k_pct": {
+      "cuts": [
+        15.101873,
+        17.563369,
+        18.663398,
+        18.785154
+      ],
+      "mean": 17.443935,
+      "n": 9,
+      "direction": "lower"
+    },
+    "batting_hr_pct": {
+      "cuts": [
+        1.13889,
+        2.224854,
+        2.43789,
+        2.602725
+      ],
+      "mean": 1.99316,
+      "n": 9,
+      "direction": "higher"
+    },
+    "batting_sb_per_pa": {
+      "cuts": [
+        0.028648,
+        0.036821,
+        0.039676,
+        0.043386
+      ],
+      "mean": 0.035722,
+      "n": 9,
+      "direction": "higher"
+    },
+    "pitching_k9": {
+      "cuts": [
+        6.601437,
+        7.033868,
+        7.17073,
+        8.192016
+      ],
+      "mean": 7.25578,
+      "n": 9,
+      "direction": "higher"
+    },
+    "pitching_bb9": {
+      "cuts": [
+        3.602864,
+        3.937076,
+        4.429022,
+        4.888389
+      ],
+      "mean": 4.22655,
+      "n": 9,
+      "direction": "lower"
+    },
+    "pitching_r9": {
+      "cuts": [
+        5.700491,
+        6.209709,
+        7.136939,
+        7.690802
+      ],
+      "mean": 6.797344,
+      "n": 9,
+      "direction": "lower"
+    },
+    "pitching_whip": {
+      "cuts": [
+        1.479701,
+        1.503838,
+        1.673208,
+        1.728662
+      ],
+      "mean": 1.597155,
+      "n": 9,
+      "direction": "lower"
+    },
+    "pitching_k_bb": {
+      "cuts": [
+        1.473846,
+        1.580513,
+        1.857202,
+        2.091636
+      ],
+      "mean": 1.764409,
+      "n": 9,
+      "direction": "higher"
+    }
+  },
+  "player": {
+    "batting_avg": {
+      "cuts": [
+        0.259542,
+        0.283688,
+        0.310345,
+        0.323308
+      ],
+      "mean": 0.295904,
+      "n": 71,
+      "direction": "higher"
+    },
+    "batting_obp": {
+      "cuts": [
+        0.345455,
+        0.376471,
+        0.408805,
+        0.441176
+      ],
+      "mean": 0.389759,
+      "n": 71,
+      "direction": "higher"
+    },
+    "batting_est_slg": {
+      "cuts": [
+        0.344,
+        0.40458,
+        0.452555,
+        0.496644
+      ],
+      "mean": 0.429476,
+      "n": 71,
+      "direction": "higher"
+    },
+    "batting_est_iso": {
+      "cuts": [
+        0.061856,
+        0.096154,
+        0.14433,
+        0.188235
+      ],
+      "mean": 0.133572,
+      "n": 71,
+      "direction": "higher"
+    },
+    "batting_est_wobacon": {
+      "cuts": [
+        0.316101,
+        0.357887,
+        0.381039,
+        0.44739
+      ],
+      "mean": 0.377598,
+      "n": 71,
+      "direction": "higher"
+    },
+    "batting_bb_pct": {
+      "cuts": [
+        7.017544,
+        8.860759,
+        10.625,
+        13.142857
+      ],
+      "mean": 9.928275,
+      "n": 71,
+      "direction": "higher"
+    },
+    "batting_k_pct": {
+      "cuts": [
+        11.25,
+        13.013699,
+        16.363636,
+        21.25
+      ],
+      "mean": 15.551399,
+      "n": 71,
+      "direction": "lower"
+    },
+    "batting_hr_pct": {
+      "cuts": [
+        0.0,
+        1.219512,
+        2.285714,
+        3.225806
+      ],
+      "mean": 2.136975,
+      "n": 71,
+      "direction": "higher"
+    },
+    "batting_sb_per_pa": {
+      "cuts": [
+        0.006329,
+        0.023256,
+        0.040323,
+        0.063492
+      ],
+      "mean": 0.0379,
+      "n": 71,
+      "direction": "higher"
+    },
+    "pitching_k9": {
+      "cuts": [
+        5.830103,
+        6.559349,
+        7.326026,
+        7.928414
+      ],
+      "mean": 7.032944,
+      "n": 27,
+      "direction": "higher"
+    },
+    "pitching_bb9": {
+      "cuts": [
+        2.293947,
+        2.96044,
+        3.762212,
+        4.219757
+      ],
+      "mean": 3.355315,
+      "n": 27,
+      "direction": "lower"
+    },
+    "pitching_r9": {
+      "cuts": [
+        4.936064,
+        5.259912,
+        5.997229,
+        7.10127
+      ],
+      "mean": 5.953979,
+      "n": 27,
+      "direction": "lower"
+    },
+    "pitching_whip": {
+      "cuts": [
+        1.298453,
+        1.42495,
+        1.538497,
+        1.627012
+      ],
+      "mean": 1.48127,
+      "n": 27,
+      "direction": "lower"
+    },
+    "pitching_k_bb": {
+      "cuts": [
+        1.733542,
+        2.087831,
+        2.25,
+        2.625926
+      ],
+      "mean": 2.303123,
+      "n": 27,
+      "direction": "higher"
+    }
+  },
+  "cohorts": {
+    "teams": 9,
+    "publishedHitters": 73,
+    "hitters": 71,
+    "minimumAB": 75,
+    "publishedPitchers": 27,
+    "pitchers": 27,
+    "minimumIP": 20
+  }
+}

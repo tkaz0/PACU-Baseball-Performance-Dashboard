@@ -78,7 +78,9 @@ it("keeps game rank cells in table flow and identifies ties across the expanded 
 it("shows pooled team power estimates in the main cards without fabricating a team Production+ index", () => {
   const html = renderToStaticMarkup(createElement(TeamGameStats, { stats: [...batting, ...pitching], names: new Map([["fictional-player", "Fictional Player"]]) }));
   const main = html.split("More Team Totals &amp; Rates")[0];
-  expect(main).toContain("Advanced Hitting");
+  expect(main).toContain("Team Batting");
+  expect(main).toContain("How We Get Our Hits");
+  expect(main).toContain("D3 NWC");
   for (const label of ["SLG", "ISO", "wOBAcon"]) expect(main).toContain(label);
   expect(html).not.toContain("PAC Production+");
 });

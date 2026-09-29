@@ -21,7 +21,7 @@ function GameRankCard({ group }: { group: GameLeaderboardRow[] }) {
  return <section className={`panel leaderboard-card ${styles.card}`}>
   <header className={styles.heading}>
    <div className={styles.eyebrow}><span>{first.source === "qpa_fall_2026" ? "Hitting · Fall 2026 To Date" : `Pitching · ${pitchingPeriodLabel(first.eventId, first.playedOn)}`}</span><span>{group.length} players</span></div>
-   <h3>{label}<StatInfo metric={first.metric} label={label}/></h3>
+   <h3>{label}<StatInfo metric={first.metric} label={label} unit={first.unit} cohort={group.map(row=>row.value)}/></h3>
    <p>{direction === "lower" ? "Lowest first" : "Highest first"} · Updated {new Date(first.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Los_Angeles" })}</p>
   </header>
   <LeaderboardAverage game values={sorted.map(row => row.value)} label={label} format={value => first.unit === "count" ? value.toLocaleString("en-US", { maximumFractionDigits: 1 }) : first.unit === "ratio" ? value.toFixed(3) : gameValue(value, first.unit)}/>

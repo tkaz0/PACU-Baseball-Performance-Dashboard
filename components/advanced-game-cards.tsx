@@ -19,7 +19,7 @@ export function AdvancedGameCards({ metrics }: { metrics: readonly GameOverviewM
     {groups.map(group => <section className={styles.discipline} key={group.source} aria-label={`Advanced ${group.title.toLowerCase()} performance`}>
       <div className={styles.groupHeading}><h3>{group.title}</h3><span>Updated <time dateTime={group.rows.map(row => row.updatedAt).sort().at(-1)!}>{updatedDate(group.rows.map(row => row.updatedAt).sort().at(-1)!)}</time></span></div>
       <dl className={styles.cards}>{group.rows.map(item => <div className={styles.card} key={item.metric} data-advanced-metric={item.metric}>
-        <dt>{item.label}<StatInfo metric={item.metric} label={item.label}/></dt>
+        <dt>{item.label}<StatInfo metric={item.metric} label={item.label} value={item.value} unit={item.unit} source={item.source} eventId={item.eventId} percentile={item.comparison?.percentile}/></dt>
         <dd><strong className={styles.value}>{gameValue(item.value, item.unit)}</strong>
         <p className={styles.cue}>{ADVANCED_GAME_CUES[item.metric]}</p>
         <GameOpportunity source={item.source} metric={item.metric} count={item.opportunities}/>

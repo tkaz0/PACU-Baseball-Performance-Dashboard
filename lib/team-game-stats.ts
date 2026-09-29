@@ -7,10 +7,12 @@ export type TeamGameMetric = {
   opportunities?: number; opportunityLabel?: string;
   pending: boolean;
   pendingReason?: "missing" | "conflict";
+  coverage?: { used: number; total: number };
 };
 export type TeamGameSummary = {
   players: number; entries: number; games: number; updatedAt: string | null;
   counts: TeamGameMetric[]; rates: TeamGameMetric[];
+  hitMix?: { singles: number; extraBaseHits: number; homeRuns: number; hits: number };
 };
 type Counts = Map<string, number>;
 type Ratio = { top: number; bottom: number };
@@ -22,6 +24,7 @@ export function teamGameSummary(stats: readonly SharedGameStat[], source: Shared
   const rows = stats.filter(row => row.source === source);
   const qpa = source === "qpa_fall_2026", groups = new Map<string, Counts>();
   let valid = new Set(rows.map(r => r.snapshot_id)).size <= 1 && new Set(rows.map(r => r.content_hash)).size <= 1;
+  if(!qpa && rows.some(r=>r.event_id?.startsWith("fall-2026-week-")) && rows.some(r=>!r.event_id?.startsWith("fall-2026-week-")))valid=false;
   for (const row of rows) {
     const key = JSON.stringify([row.athlete_id, row.event_id]);
     const values = groups.get(key) ?? new Map<string, number>();
@@ -36,12 +39,20 @@ export function teamGameSummary(stats: readonly SharedGameStat[], source: Shared
   };
   const rate = (metric: string, label: string, unit: "%" | "avg" | "ratio" | "per9" | "decimal", keys: string[], ratio: (v: Counts) => Ratio | null, opportunityLabel: string, allowMultiple = false): TeamGameMetric => {
     const parts = valid ? entries.map(v => keys.every(k => v.has(k)) ? ratio(v) : null) : [null];
-    const complete = entries.length > 0 && parts.every((p): p is Ratio => p !== null && p.top >= 0 && p.bottom >= 0 && (allowMultiple || p.top <= p.bottom));
-    const top = complete ? parts.reduce((n, p) => n + p!.top, 0) : 0;
-    const bottom = complete ? parts.reduce((n, p) => n + p!.bottom, 0) : 0;
-    const conflict = !valid || parts.some((p,i) => keys.every(k=>entries[i]?.has(k)) && (p===null || p.top<0 || p.bottom<0 || (!allowMultiple && p.top>p.bottom)));
-    return { metric, label, unit, value: complete && bottom > 0 ? top / bottom * (unit === "%" ? 100 : unit === "per9" ? 27 : 1) : null,
-      ...(complete && bottom > 0 ? { opportunities: bottom, opportunityLabel } : {}), pending: entries.length > 0 && !complete,
+    const usable = parts.filter((p): p is Ratio => p !== null && p.top >= 0 && p.bottom >= 0 && (allowMultiple || p.top <= p.bottom));
+    const complete = entries.length > 0 && usable.length === entries.length;
+    const top = usable.reduce((n, p) => n + p.top, 0), bottom = usable.reduce((n, p) => n + p.bottom, 0);
+    const knownConflict = qpa && entries.some(v=>{
+      const has=(...fields:string[])=>fields.every(k=>v.has(k));
+      const hitInputs=keys.some(k=>["base_hit","pumps","hh_extra_base_hit"].includes(k));
+      return hitInputs && ((has("base_hit","ab")&&v.get("base_hit")!>v.get("ab")!) || (has("pumps","base_hit")&&v.get("pumps")!>v.get("base_hit")!) || (has("pumps","hh_extra_base_hit","base_hit")&&v.get("pumps")!+v.get("hh_extra_base_hit")!>v.get("base_hit")!))
+        || keys.includes("punchies")&&hitInputs&&has("punchies","base_hit","ab")&&v.get("punchies")!+v.get("base_hit")!>v.get("ab")!;
+    });
+    const conflict = !valid || knownConflict || parts.some((p,i) => keys.every(k=>entries[i]?.has(k)) && (p===null || p.top<0 || p.bottom<0 || (!allowMultiple && p.top>p.bottom)));
+    const calculable = !conflict && usable.length > 0 && bottom > 0;
+    return { metric, label, unit, value: calculable ? top / bottom * (unit === "%" ? 100 : unit === "per9" ? 27 : 1) : null,
+      ...(calculable ? { opportunities: bottom, opportunityLabel } : {}), pending: entries.length > 0 && !complete,
+      ...(!complete && !conflict && usable.length ? { coverage:{used:usable.length,total:entries.length} } : {}),
       ...(entries.length > 0 && !complete ? {pendingReason:conflict?"conflict" as const:"missing" as const}: {}) };
   };
   const simple = (metric: string, label: string, top: string, bottom: string, unit: "%" | "avg", opportunity: string) => rate(metric, label, unit, [top, bottom], v => ({ top: v.get(top)!, bottom: v.get(bottom)! }), opportunity);
@@ -63,11 +74,12 @@ export function teamGameSummary(stats: readonly SharedGameStat[], source: Shared
     rate("batting_sb_per_pa", "SB/PA", "ratio", ["sb", "pa"], v => ({top: v.get("sb")!, bottom: v.get("pa")!}), "PA", true),
     ...[["batting_est_slg","SLG"],["batting_est_iso","ISO"]].map(([metric,label])=>rate(metric,label,"avg",["base_hit","hh_extra_base_hit","pumps","ab"],v=>{const p=battingPowerParts(v,true);return p?{top:metric==="batting_est_slg"?p.bases:p.xbh+3*p.hr,bottom:p.ab}:null;},"AB",true)),
     rate("batting_est_wobacon","wOBAcon","avg",["base_hit","hh_extra_base_hit","pumps","ab","punchies","sac_fly"],v=>{const p=battingPowerParts(v,true);return p&&v.get("punchies")!+p.hits<=p.ab?{top:p.weightedHits,bottom:p.ab-v.get("punchies")!+v.get("sac_fly")!}:null;},"contacts",true),
-  ] : [simple("strike_pct", "Strike %", "strikes", "pitches", "%", "pitches"), ...[["pitching_k9","K/9","k"],["pitching_bb9","BB/9","bb_outcome"],["pitching_r9","Runs/9","r"]].map(([metric,label,key])=>rate(metric,label,"per9",[key,"innings_outs"],v=>({top:v.get(key)!,bottom:v.get("innings_outs")!}),"outs",true)), ...[["weak_contact_pct","Weak Contact %","weak_contact"],["hard_contact_pct","Hard Contact %","hard_contact"]].map(([metric,label,key])=>rate(metric,label,"%",["weak_contact","hard_contact"],v=>({top:v.get(key)!,bottom:v.get("weak_contact")!+v.get("hard_contact")!}),"classified contacts")), rate("pitching_whip","WHIP","decimal",["h","bb_outcome","innings_outs"],v=>({top:3*(v.get("h")!+v.get("bb_outcome")!),bottom:v.get("innings_outs")!}),"outs",true),rate("pitching_k_bb","K/BB","decimal",["k","bb_outcome"],v=>({top:v.get("k")!,bottom:v.get("bb_outcome")!}),"walks",true)];
+   ] : [simple("strike_pct", "Strike %", "strikes", "pitches", "%", "pitches"), ...[["pitching_k9","K/9","k"],["pitching_bb9","BB/9","bb_outcome"],["pitching_r9","Runs/9","r"]].map(([metric,label,key])=>rate(metric,label,"per9",[key,"innings_outs"],v=>({top:v.get(key)!,bottom:v.get("innings_outs")!}),"outs",true)), ...[["weak_contact_pct","Weak Contact %","weak_contact"],["hard_contact_pct","Hard Contact %","hard_contact"]].map(([metric,label,key])=>rate(metric,label,"%",["weak_contact","hard_contact"],v=>({top:v.get(key)!,bottom:v.get("weak_contact")!+v.get("hard_contact")!}),"classified contacts")), rate("pitching_whip","WHIP","decimal",["h","bb_outcome","innings_outs"],v=>({top:3*(v.get("h")!+v.get("bb_outcome")!),bottom:v.get("innings_outs")!}),"outs",true),rate("pitching_k_bb","K/BB","decimal",["k","bb_outcome"],v=>({top:v.get("k")!,bottom:v.get("bb_outcome")!}),"walks",true),...[["pitching_fb_strike_pct","Fastball Family","fb","fb_k"],["pitching_breaking_strike_pct","Breaking Ball","bb_pitch_family","bb_pitch_family_k"],["pitching_ch_strike_pct","Changeup","ch","ch_k"]].map(([metric,label,pitches,strikes])=>rate(metric,label,"%",[pitches,strikes],v=>({top:v.get(strikes)!,bottom:v.get(pitches)!}),"pitches")),];
   return { players: new Set(rows.map(r => r.athlete_id)).size, entries: entries.length,
     games: qpa ? 0 : new Set(rows.map(r => r.event_id)).size,
     updatedAt: rows.length ? rows.reduce((latest, r) => r.fetched_at > latest ? r.fetched_at : latest, rows[0].fetched_at) : null,
-    counts: (qpa ? battingCounts : pitchingCounts).map(([metric, label]) => count(metric, label)), rates };
+    counts: (qpa ? battingCounts : [...pitchingCounts,["innings_outs","Innings Pitched"] as const]).map(([metric, label]) => count(metric, label)), rates,
+    ...(qpa && valid && entries.length>0 && entries.every(v=>battingPowerParts(v,true)) ? {hitMix:entries.reduce((mix,v)=>{const p=battingPowerParts(v,true)!;return {singles:mix.singles+p.hits-p.xbh-p.hr,extraBaseHits:mix.extraBaseHits+p.xbh,homeRuns:mix.homeRuns+p.hr,hits:mix.hits+p.hits};},{singles:0,extraBaseHits:0,homeRuns:0,hits:0})}: {}) };
 }
 
 export function formatTeamGameMetric(metric: TeamGameMetric): string {
@@ -81,5 +93,5 @@ export function formatTeamGameMetric(metric: TeamGameMetric): string {
 }
 
 export function teamGameMetricStatus(metric: TeamGameMetric): string {
-  return metric.pendingReason === "missing" ? "Awaiting counts" : "Counts need review";
+  return metric.coverage && metric.value !== null ? `Recorded subset · ${metric.coverage.used} of ${metric.coverage.total} lines` : metric.pendingReason === "missing" ? "Awaiting counts" : "Counts need review";
 }

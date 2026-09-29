@@ -1,54 +1,44 @@
 import { formatInnings } from "@/lib/pitching-stats";
-import { GameRateBar } from "@/components/game-rate-bar";
 import Link from "next/link";
 import { StatInfo } from "@/components/stat-info";
 import { LimitedSample } from "@/components/limited-sample";
 import type { SharedGameStat } from "@/lib/game-server";
-import { formatTeamGameMetric, teamGameMetricStatus, teamGameSummary, type TeamGameMetric } from "@/lib/team-game-stats";
-
-const updated = (date: string) => new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/Los_Angeles" });
-function Metric({ metric }: { metric: TeamGameMetric }) {
-  return <div className="rounded-xl border border-[var(--line-subtle)] bg-[var(--surface-raised)] p-4">
-    <dt className="text-xs font-semibold text-[var(--text-secondary)]">{metric.label}<StatInfo metric={metric.metric} label={metric.label}/></dt>
-    <dd className="mt-2 text-2xl font-bold tabular-nums">{formatTeamGameMetric(metric)}</dd>
-    {!metric.metric.startsWith("batting_est_")&&<GameRateBar value={metric.value} unit={metric.unit} label={metric.label}/>}
-    {metric.pending ? <p className="muted mb-0 mt-2 text-xs">{teamGameMetricStatus(metric)}</p> : metric.opportunities !== undefined ? <div className="muted mt-2 text-xs">{metric.opportunityLabel==="outs"?`${formatInnings(metric.opportunities)} IP`:`${metric.opportunities.toLocaleString("en-US")} ${metric.opportunityLabel}`}{!["outs","walks"].includes(metric.opportunityLabel??"")&&<LimitedSample count={metric.opportunities} pitching={metric.opportunityLabel === "pitches"} opportunityLabel={metric.opportunityLabel}/>}</div> : null}
-  </div>;
+import { benchmarkGrade, benchmarkNumber, GRADE_LABELS, statBenchmark } from "@/lib/stat-benchmarks";
+import { formatTeamGameMetric, teamGameMetricStatus, teamGameSummary, type TeamGameMetric, type TeamGameSummary } from "@/lib/team-game-stats";
+import styles from "./team-game-stats.module.css";
+const colors=["#4b91ce","#83b8d9","#9c9ba3","#d57976","#d73c48"];
+const updated=(date:string)=>new Date(date).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric",timeZone:"America/Los_Angeles"});
+const sample=(m:TeamGameMetric)=>m.opportunities===undefined?null:m.opportunityLabel==="outs"?`${formatInnings(m.opportunities)} IP`:`${m.opportunities.toLocaleString("en-US")} ${m.opportunityLabel}`;
+function Metric({metric:m}:{metric:TeamGameMetric}){
+ const b=statBenchmark(m.metric,{scope:"team",unit:m.unit}),grade=b&&m.value!==null?benchmarkGrade(m.value,b):null;
+ return <div className={styles.card}><dt>{m.label}<StatInfo metric={m.metric} label={m.label} scope="team" value={m.value} unit={m.unit}/></dt><dd>{formatTeamGameMetric(m)}</dd>
+ <div className={styles.sample}>{sample(m)}{m.opportunities!==undefined&&!["outs","walks"].includes(m.opportunityLabel??"")&&<LimitedSample count={m.opportunities} pitching={m.opportunityLabel==="pitches"} opportunityLabel={m.opportunityLabel}/>}</div>
+ {grade!==null&&b?<><div className={styles.grade}><strong>{GRADE_LABELS[grade]}{m.coverage?" · Recorded Subset":""}</strong><span>D3 NWC</span></div><div className={styles.track} aria-label={`${GRADE_LABELS[grade]} against 2025 D3 NWC teams`}>{colors.map((color,i)=><span key={color} style={{"--band":color} as React.CSSProperties} data-current={grade===i}/>)}</div><div className={styles.reference}>{b.mean!==undefined?`NWC team mean ${benchmarkNumber(b.mean,m.metric,m.unit)} · `:""}2025 full season</div></>:null}
+ {m.pending&&<p className={styles.coverage}>{teamGameMetricStatus(m)}</p>}</div>;
 }
-export function TeamGameStats({ stats, names }: { stats: SharedGameStat[]; names: Map<string, string> }) {
-  const batting = teamGameSummary(stats, "qpa_fall_2026"), pitching = teamGameSummary(stats, "pitching_fall_2026");
-  const playerIds = [...new Set(stats.map(r => r.athlete_id))].sort((a, b) => (names.get(a) ?? "").localeCompare(names.get(b) ?? ""));
-  const primaryBattingKeys=["batting_est_slg","batting_est_iso","batting_est_wobacon","batting_hh_pct","batting_bb_pct","batting_k_pct"];
-  const primaryPitchingKeys=["pitching_k_bb","pitching_k9","pitching_bb9","pitching_whip"];
-  const pending = [...batting.counts, ...batting.rates, ...pitching.counts, ...pitching.rates].some(m => m.pending);
-  const conflicting = [...batting.counts, ...batting.rates, ...pitching.counts, ...pitching.rates].some(m => m.pending && m.pendingReason !== "missing");
-  return <div className="space-y-6">
-    <section className="panel p-5 sm:p-6" aria-label="Team batting statistics">
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-2"><div><h2 className="m-0 text-xl font-bold">Team Batting</h2><p className="muted mb-0 mt-1 text-xs">Hitting · Fall 2026 · Cumulative{batting.players > 0 && ` · ${batting.players} ${batting.players === 1 ? "player" : "players"} with recorded results`}</p></div>{batting.updatedAt && <p className="muted m-0 text-xs">Updated {updated(batting.updatedAt)}</p>}</div>
-      {!batting.entries ? <p className="muted text-sm">Team batting totals will appear after the first verified QPA update.</p> : <>
-        <h3 className="mb-3 text-sm font-bold">Advanced Hitting</h3><p className="muted mb-4 text-xs leading-5">Power, contact, and approach. Doubles/triples count as doubles; these are recorded results, not luck-adjusted predictions.</p><dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">{primaryBattingKeys.flatMap(key=>batting.rates.filter(m=>m.metric===key)).map(m => <Metric key={m.metric} metric={m}/>)}</dl>
-        <dl className="team-game-counts">{[...batting.rates.filter(m=>["batting_avg","batting_obp","qpa_pct"].includes(m.metric)),...batting.counts.filter(m=>["pa","pumps","rbi","sb"].includes(m.metric))].map(m=><div key={m.metric}><dt>{m.label}<StatInfo metric={m.metric} label={m.label}/></dt><dd>{formatTeamGameMetric(m)}</dd></div>)}</dl>
-        <details className="team-game-more"><summary>More Team Totals &amp; Rates</summary><dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">{[...batting.counts.filter(m=>!["pa","pumps","rbi","sb"].includes(m.metric)), ...batting.rates.filter(m=>![...primaryBattingKeys,"batting_avg","batting_obp","qpa_pct"].includes(m.metric))].map(m => <Metric key={m.metric} metric={m}/>)}</dl></details>
-      </>}
-    </section>
-    <section className="panel p-5 sm:p-6" aria-label="Team pitching statistics">
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-2"><div><h2 className="m-0 text-xl font-bold">Team Pitching</h2><p className="muted mb-0 mt-1 text-xs">Pitching · Fall 2026 · Cumulative{pitching.entries > 0 && ` · ${pitching.players} ${pitching.players === 1 ? "pitcher" : "pitchers"} · ${pitching.games} recorded ${pitching.games === 1 ? "period" : "periods"}`}</p></div>{pitching.updatedAt && <p className="muted m-0 text-xs">Updated {updated(pitching.updatedAt)}</p>}</div>
-      {!pitching.entries ? <p className="muted mb-0 text-sm">No pitching stats yet. Team totals will appear after coaches add the next Fall sheet update.</p> : <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">{[...primaryPitchingKeys.flatMap(key=>pitching.rates.filter(m=>m.metric===key)),...pitching.rates.filter(m=>!primaryPitchingKeys.includes(m.metric)), ...pitching.counts].map(m => <Metric key={m.metric} metric={m}/>)}</dl>}
-    </section>
-    {pending && <p className="notice text-sm">{conflicting ? <>A few game-sheet counts need a coach to check them. The other stats are still available. <Link prefetch={false} href="/game-stats/review" className="text-link">Open Data Review</Link></> : "Some team rates are waiting for all required counts to be recorded. The other stats are still available."}</p>}
-    {playerIds.length > 0 && <details className="panel p-5 sm:p-6"><summary className="cursor-pointer font-semibold">Player Breakdown · {playerIds.length} Players</summary>
-      <p className="muted mt-3 text-xs">Select a name to open the player’s full profile.</p>
-      {batting.entries > 0 && <div className="table-wrap mt-4"><table aria-label="Player batting breakdown"><thead><tr><th>Player</th>{["PA", "AB", "AVG", "OBP", "QPA %", "HH %", "HR", "RBI", "SB", "SB/PA"].map(label => <th key={label}>{label}</th>)}</tr></thead><tbody>{playerIds.flatMap(id => {
-        const summary = teamGameSummary(stats.filter(r => r.athlete_id === id), "qpa_fall_2026");
-        if (!summary.entries) return [];
-        const metrics = [...summary.counts, ...summary.rates];
-        return [<tr key={id}><th scope="row"><Link prefetch={false} href={`/athletes/${id}`} className="text-link whitespace-nowrap">{names.get(id) ?? "Player"}</Link></th>{["pa", "ab", "batting_avg", "batting_obp", "qpa_pct", "batting_hh_pct", "pumps", "rbi", "sb", "batting_sb_per_pa"].map(key => { const m = metrics.find(m => m.metric === key)!; return <td key={key} className="tabular-nums" title={m.pending ? teamGameMetricStatus(m) : undefined}>{formatTeamGameMetric(m)}</td>; })}</tr>];
-      })}</tbody></table></div>}
-      {pitching.entries > 0 && <div className="table-wrap mt-4"><table aria-label="Player pitching breakdown"><thead><tr><th>Pitcher</th><th>Pitches</th><th>Strike %</th><th>K</th><th>BB</th></tr></thead><tbody>{playerIds.flatMap(id => {
-        const summary = teamGameSummary(stats.filter(r => r.athlete_id === id), "pitching_fall_2026"); if (!summary.entries) return [];
-        return [<tr key={id}><th scope="row"><Link prefetch={false} href={`/athletes/${id}`} className="text-link whitespace-nowrap">{names.get(id) ?? "Player"}</Link></th>{[summary.counts[0], summary.rates.find(m=>m.metric==="strike_pct")!, summary.counts[2], summary.counts[3]].map(m => <td key={m.metric} className="tabular-nums" title={m.pending ? teamGameMetricStatus(m) : undefined}>{formatTeamGameMetric(m)}</td>)}</tr>];
-      })}</tbody></table></div>}
-    </details>}
-    <p className="muted text-xs leading-5">Team totals include players matched to the saved Fall game sheets. Rows without a confirmed player match are left out. Rates use the team’s combined chances. If a needed count is missing or does not add up, that rate waits for review.</p>
-  </div>;
+function Totals({summary}:{summary:TeamGameSummary}){return <dl className={styles.totals}>{summary.counts.map(m=><div key={m.metric}><dt>{m.label}<StatInfo metric={m.metric} label={m.label} scope="team"/></dt><dd title={m.pending?teamGameMetricStatus(m):undefined}>{m.metric==="innings_outs"&&m.value!==null?formatInnings(m.value):formatTeamGameMetric(m)}</dd></div>)}</dl>;}
+function RateRow({metric:m}:{metric:TeamGameMetric}){return <div><div className={styles.rateRow}><span>{m.label}<StatInfo metric={m.metric} label={m.label} scope="team" value={m.value} unit={m.unit}/></span><span className={styles.rateTrack} aria-hidden="true">{m.value!==null&&m.value>=0&&m.value<=100&&<span style={{width:`${m.value}%`}}/>}</span><strong>{formatTeamGameMetric(m)}</strong></div><div className={styles.rowSample}>{sample(m)}{m.coverage?` · ${m.coverage.used}/${m.coverage.total} recorded lines`:m.pending?` · ${teamGameMetricStatus(m)}`:""}</div></div>;}
+export function TeamGameStats({stats,names}:{stats:SharedGameStat[];names:Map<string,string>}){
+ const batting=teamGameSummary(stats,"qpa_fall_2026"),pitching=teamGameSummary(stats,"pitching_fall_2026");
+ const ids=[...new Set(stats.map(r=>r.athlete_id))].sort((a,b)=>(names.get(a)??"").localeCompare(names.get(b)??""));
+ const battingMain=["batting_avg","batting_obp","batting_est_slg","batting_est_iso","batting_est_wobacon","batting_bb_pct","batting_k_pct","batting_hr_pct"];
+ const pitchingMain=["pitching_whip","pitching_k_bb","pitching_k9","pitching_bb9","pitching_r9","strike_pct"];
+ const all=[...batting.counts,...batting.rates,...pitching.counts,...pitching.rates],conflict=all.some(m=>m.pending&&m.pendingReason==="conflict");
+ return <div className={styles.page}>
+ <section className="panel p-5 sm:p-6" aria-label="Team batting statistics"><header className={styles.header}><div><span className={styles.eyebrow}>Fall 2026 · Hitting</span><h2>Team Batting</h2><p className={styles.meta}>Cumulative · {batting.players} players with recorded results</p></div>{batting.updatedAt&&<span className={styles.updated}>Updated {updated(batting.updatedAt)}</span>}</header>
+ {!batting.entries?<p className={styles.empty}>Team batting totals will appear after the first verified QPA update.</p>:<><dl className={styles.grid}>{battingMain.flatMap(key=>batting.rates.filter(m=>m.metric===key)).map(m=><Metric key={m.metric} metric={m}/>)}</dl><Totals summary={batting}/><div className={styles.visuals}>
+ <section className={styles.visual} aria-label="Team hit distribution"><h3>How We Get Our Hits</h3>{batting.hitMix&&batting.hitMix.hits>0?<><div className={styles.mix} role="img" aria-label={`${batting.hitMix.singles} singles, ${batting.hitMix.extraBaseHits} doubles/triples, ${batting.hitMix.homeRuns} home runs`}>{[["Singles",batting.hitMix.singles,"#7299cd"],["2B / 3B",batting.hitMix.extraBaseHits,"#cb9d53"],["HR",batting.hitMix.homeRuns,"#d6505d"]].map(([label,value,color])=><span key={label} style={{width:`${Number(value)/batting.hitMix!.hits*100}%`,background:String(color)}}/>)}</div><div className={styles.legend}>{[["Singles",batting.hitMix.singles,"#7299cd"],["2B / 3B",batting.hitMix.extraBaseHits,"#cb9d53"],["HR",batting.hitMix.homeRuns,"#d6505d"]].map(([label,value,color])=><span key={label}><i style={{background:String(color)}}/>{label}<strong>{value} · {(Number(value)/batting.hitMix!.hits*100).toFixed(1)}%</strong></span>)}</div></>:<p className={styles.empty}>Complete hit counts needed.</p>}<p className={styles.note}>SLG, ISO and wOBAcon count doubles/triples as doubles. Recorded production is not a luck-adjusted prediction.</p></section>
+ <section className={styles.visual}><h3>Quality &amp; Pressure</h3>{batting.rates.filter(m=>["qpa_pct","batting_hh_pct"].includes(m.metric)).map(m=><RateRow key={m.metric} metric={m}/>)}{batting.rates.filter(m=>m.metric==="batting_sb_per_pa").map(m=><p key={m.metric} className={styles.note}><strong>SB/PA {formatTeamGameMetric(m)}</strong><StatInfo metric={m.metric} scope="team" label="SB/PA" value={m.value} unit={m.unit}/> · {sample(m)}{m.coverage&&` · ${m.coverage.used}/${m.coverage.total} recorded lines`}</p>)}</section></div></>}
+ </section>
+ <section className="panel p-5 sm:p-6" aria-label="Team pitching statistics"><header className={styles.header}><div><span className={styles.eyebrow}>Fall 2026 · Pitching</span><h2>Team Pitching</h2><p className={styles.meta}>Cumulative · {pitching.players} {pitching.players===1?"pitcher":"pitchers"} · {pitching.games} recorded {pitching.games===1?"period":"periods"}</p></div>{pitching.updatedAt&&<span className={styles.updated}>Updated {updated(pitching.updatedAt)}</span>}</header>
+ {!pitching.entries?<p className={styles.empty}>No pitching stats yet. Team totals will appear after coaches add the next Fall sheet update.</p>:<><dl className={`${styles.grid} ${styles.pitchingGrid}`}>{pitchingMain.flatMap(key=>pitching.rates.filter(m=>m.metric===key)).map(m=><Metric key={m.metric} metric={m}/>)}</dl><Totals summary={pitching}/><div className={styles.visuals}><section className={styles.visual}><h3>Throwing Strikes by Pitch Family</h3>{pitching.rates.filter(m=>m.metric.startsWith("pitching_")&&m.metric.endsWith("strike_pct")).map(m=><RateRow key={m.metric} metric={m}/>)}<p className={styles.note}>The game sheet groups fastballs and breaking balls by family. Full Swing’s specific pitch types stay on profiles and leaderboards.</p></section><section className={styles.visual}><h3>Contact Allowed</h3>{pitching.rates.filter(m=>["weak_contact_pct","hard_contact_pct"].includes(m.metric)).map(m=><RateRow key={m.metric} metric={m}/>)}<p className={styles.note}>Percentages use weak + hard classified contacts. Blank counts remain missing. Runs/9 includes every run allowed; it is not ERA.</p></section></div></>}
+ </section>
+ {conflict&&<p className="notice text-sm">Some counts do not add up. Affected rates wait for review. <Link prefetch={false} href="/game-stats/review" className="text-link">Open Data Review</Link></p>}
+ {ids.length>0&&<details className="panel p-5 sm:p-6"><summary className="cursor-pointer font-semibold">Player Breakdown · {ids.length} Players</summary><p className={styles.note}>Select a name for the full profile. Team rates pool chances rather than averaging player percentages.</p>{([['qpa_fall_2026','Hitting',['pa','batting_avg','batting_obp','batting_est_slg','batting_est_iso','batting_est_wobacon','batting_bb_pct','batting_k_pct','pumps','sb']],['pitching_fall_2026','Pitching',['innings_outs','pitches','strike_pct','pitching_whip','pitching_k_bb','pitching_k9','pitching_bb9','pitching_r9','k','bb_outcome']]] as const).map(([source,title,keys])=>{
+ const team=source==="qpa_fall_2026"?batting:pitching;if(!team.entries)return null;
+ const definitions=[...team.counts,...team.rates];
+ return <div key={source} className="table-wrap mt-6"><table className={styles.table}><caption>{title} · Fall to Date</caption><thead><tr><th>Player</th>{keys.map(key=><th key={key}>{definitions.find(m=>m.metric===key)?.label}</th>)}</tr></thead><tbody>{ids.flatMap(id=>{const summary=teamGameSummary(stats.filter(r=>r.athlete_id===id),source);if(!summary.entries)return [];const metrics=[...summary.counts,...summary.rates];return [<tr key={id}><th scope="row"><Link prefetch={false} href={`/athletes/${id}`} className="text-link">{names.get(id)??"Player"}</Link></th>{keys.map(key=>{const m=metrics.find(m=>m.metric===key)!;return <td key={key} title={m.pending?teamGameMetricStatus(m):undefined}>{key==="innings_outs"&&m.value!==null?formatInnings(m.value):formatTeamGameMetric(m)}</td>;})}</tr>];})}</tbody></table></div>;
+ })}</details>}
+ <p className={styles.note}>D3 bands compare against 2025 Northwest Conference teams, using five evenly sized groups. “Elite” means the top reference band, not a national award. Fall intrasquads and full-season schedules differ. Counts include matched players only; rates marked “Recorded Subset” use complete lines only and show their coverage. Conflicting counts are never dropped to make a rate work. Use ⓘ for ranges and sources.</p>
+ </div>;
 }

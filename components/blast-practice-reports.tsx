@@ -17,7 +17,7 @@ export function BlastPracticeReports({readings,compact=false,teamAverages=[]}:{r
     <div className={`${styles.hittingCards} ${compact?styles.compactCards:""}`}>
       {summary.metrics.map((m,index)=><article className={styles.hittingCard} key={m.key} aria-label={m.label}>
         <div className={styles.metricTop}><span className={styles.metricNumber} aria-hidden="true">{String(index+1).padStart(2,"0")}</span><span className={styles.metricContext}>Practice</span></div>
-        <h4>{m.label} <StatInfo metric={m.key} label={m.label}/></h4>
+        <h4>{m.label} <StatInfo metric={m.key} label={m.label} source="blast_fall" unit={m.unit} value={m.average}/></h4>
         <p className={styles.primaryValue}><strong>{m.average===null?"—":formatBlastValue(m.average,m.unit)}</strong><span>{blastUnit(m.unit)}</span></p>
         <p className={styles.averageLabel}>Fall Average</p>
         <HittingTeamAverageLine average={hittingTeamAverage(teamAverages,m.key,m.unit,"blast_fall")}/>
