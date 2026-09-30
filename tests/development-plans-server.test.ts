@@ -1,0 +1,8 @@
+import { expect,it,vi } from "vitest";
+vi.mock("server-only",()=>({}));
+import { loadDevelopmentPlans,canCompleteDevelopmentPlan } from "@/lib/development-plans-server";
+const athlete="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+type Access=Parameters<typeof loadDevelopmentPlans>[0];
+it("rejects peer and invalid IDs before a database read",async()=>{const rpc=vi.fn(),access={roles:["player"],athleteId:athlete,preview:null,supabase:{rpc}} as unknown as Access;for(const id of ["bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb","bad"])await expect(loadDevelopmentPlans(access,id)).rejects.toThrow("access denied");expect(rpc).not.toHaveBeenCalled();});
+it("uses the athlete-scoped ordinary-session RPC and fails closed on an invalid response",async()=>{const rpc=vi.fn().mockResolvedValue({data:[],error:null}),access={roles:["coach"],athleteId:null,preview:null,supabase:{rpc}} as unknown as Access;expect(await loadDevelopmentPlans(access,athlete)).toEqual([]);expect(rpc).toHaveBeenCalledExactlyOnceWith("athlete_development_plans",{p_athlete_id:athlete});rpc.mockResolvedValue({data:null,error:{code:"42501"}});await expect(loadDevelopmentPlans(access,athlete)).rejects.toThrow("could not be loaded");});
+it("enables completion only for actual linked players outside View as",()=>{expect(canCompleteDevelopmentPlan({roles:["player"],athleteId:athlete,preview:null},athlete)).toBe(true);expect(canCompleteDevelopmentPlan({roles:["player"],athleteId:athlete,preview:{role:"player"} as Access["preview"]},athlete)).toBe(false);expect(canCompleteDevelopmentPlan({roles:["coach"],athleteId:athlete,preview:null},athlete)).toBe(false);expect(canCompleteDevelopmentPlan({roles:["player"],athleteId:null,preview:null},athlete)).toBe(false);});

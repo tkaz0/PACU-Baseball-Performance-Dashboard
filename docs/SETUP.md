@@ -454,3 +454,9 @@ Apply the additive `202609290001_weekly_source_check_status.sql` migration befor
 
 
 Graphics Studio is available at `/graphics` after sign-in. It uses existing ordinary-session readers and bundled brand assets; no service keys, third-party image API, new environment variables, or migrations are required. The single Graphic selector and searchable player dropdown lead to Instagram 4:5, Story 9:16 and X 16:9 quick sizes. Save Image and Copy Caption are above the preview; Customize contains optional controls, Square size and SVG download. Per the owner's request, images omit the bottom information block while keeping compact source/context and necessary counts/bases. Copy Caption uses a short social caption; Caption & Stat Details retains the full evidence and disclosure for review. Dense selections must render in full or show a format error. Downloads and clipboard copying never post automatically. See [Graphics Studio](GRAPHICS.md).
+
+## September 30 development tools
+
+Apply migrations `202609300001_development_plans.sql`, `202609300002_trend_annotations.sql`, `202609300003_swing_videos.sql`, and `202609300004_training_block_samples.sql` in order before deploying the consuming app. They add empty plan/note/video metadata and a private video bucket, plus a restricted sample-evidence projection. No new environment variables, Auth credentials, account grants or service keys are required. Existing measurements and imported sources are unchanged.
+
+After deployment, verify profile Overview/Progress, staff plan/note controls, selected-swing replay controls and player sharing boundaries. The upload bucket is private, limited to MP4/MOV/WebM and 50 MB per clip; check hosted Storage policies and finalization before accepting video uploads. See the feature documents for limits and retry behavior.

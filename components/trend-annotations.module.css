@@ -1,0 +1,29 @@
+.section { min-width:0; padding:1.25rem; border:1px solid var(--line-subtle); border-radius:1rem; background:var(--surface-panel); scroll-margin-top:5rem; }
+.heading { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
+.heading p { margin:0 0 .3rem; color:var(--accent-readable); font-size:.65rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
+.heading h2 { margin:0; display:flex; align-items:center; gap:.5rem; font-size:1.1rem; }
+.heading > span { color:var(--text-secondary); font-size:.75rem; white-space:nowrap; }
+.hint, .empty { color:var(--text-secondary); font-size:.8rem; line-height:1.6; }
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,16rem),1fr)); gap:.75rem; margin-top:1rem; }
+.card { min-width:0; padding:.9rem; border:1px solid var(--line-subtle); border-radius:.75rem; background:var(--surface-raised); }
+.card header { display:flex; flex-wrap:wrap; justify-content:space-between; gap:.5rem; font-size:.75rem; }
+.category { font-weight:750; color:var(--accent-readable); }
+.card time { color:var(--text-secondary); }
+.card p { overflow-wrap:anywhere; margin:.65rem 0; line-height:1.6; font-size:.85rem; }
+.visibility { color:var(--text-secondary); font-size:.7rem; }
+.edit { border-top:1px solid var(--line-subtle); margin-top:.7rem; padding-top:.6rem; }
+.add { border-top:1px solid var(--line-subtle); margin-top:1rem; padding-top:.85rem; }
+.edit summary, .add summary { color:var(--accent-readable); font-weight:700; font-size:.8rem; cursor:pointer; }
+.form { margin-top:.8rem; }
+.form fieldset { display:grid; gap:.9rem; padding:0; border:0; margin:0; min-width:0; }
+.fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,9rem),1fr)); gap:.75rem; }
+.form label { display:grid; gap:.4rem; min-width:0; font-size:.75rem; font-weight:650; }
+.form input:not([type=checkbox]), .form select, .form textarea { min-width:0; width:100%; }
+.form textarea { resize:vertical; }
+.options { display:flex; flex-wrap:wrap; gap:.75rem; }
+.options label { display:flex; align-items:center; gap:.5rem; font-weight:500; }
+.options input { accent-color:var(--accent-readable); }
+.form button { justify-self:start; }
+.feedback { color:var(--text-secondary); font-size:.8rem; line-height:1.6; }
+.feedback a { color:var(--accent-readable); text-decoration:underline; font-weight:700; }
+@media(max-width:600px) { .section { padding:1rem; } }

@@ -1,3 +1,4 @@
+import { initializeStorageSchema } from "./fixtures/storage-schema";
 import { PGlite } from "@electric-sql/pglite";
 import { readdirSync,readFileSync } from "node:fs";
 import { beforeAll,beforeEach,afterAll,it,expect } from "vitest";
@@ -8,6 +9,7 @@ const observation=(column=9,key="blast_vertical_bat_angle",value=-28.2,unit="deg
 const save=(rows:ReturnType<typeof observation>[])=>db.query<{data:{created:number;unchanged:number}}>("select public.admin_import_performance($1::jsonb) data",[JSON.stringify(rows)]);
 beforeAll(async()=>{
  await db.exec("create role anon nologin;create role authenticated nologin;create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema public,auth to anon,authenticated;grant execute on function auth.uid() to anon,authenticated;");
+ await initializeStorageSchema(db);
  const dir=new URL("../supabase/migrations/",import.meta.url);for(const f of readdirSync(dir).filter(n=>n.endsWith('.sql')).sort())await db.exec(readFileSync(new URL(f,dir),'utf8'));
  for(const [id,role] of [[admin,"admin"],[coach,"coach"],[player,"player"]]){await db.query("insert into auth.users(id) values($1)",[id]);await db.query("insert into public.app_accounts(user_id,is_active) values($1,true)",[id]);await db.query("insert into public.account_roles(user_id,role) values($1,$2)",[id,role]);}
  await db.query("insert into public.athletes(id,athlete_code,first_name,last_name) values($1,'SYN-001','Fictional','One'),($2,'SYN-002','Fictional','Two')",[athlete,peer]);

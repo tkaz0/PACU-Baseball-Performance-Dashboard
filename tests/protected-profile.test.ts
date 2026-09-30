@@ -16,7 +16,7 @@ vi.mock("@/lib/full-swing-contacts-server", () => ({ loadFullSwingContacts: fake
 vi.mock("@/lib/game-comparison-server", () => ({ loadGameComparisons: fake.comparisons }));
 vi.mock("@/lib/game-log-server", () => ({ loadGameLogs: fake.logs }));
 vi.mock("@/lib/game-server", () => ({ loadGameStats: fake.games }));
-vi.mock("next/navigation", () => ({ notFound: () => { throw new Error("NOT_FOUND"); } }));
+vi.mock("next/navigation", () => ({ notFound: () => { throw new Error("NOT_FOUND"); },useRouter:()=>({refresh:vi.fn()}) }));
 vi.mock("next/link", () => ({ default: ({ href, children, ...props }: { href: string; children: ReactNode }) => createElement("a", { href, ...props }, children) }));
 vi.mock("@/components/renpho-charts", () => ({ RenphoCharts: fake.charts }));
 
@@ -33,6 +33,9 @@ const reading = (change: Partial<Measurement> = {}): Measurement => ({
   id: "fictional-reading", athlete_code: athlete.athlete_code, measured_at: "2026-09-12", source: "Fictional hitting test", metric: "Max EV",
   value: 10, unit: "mph", source_file: "fictional.csv", source_sheet: "Values", source_row: 2, file_hash: "a".repeat(64), ...change,
 });
+const ownPlan={id:"11111111-1111-4111-8111-111111111111",athleteId:ownId,weekStart:"2026-09-28",focus:"Fictional shared weekly plan",drills:[{id:"33333333-3333-4333-8333-333333333333",title:"Fictional drill",cue:"Fictional shared cue",completedAt:null}],staffNote:"Fictional private weekly note",shared:true,archived:false,revision:1,createdAt:"2026-09-29T00:00:00Z",updatedAt:"2026-09-29T00:00:00Z"};
+const ownAnnotation={id:"55555555-5555-4555-8555-555555555555",athleteId:ownId,date:"2026-09-20",category:"swing_cue",scope:"hitting_practice",note:"Fictional shared chart note",shared:true,archived:false,revision:1,createdAt:"2026-09-20T00:00:00Z"};
+const contact={fileHash:"a".repeat(64),sourceRow:2,pitchNumber:1,sourceFile:"fictional-contact.csv",playedOn:"2026-09-11",category:"intrasquad",exitVelocity:90,launchAngle:20,direction:5,distance:230};
 function access(roles: Role[] = ["player"], athleteId: string | null = ownId, preview = false) {
   return { roles, athleteId, actualRoles: preview ? ["admin"] : roles, preview: preview ? { role: roles[0], athleteId: roles[0] === "player" ? ownId : null } : null,
     user: { id: "fictional-user", email: "private-login@example.com" }, supabase: { from: fake.from, rpc: fake.rpc } };
@@ -55,15 +58,18 @@ describe("protected profile route authorization and integration", () => {
     fake.access.mockRejectedValueOnce(new Error("REDIRECT:/login"));
     await expect(Profile({ params: Promise.resolve({ id: ownId }) })).rejects.toThrow("REDIRECT:/login");
     expect(fake.goals).not.toHaveBeenCalled(); expect(fake.movement).not.toHaveBeenCalled(); expect(fake.from).not.toHaveBeenCalled(); expect(fake.load).not.toHaveBeenCalled(); expect(fake.games).not.toHaveBeenCalled(); expect(fake.logs).not.toHaveBeenCalled();
+    expect(fake.rpc).not.toHaveBeenCalled();
   });
   it.each([otherId, "LOCAL-0001", "", "../../admin/access", ownId + "\n"])("rejects malformed or another player's ID %# before the profile query", async id => {
     await expect(Profile({ params: Promise.resolve({ id }) })).rejects.toThrow("NOT_FOUND");
     expect(fake.goals).not.toHaveBeenCalled(); expect(fake.movement).not.toHaveBeenCalled(); expect(fake.from).not.toHaveBeenCalled(); expect(fake.load).not.toHaveBeenCalled(); expect(fake.games).not.toHaveBeenCalled(); expect(fake.logs).not.toHaveBeenCalled();
+    expect(fake.rpc).not.toHaveBeenCalled();
   });
   it("does not fall back to actual admin authority during a player preview", async () => {
     fake.access.mockResolvedValueOnce(access(["player"], ownId, true));
     await expect(Profile({ params: Promise.resolve({ id: otherId }) })).rejects.toThrow("NOT_FOUND");
     expect(fake.goals).not.toHaveBeenCalled(); expect(fake.movement).not.toHaveBeenCalled(); expect(fake.from).not.toHaveBeenCalled(); expect(fake.load).not.toHaveBeenCalled(); expect(fake.games).not.toHaveBeenCalled(); expect(fake.logs).not.toHaveBeenCalled();
+    expect(fake.rpc).not.toHaveBeenCalled();
   });
   it("denies unlinked players and missing/error profile results without loading measurements", async () => {
     fake.access.mockResolvedValueOnce(access(["player"], null));
@@ -90,7 +96,13 @@ describe("protected profile route authorization and integration", () => {
     expect(html).toContain(`href="/pitch-design?athlete=${athlete.id}"`);
     expect(html).not.toContain('data-testid="hitter-swing-blueprint"');
     expect(fake.movement).toHaveBeenCalledExactlyOnceWith(trusted,athlete.id,athlete.athlete_code);
-    expect(fake.rpc).toHaveBeenCalledExactlyOnceWith("athlete_focus_items",{p_athlete_id:athlete.id});
+    expect(fake.rpc.mock.calls).toEqual([
+      ["athlete_focus_items",{p_athlete_id:athlete.id}],
+      ["athlete_swing_videos",{p_athlete_id:athlete.id}],
+      ["athlete_development_plans",{p_athlete_id:athlete.id}],
+      ["athlete_trend_annotations",{p_athlete_id:athlete.id}],
+      ["athlete_training_block_samples",{p_athlete_id:athlete.id,p_offset:0}],
+    ]);
     expect(html).toContain("Game Stats");
     expect(html).toContain("Fictional Profile"); expect(html).toContain('data-metric-key="max_exit_velocity"');
     expect(html).toContain('data-value="10"'); expect(html).toContain("Jersey Number");
@@ -110,6 +122,7 @@ describe("protected profile route authorization and integration", () => {
     expect(fake.games).toHaveBeenCalledTimes(1);
   });
   it("shows imports to actual staff and Coach view, and limits management details to presented admin", async () => {
+    fake.contacts.mockResolvedValue([contact]);
     fake.access.mockResolvedValueOnce(access(["coach"], null));
     const coach = renderToStaticMarkup(await Profile({ params: Promise.resolve({ id: ownId }) }));
     expect(coach).toContain("Team Roster"); expect(coach).not.toContain("Roster Details"); expect(coach).not.toContain("private-roster@example.com"); expect(coach).toContain('href="/imports"');
@@ -119,6 +132,23 @@ describe("protected profile route authorization and integration", () => {
     fake.access.mockResolvedValueOnce(access(["admin"], null));
     const admin = renderToStaticMarkup(await Profile({ params: Promise.resolve({ id: ownId }) }));
     expect(admin).toContain("Roster Details"); expect(admin).toContain("private-roster@example.com"); expect(admin).toContain('href="/imports"');
+    for(const html of [coach,preview,admin]){expect(html).toContain("Add Weekly Plan");expect(html).toContain("Add Coaching Note");expect(html).toContain("Attach Video");expect(html).not.toContain('aria-label="Complete Fictional drill"');}
+  });
+  it.each([false,true])("shows only shared development content and keeps staff controls out of Player View (preview=%s)",async preview=>{
+    fake.access.mockResolvedValueOnce(access(["player"],ownId,preview));fake.contacts.mockResolvedValue([contact]);
+    fake.rpc.mockImplementation(async(name:string)=>({data:name==="athlete_development_plans"?[ownPlan,{...ownPlan,id:"22222222-2222-4222-8222-222222222222",weekStart:"2026-10-05",focus:"Fictional hidden staff plan",shared:false}]:name==="athlete_trend_annotations"?[ownAnnotation,{...ownAnnotation,id:"66666666-6666-4666-8666-666666666666",note:"Fictional hidden chart note",shared:false}]:[],error:null}));
+    const html=renderToStaticMarkup(await Profile({params:Promise.resolve({id:ownId})}));
+    expect(html).toContain(ownPlan.focus);expect(html).toContain(ownPlan.drills[0].cue);expect(html).toContain(ownAnnotation.note);
+    for(const hidden of [ownPlan.staffNote,"Fictional hidden staff plan","Fictional hidden chart note","Add Weekly Plan","Edit Weekly Plan","Add Coaching Note","Edit Note","Attach Video","Attach Swing Video"])expect(html).not.toContain(hidden);
+    expect(html.includes('aria-label="Complete Fictional drill"')).toBe(!preview);
+    for(const [,args] of fake.rpc.mock.calls)expect(args.p_athlete_id).toBe(ownId);
+  });
+  it("isolates optional video, weekly-plan, note and sample-reader failures without losing the profile",async()=>{
+    fake.contacts.mockResolvedValue([contact]);fake.rpc.mockImplementation(async(name:string)=>name==="athlete_focus_items"?{data:[],error:null}:{data:null,error:{code:"FICTITIOUS_ERROR"}});
+    const html=renderToStaticMarkup(await Profile({params:Promise.resolve({id:ownId})}));
+    expect(html).toContain("Fictional Profile");expect(html).toContain('data-value="10"');expect(html).toContain("Game Stats");
+    for(const message of ["Weekly plans are temporarily unavailable","Coaching notes are temporarily unavailable","Swing videos are temporarily unavailable","Swing counts are temporarily unavailable"])expect(html).toContain(message);
+    expect(html).not.toContain("Attach Video");expect(html).not.toContain("FICTITIOUS_ERROR");
   });
   it("uses own aggregate overlays without peer rows and keeps baseball outside Fall out of history", async () => {
     fake.load.mockResolvedValueOnce({ measurements: [reading(), reading({ id: "fictional-summer", measured_at: "2026-08-12", metric: "Summer-only metric" }), reading({ id: "fictional-old", measured_at: "2025-09-12", metric: "Old-only metric" })], batches: [], percentileOverrides: [{

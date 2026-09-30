@@ -1,3 +1,4 @@
+import { initializeStorageSchema } from "./fixtures/storage-schema";
 import { PGlite } from "@electric-sql/pglite";
 import { beforeAll, afterAll, describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
@@ -5,7 +6,7 @@ import { parseRosterCsv, type RosterInput } from "@/lib/roster/csv";
 import type { ImportPreview } from "@/lib/types";
 
 // Actual PostgreSQL RLS, grants, constraints and PL/pgSQL run in isolated PGlite.
-// Only Supabase's external Auth schema/uid() contract is emulated. No network/hosted data.
+// Supabase's external Auth and Storage table contracts are emulated. No network/hosted data.
 const db = new PGlite();
 const ids = {
   admin: "11111111-1111-4111-8111-111111111111",
@@ -43,6 +44,7 @@ beforeAll(async () => {
     grant execute on function auth.uid() to anon, authenticated;
   `);
   const migrationDir = new URL("../supabase/migrations/",import.meta.url);
+  await initializeStorageSchema(db);
   for (const file of readdirSync(migrationDir).filter(f => f.endsWith(".sql")).sort()) await db.exec(readFileSync(new URL(file,migrationDir),"utf8"));
   for (const id of Object.values(ids)) await db.query("insert into auth.users(id) values($1)",[id]);
   await db.query("insert into public.app_accounts(user_id,is_active) values($1,true)",[ids.admin]);

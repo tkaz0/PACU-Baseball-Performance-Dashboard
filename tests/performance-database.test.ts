@@ -1,3 +1,4 @@
+import { initializeStorageSchema } from "./fixtures/storage-schema";
 import { PGlite } from "@electric-sql/pglite";
 import { beforeAll, beforeEach, afterAll, describe, expect, it, vi } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
@@ -57,6 +58,7 @@ async function counts() {
 beforeAll(async () => {
   await db.exec("create role anon nologin;create role authenticated nologin;create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema public,auth to anon,authenticated;grant execute on function auth.uid() to anon,authenticated;");
   const dir=new URL("../supabase/migrations/",import.meta.url);
+  await initializeStorageSchema(db);
   for(const file of readdirSync(dir).filter(f=>f.endsWith(".sql")).sort()) await db.exec(readFileSync(new URL(file,dir),"utf8"));
   for(const id of Object.values(users)) await db.query("insert into auth.users(id) values($1)",[id]);
   for(const [key,id] of Object.entries(users)) {

@@ -1,8 +1,9 @@
+import { swingContactKey } from "@/lib/swing-videos";
 import type { SavedContact } from "@/lib/full-swing-contacts-server";
 import { INFIELD_DISTANCE_FEET, MIDDLE_DIRECTION_DEGREES, spraySummary } from "@/lib/spray-zones";
 
 /** Positive source Direction points toward first base, confirmed by the owner. */
-export function HitterSprayMap({ contacts, bats }: { contacts: readonly SavedContact[]; bats?: string | null }) {
+export function HitterSprayMap({ contacts, bats, onSelect, videoKeys = new Set<string>(), selectedKey }: { contacts: readonly SavedContact[]; bats?: string | null; onSelect?: (contact:SavedContact)=>void; videoKeys?: ReadonlySet<string>; selectedKey?:string|null }) {
   const rows=contacts.filter(row=>row.direction!==null&&row.distance!==null);
   if(!rows.length)return <p className="rounded-xl border border-dashed border-[var(--line-subtle)] p-4 text-sm text-[var(--text-secondary)]">No batted balls with both direction and distance have been added here yet.</p>;
   const summary=spraySummary(contacts,bats);
@@ -20,7 +21,7 @@ export function HitterSprayMap({ contacts, bats }: { contacts: readonly SavedCon
     {[-MIDDLE_DIRECTION_DEGREES,MIDDLE_DIRECTION_DEGREES].map(degrees=><path key={degrees} d={`M ${originX} ${originY} L ${coords(degrees,radius).x} ${coords(degrees,radius).y}`} fill="none" stroke="var(--line-subtle)" strokeDasharray="3 5"/>)}
     <path d={`M ${originX} ${originY-74*scale} L ${originX+63*scale} ${originY-63*scale} L ${originX} ${originY-52*scale} L ${originX-63*scale} ${originY-63*scale} Z`} fill="none" stroke="var(--line-subtle)" strokeWidth="1.2"/>
     <circle cx={originX} cy={originY} r="4" fill="var(--text-primary)"/>
-    {rows.map(row=>{const point=coords(row.direction!,row.distance!);return <circle key={`${row.fileHash}:${row.sourceRow}`} cx={point.x} cy={point.y} r="5.5" fill="var(--accent-readable)" fillOpacity=".85" stroke="var(--surface-panel)" strokeWidth="1.5"><title>{`${row.playedOn} · Pitch ${row.pitchNumber} · ${row.distance!.toFixed(1)} ft · ${row.direction!.toFixed(1)}°`}</title></circle>;})}
+    {rows.map(row=>{const point=coords(row.direction!,row.distance!),key=swingContactKey(row.fileHash,row.sourceRow),hasVideo=videoKeys.has(key),label=`${row.playedOn} · Pitch ${row.pitchNumber} · ${row.distance!.toFixed(1)} ft · ${row.direction!.toFixed(1)}°${hasVideo?" · Video attached":""}`;return <g key={key} role={onSelect?"button":undefined} tabIndex={onSelect?0:undefined} aria-label={onSelect?`Open swing: ${label}`:undefined} onClick={()=>onSelect?.(row)} onKeyDown={event=>{if(onSelect&&(event.key==="Enter"||event.key===" ")){event.preventDefault();onSelect(row);}}} className={onSelect?"cursor-pointer outline-offset-4":undefined}><circle cx={point.x} cy={point.y} r="12" fill="transparent"/><circle cx={point.x} cy={point.y} r={selectedKey===key?8:5.5} fill="var(--accent-readable)" fillOpacity=".85" stroke={hasVideo?"var(--text-primary)":"var(--surface-panel)"} strokeWidth={hasVideo?2.5:1.5}><title>{label}</title></circle></g>;})}
     <text x="350" y="362" textAnchor="middle" fill="var(--text-secondary)" fontSize="12">Home plate · direction 0° points to center</text>
     <text x="70" y="310" fill="var(--text-secondary)" fontSize="12">Third-base side (−)</text><text x="505" y="310" fill="var(--text-secondary)" fontSize="12">First-base side (+)</text>
   </svg></div>

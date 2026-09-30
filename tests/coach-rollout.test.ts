@@ -1,3 +1,4 @@
+import { initializeStorageSchema } from "./fixtures/storage-schema";
 import { PGlite } from "@electric-sql/pglite";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
@@ -31,6 +32,7 @@ beforeAll(async () => {
     create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
     grant usage on schema public,auth to anon,authenticated; grant execute on function auth.uid() to anon,authenticated;`);
   const dir = new URL("../supabase/migrations/", import.meta.url);
+  await initializeStorageSchema(db);
   for (const filename of readdirSync(dir).filter(name => name.endsWith(".sql")).sort()) await db.exec(readFileSync(new URL(filename, dir), "utf8"));
   for (const [actor, id] of Object.entries(actors)) {
     await db.query("insert into auth.users(id) values($1)", [id]);

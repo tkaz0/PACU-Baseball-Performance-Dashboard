@@ -198,3 +198,7 @@ Advanced Performance now leads player Overview: PAC Production+, SLG, ISO and wO
 QPA calculations now account for sacrifice flies that were added after the older AB totals. Data Review shows official hitting lines and the SF adjustment; already corrected AB totals are not adjusted again. See [Game Stats](docs/GAME_STATS.md).
 
 Team game-summary status: valid recorded zero-AB lines contribute zero to pooled SLG/ISO/contact totals; they never block teammates or create an individual zero-opportunity rate. Missing inputs show “Awaiting counts”; conflicting totals retain “Counts need review.” No source values or ranking rules change.
+
+## Player development tools
+
+Profiles now include coach-assigned Weekly Plans on Overview, Swing Replay attachments on the paired contact/spray chart, and a Progress tab with training-block comparisons and dated coaching notes. Shared plans also appear on the linked player's Home. These features preserve own-player access and separate practice from in-game results. See [Weekly Plans](docs/DEVELOPMENT_PLANS.md), [Swing Replay](docs/SWING_VIDEOS.md), [Training Blocks](docs/TRAINING_BLOCKS.md), and [Coaching Notes](docs/TREND_ANNOTATIONS.md).

@@ -1,8 +1,9 @@
+import { initializeStorageSchema } from "./fixtures/storage-schema";
 import { PGlite } from "@electric-sql/pglite";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 
-// Isolated PostgreSQL execution, with only the external Supabase Auth contract
+// Isolated PostgreSQL execution, with the external Supabase Auth and Storage table contracts
 // emulated. All identities are fictional; no hosted accounts or emails are used.
 const db = new PGlite();
 const actors = {
@@ -60,6 +61,7 @@ beforeAll(async () => {
     grant execute on function auth.uid() to anon, authenticated;
   `);
   const migrationDir = new URL("../supabase/migrations/", import.meta.url);
+  await initializeStorageSchema(db);
   for (const file of readdirSync(migrationDir).filter(file => file.endsWith(".sql")).sort()) {
     await db.exec(readFileSync(new URL(file, migrationDir), "utf8"));
   }
