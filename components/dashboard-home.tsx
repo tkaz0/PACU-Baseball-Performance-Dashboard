@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { ArrowUpRight, ArrowRight, Activity, Upload, UsersRound, ChartNoAxesCombined, Trophy, Clock3, Crosshair, UserRound, ClipboardCheck, FolderOpen, FileChartColumn, Check } from "lucide-react";
+import { ArrowUpRight, ArrowRight, Activity, Upload, UsersRound, ChartNoAxesCombined, Trophy, Clock3, Crosshair, UserRound, ClipboardCheck, FolderOpen, FileChartColumn, Check, DraftingCompass, Target } from "lucide-react";
 import { PacificLogo } from "@/components/pacific-brand";
 import { StatInfo } from "@/components/stat-info";
 import { formatTeamGameMetric, teamGameMetricStatus, type TeamGameMetric, type TeamGameSummary } from "@/lib/team-game-stats";
 import { formatInnings } from "@/lib/pitching-stats";
 import type { HomeSummary } from "@/lib/home-summary";
+import type { DesignNavigation } from "@/lib/design-navigation";
 import type { coachUpdateDigest } from "@/lib/coach-update-digest";
 import type { HomeLeaderboard, HomeRank } from "@/lib/home-leaderboards";
 import type { DueCoachFocus } from "@/lib/coach-focus-server";
@@ -43,7 +44,7 @@ function RankRows({ rows, maximum }: { rows: HomeRank[]; maximum: number }) {
 function HomeRankCard({ board }: { board: HomeLeaderboard }) {
   const maximum = Math.max(0, ...board.rows.map(row => Number.isFinite(row.numericValue) ? row.numericValue! : 0));
   return <article className={styles.rankCard} aria-label={`${board.title} team leaderboard`}>
-    <div className={styles.rankCardHead}><div><p className={styles.kicker}>{board.category}</p><h3>{board.title}{board.metric&&<StatInfo metric={board.metric} label={board.title}/>}</h3></div><Trophy size={17} aria-hidden="true"/></div>
+    <div className={styles.rankCardHead}><div><p className={styles.kicker}>{board.category}</p><h3>{board.title}{board.metric&&<StatInfo metric={board.metric} label={board.title} source={board.source} unit={board.unit} period={board.period} eventId={board.eventId}/>}</h3></div><Trophy size={17} aria-hidden="true"/></div>
     <RankRows rows={board.rows.slice(0, 3)} maximum={maximum}/>
     <div className={styles.rankMeta}><span>{board.total} {board.total === 1 ? "player" : "players"}{board.metric === "batting_production_plus" ? " · Team reference = 100" : maximum > 0 ? " · Bars start at zero" : ""}</span>{board.yourRank !== null && <span>You: <strong>#{board.yourRank}</strong></span>}</div>
     <Link prefetch={false} href={board.href} className={styles.rankFooter}>Full Leaderboard<ArrowUpRight size={14} aria-hidden="true"/></Link>
@@ -72,9 +73,9 @@ function ResultsCoverage({ summary, staff, profile }: { summary: HomeSummary; st
   </section>;
 }
 
-export function DashboardHome({ staff, athleteId, summary, leaderboards = [], dueFocus = [], sourceStatus = [], visit }: { visit?:DashboardVisitWindow; staff: boolean; athleteId: string | null; summary: (HomeSummary & { visitDigest?:VisitDigest; coachDigest?: ReturnType<typeof coachUpdateDigest> }) | null; leaderboards?: HomeLeaderboard[]; dueFocus?: DueCoachFocus[]; sourceStatus?:WeeklySourceStatusRow[] }) {
+export function DashboardHome({ staff, athleteId, summary, designNavigation, leaderboards = [], dueFocus = [], sourceStatus = [], visit }: { visit?:DashboardVisitWindow; staff: boolean; athleteId: string | null; designNavigation?: DesignNavigation; summary: (HomeSummary & { visitDigest?:VisitDigest; coachDigest?: ReturnType<typeof coachUpdateDigest> }) | null; leaderboards?: HomeLeaderboard[]; dueFocus?: DueCoachFocus[]; sourceStatus?:WeeklySourceStatusRow[] }) {
   const profile = athleteId ? `/athletes/${athleteId}` : null;
-  const actions = staff ? [
+  const actions = [...(staff ? [
     { href: "/roster", title: "Roster", detail: "Player profiles", icon: UsersRound },
     { href: "/imports", title: "Import Results", detail: "Add a session", icon: Upload },
     { href: "/analytics", title: "Analytics", detail: "Explore team trends", icon: ChartNoAxesCombined },
@@ -84,6 +85,9 @@ export function DashboardHome({ staff, athleteId, summary, leaderboards = [], du
     ...(profile ? [{ href: profile, title: "My Profile", detail: "My player card", icon: UserRound }] : []),
     { href: "/game-stats", title: "My Game Stats", detail: "Fall results", icon: Activity },
     { href: "/leaderboards", title: "Leaderboards", detail: "Team rankings", icon: Trophy },
+  ]),
+    ...(staff || (profile && designNavigation?.swing) ? [{ href: "/swing-design", title: "Swing Design", detail: "Explore hitting practice", icon: DraftingCompass }] : []),
+    ...(staff || (profile && designNavigation?.pitch) ? [{ href: "/pitch-design", title: "Pitch Design", detail: "Explore your arsenal", icon: Target }] : []),
   ];
   const latestUpdate = summary?.updates[0];
   const latestGameUpdate = [summary?.batting.updatedAt, summary?.pitching.updatedAt].filter((value): value is string => !!value).sort().at(-1);

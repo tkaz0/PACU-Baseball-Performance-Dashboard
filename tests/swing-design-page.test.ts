@@ -131,6 +131,13 @@ describe("Swing Design access and routing", () => {
     const html = renderToStaticMarkup(await page());
     expect(html).toContain("Built for Hitting Practice"); expect(fake.load).not.toHaveBeenCalled(); expect(fake.team).not.toHaveBeenCalled(); expect(fake.speed).not.toHaveBeenCalled();
   });
+  it.each([false, true])("withholds measurements for an unconfirmed role (Player View %s)", async preview => {
+    fake.access.mockResolvedValueOnce(access(["player"], ownId, preview));
+    fake.single.mockResolvedValueOnce({ data: { ...athlete, athlete_seasons: [{ ...athlete.athlete_seasons[0], player_type: null, primary_position: null, secondary_position: null }] }, error: null });
+    renderToStaticMarkup(await page());
+    expect(fake.load).not.toHaveBeenCalled();
+    expect(fake.blueprint).not.toHaveBeenCalled();
+  });
   it("allows two-way hitters and renders an honest empty state without Blast averages", async () => {
     fake.single.mockResolvedValueOnce({ data: { ...athlete, athlete_seasons: [{ ...athlete.athlete_seasons[0], player_type: "two_way", primary_position: "P" }] }, error: null });
     fake.load.mockResolvedValueOnce({ measurements: [], batches: [], percentileOverrides: [] });

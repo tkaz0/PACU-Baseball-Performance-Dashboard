@@ -22,7 +22,7 @@ function report({ attack = 12, vertical = -30, kind = "average", hash = "a", sta
 }
 const performance = (readings: Measurement[] = []) => getPlayerPerformance({ readings, athleteCode: code });
 const renderBlueprint = (readings: Measurement[]) => renderToStaticMarkup(createElement(HitterSwingBlueprint, { readings, performance: performance(readings), bats:"R" }));
-function athlete(playerType: string | null = "position", primaryPosition = "CF"): RosterAthlete {
+function athlete(playerType: string | null = "position", primaryPosition: string | null = "CF"): RosterAthlete {
   return { id: code, athlete_code: code, first_name: "Fictional", preferred_name: null, last_name: "Blueprint", pacific_email: "fictional.blueprint@example.com", profile_photo_url: null, created_at: "", updated_at: "",
     athlete_seasons: [{ athlete_id: code, season: "2026-27", jersey_number: 0, primary_position: primaryPosition, secondary_position: playerType === "two_way" ? "P" : null,
       player_type: playerType, bats: "R", throws: "R", academic_class: null, eligibility_year: null, graduation_year: null, roster_status: "active" }] };
@@ -222,21 +222,30 @@ describe("Practice swing blueprint", () => {
 
 describe("profile integration and hitter role boundaries", () => {
   it.each([
-    { playerType: "position", primaryPosition: "CF", visible: true },
-    { playerType: "two_way", primaryPosition: "P", visible: true },
-    { playerType: "pitcher", primaryPosition: "P", visible: false },
-    { playerType: null, primaryPosition: "P", visible: false },
-  ])("keeps only a Swing Design shortcut in Practice for $playerType/$primaryPosition", ({ playerType, primaryPosition, visible }) => {
+    { playerType: "position", primaryPosition: "CF", visible: true, pitch: false },
+    { playerType: "two_way", primaryPosition: "P", visible: true, pitch: true },
+    { playerType: "pitcher", primaryPosition: "P", visible: false, pitch: true },
+    { playerType: null, primaryPosition: "P", visible: false, pitch: true },
+    { playerType: null, primaryPosition: null, visible: false, pitch: false },
+  ])("keeps role-matched design shortcuts in Practice for $playerType/$primaryPosition", ({ playerType, primaryPosition, visible, pitch }) => {
     const readings = report();
-    const html = renderToStaticMarkup(createElement(PlayerPerformanceProfile, { athlete: athlete(playerType, primaryPosition), performance: performance(readings), blastReadings: readings, swingDesignHref: "/swing-design?athlete=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" }));
+    const html = renderToStaticMarkup(createElement(PlayerPerformanceProfile, { athlete: athlete(playerType, primaryPosition), performance: performance(readings), blastReadings: readings, pitchDesignHref: "/pitch-design?athlete=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", swingDesignHref: "/swing-design?athlete=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" }));
     const panels = html.split('role="tabpanel"').slice(1);
     expect(panels).toHaveLength(5);
     for (const panel of panels) {
       const isPractice = /id="[^"]*-panel-practice"/.test(panel);
       expect(panel.includes('href="/swing-design?athlete=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"')).toBe(visible && isPractice);
+      expect(panel.includes('href="/pitch-design?athlete=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"')).toBe(pitch && isPractice);
       expect(panel).not.toContain('data-testid="hitter-swing-blueprint"');
     }
     expect((html.match(/href="\/swing-design\?/g) ?? []).length).toBe(visible ? 1 : 0);
+  });
+
+  it("withholds profile design shortcuts for a historical-only roster entry", () => {
+    const historical = athlete("two_way", "P");
+    historical.athlete_seasons = historical.athlete_seasons.map(season => ({ ...season, season: "2025-26" }));
+    const html = renderToStaticMarkup(createElement(PlayerPerformanceProfile, { athlete: historical, performance: performance([]), swingDesignHref: "/swing-design", pitchDesignHref: "/pitch-design" }));
+    expect(html).not.toContain('href="/swing-design"'); expect(html).not.toContain('href="/pitch-design"');
   });
 
   it("keeps local previews free of shared player links while retaining Blast summary cards", () => {
@@ -245,6 +254,7 @@ describe("profile integration and hitter role boundaries", () => {
     const practice = html.split('role="tabpanel"').find(panel => /id="[^"]*-panel-practice"/.test(panel))!;
     expect(practice).not.toContain('data-testid="hitter-swing-blueprint"');
     expect(practice).not.toContain('href="/swing-design');
+    expect(practice).not.toContain('href="/pitch-design');
     expect(practice).toContain("Attack Angle");
     expect(practice).toContain("Vertical Bat Angle");
     expect(html).not.toContain('data-testid="player-performance-methods"');

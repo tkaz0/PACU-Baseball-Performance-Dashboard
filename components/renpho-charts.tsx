@@ -2,6 +2,7 @@
 
 import { MeasurementChange } from "@/components/measurement-change";
 import { renphoMeasurementChange } from "@/lib/measurement-change";
+import { measurementGuideContext } from "@/lib/stat-benchmarks";
 import { StatInfo } from "@/components/stat-info";
 
 import { useState } from "react";
@@ -29,7 +30,7 @@ function Scale({ maximum, unit }: { maximum: number; unit: string }) {
 
 function ReadingBars({ readings, maximum, history }: { readings: Measurement[]; maximum: number; history: Measurement[] }) {
   return <ul className="renpho-bar-list">{readings.map(reading => <li key={reading.id} data-testid="renpho-bar" data-metric={reading.metric} data-value={reading.value} data-unit={reading.unit}>
-    <div className="renpho-bar-label"><span>{reading.metric}<StatInfo metric={reading.metric} /></span><strong>{String(reading.value)} <small>{reading.unit}</small></strong></div>
+    <div className="renpho-bar-label"><span>{reading.metric}<StatInfo metric={reading.metric} {...measurementGuideContext(reading)} /></span><strong>{String(reading.value)} <small>{reading.unit}</small></strong></div>
     <MeasurementChange change={renphoMeasurementChange(reading, history)} metric={reading.metric}/><div className="renpho-bar-track" aria-hidden="true"><span style={{ width: `${reading.value / maximum * 100}%` }} /></div>
   </li>)}</ul>;
 }
@@ -77,7 +78,7 @@ export function RenphoCharts({ readings, batches, athleteCode }: { readings: Mea
           {percentageReadings.length ? <figure aria-label="Reported percentages" data-axis-min="0" data-axis-max="100"><Scale maximum={100} unit="%" /><ReadingBars readings={percentageReadings} maximum={100} history={comparisonHistory}/></figure> : <p className="renpho-chart-empty">No percentage measurements available to chart for this report.</p>}
           <p className="renpho-chart-note">Individual report percentages; they are not parts of a single total.</p>
         </div>
-        {otherReadings.length > 0 && <div className="renpho-chart-panel"><h4>Other report measurements</h4><p className="renpho-chart-caption">{report.reference.measured_at} · Values shown in their own units.</p><dl className="renpho-indicator-grid">{otherReadings.map(reading => <div key={reading.id}><dt>{reading.metric}<StatInfo metric={reading.metric} /></dt><dd>{String(reading.value)} <span>{reading.unit}</span><MeasurementChange change={renphoMeasurementChange(reading, comparisonHistory)} metric={reading.metric}/></dd></div>)}</dl></div>}
+        {otherReadings.length > 0 && <div className="renpho-chart-panel"><h4>Other report measurements</h4><p className="renpho-chart-caption">{report.reference.measured_at} · Values shown in their own units.</p><dl className="renpho-indicator-grid">{otherReadings.map(reading => <div key={reading.id}><dt>{reading.metric}<StatInfo metric={reading.metric} {...measurementGuideContext(reading)} /></dt><dd>{String(reading.value)} <span>{reading.unit}</span><MeasurementChange change={renphoMeasurementChange(reading, comparisonHistory)} metric={reading.metric}/></dd></div>)}</dl></div>}
       </div>
     </div>
 

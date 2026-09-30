@@ -80,3 +80,12 @@ it("projects the full staff comparison arsenal without exposing file identities 
  rows[0].file_hash="invalid";await expect(loadComparisonData()).rejects.toThrow("could not be verified");
  rows[0].file_hash="a".repeat(64);Reflect.set(rows[0],"metric","Unsupported label");await expect(loadComparisonData()).rejects.toThrow("could not be verified");
 });
+
+it("reports safe query failure reasons without echoing provider messages or data",async()=>{
+ for(const error of [{code:"57014",message:"private provider detail"},{code:"PGRST301",details:"private row"},{code:"private-name",message:"private provider detail"}]){
+  const result=analyticsPages(async()=>({data:null,count:null,error}),x=>x,1000);
+  await expect(result).rejects.toThrow(error.code==="private-name"?"source-query:unknown":`source-query:${error.code}`);
+  await expect(result).rejects.not.toThrow(/private/);
+ }
+ await expect(analyticsPages(async()=>({data:[],count:1001,error:null}),x=>x,1000)).rejects.toThrow("source-limit");
+});

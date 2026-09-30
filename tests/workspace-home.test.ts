@@ -5,7 +5,8 @@ import type { Role } from "@/lib/types";
 import { workspaceHome, workspacePreviewQuery } from "@/lib/workspace-home";
 import { buildHomeSummary } from "@/lib/home-summary";
 
-const fake = vi.hoisted(() => ({ access: vi.fn(), from: vi.fn(), home: vi.fn(), leaderboards: vi.fn(), due: vi.fn(), status: vi.fn() }));
+const fake = vi.hoisted(() => ({ access: vi.fn(), from: vi.fn(), home: vi.fn(), leaderboards: vi.fn(), due: vi.fn(), status: vi.fn(), navigation: vi.fn() }));
+vi.mock("@/lib/design-navigation-server", () => ({ loadDesignNavigation: fake.navigation }));
 vi.mock("@/lib/home-server", () => ({loadHomeSummary: fake.home}));
 vi.mock("@/lib/home-leaderboards-server", () => ({loadHomeLeaderboards: fake.leaderboards}));
 vi.mock("@/lib/coach-focus-server", () => ({loadDueCoachFocus: fake.due}));
@@ -24,7 +25,7 @@ const access = (roles: Role[], linked: string | null = athleteId, preview = fals
   roles, athleteId: linked, actualRoles: preview ? ["admin"] : roles,
   preview: preview ? { role: roles[0], athleteId: linked } : null, supabase: { from: fake.from },
 });
-beforeEach(() => { vi.resetAllMocks(); fake.leaderboards.mockResolvedValue([]); fake.due.mockResolvedValue([]); fake.status.mockResolvedValue([]); });
+beforeEach(() => { vi.resetAllMocks(); fake.leaderboards.mockResolvedValue([]); fake.due.mockResolvedValue([]); fake.status.mockResolvedValue([]); fake.navigation.mockResolvedValue({ swing: true, pitch: false }); });
 
 describe("role-aware dashboard landing", () => {
   it.each(["admin","coach","player"] as Role[])("opens Home for %s while preserving presented scope",async role=>{
@@ -32,9 +33,10 @@ describe("role-aware dashboard landing", () => {
     expect(workspaceHome(current)).toBe("/overview");
     const html=renderToStaticMarkup(await Overview({searchParams:Promise.resolve({})}));
     expect(fake.home).toHaveBeenCalledWith(current,{since:null,viewedAt:"2026-09-27T12:00:00Z",record:false});expect(fake.leaderboards).toHaveBeenCalledWith(current);expect(html).toContain(role==="player"?"My Dashboard":"Team Dashboard");
+    expect(fake.navigation).toHaveBeenCalledWith(current);
     expect(fake.due).toHaveBeenCalledTimes(role==="player"?0:1);
     expect(fake.status).toHaveBeenCalledTimes(role==="player"?0:1);
-    expect(html.includes('href="/imports"')).toBe(role!=="player");expect(fake.from).not.toHaveBeenCalled();
+    expect(html.includes('href="/imports"')).toBe(role!=="player");expect(html).toContain('href="/swing-design"');expect(html.includes('href="/pitch-design"')).toBe(role!=="player");expect(fake.from).not.toHaveBeenCalled();
   });
   it("keeps the connection message for an unlinked player",async()=>{
     fake.access.mockResolvedValue(access(["player"],null));fake.home.mockResolvedValue(null);
@@ -43,7 +45,7 @@ describe("role-aware dashboard landing", () => {
   });
   it.each(["/login","/access-denied","/access-preview-unavailable"])("preserves access denial to %s before reading data",async destination=>{
     fake.access.mockRejectedValue(new Error(`REDIRECT:${destination}`));
-    await expect(Overview({searchParams:Promise.resolve({})})).rejects.toThrow(`REDIRECT:${destination}`);expect(fake.home).not.toHaveBeenCalled();expect(fake.leaderboards).not.toHaveBeenCalled();
+    await expect(Overview({searchParams:Promise.resolve({})})).rejects.toThrow(`REDIRECT:${destination}`);expect(fake.home).not.toHaveBeenCalled();expect(fake.leaderboards).not.toHaveBeenCalled();expect(fake.navigation).not.toHaveBeenCalled();
   });
   it("shows the recognized preview notice on Home",async()=>{
     fake.access.mockResolvedValue(access(["player"],athleteId,true));fake.home.mockResolvedValue(null);
@@ -54,7 +56,7 @@ describe("role-aware dashboard landing", () => {
 
 describe("workspace navigation and preview notices", () => {
   it.each(["admin", "coach", "player"] as Role[])("keeps Game Stats and adds Home navigation for %s", role => {
-    const html = renderToStaticMarkup(createElement(Sidebar, { roles: [role], athleteId }));
+    const html = renderToStaticMarkup(createElement(Sidebar, { roles: [role], athleteId, designNavigation: { swing: true, pitch: false } }));
     expect(html).toContain('href="/overview"'); expect(html).toContain(">Home<");
     expect(html).toContain('href="/game-stats"'); expect(html).toContain('href="/leaderboards"');
     expect(html).toContain('href="/swing-design"');
@@ -81,15 +83,36 @@ describe("workspace navigation and preview notices", () => {
     expect(html).not.toContain('href="/imports"'); expect(html).not.toContain('href="/testing/coverage"'); expect(html).not.toContain('href="/admin/access"');
   });
   it.each([false, true])("keeps Swing Design own-player navigation in Player View (preview=%s)", isPreview => {
-    const linked = renderToStaticMarkup(createElement(Sidebar, { roles: ["player"], athleteId, isPreview }));
+    const linked = renderToStaticMarkup(createElement(Sidebar, { roles: ["player"], athleteId, isPreview, designNavigation: { swing: true, pitch: false } }));
     expect(linked).toContain('href="/swing-design"');
     expect(linked).not.toContain('href="/roster"');
     const unlinked = renderToStaticMarkup(createElement(Sidebar, { roles: ["player"], athleteId: null, isPreview }));
     expect(unlinked).not.toContain('href="/swing-design"');
   });
-  it.each(["admin", "coach"] as Role[])("keeps Swing Design available to %s without a player link", role => {
+  it.each(["admin", "coach"] as Role[])("keeps both design tools available to %s without a player link", role => {
     const html = renderToStaticMarkup(createElement(Sidebar, { roles: [role], athleteId: null, isPreview: role === "coach" }));
-    expect(html).toContain('href="/swing-design"');
+    expect(html).toContain('href="/swing-design"'); expect(html).toContain('href="/pitch-design"');
+  });
+  it.each([
+    { label: "hitter", navigation: { swing: true, pitch: false } },
+    { label: "pitcher", navigation: { swing: false, pitch: true } },
+    { label: "two-way", navigation: { swing: true, pitch: true } },
+    { label: "unknown", navigation: undefined },
+  ])("keeps Home and Sidebar design links aligned for $label in Player View", async ({ navigation }) => {
+    fake.access.mockResolvedValue(access(["player"], athleteId, true));
+    fake.navigation.mockResolvedValue(navigation);
+    fake.home.mockResolvedValue(buildHomeSummary([], [], [], "2026-09-29"));
+    const sidebar = renderToStaticMarkup(createElement(Sidebar, { roles: ["player"], athleteId, isPreview: true, designNavigation: navigation }));
+    const home = renderToStaticMarkup(await Overview({ searchParams: Promise.resolve({}) }));
+    for (const html of [sidebar, home]) {
+      expect(html.includes('href="/swing-design"')).toBe(!!navigation?.swing);
+      expect(html.includes('href="/pitch-design"')).toBe(!!navigation?.pitch);
+      expect(html).not.toContain('href="/roster"');
+    }
+  });
+  it("ignores stale design flags when a player is no longer linked", () => {
+    const html = renderToStaticMarkup(createElement(Sidebar, { roles: ["player"], athleteId: null, designNavigation: { swing: true, pitch: true } }));
+    expect(html).not.toContain('href="/swing-design"'); expect(html).not.toContain('href="/pitch-design"');
   });
   it("only labels an actual preview as read-only", () => {
     expect(renderToStaticMarkup(createElement(AccessPreviewNotice, { status: "read-only", isPreview: false }))).toBe("");

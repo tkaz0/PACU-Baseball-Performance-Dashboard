@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { StatInfo } from "@/components/stat-info";
-import { benchmarkGrade, benchmarkRows, blastReference, collegePitchReference, pacificBenchmark, statBenchmark } from "@/lib/stat-benchmarks";
+import { benchmarkGrade, benchmarkRows, blastReference, collegePitchReference, pacificBenchmark, statBenchmark, statRangeGuide, ungradedMetric, metricDirection } from "@/lib/stat-benchmarks";
 import reference from "@/lib/nwc-benchmarks.json";
 
 it("uses separate, inspectable D3 team and published-player populations",()=>{
@@ -55,7 +55,7 @@ it("keeps published college pitch means separate from max values, generic types 
 });
 it("explains the external population and device while keeping Pacific grading separate",()=>{
  const html=renderToStaticMarkup(createElement(StatInfo,{metric:"classified_avg_spin",source:"Full Swing · Practice · Slider",unit:"rpm"}));
- for(const text of ["College Pitch Average","2086.0 RPM","2036.0 RPM","JUCO through D1","not a device-matched grade","averages, not maximums","Pacific Comparison Guide"])
+ for(const text of ["College Pitch Average","2086.0 RPM","2036.0 RPM","JUCO through D1","not a device-matched grade","averages, not maximums","No single ideal range"])
    expect(html).toContain(text);
  const max=renderToStaticMarkup(createElement(StatInfo,{metric:"classified_max_spin",source:"Full Swing · Practice · Slider",unit:"rpm"}));
  expect(max).not.toContain("College Pitch Average");
@@ -72,4 +72,46 @@ it("keeps every published cutoff finite, ordered, and backed by at least five re
  for(const scope of [reference.team,reference.player])for(const b of Object.values(scope)){
  expect(b.n).toBeGreaterThanOrEqual(5);expect(b.cuts).toHaveLength(4);expect(b.cuts.every(Number.isFinite)).toBe(true);expect(b.cuts).toEqual([...b.cuts].sort((a,b)=>a-b));
  }
+});
+
+it("answers good-range questions with the actual supported numeric bands",()=>{
+ for(const metric of ["batting_avg","batting_est_slg","pitching_k_bb","pitching_whip"]){
+  const b=statBenchmark(metric)!;const rows=benchmarkRows(metric,b),guide=statRangeGuide(metric);
+  expect(guide.heading).toBe("What is a good range?");expect(guide.summary).toContain(`Good: ${rows[3].range}`);expect(guide.summary).toContain(`Elite: ${rows[4].range}`);
+ }
+ expect(metricDirection("Pitch Type Average Velocity")).toBe("higher");
+ expect(metricDirection("K/BB")).toBe("higher");
+ expect(ungradedMetric("K/BB")).toBe(false);
+ expect(statBenchmark("pitching_whip",{unit:"per9"})).toBeNull();
+ expect(statBenchmark("pitching_whip",{unit:"decimal"})).not.toBeNull();
+ expect(statBenchmark("batting_avg",{unit:"%"})).toBeNull();
+});
+it("never turns counts and chart measures into player grades even with a cohort",()=>{
+ for(const key of ["punchies","base_hit","bb_outcome","classified_velocity_count","blast_swing_count","qpa_game_pa","pearson_r","r_squared","hitter_contact_map","pitch_mix_chart","pitch_separation_chart"]){
+  expect(ungradedMetric(key),key).toBe(true);
+  expect(pacificBenchmark(key,[1,2,3,4,5]),key).toBeNull();
+  const guide=statRangeGuide(key,{cohort:[1,2,3,4,5]});expect(guide.summary.length,key).toBeGreaterThan(50);
+ }
+ expect(statRangeGuide("pearson_r").summary).toContain("−1 to +1");
+ expect(statRangeGuide("r_squared").summary).toContain("no universal good cutoff");
+ expect(statRangeGuide("classified_spin_count").detail).toContain("not a skill grade");
+});
+it("withholds numeric ideals for neutral, unsupported and undersized comparisons",()=>{
+ for(const metric of ["height","weight","body_score","body_fat_pct","muscle_mass","classified_avg_spin","blast_attack_angle","bmr","whr"]){
+  expect(metricDirection(metric),metric).toBe("neutral");
+  expect(statRangeGuide(metric).heading,metric).toBe("No single ideal range");
+  const b=pacificBenchmark(metric,[1,2,3,4,5]);expect(statRangeGuide(metric,{},b).heading).toBe("Typical recorded range");
+ }
+ expect(statRangeGuide("max_exit_velocity",{cohort:[1,2,3,4]}).heading).toBe("Good range unavailable");
+ expect(statRangeGuide("Unconfirmed Team Field").detail).toContain("stays unavailable");
+ expect(statRangeGuide("batting_production_plus").summary).toContain("100");
+ expect(statRangeGuide("batting_production_plus").detail).toContain("not wRC+");
+ const html=renderToStaticMarkup(createElement(StatInfo,{metric:"max_exit_velocity",percentile:95,unit:"mph"}));
+ expect(html).toContain("Good range unavailable");expect(html).not.toContain("Current");expect(html).not.toContain("80–100th percentile");
+});
+it("never applies a Blast reference in the wrong valid metric unit",()=>{
+ expect(blastReference("avg_bat_speed",{source:"blast_fall",unit:"deg"})).toBeNull();
+ expect(blastReference("blast_time_to_contact",{source:"blast_fall",unit:"mph"})).toBeNull();
+ expect(blastReference("avg_bat_speed",{source:"blast_fall"})).toBeNull();
+ expect(statRangeGuide("Average Bat Speed",{source:"blast_fall",unit:"mph"}).summary).toContain("66–75 mph");
 });

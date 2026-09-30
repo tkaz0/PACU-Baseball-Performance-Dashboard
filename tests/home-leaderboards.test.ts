@@ -58,3 +58,16 @@ describe("home leaderboard cards", () => {
   });
 
 });
+
+it("retains exact benchmark context independently of the displayed ranking rows",()=>{
+ const measurementBoard=homeMeasurementBoard("body","Physicality","Body Score","/",[measurement(1,null)],{...comparison,period:"summer_2026"},null);
+ expect(measurementBoard).toMatchObject({source:"renpho",unit:"points",period:"summer_2026"});
+ const gameBoard=homeGameBoard("pitch","Pitching","Strike %","/",[
+  {...game("strike_pct","other",1,null),source:"pitching_fall_2026",unit:"count"},
+  {...game("strike_pct","fall-2026-cumulative",1,null),source:"pitching_fall_2026",unit:"%"}
+ ],"pitching_fall_2026","fall-2026-cumulative","strike_pct",null);
+ expect(gameBoard).toMatchObject({source:"pitching_fall_2026",unit:"%",period:"fall_2026",eventId:"fall-2026-cumulative"});
+ expect(gameBoard.rows).toHaveLength(1);
+ const empty=homeGameBoard("missing","Pitching","Strike %","/",[],"pitching_fall_2026","fall-2026-cumulative","strike_pct",null);
+ expect(empty.unit).toBeUndefined();
+});

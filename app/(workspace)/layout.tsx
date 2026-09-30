@@ -5,17 +5,18 @@ import { AccessPreviewControl } from "@/components/access-preview-control";
 import { AppearanceControl } from "@/components/appearance-control";
 import { StaffAthleteSearch } from "@/components/staff-athlete-search";
 import { loadStaffAthleteChoices } from "@/lib/staff-athlete-search-server";
+import { loadDesignNavigation } from "@/lib/design-navigation-server";
 import { logout } from "@/app/auth/actions";
 import { LogOut, Eye } from "lucide-react";
 export const dynamic = "force-dynamic";
 export default async function WorkspaceLayout({ children }: { children: React.ReactNode }) {
   const access = await requireAccess();
   const { roles, athleteId, actualRoles, preview, previewAthleteName } = access;
-  const searchAthletes = await loadStaffAthleteChoices(access);
+  const [searchAthletes, designNavigation] = await Promise.all([loadStaffAthleteChoices(access), loadDesignNavigation(access)]);
   const athletes = actualRoles.includes("admin") && !preview ? searchAthletes.map(a => ({ id: a.id, label: a.name })) : [];
   return <div className="workspace-shell">
     <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:bg-white focus:p-4">Skip to content</a>
-    <Sidebar roles={roles} athleteId={athleteId} isPreview={!!preview} />
+    <Sidebar roles={roles} athleteId={athleteId} isPreview={!!preview} designNavigation={designNavigation} />
     <div className="app-body workspace-body">
       <header className="workspace-topbar">
         <p className="workspace-context"><span className="topbar-diamond" aria-hidden="true" />Boxer Baseball <span className="workspace-context-detail">/ Player Development</span></p>

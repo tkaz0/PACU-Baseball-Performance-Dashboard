@@ -14,8 +14,20 @@ export const STAT_DEFINITIONS: Readonly<Record<string, string>> = {
   pitch_separation_chart: "Compare each pitch’s average speed with one recorded fastball type. The gap is fastball average minus the other pitch’s average, so the label says slower or faster. A line joins those two speeds on the same mph scale. Both averages need verified speed-reading counts, the same averaging method and matching start/end dates in the same Game, Intrasquad or Practice source. Matching date bounds do not mean every pitch came from identical sessions. Choose a reference when more than one fastball type is recorded; their speeds are never pooled. A larger gap is not automatically better.",
   pitching_contact_chart: "This bar shows the split between weak and hard contact recorded by coaches in the Fall pitching sheet. Each share is out of weak plus hard contact when both counts are available. These labels come from the team sheet; they do not use the hitter chart’s 90 mph hard-hit rule.",
   ...Object.fromEntries(BLAST_ALL_METRICS.map(m=>[m.key,m.description])),
-  blast_peak_hand_speed: "Hand speed uses Blast’s per-swing Peak Hand Speed metric. The Fall average weights each non-overlapping weekly average by its reported swing count. Latest Week Peak shows the vendor’s weekly 95th percentile, not a Fall maximum.",
+  // Plain-language metric meanings: https://blastmotion.com/faq/ (reviewed 2026-09-29).
+  blast_peak_hand_speed: "The fastest your hands move during a swing, as measured by Blast. The Fall average weights each non-overlapping weekly average by its reported swing count. Latest Week Peak shows the vendor’s weekly 95th percentile, not a Fall maximum.",
+  blast_rotational_acceleration: "How quickly the bat accelerates into the swing early in your turn, measured by Blast in Gs. This describes building speed, while bat speed describes how fast the barrel is moving at contact. Compare the same report type and sample of swings.",
+  blast_power: "Blast’s estimate of swing power, combining its bat-mass, acceleration and speed measurements. It is reported in kilowatts, not the distance the ball traveled or a strength-test score. PACU preserves the vendor’s calculation.",
+  blast_on_plane_efficiency: "The share of the swing that Blast places on its swing plane. Think of it as how consistently the bat stays on that path through the swing. It is not the percentage of balls hit hard or the percentage of swings that make contact.",
+  blast_attack_angle: "Whether the bat is traveling upward or downward at contact, measured by Blast in degrees. It describes the bat path, not the ball’s launch angle. A larger angle is not automatically better; pitch location and swing intent matter.",
+  blast_vertical_bat_angle: "How steeply the barrel is tilted at contact when viewed from the catcher. Negative angles are valid. This describes bat position, not the ball’s launch angle; compare swings at similar pitch locations.",
+  blast_time_to_contact: "Elapsed time from the start of the downswing to contact. It describes the swing’s timing, not the hitter’s reaction time to the pitch. The weekly 95th percentile is near the long end of recorded times, not the fastest swing.",
+  blast_early_connection: "The relationship between body tilt and bat angle as the downswing begins. It describes how the bat and body are positioned together early in the swing; it is separate from their relationship at contact.",
+  blast_connection_impact: "The relationship between body tilt and bat angle at contact. Compare it with Early Connection to understand those two points in the swing. A larger angle alone does not mean a better swing.",
   p95_bat_speed: "Blast’s 95th-percentile bat speed for the selected week: a strong-swing mark, not the single fastest swing. The separate Pacific percentile bar compares that weekly mark with teammates from the same reporting period.",
+  classified_pitch_count: "How many pitches received this exact staff-assigned pitch type. It describes the recorded pitch mix, not how effective the pitch was. Unassigned and excluded pitches are not included.",
+  classified_velocity_count: "Number of recorded speed readings supporting this pitch type’s velocity summary. It can differ from the spin-reading count; a larger sample supports a more stable comparison, not a higher skill grade.",
+  classified_spin_count: "Number of recorded spin readings supporting this pitch type’s spin summary. Missing spin readings do not become zero and this count is separate from velocity readings.",
   classified_avg_velocity: "Average speed for this staff-assigned pitch type, weighted by recorded velocity counts across Fall sessions. If complete counts are unavailable, a verified latest-session average is labeled instead. Each pitch type and Game, Intrasquad or Practice source stays separate.",
   classified_max_velocity: "Fastest saved Fall reading for this staff-assigned pitch type. The date identifies when that best was recorded. Each pitch type and Game, Intrasquad or Practice source stays separate.",
   classified_avg_spin: "Average spin rate in RPM for this staff-assigned pitch type, weighted by recorded spin counts across Fall sessions. A verified latest-session fallback is labeled when counts are incomplete. Higher spin is a numerical comparison, not automatically a better pitch.",
@@ -31,8 +43,8 @@ export const STAT_DEFINITIONS: Readonly<Record<string, string>> = {
   skeletal_muscle_mass: "The device’s estimated skeletal muscle mass, in pounds or kilograms. This is separate from total muscle mass and is not a strength test.",
   muscle_mass: "Total muscle mass reported by the device, in pounds or kilograms. It is separate from skeletal muscle mass and muscle mass percentage.",
   muscle_mass_pct: "Reported muscle mass as a percentage of body weight. Calculated readings use muscle mass and weight from the same report.",
-  max_exit_velocity: "Highest recorded exit velocity. The leaderboard uses the Fall best in this source; the profile card shows the latest session. In-game and Practice stay separate.",
-  avg_exit_velocity: "The average recorded batted-ball exit speed for the swings included in the source session summary.",
+  max_exit_velocity: "How fast the hardest recorded batted ball left the bat. The leaderboard uses the Fall best in this source; the profile card shows the latest session. In-game and Practice stay separate.",
+  avg_exit_velocity: "How fast the ball leaves the bat on average across the recorded contact in this source summary. It describes contact speed across the included swings, rather than only the hardest ball.",
   bat_speed: "Recorded bat speed. This legacy field does not specify whether the value is a maximum or an average; those measures have separate cards.",
   max_bat_speed: "Highest recorded bat speed. The leaderboard uses the Fall best in this source; the profile card shows the latest session. Device sources stay separate.",
   avg_bat_speed: "The average bat speed for the swings included in the reviewed session summary. The source determines which swings are included.",
@@ -93,6 +105,14 @@ export const STAT_DEFINITIONS: Readonly<Record<string, string>> = {
   pa: "Plate appearances recorded in the team’s game sheet.", ab: "Official at-bats recorded in the team’s game sheet.",
   qpa: "Quality plate appearances credited under the team’s QPA scoring rules.",
   qpa_pct: "Quality plate appearances divided by plate appearances, multiplied by 100, using the team sheet’s recorded totals.",
+  punchies: "Strikeouts recorded for the hitter in the QPA sheet. Use K% to compare strikeout frequency when hitters have different numbers of plate appearances.",
+  sac_bunt: "Recorded sacrifice bunts. They are excluded from official at-bats and the on-base-percentage denominator; use the team’s recorded game context rather than treating a larger count as better.",
+  three_eight_hh: "The QPA sheet’s 3–8 HH hard-contact category. It contributes to the team’s hard-hit scoring rule; it is not an additional hit to add to the Base Hit total. The sheet’s scoring label is retained without inventing a new exit-speed cutoff.",
+  eight_plus_pitches: "Plate appearances credited in the QPA sheet’s eight-plus-pitches category. It tracks an extended plate appearance, not whether the hitter reached base. Compare opportunities as well as the count.",
+  moving_runner: "The team’s credited moving-the-runner outcomes. This depends on the game situation and the team’s scoring rules; it is not a standalone batting-skill rate.",
+  ab_control: "At-bat control credited under the team’s QPA scoring rules. The dashboard preserves that reviewed category without inventing a broader definition or universal target.",
+  baf: "The Fall pitching sheet’s BAF count. The dashboard retains this source label; its detailed scoring definition has not been confirmed, so it is not relabeled or graded as a different statistic.",
+  fps: "First-pitch strikes recorded in the pitching sheet. This is a count; a first-pitch-strike percentage would also require a matching count of first-pitch opportunities.",
   innings_outs: "Innings pitched stored as outs. For example, 1.1 IP is four outs, not 1.1 decimal innings. The team also enters .33/.67 for one/two outs.",
   earned_runs: "Earned runs recorded separately in the ER column. Total runs allowed are never substituted for earned runs.",
   batting_est_slg: "Slugging in this dashboard: (Hits + HH Extra Base Hits + 3 × Pumps) / AB. HH Extra Base Hit contains all doubles/triples, excluding home runs. Singles count 1, doubles/triples 2, HR 4. This is a lower bound on actual SLG: each triple would add 1/AB. Uses QPA outcomes, not Full Swing distance.",
@@ -118,9 +138,31 @@ export const STAT_DEFINITIONS: Readonly<Record<string, string>> = {
   bb_pitch_family_k: "The pitching sheet’s breaking-ball strike count. This is separate from walks and strikeouts.",
 };
 
-export function statDefinition(metric: string): string {
-  if(metric.startsWith("qpa_game_"))return statDefinition(metric.slice(9));
-  const definition = PLAYER_METRICS.find(item => item.key === metric || item.label.toLowerCase() === metric.toLowerCase())
+const aliases: Readonly<Record<string, string>> = {
+  slg: "batting_est_slg", iso: "batting_est_iso", wobacon: "batting_est_wobacon", avg: "batting_avg", obp: "batting_obp", whip: "pitching_whip", "k/bb": "pitching_k_bb", "k/9": "pitching_k9", "bb/9": "pitching_bb9", "runs/9": "pitching_r9", "pac production+": "batting_production_plus",
+  fb_strike_pct: "pitching_fb_strike_pct", bb_pitch_family_strike_pct: "pitching_breaking_strike_pct", ch_strike_pct: "pitching_ch_strike_pct",
+  subcutaneous_fat_pct:"subcutaneous fat", skeletal_muscle_pct:"skeletal muscle percentage", body_water_pct:"body water percentage", protein_pct:"protein percentage", bone_mass_pct:"bone mass percentage",
+  "basal metabolic rate":"bmr", "basal metabolic rate (bmr)":"bmr", "skeletal muscle index (smi)":"skeletal muscle index", "waist-to-hip ratio (whr)":"waist-to-hip ratio",
+  smi: "skeletal muscle index", whr: "waist-to-hip ratio", body_fat_percentage: "body_fat_pct", muscle_mass_percentage: "muscle_mass_pct", hitter_contact_chart: "hitter_contact_map",
+  "pitch type count": "classified_pitch_count", "pitch type average velocity": "classified_avg_velocity", "pitch type max velocity": "classified_max_velocity", "pitch type velocity readings": "classified_velocity_count", "pitch type average spin": "classified_avg_spin", "pitch type max spin": "classified_max_spin", "pitch type spin readings": "classified_spin_count",
+};
+const normalized = (value: string) => value.toLowerCase().replace(/[_\s-]+/g, " ").trim();
+/** Display-label resolution only; it never rewrites stored metric keys or source definitions. */
+export function statDefinitionKey(metric: string): string {
+  const input = metric.trim().toLowerCase();
+  if(input.startsWith("qpa_game_"))return statDefinitionKey(input.slice(9));
+  if(aliases[input])return aliases[input];
+  const definition = PLAYER_METRICS.find(item => item.key === input || item.label.toLowerCase() === input)
     ?? PLAYER_METRICS.find(item => item.units.some(unit => normalizePlayerMetric(metric, unit)?.key === item.key));
-  return STAT_DEFINITIONS[definition?.key ?? metric.toLowerCase()] ?? "This is a recorded field from the source report or team sheet. Its scoring rules follow that source; a team-specific definition has not been confirmed yet.";
+  if(definition)return definition.key;
+  if(Object.hasOwn(STAT_DEFINITIONS,input))return input;
+  const blast=BLAST_ALL_METRICS.find(item=>item.key===input||item.label.toLowerCase()===input||item.header.toLowerCase()===input);
+  if(blast)return blast.key;
+  const segment=RENPHO_SEGMENTS.find(item=>item.key===input||item.label.toLowerCase()===input);
+  if(segment)return segment.label.toLowerCase();
+  return Object.keys(STAT_DEFINITIONS).find(key=>normalized(key)===normalized(input)) ?? input;
+}
+export const UNKNOWN_STAT_DEFINITION = "This is a recorded field from the source report or team sheet. Its scoring rules follow that source; a team-specific definition has not been confirmed yet.";
+export function statDefinition(metric: string): string {
+  return STAT_DEFINITIONS[statDefinitionKey(metric)] ?? UNKNOWN_STAT_DEFINITION;
 }

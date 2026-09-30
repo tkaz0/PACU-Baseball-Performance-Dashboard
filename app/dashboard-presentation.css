@@ -23,7 +23,7 @@ body { -webkit-font-smoothing: antialiased; }
 .baseball-sidebar { background: #15161a; border-right-color: #ffffff0c; padding-top: 26px; }
 .sidebar-brand-link { padding: 4px 2px; }
 .sidebar-rule { margin: 23px 8px 4px; }
-.workspace-nav-group { margin: 21px 12px 7px; color: #a0a2ad; font-size: 9px; letter-spacing: .13em; }
+.workspace-nav-group { margin: 21px 12px 7px; color: #b1b1bd; font-size: 10px; letter-spacing: .13em; }
 .baseball-sidebar .nav-link { padding: 10px 12px; margin: 3px 0; border-radius: 9px; color: #c3c5ce; font-size: 12px; min-height: 42px; }
 .baseball-sidebar .nav-link svg { width: 17px; height: 17px; flex-shrink: 0; }
 .baseball-sidebar .nav-link:hover { background: #ffffff09; color: #fff; }
@@ -31,7 +31,7 @@ body { -webkit-font-smoothing: antialiased; }
 .sidebar-boxer { margin-top: 25px; padding: 24px 0 18px; border-top: 1px solid #ffffff14; }
 .sidebar-boxer .pacific-logo { width: 110px; margin: 0 auto; }
 .sidebar-boxer p { margin: 17px 0 0; color: #c7c9d0; text-align: center; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .16em; }
-.sidebar-disclosure { color: #a0a2ad; text-align: center; font-size: 9px; }
+.sidebar-disclosure { color: #b1b1bd; text-align: center; font-size: 10px; }
 .workspace-topbar { min-height: 72px; padding-top: 12px; padding-bottom: 12px; }
 .workspace-context { letter-spacing: .02em; }
 .workspace-context-detail { color: var(--text-secondary); font-weight: 400; }

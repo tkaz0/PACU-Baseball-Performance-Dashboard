@@ -159,6 +159,13 @@ describe("Pitch Design access and routing", () => {
     expect(fake.dashboard).not.toHaveBeenCalled();
   });
 
+  it.each([false, true])("withholds measurements for an unconfirmed role (Player View %s)", async preview => {
+    fake.access.mockResolvedValueOnce(access(["player"], ownId, preview));
+    fake.single.mockResolvedValueOnce({ data: { ...athlete, athlete_seasons: [{ ...athlete.athlete_seasons[0], player_type: null, primary_position: null, secondary_position: null }] }, error: null });
+    renderToStaticMarkup(await page());
+    expect(fake.load).not.toHaveBeenCalled();
+    expect(fake.dashboard).not.toHaveBeenCalled();
+  });
   it("allows explicitly two-way players even when their primary position is not pitcher", async () => {
     const twoWay = { ...athlete, athlete_seasons: [{ ...athlete.athlete_seasons[0], player_type: "two_way", primary_position: "OF" }] };
     fake.single.mockResolvedValueOnce({ data: twoWay, error: null });

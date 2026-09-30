@@ -9,6 +9,11 @@ import styles from "./analytics.module.css";
 import { SavedAnalyticsViews } from "@/components/saved-analytics-views";
 import type { AnalyticsViewConfig, SavedAnalyticsView } from "@/lib/saved-analytics";
 
+// These two display sources are produced only by the reviewed cumulative game readers.
+function analyticsStatContext(variable: AnalyticsVariable, period: "fall" | "earlier") {
+  const source=variable.source==="QPA · Fall cumulative (snapshot date)"?"qpa_fall_2026":variable.source==="Pitching · Fall 2026 cumulative (snapshot date)"?"pitching_fall_2026":variable.source;
+  return {source,unit:variable.unit,period:period==="fall"?"fall_2026" as const:"summer_2026" as const,...(source==="qpa_fall_2026"?{eventId:""}:source==="pitching_fall_2026"?{eventId:"fall-2026-cumulative"}:{})};
+}
 const COLORS=["#4996d5","#d5ae45","#dd8758","#90a657","#cf7fb6"];
 const number=(n:number)=>new Intl.NumberFormat("en-US",{maximumSignificantDigits:4}).format(n);
 const reading=(r:AnalyticsPoint["x"])=>r.metric==="height"?`${formatHeight(r.value,r.unit)??`${number(r.value)} ${r.unit}`} (${number(r.value)} ${r.unit})`:`${formatMetricNumber(r.value,r.metric,r.source,number(r.value))} ${r.unit}`;
@@ -57,7 +62,7 @@ export function AnalyticsExplorer({data,initialX="",initialY="",initialPeriod="f
     </section>
     <section className={`panel ${styles.chartPanel}`} aria-label="Correlation analysis">
       <div className={styles.heading}><div><p className="eyebrow text-pacu-red">How Stats Move Together</p><h2>{x&&y?`${x.label} vs. ${y.label}`:"Choose Two Stats"}</h2><p className="muted">{period==="fall"?"Fall 2026":"June–August 2026"} · Each dot is one player · Most recent result for each stat</p></div><div className={styles.scores} aria-live="polite"><div><span className={styles.scoreLabel}>Players Shown</span><strong>{points.length}</strong></div><div><span className={styles.scoreHeading}><span className={styles.scoreLabel}>Pearson r</span><StatInfo metric="pearson_r" label="Pearson r"/></span><strong>{fit?.r==null?"—":fit.r.toFixed(2)}</strong></div><div><span className={styles.scoreHeading}><span className={styles.scoreLabel}>R²</span><StatInfo metric="r_squared" label="R²"/></span><strong>{fit?.rSquared==null?"—":fit.rSquared.toFixed(2)}</strong></div></div></div>
-      {x&&y&&<div className={styles.sourceLine}><span><b>X:</b> {x.label} ({x.unit})<StatInfo metric={x.metric} label={x.label}/></span><span><b>Y:</b> {y.label} ({y.unit})<StatInfo metric={y.metric} label={y.label}/></span></div>}
+      {x&&y&&<div className={styles.sourceLine}><span><b>X:</b> {x.label} ({x.unit})<StatInfo metric={x.metric} label={x.label} {...analyticsStatContext(x,period)}/></span><span><b>Y:</b> {y.label} ({y.unit})<StatInfo metric={y.metric} label={y.label} {...analyticsStatContext(y,period)}/></span></div>}
       {paired.points.length>0&&x?.key!==y?.key&&<div className={styles.legend} role="group" aria-label="Show or hide color groups">{groups.map((g,index)=>{const count=paired.points.filter(p=>pointGroup(p.player,group)===g).length;return <button key={g} type="button" aria-pressed={!hidden.includes(g)} disabled={!count} onClick={()=>setHidden(prev=>prev.includes(g)?prev.filter(v=>v!==g):[...prev,g])}><svg width="20" height="20" aria-hidden="true"><Mark index={index} cx={10} cy={10} size={5}/></svg>{g}<span>{count}</span></button>;})}</div>}
       {x?.key===y?.key&&x?<p className="notice">Choose two different stats to see how they relate.</p>:!points.length?<div className={styles.empty}><ChartScatter size={36} aria-hidden="true"/><h3>No Players to Plot Yet</h3><p>Try two stats recorded for the same players, or widen the class, position, or test-date choices. Refresh after new results are added.</p></div>:<>
         <div className={styles.plotScroll}><svg className={styles.plot} viewBox="0 0 900 480" role="group" aria-label={`${x?.label} versus ${y?.label} scatterplot; ${points.length} players`}>

@@ -16,16 +16,23 @@ import type { AnalyticsDataset, AnalyticsPlayer, AnalyticsReading } from "@/lib/
 import { classifiedPitchSource, CLASSIFIED_METRICS } from "@/lib/imports/classified-pitch-results";
 import { fallArsenalPitches, type ArsenalReading } from "@/lib/pitch-arsenal";
 
-const fail=():never=>{throw new Error("Analytics data could not be verified. Refresh to load the current measurements.");};
+const fail=(reason="invalid-reading"):never=>{throw new Error(`Analytics data could not be verified. Refresh to load the current measurements. [${reason}]`);};
 const text=(v:unknown,n=120):v is string=>typeof v==="string"&&v.length>0&&v.length<=n&&!/[\u0000-\u001f\u007f]/.test(v);
 const object=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==="object"&&!Array.isArray(v);
 export async function analyticsPages<T>(request:(from:number,to:number)=>PromiseLike<{data:unknown;error:unknown;count:number|null}>,parse:(row:unknown)=>T,maximum:number):Promise<T[]>{
   const rows:T[]=[];let count:number|undefined;
   async function page(offset:number){
     const result=await request(offset,offset+499);
-    if(result.error||!Array.isArray(result.data)||result.count===null||!Number.isSafeInteger(result.count)||result.count<0||result.count>maximum||(count!==undefined&&count!==result.count))return fail();
+    // Report only an allowlisted error code or fixed reason, never provider details or row data.
+    if(result.error){
+      const code=object(result.error)&&typeof result.error.code==="string"&&/^(?:[0-9A-Z]{5}|PGRST[0-9]{3})$/.test(result.error.code)?result.error.code:"unknown";
+      return fail(`source-query:${code}`);
+    }
+    if(!Array.isArray(result.data)||result.count===null||!Number.isSafeInteger(result.count)||result.count<0)return fail("invalid-page");
+    if(result.count>maximum)return fail("source-limit");
+    if(count!==undefined&&count!==result.count)return fail("source-changed");
     count=result.count;
-    if(result.data.length!==Math.min(500,count-offset))return fail();
+    if(result.data.length!==Math.min(500,count-offset))return fail("incomplete-page");
     return result.data.map(parse);
   }
   rows.push(...await page(0));

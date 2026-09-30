@@ -12,6 +12,7 @@ import { PhysicalityRadar, physicalityRadarPoints } from "@/components/physicali
 import { profileTrends } from "@/lib/profile-trends";
 import { MeasurementChange } from "@/components/measurement-change";
 import { playerRenphoChange } from "@/lib/measurement-change";
+import type { StatGuideContext } from "@/lib/stat-benchmarks";
 import { StatInfo } from "@/components/stat-info";
 import { PercentileBar, PercentileLegend } from "@/components/percentile-bar";
 import { GameOpportunity } from "@/components/game-opportunity";
@@ -26,12 +27,12 @@ import { isTimedMetric, type PlayerMetricCard } from "@/lib/player-performance";
 import { getPlayerInsights, type PlayerRelativeInsight } from "@/lib/player-insights";
 import { leaderboardMetricLabel, leaderboardTestDate } from "@/lib/leaderboards";
 
-type OverviewInsight = { key: string; metric: string; label: string; value: string; percentile: number; sampleSize: number; discipline: string; context: string; game?: GameOverviewMetric };
+type OverviewInsight = { key: string; metric: string; label: string; value: string; percentile: number; sampleSize: number; discipline: string; context: string; guide: StatGuideContext; game?: GameOverviewMetric };
 function testingInsight(item: PlayerRelativeInsight): OverviewInsight {
-  return { key: `test:${item.metric.key}`, metric: item.metric.key, label: profileMetricLabel(item.metric.key,leaderboardMetricLabel(item.metric),item.latest.source), value: `${formatMetricNumber(item.latest.value, item.metric.key, item.latest.source, item.latest.unit === "s" ? item.latest.value.toFixed(2) : String(item.latest.value))} ${item.latest.unit === "ratio" ? "" : item.latest.unit}`, percentile: item.percentile.value, sampleSize: item.percentile.sampleSize, discipline: testingDiscipline(item.metric), context: isTimedMetric(item.metric.key) ? "Testing" : profileSessionContext(item.latest.source) === "in_game" ? "In-Game" : "Practice" };
+  return { key: `test:${item.metric.key}`, guide: {source:item.latest.source,unit:item.latest.unit,period:item.latest.period,value:item.latest.value}, metric: item.metric.key, label: profileMetricLabel(item.metric.key,leaderboardMetricLabel(item.metric),item.latest.source), value: `${formatMetricNumber(item.latest.value, item.metric.key, item.latest.source, item.latest.unit === "s" ? item.latest.value.toFixed(2) : String(item.latest.value))} ${item.latest.unit === "ratio" ? "" : item.latest.unit}`, percentile: item.percentile.value, sampleSize: item.percentile.sampleSize, discipline: testingDiscipline(item.metric), context: isTimedMetric(item.metric.key) ? "Testing" : profileSessionContext(item.latest.source) === "in_game" ? "In-Game" : "Practice" };
 }
 function gameInsight(item: GameOverviewMetric): OverviewInsight {
-  return { key: `game:${item.source}:${item.metric}`, metric: item.metric, label: item.label, value: gameValue(item.value, item.unit), percentile: item.comparison!.percentile!, sampleSize: item.comparison!.sampleSize, discipline: item.source === "qpa_fall_2026" ? "Hitting" : "Pitching", context: "In-Game", game: item };
+  return { key: `game:${item.source}:${item.metric}`, guide: {source:item.source,unit:item.unit,period:"fall_2026",eventId:item.eventId,value:item.value}, metric: item.metric, label: item.label, value: gameValue(item.value, item.unit), percentile: item.comparison!.percentile!, sampleSize: item.comparison!.sampleSize, discipline: item.source === "qpa_fall_2026" ? "Hitting" : "Pitching", context: "In-Game", game: item };
 }
 const gameDate = (date: string) => new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "America/Los_Angeles" }).format(new Date(date));
 function testingDiscipline(metric: PlayerMetricCard["metric"]): string {
@@ -47,7 +48,7 @@ function RelativeResults({ items, separate = false }: { items: OverviewInsight[]
 function RelativeRows({items}:{items:OverviewInsight[]}) {
   return <ul className={overview.highlightList}>{items.map(item => <li key={item.key}>
     <div className={overview.highlightResult}>
-      <div><h3>{item.label}<StatInfo metric={item.metric} label={item.label}/></h3><span className={overview.resultValue}>{item.value}</span></div>
+      <div><h3>{item.label}<StatInfo metric={item.metric} label={item.label} {...item.guide}/></h3><span className={overview.resultValue}>{item.value}</span></div>
       <span className={overview.percentileBadge} style={percentileColor(item.percentile)} aria-label={`${Math.round(item.percentile)} percentile among ${item.sampleSize} comparable Pacific players`}><strong>{Math.round(item.percentile)}</strong><span>PCTL</span></span>
     </div>
     <div className={overview.highlightBar} aria-hidden="true"><span style={{ width: `${item.percentile}%`, backgroundColor: percentileColor(item.percentile).backgroundColor }} /><i /></div>
@@ -74,7 +75,7 @@ function TestingComparisons({ title, cards, context, teamAverages=[] }: { title:
 }
 function GameComparisonRows({metrics}:{metrics:GameOverviewMetric[]}) {
   return <ul className={`${styles.rows} ${styles.compactGameRows}`}>{metrics.map(item=><li className={styles.row} key={item.metric} data-overview-game-metric={item.metric}>
-    <div><h3>{item.label}<StatInfo metric={item.metric} label={item.label} value={item.value} unit={item.unit} source={item.source}/><span className={styles.inlineValue}>{item.metric==="batting_sb_per_pa"?item.value.toFixed(3):gameValue(item.value,item.unit)}</span></h3><GameOpportunity source={item.source} metric={item.metric} count={item.opportunities}/></div>
+    <div><h3>{item.label}<StatInfo metric={item.metric} label={item.label} value={item.value} unit={item.unit} source={item.source} period="fall_2026" eventId={item.eventId}/><span className={styles.inlineValue}>{item.metric==="batting_sb_per_pa"?item.value.toFixed(3):gameValue(item.value,item.unit)}</span></h3><GameOpportunity source={item.source} metric={item.metric} count={item.opportunities}/></div>
     <div>{item.comparison?<><PercentileBar value={item.comparison.percentile!} sampleSize={item.comparison.sampleSize} label={item.label} descriptive={item.direction==="neutral"}/><p className={styles.meta}>{item.comparison.sampleSize} teammates</p></>:<p className={styles.meta}>{item.metric==="batting_sb_per_pa"?"Recorded rate · team rank not available":"Team rank not available for this result."}</p>}</div>
   </li>)}</ul>;
 }
@@ -116,14 +117,14 @@ export function PlayerOverview({ cards, gameStats = [], gameComparisons = [], sh
   const headlineKeys = ["batting_production_plus", "pitching_k_bb", "body_score", "muscle_mass", "max_exit_velocity", "max_pitch_velocity", "body_fat_pct"];
   const headline = headlineKeys.flatMap(key => {
     const game = games.find(item => item.metric === key);
-    if (game) return [{key, label:game.label, value:gameValue(game.value,game.unit), detail:game.opportunities == null ? "In-Game · Fall 2026" : `${game.opportunities} chances · In-Game`}];
+    if (game) return [{key, guide:{source:game.source,unit:game.unit,period:"fall_2026" as const,eventId:game.eventId,value:game.value}, label:game.label, value:gameValue(game.value,game.unit), detail:game.opportunities == null ? "In-Game · Fall 2026" : `${game.opportunities} chances · In-Game`}];
     const card = availableCards.find(item => item.metric.key === key);
     if (!card?.latest) return [];
-    return [{key,label:profileMetricLabel(key,leaderboardMetricLabel(card.metric),card.latest.source),value:`${formatMetricNumber(card.latest.value,key,card.latest.source)} ${card.latest.unit === "ratio" ? "" : card.latest.unit}`.trim(),detail:`Tested ${leaderboardTestDate(card.latest.measuredAt)}`}];
+    return [{key,guide:{source:card.latest.source,unit:card.latest.unit,period:card.latest.period,value:card.latest.value} as StatGuideContext,label:profileMetricLabel(key,leaderboardMetricLabel(card.metric),card.latest.source),value:`${formatMetricNumber(card.latest.value,key,card.latest.source)} ${card.latest.unit === "ratio" ? "" : card.latest.unit}`.trim(),detail:`Tested ${leaderboardTestDate(card.latest.measuredAt)}`}];
   }).slice(0,3);
   return <section aria-label="Player overview" className={styles.overview} data-testid="player-overview">
     <div className={overview.snapshotHeader}><div className={overview.snapshotIntro}><h2 className="m-0 text-xl font-bold tracking-tight">Performance Snapshot</h2><p className="mb-0 mt-1.5 text-sm leading-6 text-[var(--text-secondary)]">{games.length ? "Your latest tests and Fall game stats, alongside the Pacific team." : bodyResultsOnly ? comparisonCards.length ? "Your latest body results compared with the team. More highlights will appear as testing continues." : "Your body results are in Physicality. More highlights will appear as testing continues." : "Where you stand now and how you have changed since earlier tests."}</p></div>{(lastTested || games.length > 0) && <dl className={overview.snapshotFacts}><div><dt className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Stats Available</dt><dd className="m-0 mt-1 font-bold tabular-nums">{availableCards.length + games.length}</dd></div>{lastTested && <div><dt className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Last Tested</dt><dd className="m-0 mt-1 font-semibold"><time dateTime={lastTested}>{leaderboardTestDate(lastTested)}</time></dd></div>}{games.length > 0 && <div><dt className="text-[10px] font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Game Stats Updated</dt><dd className="m-0 mt-1 font-semibold">{leaderboardTestDate(gameDate(games.map(g=>g.updatedAt).sort().at(-1)!))}</dd></div>}</dl>}</div>
-    {!!headline.length && <dl className={overview.headlineStats} aria-label="Key performance results">{headline.map(item=><div key={item.key}><dt>{item.label}<StatInfo metric={item.key} label={item.label}/></dt><dd>{item.value}</dd><p>{item.detail}</p></div>)}</dl>}
+    {!!headline.length && <dl className={overview.headlineStats} aria-label="Key performance results">{headline.map(item=><div key={item.key}><dt>{item.label}<StatInfo metric={item.key} label={item.label} {...item.guide}/></dt><dd>{item.value}</dd><p>{item.detail}</p></div>)}</dl>}
     <div className={overview.insights} data-has-jumps={insights.biggestJumps.length > 0 || undefined}>
       {[
         { title: "Strengths", icon: TrendingUp, items: strengths, note: "Results in the top quarter of the team", empty: "No results are in the top quarter right now." },
@@ -136,7 +137,7 @@ export function PlayerOverview({ cards, gameStats = [], gameComparisons = [], sh
         <div className={overview.highlightHeader}><span className={overview.highlightIcon}><ArrowUpRight size={18} aria-hidden="true" /></span><div><h2 className="m-0 text-base font-bold">Biggest Jumps</h2><p className="mb-0 mt-1 text-[11px] text-[var(--text-secondary)]">Progress since your previous test</p></div></div>
         {insights.biggestJumps.length ? <ul className={overview.highlightList}>{insights.biggestJumps.map(item => <li key={item.metric.key}>
           {twoWay && <p className={overview.disciplineLabel}>{testingDiscipline(item.metric)}</p>}
-          <h3 className="m-0 text-sm font-bold">{profileMetricLabel(item.metric.key,leaderboardMetricLabel(item.metric),item.latest.source)}<StatInfo metric={item.metric.key} label={leaderboardMetricLabel(item.metric)} /></h3>
+          <h3 className="m-0 text-sm font-bold">{profileMetricLabel(item.metric.key,leaderboardMetricLabel(item.metric),item.latest.source)}<StatInfo metric={item.metric.key} label={leaderboardMetricLabel(item.metric)} value={item.latest.value} source={item.latest.source} unit={item.latest.unit} period={item.latest.period} /></h3>
           <p className={overview.jumpValue} title={`Relative improvement: ${item.relativeImprovementPercent}%`}>{compactNumber(item.relativeImprovementPercent)}% <span className="text-xs font-semibold">improvement</span></p>
           <p className={overview.jumpReadings} title={`Change: ${formatMetricNumber(item.change,item.metric.key)} ${item.changeUnit === "pp" ? "percentage points" : item.changeUnit}`}>{formatMetricNumber(item.previous.value,item.metric.key,item.previous.source)} → {formatMetricNumber(item.latest.value,item.metric.key,item.latest.source)} {item.latest.unit === "ratio" ? "" : item.latest.unit}</p>
           <p className="muted mb-0 text-[11px]"><time dateTime={item.previous.measuredAt}>{leaderboardTestDate(item.previous.measuredAt)}</time> → <time dateTime={item.latest.measuredAt}>{leaderboardTestDate(item.latest.measuredAt)}</time></p>

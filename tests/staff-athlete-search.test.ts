@@ -4,12 +4,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { matchesStaffAthlete, staffAthleteChoice } from "@/lib/staff-athlete-search";
 import type { Role, RosterAthlete } from "@/lib/types";
 
-const fake = vi.hoisted(() => ({ access: vi.fn(), from: vi.fn(), select: vi.fn(), eq: vi.fn(), order: vi.fn(), limit: vi.fn(), search: vi.fn(), preview: vi.fn() }));
+const fake = vi.hoisted(() => ({ access: vi.fn(), from: vi.fn(), select: vi.fn(), eq: vi.fn(), order: vi.fn(), limit: vi.fn(), search: vi.fn(), preview: vi.fn(), single: vi.fn(), sidebar: vi.fn() }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/auth", () => ({ requireAccess: fake.access }));
 vi.mock("@/lib/render-access", () => ({ requireRenderAccess: fake.access }));
 vi.mock("@/app/auth/actions", () => ({ logout: vi.fn() }));
-vi.mock("@/components/sidebar", () => ({ Sidebar: () => null }));
+vi.mock("@/components/sidebar", () => ({ Sidebar: fake.sidebar }));
 vi.mock("@/components/appearance-control", () => ({ AppearanceControl: () => null }));
 vi.mock("@/components/access-preview-control", () => ({ AccessPreviewControl: fake.preview }));
 vi.mock("@/components/staff-athlete-search", () => ({ StaffAthleteSearch: fake.search }));
@@ -26,9 +26,10 @@ function access(roles: Role[], preview = false) { return { supabase: { from: fak
   user: { email: "fictional-login@example.com" }, preview: preview ? { role: roles[0], athleteId: athlete.id } : null, previewAthleteName: null }; }
 beforeEach(() => {
   vi.resetAllMocks();
-  const chain = { select: fake.select, eq: fake.eq, order: fake.order, limit: fake.limit };
+  const chain = { select: fake.select, eq: fake.eq, order: fake.order, limit: fake.limit, maybeSingle: fake.single };
   for (const method of [fake.from, fake.select, fake.eq, fake.order]) method.mockReturnValue(chain);
   fake.limit.mockResolvedValue({ data: [athlete], error: null });
+  fake.single.mockResolvedValue({ data: athlete.athlete_seasons[0], error: null }); fake.sidebar.mockReturnValue(null);
   fake.access.mockResolvedValue(access(["admin"])); fake.search.mockReturnValue(null); fake.preview.mockReturnValue(null);
 });
 
@@ -58,10 +59,13 @@ describe("live staff header and roster search access", () => {
   it.each([false, true])("does not query or send roster suggestions to a Player (admin preview=%s)", async preview => {
     fake.access.mockResolvedValue(access(["player"], preview));
     renderToStaticMarkup(await WorkspaceLayout({ children: null }));
-    expect(fake.from).not.toHaveBeenCalled(); expect(fake.search).not.toHaveBeenCalled();
+    expect(fake.from).toHaveBeenCalledExactlyOnceWith("athlete_seasons"); expect(fake.search).not.toHaveBeenCalled();
+    expect(fake.select).toHaveBeenCalledExactlyOnceWith("athlete_id,season,player_type,primary_position,secondary_position");
+    expect(fake.eq.mock.calls).toEqual([["athlete_id", athlete.id], ["season", "2026-27"]]);
+    expect(fake.sidebar.mock.calls[0][0].designNavigation).toEqual({ swing: true, pitch: true });
     if (preview) expect(fake.preview.mock.calls[0][0].athletes).toEqual([]);
     await expect(Roster({ searchParams: Promise.resolve({ q: "Northstar" }) })).rejects.toThrow(`REDIRECT:/athletes/${athlete.id}`);
-    expect(fake.from).not.toHaveBeenCalled();
+    expect(fake.from).toHaveBeenCalledTimes(1);
   });
   it.each([{ roles: ["admin"] as Role[], preview: false }, { roles: ["coach"] as Role[], preview: false }, { roles: ["coach"] as Role[], preview: true }])("queries only current roster names with effective $roles (preview=$preview)", async ({ roles, preview }) => {
     fake.access.mockResolvedValue(access(roles, preview));

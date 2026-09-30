@@ -28,7 +28,7 @@
 .resultValue { display:block; margin-top:3px; font-size:24px; font-weight:800; line-height:1.1; letter-spacing:-.035em; font-variant-numeric:tabular-nums; }
 .percentileBadge { display:grid; place-items:center; flex-shrink:0; width:44px; padding:6px 0; border-radius:10px; }
 .percentileBadge strong { font-size:19px; line-height:1.1; font-variant-numeric:tabular-nums; }
-.percentileBadge > span { margin-top:3px; font-size:8px; font-weight:750; letter-spacing:.06em; }
+.percentileBadge > span { margin-top:3px; font-size:10px; font-weight:750; letter-spacing:.06em; }
 .highlightBar { position:relative; height:4px; margin-top:12px; border-radius:4px; background:var(--surface-raised); }
 .highlightBar > span { display:block; height:100%; border-radius:inherit; }
 .highlightBar > i { position:absolute; top:-2px; bottom:-2px; left:50%; border-left:1px solid var(--text-secondary); opacity:.45; }
@@ -89,11 +89,11 @@
 @container player-profile (max-width:420px) {
   .headlineStats { gap:7px; }
   .headlineStats > div { padding:11px; }
-  .headlineStats dt { font-size:10px; }
+  .headlineStats dt { font-size:11px; }
   .headlineStats dd { font-size:19px; }
-  .headlineStats p { font-size:9px; }
+  .headlineStats p { font-size:11px; }
   .snapshotFacts { width:100%; justify-content:space-between; gap:10px 14px; padding:12px; }
-  .snapshotFacts dt { font-size:9px; }
+  .snapshotFacts dt { font-size:11px; }
   .panel,.physicalityComparison > figure { padding:14px; }
   .boardHeader h2 { font-size:17px; }
   .comparisonHeader h3 { font-size:18px; }

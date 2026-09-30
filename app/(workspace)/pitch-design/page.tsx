@@ -6,7 +6,7 @@ import { canReadPresentedAthlete } from "@/lib/access-preview";
 import { loadStaffAthleteChoices } from "@/lib/staff-athlete-search-server";
 import { loadAthletePerformance } from "@/lib/performance-server";
 import { getPlayerPerformance } from "@/lib/player-performance";
-import { profileShowsPitching } from "@/lib/player-profile-layout";
+import { seasonDesignNavigation } from "@/lib/design-navigation";
 import { athleteName, UUID_PATTERN, type RosterAthlete } from "@/lib/types";
 import { PageHeading } from "@/components/page-heading";
 import { PitchDesignDashboard } from "@/components/pitch-design-dashboard";
@@ -43,7 +43,7 @@ export default async function PitchDesignPage({ searchParams }: { searchParams?:
     athlete = data as PitchAthlete;
   }
   const season = athlete?.athlete_seasons.find(item => item.season === "2026-27");
-  const showPitching = !!athlete && !!season && profileShowsPitching(season);
+  const showPitching = !!athlete && seasonDesignNavigation(season).pitch;
   const content = athlete && showPitching ? await (async () => {
     const shared = await loadAthletePerformance(access, athlete, { includePercentiles: true });
     const performance = getPlayerPerformance({ readings: shared.measurements, batches: shared.batches, athleteCode: athlete.athlete_code, cohortAthleteCodes: [], percentileOverrides: shared.percentileOverrides });

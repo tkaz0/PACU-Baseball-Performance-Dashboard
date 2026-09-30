@@ -4,13 +4,16 @@ import { WorkspaceNavigation } from "@/components/workspace-navigation";
 import { House, UsersRound, Upload, ShieldCheck, UserRound, Settings, BarChart3, ListOrdered, ClipboardList, ChartScatter, TrendingUp, ArrowLeftRight, BellDot, FileChartColumn, DraftingCompass, Target, Image } from "lucide-react";
 import type { Role } from "@/lib/types";
 import { PacificBrand, PacificLogo } from "@/components/pacific-brand";
-export function Sidebar({ roles, athleteId, isPreview = false }: { roles: Role[]; athleteId: string | null; isPreview?: boolean }) {
+import type { DesignNavigation } from "@/lib/design-navigation";
+export function Sidebar({ roles, athleteId, isPreview = false, designNavigation }: { roles: Role[]; athleteId: string | null; isPreview?: boolean; designNavigation?: DesignNavigation }) {
   const staff = roles.some(r => r === "admin" || r === "coach");
+  const linkedPlayer = roles.includes("player") && !!athleteId;
   const links = [
     { href: "/overview", label: "Home", icon: House, group: "Team" },
     ...(staff ? [{ href: "/roster", label: "Team Roster", icon: UsersRound, group: "Team" }] : []),
     ...(athleteId ? [{ href: `/athletes/${athleteId}`, label: "My Profile", icon: UserRound, group: "Team" }] : []),
-    ...(staff || (roles.includes("player") && athleteId) ? [{ href: "/swing-design", label: "Swing Design", icon: DraftingCompass, group: "Team" }, { href: "/pitch-design", label: "Pitch Design", icon: Target, group: "Team" }] : []),
+    ...(staff || (linkedPlayer && designNavigation?.swing) ? [{ href: "/swing-design", label: "Swing Design", icon: DraftingCompass, group: "Team" }] : []),
+    ...(staff || (linkedPlayer && designNavigation?.pitch) ? [{ href: "/pitch-design", label: "Pitch Design", icon: Target, group: "Team" }] : []),
     { href: "/game-stats", label: "Game Stats", icon: BarChart3, group: "Team" },
     { href: "/leaderboards", label: "Leaderboards", icon: ListOrdered, group: "Team" },
     ...(staff || (roles.includes("player") && athleteId) ? [{ href: "/graphics", label: "Graphics", icon: Image, group: "Team" }] : []),

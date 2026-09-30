@@ -8,7 +8,7 @@ import { loadAthletePerformance } from "@/lib/performance-server";
 import { loadHittingTeamAverages } from "@/lib/hitting-team-server";
 import { loadBlastBatSpeedPercentile } from "@/lib/blast-speed-percentile-server";
 import { getPlayerPerformance } from "@/lib/player-performance";
-import { profileShowsHitting } from "@/lib/player-profile-layout";
+import { seasonDesignNavigation } from "@/lib/design-navigation";
 import { hitterSwingProfile } from "@/lib/hitter-swing-profile";
 import { athleteName, UUID_PATTERN, type RosterAthlete } from "@/lib/types";
 import { PageHeading } from "@/components/page-heading";
@@ -46,7 +46,7 @@ export default async function SwingDesignPage({ searchParams }: { searchParams?:
     athlete = data as SwingAthlete;
   }
   const season = athlete?.athlete_seasons.find(item => item.season === "2026-27");
-  const showHitting = !!athlete && !!season && profileShowsHitting(season);
+  const showHitting = !!athlete && seasonDesignNavigation(season).swing;
   const content = athlete && showHitting ? await (async () => {
     const [shared, teamAverages, speedReference] = await Promise.all([
       loadAthletePerformance(access, athlete, { includePercentiles: true }),
