@@ -31,14 +31,14 @@ export type ArsenalComparison = {
   reviewB: boolean;
   metrics: ArsenalComparisonMetric[];
 };
-const fields = [
+export const arsenalComparisonFields = [
   { key: "classified_avg_velocity", label: "Average Velocity", field: "averageVelocity", family: "velocity", max: false, unit: "mph" },
   { key: "classified_max_velocity", label: "Max Velocity", field: "maxVelocity", family: "velocity", max: true, unit: "mph" },
   { key: "classified_avg_spin", label: "Average Spin", field: "averageSpin", family: "spin", max: false, unit: "rpm" },
   { key: "classified_max_spin", label: "Max Spin", field: "maxSpin", family: "spin", max: true, unit: "rpm" },
 ] as const;
 const dateValid = (date: string | null, today: string): date is string => !!date && /^2026-\d\d-\d\d$/.test(date) && Number.isFinite(Date.parse(date)) && new Date(date).toISOString().slice(0,10) === date && date >= "2026-09-01" && date <= "2026-12-31" && date <= today;
-function metricValue(pitch: FallArsenalPitch | null, field: typeof fields[number], today: string): ArsenalComparisonValue | null {
+export function arsenalComparisonValue(pitch: FallArsenalPitch | null, field: typeof arsenalComparisonFields[number], today: string): ArsenalComparisonValue | null {
   if (!pitch) return null;
   const value = pitch[field.field];
   if (value === null || !Number.isFinite(value) || value <= 0) return null;
@@ -71,8 +71,8 @@ export function comparePitchArsenals(data: CoachingData, a: string, b: string, t
     const parsed = classifiedPitchSource(source)!;
     const firstMatches = aa.filter(pitch => pitch.source === source), secondMatches = bb.filter(pitch => pitch.source === source);
     const first = firstMatches.length === 1 ? firstMatches[0] : null, second = secondMatches.length === 1 ? secondMatches[0] : null;
-    const metrics: ArsenalComparisonMetric[] = fields.map(field => {
-      const av = metricValue(first, field, today), bv = metricValue(second, field, today);
+    const metrics: ArsenalComparisonMetric[] = arsenalComparisonFields.map(field => {
+      const av = arsenalComparisonValue(first, field, today), bv = arsenalComparisonValue(second, field, today);
       const sameBasis = !!av && !!bv && av.basis === bv.basis;
       const sameWindow = sameBasis && (av!.basis !== "Latest session" || daysBetween(av!.lastDate, bv!.lastDate) <= maxGap);
       const lead = comparisonLead(av?.value, bv?.value, field.unit === "rpm" ? "neutral" : "higher", sameWindow);
