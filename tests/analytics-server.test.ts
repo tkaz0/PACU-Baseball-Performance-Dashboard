@@ -82,10 +82,119 @@ it("projects the full staff comparison arsenal without exposing file identities 
 });
 
 it("reports safe query failure reasons without echoing provider messages or data",async()=>{
- for(const error of [{code:"57014",message:"private provider detail"},{code:"PGRST301",details:"private row"},{code:"private-name",message:"private provider detail"}]){
+ for(const error of [{code:"57014",message:"private provider detail"},{code:"PGRST301",details:"private row"},{code:"private-name",message:"private provider detail"},{code:"57014\n",message:"private provider detail"}]){
   const result=analyticsPages(async()=>({data:null,count:null,error}),x=>x,1000);
-  await expect(result).rejects.toThrow(error.code==="private-name"?"source-query:unknown":`source-query:${error.code}`);
+  await expect(result).rejects.toThrow(["private-name","57014\n"].includes(error.code)?"source-query:unknown":`source-query:${error.code}`);
   await expect(result).rejects.not.toThrow(/private/);
  }
  await expect(analyticsPages(async()=>({data:[],count:1001,error:null}),x=>x,1000)).rejects.toThrow("source-limit");
+});
+
+const fictionalRoster=(count:number)=>Array.from({length:count},(_,index)=>({id:`00000000-0000-4000-8000-${String(index+1).padStart(12,"0")}`,athlete_code:`SYN-${index+1}`,first_name:"Fictional",last_name:`Player ${index+1}`,preferred_name:null,athlete_seasons:[{season:"2026-27",academic_class:null,primary_position:"P",secondary_position:null,player_type:"pitcher",bats:null,throws:null,roster_status:"active"}]}));
+const fictionalMeasurement=(athleteId:string,index:number)=>({observation_id:`fictional-${athleteId}-${index}`,athlete_id:athleteId,metric_key:"weight",metric:"Weight",unit:"lb",value:180,measured_at:"2026-09-06",source:"RENPHO",imported_at:"2026-09-06T00:00:00Z",file_hash:"a".repeat(64)});
+type PageResult={data:unknown;count:number|null;error:unknown};
+function teamQueries(roster:ReturnType<typeof fictionalRoster>,respond:(ids:string[],from:number,to:number)=>Promise<PageResult>|PageResult){
+ const calls:{ids:string[];from:number;to:number;fields:string;count:unknown;bounds:[string,string,string][]}[]=[];
+ mocks.from.mockImplementation(table=>{
+  let ids:string[]=[],fields="",count:unknown;const bounds:[string,string,string][]=[];
+  const chain={select:vi.fn((selection:string,options:{count:unknown})=>{fields=selection;count=options.count;return chain;}),eq:vi.fn(),in:vi.fn((_key:string,value:string[])=>{ids=value;return chain;}),gte:vi.fn((key:string,value:string)=>{bounds.push(["gte",key,value]);return chain;}),lte:vi.fn((key:string,value:string)=>{bounds.push(["lte",key,value]);return chain;}),order:vi.fn(),range:vi.fn((from:number,to:number)=>{
+   if(table==="athletes")return Promise.resolve({data:roster.slice(from,to+1),count:roster.length,error:null});
+   calls.push({ids:[...ids],from,to,fields,count,bounds});return Promise.resolve(respond(ids,from,to));
+  })};
+  for(const key of ["eq","order"] as const)chain[key].mockReturnValue(chain);return chain;
+ });
+ mocks.access.mockResolvedValue({supabase:{from:mocks.from}});return calls;
+}
+const timeoutPage=():PageResult=>({data:null,count:null,error:{code:"57014",message:"fictional private provider detail"}});
+
+it("reads disjoint groups of ten sequentially with the unchanged exact-count projection and date bounds",async()=>{
+ const roster=fictionalRoster(23);let active=0,peak=0;
+ const calls=teamQueries(roster,async(ids,from,to)=>{active++;peak=Math.max(peak,active);await Promise.resolve();active--;const rows=ids.map(id=>fictionalMeasurement(id,0));return {data:rows.slice(from,to+1),count:rows.length,error:null};});
+ const result=await loadAnalytics();
+ expect(calls.map(c=>c.ids.length)).toEqual([10,10,3]);expect(calls.flatMap(c=>c.ids)).toEqual(roster.map(r=>r.id));expect(peak).toBe(1);
+ expect(result.readings).toHaveLength(23);expect(new Set(result.readings.map(r=>r.id)).size).toBe(23);
+ for(const call of calls){expect(call.count).toBe("exact");expect(call.bounds).toEqual([["gte","measured_at","2026-06-01"],["lte","measured_at","2026-12-31"]]);expect(call.fields).toBe("observation_id,athlete_id,metric_key,metric,unit,value,measured_at,source,imported_at");expect(call.to-call.from).toBe(499);}
+});
+
+it("drains timed-out parallel pages before splitting and discards all partial arsenal samples",async()=>{
+ const roster=fictionalRoster(2),id=roster[0].id;
+ const pitches=CLASSIFIED_METRICS.map((metric,index)=>({...fictionalMeasurement(id,index),metric_key:metric.key,metric:metric.label,unit:metric.unit,source:"Full Swing · Practice · Slider",value:metric.key==="classified_avg_velocity"?80:metric.key==="classified_max_velocity"?83:metric.key==="classified_avg_spin"?2000:metric.key==="classified_max_spin"?2200:10}));
+ const rows=[...pitches,...Array.from({length:994},(_,i)=>fictionalMeasurement(id,i+7))];
+ let release:(()=>void)|undefined,active=0,peak=0;
+ const calls=teamQueries(roster,async(ids,from,to)=>{
+  active++;peak=Math.max(peak,active);
+  try{
+   if(ids.length===2&&from===500)return timeoutPage();
+   if(ids.length===2&&from===1000)await new Promise<void>(resolve=>{release=resolve;});
+   const own=rows.filter(row=>ids.includes(row.athlete_id));return {data:own.slice(from,to+1),count:own.length,error:null};
+  }finally{active--;}
+ });
+ const pending=loadComparisonData();let settled=false;void pending.then(()=>{settled=true;},()=>{settled=true;});
+ await vi.waitFor(()=>expect(release).toBeDefined());expect(calls.every(c=>c.ids.length===2)).toBe(true);expect(settled).toBe(false);
+ release!();const result=await pending;
+ expect(calls.map(c=>[c.ids.length,c.from])).toEqual([[2,0],[2,500],[2,1000],[1,0],[1,500],[1,1000],[1,0]]);
+ expect(peak).toBeLessThanOrEqual(3);expect(active).toBe(0);
+ expect(result.arsenals).toHaveLength(1);expect(result.arsenals[0].pitches).toHaveLength(1);
+ expect(result.arsenals[0].pitches[0]).toMatchObject({averageVelocity:80,velocityReadings:10,averageSpin:2000,spinReadings:10,velocityBasis:"fall"});
+ expect(result.readings).toHaveLength(994);expect(new Set(result.readings.map(r=>r.id)).size).toBe(994);
+ expect(JSON.stringify(result)).not.toContain("file_hash");
+});
+
+it("spends at most one split per team load and never retries either half recursively",async()=>{
+ const roster=fictionalRoster(20);
+ const calls=teamQueries(roster,ids=>ids.length===10?timeoutPage():{data:[],count:0,error:null});
+ await expect(loadAnalytics()).rejects.toThrow("source-query:57014");
+ expect(calls.map(c=>c.ids.length)).toEqual([10,5,5,10]);
+ const failedHalf=teamQueries(fictionalRoster(10),()=>timeoutPage());
+ await expect(loadAnalytics()).rejects.toThrow("source-query:57014");expect(failedHalf.map(c=>c.ids.length)).toEqual([10,5]);
+ const single=teamQueries(fictionalRoster(1),()=>timeoutPage());
+ await expect(loadAnalytics()).rejects.toThrow("source-query:57014");expect(single).toHaveLength(1);
+});
+
+it("does not retry other query errors, malformed codes, incomplete pages or untyped thrown errors",async()=>{
+ const roster=fictionalRoster(2);
+ for(const response of [
+  {data:null,count:null,error:{code:"42501"}},
+  {data:null,count:null,error:{code:"PGRST301"}},
+  {data:null,count:null,error:{code:57014}},
+  {data:null,count:null,error:{code:"57014\n"}},
+  {data:[],count:1,error:null},
+  {data:null,count:0,error:null},
+ ]){
+  const calls=teamQueries(roster,()=>response);await expect(loadAnalytics()).rejects.toThrow("could not be verified");expect(calls).toHaveLength(1);
+ }
+ const calls=teamQueries(roster,()=>Promise.reject(new Error("source-query:57014")));
+ await expect(loadAnalytics()).rejects.toThrow("source-query:57014");expect(calls).toHaveLength(1);
+});
+
+it("keeps changed-count and invalid-row failures nonretryable even beside a timeout",async()=>{
+ const roster=fictionalRoster(2);
+ for(const invalid of ["count","row"]){
+  const calls=teamQueries(roster,(_ids,from)=>{
+   if(from===500)return timeoutPage();
+   const data=Array.from({length:500},(_,i)=>fictionalMeasurement(roster[0].id,from+i));
+   if(from===1000&&invalid==="row")data[0].value=NaN;
+   return {data,count:from===1000&&invalid==="count"?1501:1500,error:null};
+  });
+  await expect(loadAnalytics()).rejects.toThrow(invalid==="count"?"source-changed":"invalid-reading");
+  expect(calls).toHaveLength(3);expect(calls.every(c=>c.ids.length===2)).toBe(true);
+ }
+});
+
+it.each([false,true])("enforces the aggregate 20,000 cap across batches and retry halves (split=%s)",async(split)=>{
+ const roster=fictionalRoster(split?10:20);
+ const calls=teamQueries(roster,(ids,from,to)=>{
+  if(split&&ids.length===10)return timeoutPage();
+  const count=ids[0]===roster[0].id?11000:9001;
+  return {data:Array.from({length:Math.min(to-from+1,count-from)},(_,i)=>fictionalMeasurement(ids[0],from+i)),count,error:null};
+ });
+ await expect(loadAnalytics()).rejects.toThrow("source-limit");
+ expect(calls.filter(c=>c.ids[0]===roster[split?5:10].id)).toHaveLength(1);
+ expect(calls.every(c=>c.ids.length===(split&&c.ids.length!==10?5:10))).toBe(true);
+});
+
+it("still rejects duplicate observation identities across smaller athlete batches",async()=>{
+ const roster=fictionalRoster(11);
+ const calls=teamQueries(roster,ids=>({data:[{...fictionalMeasurement(ids[0],0),observation_id:"fictional-duplicate"}],count:1,error:null}));
+ await expect(loadAnalytics()).rejects.toThrow("invalid-reading");expect(calls).toHaveLength(2);
 });

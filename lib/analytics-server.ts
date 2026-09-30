@@ -16,7 +16,11 @@ import type { AnalyticsDataset, AnalyticsPlayer, AnalyticsReading } from "@/lib/
 import { classifiedPitchSource, CLASSIFIED_METRICS } from "@/lib/imports/classified-pitch-results";
 import { fallArsenalPitches, type ArsenalReading } from "@/lib/pitch-arsenal";
 
-const fail=(reason="invalid-reading"):never=>{throw new Error(`Analytics data could not be verified. Refresh to load the current measurements. [${reason}]`);};
+class AnalyticsReadError extends Error {
+  constructor(readonly reason:string){super(`Analytics data could not be verified. Refresh to load the current measurements. [${reason}]`);this.name="AnalyticsReadError";}
+}
+const fail=(reason="invalid-reading"):never=>{throw new AnalyticsReadError(reason);};
+const queryTimedOut=(error:unknown)=>error instanceof AnalyticsReadError&&error.reason==="source-query:57014";
 const text=(v:unknown,n=120):v is string=>typeof v==="string"&&v.length>0&&v.length<=n&&!/[\u0000-\u001f\u007f]/.test(v);
 const object=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==="object"&&!Array.isArray(v);
 export async function analyticsPages<T>(request:(from:number,to:number)=>PromiseLike<{data:unknown;error:unknown;count:number|null}>,parse:(row:unknown)=>T,maximum:number):Promise<T[]>{
@@ -25,7 +29,7 @@ export async function analyticsPages<T>(request:(from:number,to:number)=>Promise
     const result=await request(offset,offset+499);
     // Report only an allowlisted error code or fixed reason, never provider details or row data.
     if(result.error){
-      const code=object(result.error)&&typeof result.error.code==="string"&&/^(?:[0-9A-Z]{5}|PGRST[0-9]{3})$/.test(result.error.code)?result.error.code:"unknown";
+      const code=object(result.error)&&typeof result.error.code==="string"&&result.error.code===result.error.code.trim()&&/^(?:[0-9A-Z]{5}|PGRST[0-9]{3})$/.test(result.error.code)?result.error.code:"unknown";
       return fail(`source-query:${code}`);
     }
     if(!Array.isArray(result.data)||result.count===null||!Number.isSafeInteger(result.count)||result.count<0)return fail("invalid-page");
@@ -37,11 +41,14 @@ export async function analyticsPages<T>(request:(from:number,to:number)=>Promise
   }
   rows.push(...await page(0));
   // Establish the complete bounded shape first, then read at most three pages at once.
-  // Promise.all preserves page order; every page still verifies the exact same count.
+  // Drain every request before propagating an error so a timeout retry cannot overlap it.
+  // Every page still verifies the exact same count; invalid data never becomes retryable.
   for(let offset=500;offset<count!;offset+=1500){
     const offsets=[offset,offset+500,offset+1000].filter(start=>start<count!);
-    const pages=await Promise.all(offsets.map(page));
-    rows.push(...pages.flat());
+    const pages=await Promise.allSettled(offsets.map(page));
+    const failure=pages.find(result=>result.status==="rejected"&&!queryTimedOut(result.reason))??pages.find(result=>result.status==="rejected");
+    if(failure?.status==="rejected")throw failure.reason;
+    for(const result of pages)if(result.status==="fulfilled")rows.push(...result.value);
   }
   return rows;
 }
@@ -60,14 +67,35 @@ async function loadTeamSource(includeFullRoster=false, includeGames=true, includ
   // File identity stays server-side and is selected only for the staff comparison.
   const arsenalReadings: (ArsenalReading & { athleteId:string })[]=[];
   const fields="observation_id,athlete_id,metric_key,metric,unit,value,measured_at,source,imported_at"+(includeArsenal?",file_hash":"");
-  for(let start=0;start<eligible.length;start+=100){const ids=eligible.slice(start,start+100).map(p=>p.id);const page=await analyticsPages((from,to)=>supabase.from("performance_measurements").select(fields,{count:"exact"}).in("athlete_id",ids).gte("measured_at","2026-06-01").lte("measured_at","2026-12-31").order("observation_id").range(from,to),row=>{
+  type TeamReading={reading:AnalyticsReading;arsenal?:ArsenalReading&{athleteId:string}};
+  async function readAttempt(ids:string[],maximum:number):Promise<TeamReading[]>{
+    return analyticsPages((from,to)=>supabase.from("performance_measurements").select(fields,{count:"exact"}).in("athlete_id",ids).gte("measured_at","2026-06-01").lte("measured_at","2026-12-31").order("observation_id").range(from,to),row=>{
     if(!object(row)||!text(row.observation_id,2000)||!text(row.athlete_id)||!ids.includes(row.athlete_id)||!text(row.metric_key)||!text(row.metric,300)||!text(row.unit,80)||!text(row.source,100)||typeof row.value!=="number"||!Number.isFinite(row.value)||(row.value<0&&!validBlastObservation(row.metric_key,row.value,row.unit,row.source,row.measured_at as string))||!text(row.measured_at)||!/^2026-\d{2}-\d{2}$/.test(row.measured_at)||!Number.isFinite(Date.parse(row.measured_at))||new Date(row.measured_at).toISOString().slice(0,10)!==row.measured_at||!text(row.imported_at)||!Number.isFinite(Date.parse(row.imported_at)))return fail();
+    let arsenal:TeamReading["arsenal"];
     if(includeArsenal && classifiedPitchSource(row.source)) {
       if(typeof row.file_hash!=="string"||!/^[a-f0-9]{64}$/.test(row.file_hash)||!CLASSIFIED_METRICS.some(m=>m.key===row.metric_key&&m.label===row.metric&&m.unit===row.unit))return fail();
-      arsenalReadings.push({athleteId:row.athlete_id,source:row.source,metric:row.metric,unit:row.unit,value:row.value,measured_at:row.measured_at,file_hash:row.file_hash});
+      arsenal={athleteId:row.athlete_id,source:row.source,metric:row.metric,unit:row.unit,value:row.value,measured_at:row.measured_at,file_hash:row.file_hash};
     }
-    return {id:row.observation_id,athleteId:row.athlete_id,metric:row.metric_key,label:row.metric,unit:row.unit,value:row.value,date:row.measured_at,source:row.source,importedAt:row.imported_at};
-  },20000);readings.push(...page);if(readings.length>20000)return fail();}
+    return {reading:{id:row.observation_id,athleteId:row.athlete_id,metric:row.metric_key,label:row.metric,unit:row.unit,value:row.value,date:row.measured_at,source:row.source,importedAt:row.imported_at},...(arsenal?{arsenal}:{})};
+    },maximum);
+  }
+  // A small ID partition reduces work per exact count under the existing staff RLS.
+  // Only one failed partition may split per load; neither half retries recursively.
+  let splitUsed=false;
+  async function readBatch(ids:string[],maximum:number):Promise<TeamReading[]>{
+    try{return await readAttempt(ids,maximum);}catch(error){
+      if(!queryTimedOut(error)||splitUsed||ids.length<2)throw error;
+      splitUsed=true;
+      const middle=Math.ceil(ids.length/2),left=await readAttempt(ids.slice(0,middle),maximum);
+      const right=await readAttempt(ids.slice(middle),maximum-left.length);
+      return [...left,...right];
+    }
+  }
+  for(let start=0;start<eligible.length;start+=10){
+    const page=await readBatch(eligible.slice(start,start+10).map(p=>p.id),20000-readings.length);
+    // Failed attempts never publish partially parsed rows or duplicate arsenal samples.
+    for(const row of page){readings.push(row.reading);if(row.arsenal)arsenalReadings.push(row.arsenal);}
+  }
   if(new Set(readings.map(r=>r.id)).size!==readings.length)return fail();
   const games=gameRows.filter(row=>eligible.some(player=>player.id===row.athlete_id));
   // The whole roster is selectable, but team production uses the ranking-eligible cohort.
