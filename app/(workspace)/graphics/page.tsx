@@ -9,7 +9,7 @@ export default async function GraphicsPage() {
  const access=await requireRenderAccess();
  const staff=access.roles.some(role=>role==="admin"||role==="coach");
  const players=staff?await loadStaffAthleteChoices(access):[];
- return <><PageHeading section="Pacific Baseball / Share Your Results" title="Graphics" description="Turn your results into Boxer Baseball graphics for posts, stories, and presentations."/>
+ return <><PageHeading section="Pacific Baseball" title="Graphics" description="Team graphics. Ready to post."/>
   <GraphicsStudio key={`${staff?"staff":"player"}:${access.athleteId??"none"}:${access.preview?.role??"actual"}`} staff={staff} players={players} ownAthleteId={access.athleteId}/>
  </>;
 }

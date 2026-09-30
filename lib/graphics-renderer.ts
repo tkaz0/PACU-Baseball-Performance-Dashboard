@@ -7,6 +7,7 @@ export interface GraphicsCard {
   kind: "player" | "spotlight" | "percentiles" | "arsenal" | "trend" | "leaderboard" | "comparison" | "dashboard";
   title: string;
   subtitle: string;
+  kicker?: string;
   name?: string;
   meta?: string;
   updated?: string;
@@ -19,6 +20,7 @@ export interface GraphicsCard {
   trendUnit?: string;
   comparison?: { names: [string, string]; rows: { label: string; a: string; b: string; aSample?: string; bSample?: string }[] };
   footerNotes?: string[];
+  captionDetails?: string[];
 }
 export type GraphicsOptions = { format: GraphicsFormat; theme: GraphicsTheme; logoDataUrl?: string };
 const sizes = { square: { width: 1080, height: 1080 }, portrait: { width: 1080, height: 1350 }, story: { width: 1080, height: 1920 }, landscape: { width: 1600, height: 900 } } as const;
@@ -31,6 +33,7 @@ const palettes: Record<GraphicsTheme, Palette> = {
   red: { background: "#a71016", panel: "#880d12", raised: "#bd3337", ink: "#fffaf2", muted: "#f2cfcb", line: "#ca5e5f", accent: "#fff3df", accentInk: "#921017" },
   cream: { background: "#f3eee3", panel: "#fffcf5", raised: "#e8e0d2", ink: "#17191d", muted: "#5c5a55", line: "#c9c0b2", accent: "#b51217", accentInk: "#fffaf2" },
 };
+const pitchColors = ["#ed6570", "#65addc", "#dfb354", "#6db49b", "#ad97dc", "#d990ba", "#99b378", "#df9a72"];
 type Box = { x: number; y: number; w: number; h: number };
 const clean = (value: string) => String(value ?? "").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f\ufffe\uffff]/g, "").replace(/[\ud800-\udfff]/gu, "").replace(/\s+/g, " ").trim();
 const escape = (value: string) => clean(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
@@ -42,16 +45,6 @@ const n = (value: number) => Number.isFinite(value) ? String(Math.round(value * 
 // Conservative Arial advance estimates permit deterministic fitting without browser/font access.
 function textWidth(value: string, size: number, bold = false): number {
   return [...clean(value)].reduce((sum, char) => sum + (/[ilI1.,:;'!| ]/.test(char) ? .29 : /[MW@%&]/.test(char) ? .94 : /[A-Z0-9]/.test(char) ? .69 : /[^\u0000-\u024f]/.test(char) ? 1 : .57), 0) * size * (bold ? 1.04 : 1);
-}
-function shorten(value: string, width: number, size: number, bold = false): string {
-  const full = clean(value);
-  if (textWidth(full, size, bold) <= width + .1) return full;
-  let result = "";
-  for (const char of full) {
-    if (textWidth(result + char + "…", size, bold) > width + .1) break;
-    result += char;
-  }
-  return result.trimEnd() + "…";
 }
 function wrap(value: string, width: number, size: number): string[] {
   const words = clean(value).split(" ").filter(Boolean), lines: string[] = [];
@@ -84,16 +77,21 @@ function dateLabel(date: string): string {
   return new Date(date + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 }
 
-/** No caller object, private identifiers, remote references or hidden metadata are serialized. */
+/** Export only the visible design. Source notes and caption details stay in the review UI. */
 export function renderGraphics(card: GraphicsCard, options: GraphicsOptions): string {
   const { width, height } = graphicsSize(options.format), p = palettes[options.theme] ?? palettes.black;
   const wide = width > height, margin = wide ? 76 : 64, inner = width - margin * 2;
+  const rawMetrics = card.metrics ?? [];
+  const commonSample = ["player", "percentiles"].includes(card.kind) && rawMetrics.length > 1 && clean(rawMetrics[0].sample ?? "") && rawMetrics.every(metric => metric.sample === rawMetrics[0].sample) ? rawMetrics[0].sample : undefined;
+  const metrics = commonSample ? rawMetrics.map(metric => ({ ...metric, sample: undefined })) : rawMetrics;
   const parts: string[] = [];
+  const overflow = () => { throw new Error("These selected stats need a larger format. Choose Story or select fewer stats."); };
   const text = (value: string, x: number, y: number, size: number, color = p.ink, weight = 400, anchor = "start") =>
     parts.push('<text x="' + n(x) + '" y="' + n(y) + '" font-size="' + n(size) + '" fill="' + color + '" font-weight="' + weight + '" text-anchor="' + anchor + '">' + escape(value) + "</text>");
   const fit = (value: string, x: number, y: number, maxWidth: number, size: number, minimum: number, color = p.ink, weight = 700, anchor = "start") => {
-    const fittedSize = Math.max(minimum, Math.min(size, maxWidth / Math.max(1, textWidth(value, 1, weight >= 600))));
-    text(shorten(value, maxWidth, fittedSize, weight >= 600), x, y, fittedSize, color, weight, anchor);
+    const fitted = Math.min(size, maxWidth / Math.max(1, textWidth(value, 1, weight >= 600)));
+    if (fitted < minimum) overflow();
+    text(value, x, y, fitted, color, weight, anchor);
   };
   const rect = (b: Box, fill: string, radius = 0, stroke?: string) =>
     parts.push('<rect x="' + n(b.x) + '" y="' + n(b.y) + '" width="' + n(Math.max(0, b.w)) + '" height="' + n(Math.max(0, b.h)) + '" rx="' + n(radius) + '" fill="' + fill + '"' + (stroke ? ' stroke="' + stroke + '"' : "") + "/>");
@@ -101,230 +99,257 @@ export function renderGraphics(card: GraphicsCard, options: GraphicsOptions): st
     parts.push('<line x1="' + n(x1) + '" y1="' + n(y1) + '" x2="' + n(x2) + '" y2="' + n(y2) + '" stroke="' + color + '" stroke-width="' + n(strokeWidth) + '"/>');
   const circle = (x: number, y: number, radius: number, fill = p.accent) =>
     parts.push('<circle cx="' + n(x) + '" cy="' + n(y) + '" r="' + n(radius) + '" fill="' + fill + '"/>');
-  const lines = (value: string, x: number, y: number, maxWidth: number, size: number, maxLines = 2, color = p.muted) => {
-    const rows = wrap(value, maxWidth, size);
-    rows.slice(0, maxLines).forEach((row, index) => text(index === maxLines - 1 && rows.length > maxLines ? shorten(row + " …", maxWidth, size) : row, x, y + index * size * 1.25, size, color));
+  const detailLines = (value: string | undefined, maxWidth: number, size = 20) => {
+    const rows = wrap(value ?? "", maxWidth, size);
+    if (rows.length > 2) throw new Error("Keep inline sample text to two short lines; put full details in the caption.");
+    return rows;
   };
-  const more = (count: number, b: Box, label = "additional entries") => {
-    if (count > 0) text("+" + count + " " + label + " not shown", b.x, b.y + b.h - 5, 20, p.muted);
-  };
+  const drawLines = (rows: string[], x: number, y: number, size = 20, color = p.muted, anchor = "start") =>
+    rows.forEach((row, index) => text(row, x, y + index * size * 1.25, size, color, 400, anchor));
   const empty = (b: Box, message: string) => {
-    rect(b, p.panel, 12, p.line);
-    fit(message, b.x + 30, b.y + Math.min(b.h / 2 + 10, 80), b.w - 60, 32, 22, p.muted, 400);
+    rect(b, p.panel, 10, p.line);
+    fit(message, b.x + 30, b.y + b.h / 2 + 10, b.w - 60, 34, 22, p.muted, 400);
   };
 
   rect({ x: 0, y: 0, w: width, h: height }, p.background);
   rect({ x: 0, y: 0, w: width, h: 12 }, p.accent);
-  // Quiet baseball-diamond geometry stays outside the data area.
-  parts.push('<path d="M ' + n(width - 188) + " 24 L " + n(width - 24) + " 188 L " + n(width - 24) + " 24 Z" + '" fill="none" stroke="' + p.line + '" stroke-width="1"/>');
-  text("PACIFIC BASEBALL", margin, 66, 25, p.ink, 700);
+  // Original field-line geometry; the supplied complete logo remains unaltered.
+  parts.push('<path d="M ' + n(width - 216) + ' 18 L ' + n(width - 18) + ' 216 M ' + n(width - 142) + ' 18 L ' + n(width - 18) + ' 142" fill="none" stroke="' + p.line + '" stroke-width="2"/>');
+  text("PACIFIC BASEBALL", margin, 66, 26, p.ink, 700);
+  if (card.kicker) fit(card.kicker, margin, 105, inner - 155, 23, 18, p.muted, 600);
   const logo = safeLogo(options.logoDataUrl);
-  if (logo) parts.push('<image x="' + n(width - margin - 118) + '" y="20" width="118" height="80" preserveAspectRatio="xMidYMid meet" href="' + logo + '"/>');
-  else text("PERFORMANCE", margin, 94, 16, p.muted, 700);
-  const titleLines = !wide && /[\r\n]/.test(card.title) ? card.title.split(/\r?\n/).map(clean).filter(Boolean).slice(0, 2) : [card.title];
-  titleLines.forEach((title, i) => fit(title, margin, 166 + i * 64, inner, 58, 32));
-  const headerShift = 10 + Math.max(0, titleLines.length - 1) * 64;
-  const subtitles = wrap(card.subtitle, inner, 24).slice(0, 2);
-  subtitles.forEach((subtitle, i) => text(subtitle, margin, 197 + headerShift + i * 29, 24, p.muted));
-  let bodyTop = (subtitles.length > 1 ? 258 : 230) + headerShift;
-  if (card.name) { fit(card.name, margin, bodyTop + 55, inner, wide ? 76 : 80, 40); bodyTop += 82; }
-  if (card.meta) { fit(card.meta, margin, bodyTop + 8, inner, 24, 20, p.muted, 400); bodyTop += 40; }
+  if (logo) parts.push('<image x="' + n(width - margin - 118) + '" y="25" width="118" height="80" preserveAspectRatio="xMidYMid meet" href="' + logo + '"/>');
 
-  // Notes are visible content, including formula qualifications. Do not silently truncate them.
-  const footerRows = [
-    ...(card.source ? wrap("Source: " + card.source, inner, 20) : []),
-    ...(card.updated ? wrap(card.updated, inner, 20) : []),
-    ...(card.footerNotes ?? []).flatMap(note => wrap(note, inner, 20)),
-  ];
-  const footerHeight = 90 + footerRows.length * 25;
-  const footerTop = height - footerHeight;
-  const minimumBody = card.kind === "trend" && card.metrics.length ? wide ? 250 : 400 : card.kind === "player" && card.metrics.length > 1 ? wide ? 200 : 355 : card.kind === "spotlight" && card.metrics.length > 1 ? 310 : 200;
-  if (footerTop - bodyTop - 27 < minimumBody) throw new Error("The selected format cannot fit the required notes. Choose a taller format or fewer metrics.");
-  line(margin, footerTop, width - margin, footerTop);
-  footerRows.forEach((row, i) => text(row, margin, footerTop + 31 + i * 25, 20, p.muted));
-  text("pacubaseballperformance.com", margin, height - 52, 18, p.muted, 700);
-  text("Independent project · Not an official university application.", margin, height - 28, 18, p.muted);
-  const body: Box = { x: margin, y: bodyTop, w: inner, h: footerTop - bodyTop - 27 };
-  const metrics = card.metrics ?? [];
+  let bodyTop: number;
+  if (card.name) {
+    fit(card.title, margin, 163, inner, 31, 23, p.muted, 700);
+    fit(card.name, margin, 252, inner, wide ? 92 : 90, 44);
+    const identity = [card.meta, card.subtitle, commonSample].filter(value => value && clean(value) !== clean(card.kicker ?? "")).join(" · ");
+    if (identity) fit(identity, margin, 293, inner, 24, 19, p.muted, 400);
+    bodyTop = 335;
+  } else {
+    const titleLines = !wide && /[\r\n]/.test(card.title) ? card.title.split(/\r?\n/).map(clean).filter(Boolean) : [card.title];
+    if (titleLines.length > 2) overflow();
+    titleLines.forEach((title, i) => fit(title, margin, 204 + i * 82, inner, 82, 38));
+    const subtitleY = 247 + Math.max(0, titleLines.length - 1) * 82;
+    const subtitle = [card.subtitle && clean(card.subtitle) !== clean(card.kicker ?? "") ? card.subtitle : "", commonSample].filter(Boolean).join(" · ");
+    if (subtitle) fit(subtitle, margin, subtitleY, inner, 25, 20, p.muted, 400);
+    bodyTop = subtitleY + 42;
+  }
+  const body: Box = { x: margin, y: bodyTop, w: inner, h: height - bodyTop - margin };
+  if (body.h < 230) overflow();
 
   const metricTile = (metric: GraphicsCard["metrics"][number], b: Box, hero = false) => {
-    rect(b, hero ? p.accent : p.panel, 12, hero ? undefined : p.line);
+    if (b.h < 158) overflow();
+    rect(b, hero ? p.accent : p.panel, 10, hero ? undefined : p.line);
     const ink = hero ? p.accentInk : p.ink, muted = hero ? p.accentInk : p.muted;
-    const pad = b.w < 300 ? 22 : 28;
-    const compact = b.h < 180, sampleSize = compact ? 18 : 20;
-    fit(metric.label, b.x + pad, b.y + (compact ? 28 : 36), b.w - pad * 2, compact ? 21 : 25, 18, muted, 700);
-    const sampleRows = metric.sample ? wrap(metric.sample, b.w - pad * 2, sampleSize).slice(0, 2) : [];
-    const sampleStart = b.y + b.h - 19 - Math.max(0, sampleRows.length - 1) * sampleSize * 1.25;
-    const valueTop = b.y + (compact ? 40 : 54);
-    const valueBottom = sampleRows.length ? sampleStart - sampleSize - 10 : b.y + b.h - 23;
-    const font = Math.min(hero ? 154 : 90, Math.max(24, (valueBottom - valueTop) / 1.2));
-    fit(display(metric.value), b.x + pad, valueTop + font, b.w - pad * 2, font, Math.min(28, font), ink, 700);
-    if (metric.sample) lines(metric.sample, b.x + pad, sampleStart, b.w - pad * 2, sampleSize, 2, muted);
+    const pad = b.w < 320 ? 22 : 32, compact = b.h < 220;
+    const labelSize = compact ? 23 : 28;
+    const labelRows = wrap(metric.label, b.w - pad * 2, labelSize);
+    if (labelRows.length > 2) overflow();
+    labelRows.forEach((row, i) => text(row, b.x + pad, b.y + 34 + i * labelSize * 1.2, labelSize, muted, 700));
+    const samples = detailLines(metric.sample, b.w - pad * 2, 20);
+    const sampleStart = b.y + b.h - 25 - Math.max(0, samples.length - 1) * 25;
+    const top = b.y + 44 + labelRows.length * labelSize * 1.2;
+    const bottom = samples.length ? sampleStart - 31 : b.y + b.h - 28;
+    const valueSize = Math.min(hero ? 204 : 126, Math.max(24, (bottom - top) / 1.15));
+    const baseline = top + (bottom - top) / 2 + valueSize * .33;
+    fit(display(metric.value), b.x + pad, baseline, b.w - pad * 2, valueSize, 23, ink);
+    drawLines(samples, b.x + pad, sampleStart, 20, muted);
   };
-  const grid = (items: GraphicsCard["metrics"], b: Box, columns = 2, max = 6, firstHero = false) => {
+  const grid = (items: GraphicsCard["metrics"], b: Box, columns = 2, firstHero = false) => {
     if (!items.length) return empty(b, "No verified metrics available");
-    const maxRows = Math.max(1, Math.floor((b.h - 30 + 16) / 176));
-    const count = Math.min(items.length, max, maxRows * columns);
-    const shown = items.slice(0, count), notice = items.length > count ? 30 : 0;
-    const rows = Math.ceil(count / columns), gap = 16, cellWidth = (b.w - gap * (columns - 1)) / columns, cellHeight = (b.h - notice - gap * (rows - 1)) / rows;
-    shown.forEach((metric, i) => metricTile(metric, { x: b.x + (i % columns) * (cellWidth + gap), y: b.y + Math.floor(i / columns) * (cellHeight + gap), w: cellWidth, h: cellHeight }, firstHero && i === 0));
-    more(items.length - count, b, "metrics");
+    columns = Math.min(columns, items.length);
+    const rows = Math.ceil(items.length / columns), gap = 18;
+    const cellWidth = (b.w - gap * (columns - 1)) / columns, cellHeight = (b.h - gap * (rows - 1)) / rows;
+    if (cellHeight < 158 || cellWidth < 230) overflow();
+    items.forEach((metric, i) => {
+      const lastSingle = items.length % columns === 1 && i === items.length - 1;
+      metricTile(metric, { x: b.x + (i % columns) * (cellWidth + gap), y: b.y + Math.floor(i / columns) * (cellHeight + gap), w: lastSingle ? b.w : cellWidth, h: cellHeight }, firstHero && i === 0);
+    });
   };
 
-  const plot = (b: Box, values: { x: number; y: number; name?: string }[], xLabel: string, yLabel: string, connect = false, labels?: { first: string; last: string }) => {
-    rect(b, p.panel, 12, p.line);
-    fit(yLabel, b.x + 24, b.y + 33, b.w - 48, 21, 18, p.muted, 700);
-    if (!values.length) return fit("No paired readings available", b.x + 24, b.y + b.h / 2, b.w - 48, 28, 20, p.muted, 400);
-    const chart = { x: b.x + 84, y: b.y + 64, w: b.w - 124, h: b.h - 126 };
+  const plot = (b: Box, values: { x: number; y: number; color?: string }[], xLabel: string, yLabel: string, connect = false, labels?: { first: string; last: string }) => {
+    if (b.w < 300 || b.h < 250) overflow();
+    rect(b, p.panel, 10, p.line);
+    fit(yLabel, b.x + 27, b.y + 40, b.w - 54, 23, 18, p.muted, 700);
+    if (!values.length) return fit("Paired readings unavailable", b.x + 27, b.y + b.h / 2, b.w - 54, 28, 18, p.muted, 400);
+    const chart = { x: b.x + 88, y: b.y + 81, w: b.w - 139, h: b.h - 154 };
     const xs = values.map(v => v.x), ys = values.map(v => v.y), minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
     const ratio = (value: number, min: number, max: number) => {
       if (min === max) return .5;
       const scale = Math.max(Math.abs(min), Math.abs(max), 1);
       return (value / scale - min / scale) / (max / scale - min / scale);
     };
-    const coords = values.map(value => ({ ...value, px: chart.x + ratio(value.x, minX, maxX) * chart.w, py: chart.y + (1 - ratio(value.y, minY, maxY)) * chart.h }));
+    const coords = values.map(value => ({ px: chart.x + ratio(value.x, minX, maxX) * chart.w, py: chart.y + (1 - ratio(value.y, minY, maxY)) * chart.h, color: value.color }));
     for (let i = 0; i < 4; i++) {
       const t = i / 3, y = chart.y + chart.h * (1 - t), value = minY * (1 - t) + maxY * t;
       line(chart.x, y, chart.x + chart.w, y);
-      fit(shortNumber(value), chart.x - 12, y + 6, 60, 18, 14, p.muted, 400, "end");
+      fit(shortNumber(value), chart.x - 15, y + 7, 65, 19, 10, p.muted, 400, "end");
     }
-    line(chart.x, chart.y + chart.h, chart.x + chart.w, chart.y + chart.h, p.muted);
-    if (connect && coords.length > 1) parts.push('<polyline points="' + coords.map(v => n(v.px) + "," + n(v.py)).join(" ") + '" fill="none" stroke="' + p.accent + '" stroke-width="4" stroke-linejoin="round"/>');
-    coords.forEach((value, i) => {
-      circle(value.px, value.py, connect ? 6 : 8, p.accent);
-      if (value.name) {
-        const right = value.px > chart.x + chart.w * .55;
-        fit(value.name, value.px + (right ? -13 : 13), Math.min(chart.y + chart.h - 4, Math.max(chart.y + 17, value.py - 13 + (i % 2) * 20)), Math.min(145, chart.w * .43), 19, 16, p.ink, 700, right ? "end" : "start");
-      }
-    });
-    text(labels?.first ?? shortNumber(minX), chart.x, chart.y + chart.h + 28, 18, p.muted);
-    text(labels?.last ?? shortNumber(maxX), chart.x + chart.w, chart.y + chart.h + 28, 18, p.muted, 400, "end");
-    fit(xLabel, b.x + b.w / 2, b.y + b.h - 15, b.w - 48, 19, 16, p.muted, 400, "middle");
+    if (connect && coords.length > 1) parts.push('<polyline points="' + coords.map(v => n(v.px) + "," + n(v.py)).join(" ") + '" fill="none" stroke="' + p.accent + '" stroke-width="5" stroke-linejoin="round"/>');
+    coords.forEach(value => circle(value.px, value.py, connect ? 7 : 10, value.color ?? p.accent));
+    text(labels?.first ?? shortNumber(minX), chart.x, chart.y + chart.h + 31, 20, p.muted);
+    text(labels?.last ?? shortNumber(maxX), chart.x + chart.w, chart.y + chart.h + 31, 20, p.muted, 400, "end");
+    fit(xLabel, b.x + b.w / 2, b.y + b.h - 18, b.w - 54, 21, 17, p.muted, 400, "middle");
   };
 
   if (card.kind === "player") {
     if (!metrics.length) empty(body, "No verified metrics available");
     else if (metrics.length === 1) metricTile(metrics[0], body, true);
     else if (wide) {
-      metricTile(metrics[0], { ...body, w: body.w * .46 }, true);
-      grid(metrics.slice(1), { ...body, x: body.x + body.w * .46 + 18, w: body.w * .54 - 18 }, 2, 4);
+      metricTile(metrics[0], { ...body, w: body.w * .48 - 10 }, true);
+      grid(metrics.slice(1), { ...body, x: body.x + body.w * .48 + 10, w: body.w * .52 - 10 }, metrics.length <= 3 ? 1 : 2);
     } else {
-      const heroHeight = Math.max(174, body.h * .43);
+      const heroHeight = Math.max(220, body.h * .43);
       metricTile(metrics[0], { ...body, h: heroHeight }, true);
-      grid(metrics.slice(1), { ...body, y: body.y + heroHeight + 18, h: body.h - heroHeight - 18 }, 2, 4);
+      grid(metrics.slice(1), { ...body, y: body.y + heroHeight + 18, h: body.h - heroHeight - 18 }, 2);
     }
   } else if (card.kind === "spotlight") {
     if (!metrics.length) empty(body, "No verified metric available");
     else {
-      const secondaryHeight = metrics.length > 1 ? Math.min(210, Math.max(175, body.h * .4)) : 0;
+      const columns = wide ? 3 : 2, secondaryRows = Math.ceil((metrics.length - 1) / columns);
+      const secondaryHeight = metrics.length > 1 ? Math.max(secondaryRows * 165 + (secondaryRows - 1) * 18, body.h * .29) : 0;
+      if (body.h - secondaryHeight < 210) overflow();
       metricTile(metrics[0], { ...body, h: body.h - secondaryHeight - (secondaryHeight ? 18 : 0) }, true);
-      if (secondaryHeight) grid(metrics.slice(1), { ...body, y: body.y + body.h - secondaryHeight, h: secondaryHeight }, wide ? 3 : 2, wide ? 3 : 2);
+      if (secondaryHeight) grid(metrics.slice(1), { ...body, y: body.y + body.h - secondaryHeight, h: secondaryHeight }, columns);
     }
   } else if (card.kind === "dashboard") {
-    grid(metrics, body, wide ? 3 : 2, wide ? 6 : options.format === "story" ? 10 : 6, true);
+    grid(metrics, body, wide ? 3 : 2, true);
   } else if (card.kind === "percentiles") {
     if (!metrics.length) empty(body, "No verified percentiles available");
     else {
-      const count = Math.min(metrics.length, Math.max(1, Math.floor((body.h - 30) / 138))), shown = metrics.slice(0, count);
-      const rowHeight = Math.min(180, (body.h - (metrics.length > count ? 30 : 0)) / count);
-      shown.forEach((metric, i) => {
-        const y = body.y + i * rowHeight;
-        fit(metric.label, body.x, y + 28, body.w * .58, 27, 20);
-        fit(display(metric.value), body.x + body.w, y + 28, body.w * .36, 30, 22, p.ink, 700, "end");
-        const percentile = metric.percentile;
+      const columns = wide && metrics.length > 3 ? 2 : 1, rows = Math.ceil(metrics.length / columns);
+      const gap = 17, rowHeight = (body.h - gap * (rows - 1)) / rows, rowWidth = (body.w - (columns - 1) * gap) / columns;
+      if (rowHeight < 137) overflow();
+      metrics.forEach((metric, i) => {
+        const y = body.y + Math.floor(i / columns) * (rowHeight + gap), x = body.x + (i % columns) * (rowWidth + gap), pad = 28;
+        rect({ x, y, w: rowWidth, h: rowHeight }, p.panel, 10, p.line);
+        const center = y + rowHeight / 2;
+        fit(metric.label, x + pad, center - 25, rowWidth * .56 - pad, 34, 22);
+        fit(display(metric.value), x + rowWidth - pad, center - 25, rowWidth * .39 - pad, 44, 25, p.ink, 700, "end");
+        const percentile = metric.percentile, barWidth = rowWidth - 195 - pad * 2;
         if (finite(percentile) && percentile >= 0 && percentile <= 100) {
-          rect({ x: body.x, y: y + 47, w: body.w - 135, h: 12 }, p.raised, 6);
-          if (percentile > 0) rect({ x: body.x, y: y + 47, w: (body.w - 135) * percentile / 100, h: 12 }, percentileColor(percentile).backgroundColor, 6);
-          text(shortNumber(percentile) + " / 100", body.x + body.w, y + 61, 22, p.ink, 700, "end");
-        } else text("Percentile unavailable", body.x, y + 64, 21, p.muted);
-        if (metric.sample) lines(metric.sample, body.x, y + 89, body.w, 20, 2);
-        if (i < count - 1) line(body.x, y + rowHeight - 9, body.x + body.w, y + rowHeight - 9);
+          rect({ x: x + pad, y: center - 2, w: barWidth, h: 15 }, p.raised, 7);
+          if (percentile > 0) rect({ x: x + pad, y: center - 2, w: barWidth * percentile / 100, h: 15 }, percentileColor(percentile).backgroundColor, 7);
+          text(shortNumber(percentile) + " / 100", x + rowWidth - pad, center + 16, 25, p.ink, 700, "end");
+        } else text("Percentile unavailable", x + pad, center + 17, 22, p.muted);
+        drawLines(detailLines(metric.sample, rowWidth - pad * 2, 20), x + pad, center + 43);
       });
-      more(metrics.length - count, body, "metrics");
     }
   } else if (card.kind === "leaderboard") {
-    const ranking = (card.ranking ?? []).filter(row => Number.isSafeInteger(row.rank) && row.rank > 0);
+    const ranking = card.ranking ?? [];
     if (!ranking.length) empty(body, "No verified rankings available");
     else {
-      const count = Math.min(ranking.length, Math.max(1, Math.floor((body.h - 30) / 120))), rowHeight = Math.min(172, (body.h - (ranking.length > count ? 30 : 0)) / count);
-      ranking.slice(0, count).forEach((row, i) => {
-        const y = body.y + i * rowHeight;
-        rect({ x: body.x, y, w: body.w, h: rowHeight - 12 }, i === 0 ? p.accent : p.panel, 8);
-        const ink = i === 0 ? p.accentInk : p.ink;
-        fit(String(row.rank).padStart(2, "0"), body.x + 24, y + 57, 84, 46, 28, ink);
-        fit(row.name, body.x + 126, y + 43, body.w * .56 - 126, 30, 22, ink);
-        fit(display(row.value), body.x + body.w - 26, y + 55, body.w * .4 - 20, 48, 26, ink, 700, "end");
-        if (row.sample) lines(row.sample, body.x + 126, y + 73, body.w - 156, 20, 2, i === 0 ? p.accentInk : p.muted);
+      if (ranking.some(row => !Number.isSafeInteger(row.rank) || row.rank < 1)) throw new Error("A selected ranking has no verified rank.");
+      const gap = 12, rowHeight = (body.h - gap * (ranking.length - 1)) / ranking.length;
+      if (rowHeight < (wide ? 84 : 105)) overflow();
+      ranking.forEach((row, i) => {
+        const y = body.y + i * (rowHeight + gap), lead = row.rank === Math.min(...ranking.map(r => r.rank));
+        const ink = lead ? p.accentInk : p.ink;
+        rect({ x: body.x, y, w: body.w, h: rowHeight }, lead ? p.accent : p.panel, 8);
+        const baseline = y + rowHeight / 2 + 11;
+        const compact = rowHeight < 118;
+        fit(String(row.rank).padStart(2, "0"), body.x + 25, baseline, 92, compact ? 44 : 65, 32, ink);
+        fit(row.name, body.x + 139, baseline - 12, body.w * .61 - 139, compact ? 31 : 37, 22, ink);
+        fit(display(row.value), body.x + body.w - 29, baseline, body.w * .35, compact ? 46 : 62, 27, ink, 700, "end");
+        const samples = detailLines(row.sample, body.w - 171, compact ? 18 : 20);
+        if (compact && samples.length > 1) overflow();
+        drawLines(samples, body.x + 139, baseline + 18, compact ? 18 : 20, lead ? p.accentInk : p.muted);
       });
-      more(ranking.length - count, body, "ranked players");
     }
   } else if (card.kind === "comparison") {
     const comparison = card.comparison;
     if (!comparison?.rows.length) empty(body, "No comparable metrics available");
     else {
-      const labelWidth = body.w * .34, valueWidth = (body.w - labelWidth) / 2;
-      rect({ ...body, h: 71 }, p.accent, 8);
-      fit(comparison.names[0], body.x + labelWidth + valueWidth / 2, body.y + 44, valueWidth - 30, 28, 19, p.accentInk, 700, "middle");
-      fit(comparison.names[1], body.x + labelWidth + valueWidth * 1.5, body.y + 44, valueWidth - 30, 28, 19, p.accentInk, 700, "middle");
-      text("METRIC", body.x + 23, body.y + 44, 20, p.accentInk, 700);
-      const rowSizes = comparison.rows.map(row => Math.max(81, 77 + Math.max(wrap(row.aSample ?? "", valueWidth - 32, 19).length, wrap(row.bSample ?? "", valueWidth - 32, 19).length) * 24));
-      const room = body.h - 71;
-      if (rowSizes[0] > room - 30) throw new Error("Comparison details need a taller format or fewer footer notes.");
-      let count = 0, used = 0;
-      for (const size of rowSizes) { if (used + size > room - (count < comparison.rows.length - 1 ? 30 : 0)) break; used += size; count++; }
-      let rowY = body.y + 71;
-      comparison.rows.slice(0, count).forEach((row, i) => {
-        const y = rowY, rowHeight = rowSizes[i]; rowY += rowHeight;
+      const labelWidth = body.w * .32, valueWidth = (body.w - labelWidth) / 2, headingHeight = wide ? 70 : 86;
+      rect({ ...body, h: headingHeight }, p.accent, 8);
+      fit(comparison.names[0], body.x + labelWidth + valueWidth / 2, body.y + 52, valueWidth - 36, 31, 20, p.accentInk, 700, "middle");
+      fit(comparison.names[1], body.x + labelWidth + valueWidth * 1.5, body.y + 52, valueWidth - 36, 31, 20, p.accentInk, 700, "middle");
+      text("VS", body.x + 28, body.y + 53, 30, p.accentInk, 700);
+      const rowHeight = (body.h - headingHeight) / comparison.rows.length;
+      if (rowHeight < (wide ? 78 : 117)) overflow();
+      comparison.rows.forEach((row, i) => {
+        const y = body.y + headingHeight + i * rowHeight, center = y + rowHeight / 2;
         if (i % 2 === 0) rect({ x: body.x, y, w: body.w, h: rowHeight }, p.panel);
-        lines(row.label, body.x + 23, y + 38, labelWidth - 42, 22, 2, p.ink);
-        fit(display(row.a), body.x + labelWidth + valueWidth / 2, y + 45, valueWidth - 32, 39, 24, p.ink, 700, "middle");
-        fit(display(row.b), body.x + labelWidth + valueWidth * 1.5, y + 45, valueWidth - 32, 39, 24, p.ink, 700, "middle");
-        [row.aSample, row.bSample].forEach((sample, j) => wrap(sample ?? "", valueWidth - 32, 19).forEach((detail, k) => text(detail, body.x + labelWidth + valueWidth * (j + .5), y + 73 + k * 24, 19, p.muted, 400, "middle")));
-        line(body.x, y + rowHeight, body.x + body.w, y + rowHeight);
+        drawLines(detailLines(row.label, labelWidth - 50, 25), body.x + 28, center - 5, 25, p.ink);
+        const compact = rowHeight < 117;
+        fit(display(row.a), body.x + labelWidth + valueWidth / 2, center + 1, valueWidth - 32, compact ? 38 : 56, 27, p.ink, 700, "middle");
+        fit(display(row.b), body.x + labelWidth + valueWidth * 1.5, center + 1, valueWidth - 32, compact ? 38 : 56, 27, p.ink, 700, "middle");
+        [row.aSample, row.bSample].forEach((sample, j) => {
+          const samples = detailLines(sample, valueWidth - 32, 19);
+          if (compact && samples.length > 1) overflow();
+          drawLines(samples, body.x + labelWidth + valueWidth * (j + .5), center + 32, 19, p.muted, "middle");
+        });
+        line(body.x + 28, y + rowHeight, body.x + body.w - 28, y + rowHeight);
       });
-      more(comparison.rows.length - count, body, "comparison rows");
     }
   } else if (card.kind === "arsenal") {
     const pitches = card.pitches ?? [];
     if (!pitches.length) empty(body, "No classified pitch summaries available");
-    else {
-      let table = { ...body };
-      const hasPlot = body.h >= 790 || (wide && pitches.length <= 4 && body.h >= 365);
-      if (hasPlot) {
-        const plotBox = wide ? { ...body, w: body.w * .4 } : { ...body, h: Math.min(400, body.h * .35) };
-        plot(plotBox, pitches.flatMap(pitch => finite(pitch.velocity) && finite(pitch.spin) ? [{ x: pitch.velocity, y: pitch.spin, name: pitch.name }] : []), "Average Velocity (mph)", "Average Spin (rpm)");
-        table = wide ? { ...body, x: body.x + body.w * .4 + 22, w: body.w * .6 - 22 } : { ...body, y: body.y + plotBox.h + 26, h: body.h - plotBox.h - 26 };
-      }
-      const nameWidth = table.w * .3, metricWidth = (table.w - nameWidth) / 4;
-      ["AVG mph", "MAX mph", "AVG rpm", "MAX rpm"].forEach((label, i) => fit(label, table.x + nameWidth + metricWidth * (i + .5), table.y + 24, metricWidth - 9, 20, 15, p.muted, 700, "middle"));
-      text("PITCH", table.x, table.y + 24, 20, p.muted, 700);
-      const details = pitches.map(pitch => wrap([pitch.context, pitch.sample].filter(Boolean).join(" · "), table.w - 20, 20));
-      const rowSizes = details.map(rows => Math.max(70, 65 + rows.length * 25));
-      if (rowSizes[0] > table.h - 70) throw new Error("Pitch dates and sample details need a taller format or fewer footer notes.");
-      let count = 0, used = 0;
-      for (const size of rowSizes) { if (used + size > table.h - 40 - (count < pitches.length - 1 ? 30 : 0)) break; used += size; count++; }
-      let rowY = table.y + 41;
-      pitches.slice(0, count).forEach((pitch, i) => {
-        const y = rowY, rowHeight = rowSizes[i]; rowY += rowHeight;
-        if (i % 2 === 0) rect({ x: table.x - 10, y, w: table.w + 20, h: rowHeight }, p.panel, 5);
-        fit(pitch.name, table.x + 10, y + 36, nameWidth - 22, 24, 18);
-        [pitch.velocity, pitch.maxVelocity, pitch.spin, pitch.maxSpin].forEach((value, j) => fit(fixed(value), table.x + nameWidth + metricWidth * (j + .5), y + 38, metricWidth - 12, 31, 19, p.ink, 700, "middle"));
-        details[i].forEach((detail, j) => text(detail, table.x + 10, y + 65 + j * 25, 20, p.muted));
-        line(table.x, y + rowHeight, table.x + table.w, y + rowHeight);
+    else if (wide) {
+      const columns = Math.min(3, pitches.length), rows = Math.ceil(pitches.length / columns), gap = 18;
+      const panelWidth = (body.w - (columns - 1) * gap) / columns, panelHeight = (body.h - (rows - 1) * gap) / rows;
+      if (panelHeight < 310) overflow();
+      pitches.forEach((pitch, index) => {
+        const x = body.x + (index % columns) * (panelWidth + gap), y = body.y + Math.floor(index / columns) * (panelHeight + gap);
+        rect({ x, y, w: panelWidth, h: panelHeight }, p.panel, 10, p.line);
+        rect({ x: x + 28, y: y + 25, w: 42, h: 5 }, pitchColors[index % pitchColors.length], 2);
+        fit(pitch.name, x + 28, y + 73, panelWidth - 56, 35, 22);
+        const basis = detailLines(pitch.context, panelWidth - 56, 18);
+        drawLines(basis, x + 28, y + 103, 18);
+        const metricTop = basis.length ? 135 + (basis.length - 1) * 23 : 110;
+        const step = (panelHeight - metricTop - 82) / 2;
+        [pitch.velocity, pitch.maxVelocity, pitch.spin, pitch.maxSpin].forEach((value, j) => {
+          const cx = x + 28 + (panelWidth - 56) * ((j % 2) + .5) / 2, cy = y + metricTop + Math.floor(j / 2) * step;
+          text(["AVG mph", "MAX mph", "AVG rpm", "MAX rpm"][j], cx, cy, 19, p.muted, 700, "middle");
+          fit(fixed(value), cx, cy + 65, (panelWidth - 74) / 2, 61, 27, p.ink, 700, "middle");
+        });
+        const samples = detailLines(pitch.sample, panelWidth - 56, 20);
+        drawLines(samples, x + 28, y + panelHeight - 24 - Math.max(0, samples.length - 1) * 25);
       });
-      more(pitches.length - count, table, "pitch types");
+    }
+    else {
+      const minimumRow = pitches.some(pitch => pitch.context) ? 210 : 180, gap = 16, minRows = pitches.length * minimumRow + (pitches.length - 1) * gap;
+      if (minRows > body.h) overflow();
+      let table = { ...body };
+      const paired = pitches.flatMap((pitch, i) => finite(pitch.velocity) && finite(pitch.spin) ? [{ x: pitch.velocity, y: pitch.spin, color: pitchColors[i % pitchColors.length] }] : []);
+      const availablePlot = body.h - minRows - 24;
+      if (paired.length > 1 && availablePlot >= 330) {
+        const plotHeight = Math.min(availablePlot, Math.max(360, body.h * .4));
+        plot({ ...body, h: plotHeight }, paired, "Average Velocity (mph)", "Average Spin (rpm)");
+        table = { ...body, y: body.y + plotHeight + 24, h: body.h - plotHeight - 24 };
+      }
+      const rowHeight = (table.h - gap * (pitches.length - 1)) / pitches.length;
+      pitches.forEach((pitch, i) => {
+        const y = table.y + i * (rowHeight + gap), pad = 28, valueWidth = (table.w - pad * 2) / 4;
+        rect({ x: table.x, y, w: table.w, h: rowHeight }, p.panel, 10, p.line);
+        rect({ x: table.x, y: y + 23, w: 5, h: 32 }, pitchColors[i % pitchColors.length], 2);
+        fit(pitch.name, table.x + pad, y + 40, table.w * .48 - pad, 33, 23);
+        const samples = detailLines(pitch.sample, table.w * .48 - pad, 20);
+        drawLines(samples, table.x + table.w - pad, y + 35, 20, p.muted, "end");
+        const basis = detailLines(pitch.context, table.w - pad * 2, 18);
+        drawLines(basis, table.x + pad, y + 82, 18);
+        const numberSize = Math.min(74, Math.max(29, rowHeight * .27));
+        const numberY = Math.max(y + rowHeight * .78, basis.length ? y + 93 + basis.length * 22 + numberSize + 9 : 0);
+        if (numberY + numberSize * .24 > y + rowHeight - 10) overflow();
+        ["AVG mph", "MAX mph", "AVG rpm", "MAX rpm"].forEach((label, j) => text(label, table.x + pad + valueWidth * (j + .5), numberY - numberSize - 9, 19, p.muted, 700, "middle"));
+        [pitch.velocity, pitch.maxVelocity, pitch.spin, pitch.maxSpin].forEach((value, j) => fit(fixed(value), table.x + pad + valueWidth * (j + .5), numberY, valueWidth - 20, numberSize, 25, p.ink, 700, "middle"));
+      });
     }
   } else if (card.kind === "trend") {
-    const points = (card.trend ?? []).flatMap(point => {
+    const points = (card.trend ?? []).map(point => {
       const timestamp = dateNumber(point.date);
-      return timestamp !== null && finite(point.value) ? [{ x: timestamp, y: point.value, date: point.date }] : [];
+      if (timestamp === null || !finite(point.value)) throw new Error("A selected trend reading has an invalid date or value.");
+      return { x: timestamp, y: point.value, date: point.date };
     }).sort((a, b) => a.x - b.x);
     if (!points.length) empty(body, "No dated trend readings available");
     else {
-      const cardsHeight = metrics.length ? Math.min(225, Math.max(190, body.h * .36)) : 0;
-      const chartBox = wide && metrics.length ? { ...body, w: body.w * .64 - 18 } : { ...body, h: body.h - cardsHeight - (cardsHeight ? 18 : 0) };
-      plot(chartBox, points, card.trendLabel ?? "Recorded Sessions", card.trendUnit ? "Recorded Value (" + card.trendUnit + ")" : "Recorded Value", true, { first: dateLabel(points[0].date), last: dateLabel(points.at(-1)!.date) });
-      if (cardsHeight) grid(metrics, wide ? { ...body, x: body.x + body.w * .64, w: body.w * .36 } : { ...body, y: body.y + body.h - cardsHeight, h: cardsHeight }, wide ? 1 : 2, 2);
+      const columns = wide && metrics.length <= 2 ? 1 : 2, rows = Math.ceil(metrics.length / columns);
+      const cardsHeight = metrics.length ? Math.max(rows * 164 + (rows - 1) * 18, body.h * .3) : 0;
+      const chartBox = wide && metrics.length ? { ...body, w: body.w * .62 - 18 } : { ...body, h: body.h - cardsHeight - (cardsHeight ? 18 : 0) };
+      plot(chartBox, points, card.trendLabel ?? "Recorded Sessions", card.trendUnit ?? "Recorded Value", true, { first: dateLabel(points[0].date), last: dateLabel(points.at(-1)!.date) });
+      if (cardsHeight) grid(metrics, wide ? { ...body, x: body.x + body.w * .62, w: body.w * .38 } : { ...body, y: body.y + body.h - cardsHeight, h: cardsHeight }, columns);
     }
   }
   return '<svg xmlns="http://www.w3.org/2000/svg" width="' + width + '" height="' + height + '" viewBox="0 0 ' + width + " " + height + '" role="img" aria-label="' + escape(card.title) + '" font-family="Arial, Helvetica, sans-serif">' + parts.join("") + "</svg>";

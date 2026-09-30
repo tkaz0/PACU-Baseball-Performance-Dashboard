@@ -4,11 +4,11 @@ import { graphicsSize, renderGraphics, type GraphicsCard, type GraphicsFormat, t
 const formats: GraphicsFormat[] = ["square", "portrait", "story", "landscape"];
 const themes: GraphicsTheme[] = ["black", "red", "cream"];
 const kinds: GraphicsCard["kind"][] = ["player", "spotlight", "percentiles", "arsenal", "trend", "leaderboard", "comparison", "dashboard"];
-const metric = (label: string, value: string, percentile: number | null = null) => ({ label, value, percentile, sample: "Sep 10–24, 2026 · 34 verified readings" });
+const metric = (label: string, value: string, percentile: number | null = null) => ({ label, value, percentile, sample: "34 readings" });
 function fictional(kind: GraphicsCard["kind"]): GraphicsCard {
   return {
     kind, title: "Fall Performance", subtitle: "Fictional fixture · Practice", name: "Example River", meta: "#00 · Two-Way · Fall 2026",
-    updated: "Updated Sep 29, 2026", source: "Fictional verified summary",
+    kicker: "Practice · Fall 2026", updated: "Updated Sep 29, 2026", source: "Fictional verified summary",
     metrics: [metric("Average Velocity", "82.4 mph", 73), metric("Max Velocity", "87.1 mph", 90), metric("Average Spin", "2,031.2 rpm", 44)],
     ranking: [
       { rank: 1, name: "Example River", value: "87.1 mph", sample: "34 verified pitches" },
@@ -41,10 +41,11 @@ describe("graphics exports", () => {
       const { width, height } = graphicsSize(format);
       expect(svg).toContain('viewBox="0 0 ' + width + " " + height + '"');
       expect(svg).not.toMatch(/\b(?:NaN|Infinity|undefined)\b|<foreignObject|<script|<style|<metadata|url\(/);
-      expect(svg).toContain("Independent project");
-      expect(svg).toContain("pacubaseballperformance.com");
-      expect(svg).toContain("Source: Fictional verified summary");
-      expect(svg).toContain("Missing readings remain unavailable; spin is descriptive.");
+      expect(svg).not.toContain("Independent project");
+      expect(svg).not.toContain("pacubaseballperformance.com");
+      expect(svg).not.toContain("Fictional verified summary");
+      expect(svg).not.toContain("Missing readings remain unavailable; spin is descriptive.");
+      expect(svg).toContain("Practice · Fall 2026");
       for (const tag of svg.match(/<(?:text|rect|image|circle|line)\b[^>]*>/g) ?? []) {
         if (tag.startsWith("<rect") || tag.startsWith("<image")) {
           const x = attribute(tag, "x"), y = attribute(tag, "y"), w = attribute(tag, "width"), h = attribute(tag, "height");
@@ -74,7 +75,7 @@ describe("graphics exports", () => {
     expect(svg).not.toContain("<script"); expect(svg).not.toContain("DO-NOT-SERIALIZE"); expect(svg).not.toContain("PRIVATE-HASH");
     expect(svg).toContain("&lt;script x=&quot;a&quot;&gt;&amp;&apos;&lt;/script&gt;");
     const comparison = fictional("comparison");
-    comparison.comparison = { names: [attack, attack], rows: [{ label: attack, a: attack, b: attack }] };
+    comparison.comparison = { names: [attack, attack], rows: [{ label: attack, a: '<x a="b">', b: '<x a="b">' }] };
     expect(renderGraphics(comparison, { format: "story", theme: "cream" })).not.toContain("<script");
     for (const kind of ["arsenal", "leaderboard", "trend"] as const) {
       const input = fictional(kind); input.pitches![0].name = attack; input.ranking![0].name = attack; input.trendLabel = attack; input.trendUnit = attack;
@@ -103,29 +104,44 @@ describe("graphics exports", () => {
     expect(svg.match(/Percentile unavailable/g)).toHaveLength(3);
     expect(svg).toContain(">0 / 100</text>"); expect(svg).not.toMatch(/NaN|Infinity|101 \/ 100/);
     card.kind = "leaderboard"; card.ranking = [{ name: "Invalid", value: "9", rank: NaN }, { name: "Invalid", value: "9", rank: 0 }];
-    expect(renderGraphics(card, { format: "square", theme: "black" })).toContain("No verified rankings available");
+    expect(() => renderGraphics(card, { format: "square", theme: "black" })).toThrow(/verified rank/);
   });
   it("retains four arsenal measures, one decimal, units, and missing spin without zero-fill", () => {
     const svg = renderGraphics(fictional("arsenal"), { format: "story", theme: "cream" });
-    for (const value of ["AVG mph", "MAX mph", "AVG rpm", "MAX rpm", "82.4", "87.1", "2031.2", "2188.3", "78.0", "Count unavailable", "Latest average Sep 24"]) expect(svg).toContain(value);
+    for (const value of ["AVG mph", "MAX mph", "AVG rpm", "MAX rpm", "82.4", "87.1", "2031.2", "2188.3", "78.0", "Count unavailable"]) expect(svg).toContain(value);
     expect(svg.match(/>—<\/text>/g)?.length).toBeGreaterThanOrEqual(2);
   });
-  it("filters nonfinite plot points and invalid dates without generating false points", () => {
+  it("rejects invalid selected trend points rather than silently dropping them", () => {
     const card = fictional("trend");
-    card.trend = [{ date: "2026-09-10", value: Infinity }, { date: "2026-02-30", value: 80 }, { date: "not-a-date", value: 80 }, { date: "2026-09-24", value: 82.4 }];
-    const svg = renderGraphics(card, { format: "portrait", theme: "black" });
-    expect(svg.match(/<circle /g)).toHaveLength(1); expect(svg).not.toContain("<polyline");
-    expect(svg).not.toMatch(/NaN|Infinity/); expect(svg).toContain("Sep 24");
+    for (const point of [{ date: "2026-09-10", value: Infinity }, { date: "2026-02-30", value: 80 }, { date: "not-a-date", value: 80 }]) {
+      card.trend = [point];
+      expect(() => renderGraphics(card, { format: "portrait", theme: "black" })).toThrow(/invalid date or value/);
+    }
+    card.trend = [{ date: "2026-09-24", value: 82.4 }];
+    const single = renderGraphics(card, { format: "portrait", theme: "black" });
+    expect(single.match(/<circle /g)).toHaveLength(1); expect(single).not.toContain("<polyline");
     card.trend = [{ date: "2026-09-10", value: Number.MAX_VALUE }, { date: "2026-09-24", value: -Number.MAX_VALUE }];
     expect(renderGraphics(card, { format: "portrait", theme: "black" })).not.toMatch(/NaN|Infinity/);
   });
-  it("labels omitted rows and keeps mandatory notes intact instead of squeezing or dropping them", () => {
-    const card = fictional("leaderboard");
-    card.ranking = Array.from({ length: 45 }, (_, i) => ({ name: "Example Player " + i, value: "82.4 mph", rank: i + 1 }));
-    const svg = renderGraphics(card, { format: "square", theme: "red" });
-    expect(svg).toMatch(/\+\d+ ranked players not shown/);
-    card.footerNotes = Array.from({ length: 40 }, () => "A mandatory formula qualification must remain visible.");
-    expect(() => renderGraphics(card, { format: "square", theme: "black" })).toThrow(/cannot fit the required notes/);
+  it("renders every selected row or throws a clear format error, never a partial export", () => {
+    for (const kind of kinds) {
+      const card = fictional(kind);
+      card.metrics = Array.from({ length: 60 }, (_, i) => metric("Metric " + i, String(i)));
+      card.ranking = Array.from({ length: 60 }, (_, i) => ({ name: "Example Player " + i, value: "82.4 mph", rank: i + 1 }));
+      card.pitches = Array.from({ length: 60 }, (_, i) => ({ ...fictional("arsenal").pitches![0], name: "Pitch " + i }));
+      card.comparison!.rows = Array.from({ length: 60 }, (_, i) => ({ label: "Metric " + i, a: String(i), b: "—" }));
+      expect(() => renderGraphics(card, { format: "square", theme: "red" })).toThrow(/larger format|inline sample/);
+    }
+  });
+  it("never exports caption, formula, URL, source, update or disclaimer blocks", () => {
+    const card = fictional("player");
+    const before = renderGraphics(card, { format: "square", theme: "black" });
+    card.source = "PRIVATE-SOURCE"; card.updated = "PRIVATE-UPDATE";
+    card.captionDetails = ["CAPTION-ONLY", "https://example.com/private", "Private formula ".repeat(1000)];
+    card.footerNotes = ["FOOTER-ONLY", "Independent project"];
+    const after = renderGraphics(card, { format: "square", theme: "black" });
+    expect(after).toBe(before);
+    expect(after).not.toMatch(/CAPTION-ONLY|FOOTER-ONLY|PRIVATE-SOURCE|PRIVATE-UPDATE|example\.com|Independent project/);
   });
   it("renders empty datasets as unavailable without sample data", () => {
     for (const kind of kinds) {
@@ -138,17 +154,20 @@ describe("graphics exports", () => {
       expect(renderGraphics(fictional(kind), { format: "square", theme: "black" })).toContain(">2,031.2 rpm</text>");
     }
   });
-  it("shows comparison sample evidence separately and keeps complete pitch contexts", () => {
+  it("keeps compact samples inline while detailed contexts stay in the caption", () => {
     const comparison = fictional("comparison");
-    comparison.comparison!.rows[0] = { label: "Average Velocity", a: "82.4 mph", b: "81.8 mph", aSample: "Sep 1–24 · 34 velocity readings", bSample: "Sep 10–27 · 31 velocity readings" };
+    comparison.comparison!.rows[0] = { label: "Average Velocity", a: "82.4 mph", b: "81.8 mph", aSample: "34 readings", bSample: "31 readings" };
     const svg = renderGraphics(comparison, { format: "story", theme: "black" });
-    expect(visibleText(svg)).toContain("34 velocity readings"); expect(visibleText(svg)).toContain("31 velocity readings");
+    expect(visibleText(svg)).toContain("34 readings"); expect(visibleText(svg)).toContain("31 readings");
     const arsenal = fictional("arsenal");
-    arsenal.pitches![0].context = "Velocity average Sep 1–24; spin average Sep 5–27; velocity max Sep 19; spin max Sep 23; complete independent date windows.";
+    arsenal.captionDetails = ["CAPTION-ONLY: independent source windows. ".repeat(200)];
+    arsenal.pitches![0].context = "Velo: Fall avg · Spin: Latest avg · Fall max";
     const output = renderGraphics(arsenal, { format: "story", theme: "cream" });
-    expect(visibleText(output)).toContain("spin max Sep 23"); expect(visibleText(output)).toContain("complete independent date windows.");
-    arsenal.pitches![0].context = "Long context evidence. ".repeat(200);
-    expect(() => renderGraphics(arsenal, { format: "square", theme: "black" })).toThrow(/taller format/);
+    expect(output).not.toContain("CAPTION-ONLY");
+    expect(output).toContain("Velo: Fall avg · Spin: Latest avg · Fall max");
+    expect(output).toContain("34 velocity · 31 spin readings");
+    arsenal.pitches![0].sample = "Extremely long inline sample ".repeat(30);
+    expect(() => renderGraphics(arsenal, { format: "story", theme: "black" })).toThrow(/inline sample/);
   });
   it("uses the existing descriptive blue-to-red percentile palette", () => {
     const card = fictional("percentiles");
@@ -157,12 +176,70 @@ describe("graphics exports", () => {
     expect(svg).toContain('fill="rgb(104, 166, 212)"'); expect(svg).toContain('fill="rgb(195, 33, 50)"');
   });
   it("keeps the complete mark above headlines and honors a two-line portrait title", () => {
-    const card = fictional("dashboard"); card.title = "People Lie,\nNumbers Don’t.";
+    const card = fictional("dashboard"); card.title = "People Lie,\nNumbers Don’t."; card.name = undefined;
     const logoDataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB";
     const svg = renderGraphics(card, { format: "portrait", theme: "black", logoDataUrl });
     const logo = svg.match(/<image\b[^>]*>/)![0];
     const headline = svg.match(/<text\b[^>]*>People Lie,<\/text>/)![0];
     expect(attribute(logo, "y") + attribute(logo, "height")).toBeLessThan(attribute(headline, "y") - attribute(headline, "font-size"));
     expect(svg).toContain(">Numbers Don’t.</text>");
+  });
+  it("fits common Instagram selections without dropping stats, leaders or pitches", () => {
+    const player = fictional("player");
+    player.metrics = Array.from({ length: 5 }, (_, i) => ({ label: "Selected Metric " + i, value: (80 + i) + ".1 mph", sample: "124 swings" }));
+    const playerText = visibleText(renderGraphics(player, { format: "portrait", theme: "black" }));
+    player.metrics.forEach(row => expect(playerText).toContain(row.label));
+    const board = fictional("leaderboard");
+    board.ranking = Array.from({ length: 5 }, (_, i) => ({ name: "Example Leader " + i, rank: i + 1, value: (90 - i) + ".1 mph", sample: "24 pitches" }));
+    const boardText = visibleText(renderGraphics(board, { format: "portrait", theme: "red" }));
+    board.ranking.forEach(row => expect(boardText).toContain(row.name));
+    const arsenal = fictional("arsenal");
+    arsenal.pitches!.push({ name: "Curveball", velocity: 72.3, maxVelocity: 74.8, spin: 2042.1, maxSpin: 2192.4, sample: "42 pitches" });
+    const arsenalText = visibleText(renderGraphics(arsenal, { format: "portrait", theme: "cream" }));
+    arsenal.pitches!.forEach(row => expect(arsenalText).toContain(row.name));
+    expect(arsenalText).toContain("2192.4");
+  });
+  it("shows identical player and percentile samples once, preserves different samples, and does not mutate inputs", () => {
+    for (const kind of ["player", "percentiles"] as const) {
+      const card = fictional(kind); card.metrics = Array.from({ length: 5 }, (_, i) => ({ label: "Metric " + i, value: String(i), percentile: 45, sample: "124 swings" }));
+      const original = structuredClone(card);
+      const same = visibleText(renderGraphics(card, { format: "portrait", theme: "black" }));
+      expect(same.match(/124 swings/g)).toHaveLength(1);
+      expect(card).toEqual(original);
+      card.metrics[4].sample = "57 swings";
+      const distinct = visibleText(renderGraphics(card, { format: "portrait", theme: "black" }));
+      expect(distinct.match(/124 swings/g)).toHaveLength(4); expect(distinct).toContain("57 swings");
+    }
+  });
+  it("uses the lower story space for the last pitch rather than leaving a blank table tail", () => {
+    const svg = renderGraphics(fictional("arsenal"), { format: "story", theme: "black" });
+    const label = svg.match(/<text\b[^>]*>Changeup<\/text>/)![0];
+    expect(attribute(label, "y")).toBeGreaterThan(1400);
+    expect(svg).not.toContain("not shown");
+    const board = fictional("leaderboard");
+    board.ranking = Array.from({ length: 10 }, (_, i) => ({ name: "Example Leader " + i, rank: i + 1, value: "82.4 mph", sample: "24 pitches" }));
+    const output = visibleText(renderGraphics(board, { format: "story", theme: "black" }));
+    board.ranking.forEach(row => expect(output).toContain(row.name));
+  });
+  it("fits five selected percentile, ranking and comparison rows on X", () => {
+    for (const kind of ["percentiles", "leaderboard", "comparison"] as const) {
+      const card = fictional(kind);
+      card.metrics = Array.from({ length: 5 }, (_, i) => ({ label: "Metric " + i, value: "82.4 mph", percentile: 45, sample: "12 teammates" }));
+      card.ranking = Array.from({ length: 5 }, (_, i) => ({ name: "Example Leader " + i, value: "82.4 mph", rank: i + 1, sample: "124 swings" }));
+      card.comparison!.rows = Array.from({ length: 5 }, (_, i) => ({ label: "Metric " + i, a: "82.4 mph", b: "79.4 mph", aSample: "124 swings", bSample: "97 swings" }));
+      const svg = renderGraphics(card, { format: "landscape", theme: "black" }), content = visibleText(svg);
+      for (let i = 0; i < 5; i++) expect(content).toContain(kind === "leaderboard" ? "Example Leader " + i : "Metric " + i);
+      for (const tag of svg.match(/<text\b[^>]*>/g) ?? []) expect(attribute(tag, "y") + attribute(tag, "font-size") * .25).toBeLessThan(900);
+    }
+  });
+  it("matches arsenal dots to their pitch panel colors while keeping average basis visible", () => {
+    const card = fictional("arsenal"), svg = renderGraphics(card, { format: "story", theme: "black" });
+    const points = svg.match(/<circle\b[^>]*>/g) ?? [];
+    expect(points).toHaveLength(2);
+    for (const point of points) {
+      const color = /fill="([^"]+)"/.exec(point)![1];
+      expect(svg).toMatch(new RegExp('<rect[^>]*width="5"[^>]*fill="' + color + '"'));
+    }
+    expect(svg).toContain("Latest average Sep 24");
   });
 });

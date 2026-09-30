@@ -1,16 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BarChart3, ChartNoAxesCombined, ChartSpline, Download, Image as ImageIcon, LayoutDashboard, LoaderCircle, Medal, Swords, Target, UserRound, Copy, Check, Search } from "lucide-react";
+import { Download, Image as ImageIcon, LoaderCircle, UserRound, Copy, Check, SlidersHorizontal } from "lucide-react";
 import type { StaffAthleteChoice } from "@/lib/staff-athlete-search";
-import { matchesStaffAthlete } from "@/lib/staff-athlete-search";
+import { GraphicsPlayerPicker } from "@/components/graphics-player-picker";
 import type { GraphicsPlayerData, GraphicsLeaderboard } from "@/lib/graphics-data";
-import { GRAPHICS_TEMPLATES, buildGraphicsCard, graphicsCaption, graphicsMetricGroups, selectedGraphicsMetrics, type GraphicsTemplate } from "@/lib/graphics-card";
+import { GRAPHICS_TEMPLATES, buildGraphicsCard, graphicsCaption, graphicsSocialCaption, graphicsMetricGroups, selectedGraphicsMetrics, graphicsContextLabel, comparableGraphicsMetrics, type GraphicsTemplate } from "@/lib/graphics-card";
 import { graphicsSize, renderGraphics, type GraphicsFormat, type GraphicsTheme } from "@/lib/graphics-renderer";
 import styles from "./graphics-studio.module.css";
 
-const icons={dashboard:LayoutDashboard,player:UserRound,spotlight:Medal,percentiles:BarChart3,arsenal:Target,trend:ChartSpline,leaderboard:ChartNoAxesCombined,comparison:Swords};
-const formats:{key:GraphicsFormat;label:string;detail:string}[]=[{key:"square",label:"Square",detail:"1:1 · Posts"},{key:"portrait",label:"Portrait",detail:"4:5 · Feed"},{key:"story",label:"Story",detail:"9:16 · Stories"},{key:"landscape",label:"Widescreen",detail:"16:9 · Slides"}];
+const formats:{key:GraphicsFormat;label:string;detail:string}[]=[{key:"portrait",label:"Instagram",detail:"4:5"},{key:"story",label:"Story",detail:"9:16"},{key:"landscape",label:"X",detail:"16:9"}];
+const categoryLabels={physicality:"Physicality",hitting:"Hitting",pitching:"Pitching","game-hitting":"Hitting · Game Stats","game-pitching":"Pitching · Game Stats"};
 
 async function readGraphics(body:object,signal:AbortSignal){
  const response=await fetch("/graphics/data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body),signal,cache:"no-store"});
@@ -43,11 +43,11 @@ function composePreview(card:ReturnType<typeof buildGraphicsCard>,options:Parame
 
 type StudioFixture={player?:GraphicsPlayerData;second?:GraphicsPlayerData;boards?:GraphicsLeaderboard[]};
 export function GraphicsStudio({staff,players,ownAthleteId,fixture}:{staff:boolean;players:StaffAthleteChoice[];ownAthleteId:string|null;fixture?:StudioFixture}){
- const [template,setTemplate]=useState<GraphicsTemplate>(staff?"dashboard":"player");
- const [format,setFormat]=useState<GraphicsFormat>(staff?"square":"portrait");const [theme,setTheme]=useState<GraphicsTheme>("black");
- const [selectedId,setSelectedId]=useState(fixture?.player?.player.id??(!staff?ownAthleteId??"":""));
+ const [template,setTemplate]=useState<GraphicsTemplate>("player");
+ const [format,setFormat]=useState<GraphicsFormat>("portrait");const [theme,setTheme]=useState<GraphicsTheme>("black");
+ const [selectedId,setSelectedId]=useState(fixture?.player?.player.id??ownAthleteId??"");
  const [secondId,setSecondId]=useState(fixture?.second?.player.id??"");
- const [retry,setRetry]=useState(0),[search,setSearch]=useState("");
+ const [retry,setRetry]=useState(0);
  const playerResult=useGraphicsResource<{data:GraphicsPlayerData}>(!!selectedId,{kind:"player",athleteId:selectedId},retry,fixture?.player?{data:fixture.player}:undefined);
  const secondResult=useGraphicsResource<{data:GraphicsPlayerData}>(staff&&template==="comparison"&&!!secondId,{kind:"player",athleteId:secondId},retry,fixture?.second?{data:fixture.second}:undefined);
  const boardsResult=useGraphicsResource<{boards:GraphicsLeaderboard[]}>(staff&&template==="leaderboard",{kind:"leaderboards"},retry,fixture?.boards?{boards:fixture.boards}:undefined);
@@ -56,31 +56,32 @@ export function GraphicsStudio({staff,players,ownAthleteId,fixture}:{staff:boole
  const error=playerResult.error,secondError=secondResult.error,boardError=boardsResult.error;
  const [groupKey,setGroupKey]=useState(""),[metricKeys,setMetricKeys]=useState<string[]>([]),[boardKey,setBoardKey]=useState(""),[topCount,setTopCount]=useState(5);
  const [arsenalContext,setArsenalContext]=useState(""),[trendKey,setTrendKey]=useState(""),[headline,setHeadline]=useState("");
- const [logo,setLogo]=useState<string|undefined>(),[downloading,setDownloading]=useState(false),[status,setStatus]=useState("");
- const [captionCopied,setCaptionCopied]=useState(false);
- useEffect(()=>{let live=true;brandImage(theme).then(value=>{if(live)setLogo(value);}).catch(()=>{if(live)setLogo(undefined);});return()=>{live=false;};},[theme]);
- const availableMetrics=(player?.metrics??[]).filter(metric=>template!=="percentiles"||metric.percentile!==null);
+ const [logo,setLogo]=useState<{theme:GraphicsTheme;data:string|undefined}|null>(null),[downloading,setDownloading]=useState(false),[status,setStatus]=useState("");
+ const [copiedCaption,setCopiedCaption]=useState("");
+ useEffect(()=>{let live=true;brandImage(theme).then(value=>{if(live)setLogo({theme,data:value});}).catch(()=>{if(live)setLogo({theme,data:undefined});});return()=>{live=false;};},[theme]);
+ const availableMetrics=template==="comparison"?comparableGraphicsMetrics(player?.metrics??[],second):(player?.metrics??[]).filter(metric=>template!=="percentiles"||metric.percentile!==null);
  const groups=graphicsMetricGroups(availableMetrics);
  const selectedGroup=groups.find(group=>group.key===groupKey)??groups[0];
- const metrics=selectedGraphicsMetrics(player,selectedGroup?.key??"",metricKeys,template);
+ const metrics=selectedGraphicsMetrics(player?{...player,metrics:availableMetrics}:null,selectedGroup?.key??"",metricKeys,template);
  const metricChoices=availableMetrics.filter(metric=>selectedGroup?.key===JSON.stringify([metric.category,metric.source,metric.context]));
  const contexts=[...new Set(player?.arsenals.map(pitch=>pitch.category)??[])];
  const context=contexts.find(value=>value===arsenalContext)??contexts[0]??"";
  const selectedTrend=player?.trends.find(trend=>trend.key===trendKey)??player?.trends[0];
  const selectedBoard=boards.find(board=>board.key===boardKey)??boards[0]??null;
  const card=buildGraphicsCard({template,player:player?.player.id===selectedId?player:null,second:second?.player.id===secondId?second:null,metrics,board:selectedBoard,topCount,arsenalContext:context,trendKey:selectedTrend?.key??"",headline:headline.trim()});
- const rendered=composePreview(card,{format,theme,logoDataUrl:logo});
+ const rendered=composePreview(card,{format,theme,logoDataUrl:logo?.theme===theme?logo.data:undefined});
  const svg=rendered.svg;
  const size=graphicsSize(format);
  const source=svg?`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`:undefined;
- const busy=template==="leaderboard"?loadingBoards:template==="dashboard"?false:loading||(template==="comparison"&&loadingSecond);
+ const busy=logo?.theme!==theme|| (template==="leaderboard"?loadingBoards:template==="dashboard"?false:loading||(template==="comparison"&&loadingSecond));
  const currentError=template==="leaderboard"?boardError:template==="dashboard"?"":error||(template==="comparison"?secondError:"");
  const hasPlayer=!["dashboard","leaderboard"].includes(template);
- const visiblePlayers=players.filter(p=>matchesStaffAthlete(p,search));
- const selectedOption=players.find(p=>p.id===selectedId);
- const caption=card?graphicsCaption(card):"";
 
- function chooseTemplate(next:GraphicsTemplate){setTemplate(next);setFormat(next==="arsenal"?"story":next==="dashboard"||next==="spotlight"?"square":"portrait");setHeadline("");setStatus("");setCaptionCopied(false);setMetricKeys([]);}
+ const caption=card?graphicsCaption(card):"";
+ const socialCaption=card?graphicsSocialCaption(card):"";
+ const captionCopied=!!socialCaption&&copiedCaption===socialCaption;
+
+ function chooseTemplate(next:GraphicsTemplate){setTemplate(next);setHeadline("");setStatus("");setCopiedCaption("");setMetricKeys([]);}
  function toggleMetric(key:string){const current=metrics.map(metric=>metric.key);setMetricKeys(current.includes(key)?current.length>1?current.filter(item=>item!==key):current:[...current,key].slice(0,6));setStatus("");}
  async function download(kind:"png"|"svg"){
   if(!svg||!card||busy)return;setDownloading(true);setStatus("");
@@ -91,38 +92,44 @@ export function GraphicsStudio({staff,players,ownAthleteId,fixture}:{staff:boole
    setStatus(`${kind.toUpperCase()} downloaded. Ready to share.`);
   }catch(reason){setStatus(reason instanceof Error?reason.message:"The download did not finish. Please try again.");}finally{setDownloading(false);}
  }
- async function copyCaption(){try{await navigator.clipboard.writeText(caption);setCaptionCopied(true);setStatus("Caption copied.");}catch{setStatus("Select the caption below and copy it.");}}
+ async function copyCaption(){try{await navigator.clipboard.writeText(socialCaption);setCopiedCaption(socialCaption);setStatus("Caption copied.");}catch{setStatus("Open Caption & Stat Details to copy the short caption.");}}
  const emptyMessage=!selectedId&&hasPlayer?staff?"Choose a player to build this graphic.":"Your account needs a linked player profile.":template==="comparison"?!secondId?"Choose a second player to compare.":secondId===selectedId?"Choose two different players.":"These players need matching stats from the same source.":template==="percentiles"?"No verified team percentiles are available for this player yet.":template==="trend"?"A progress graphic needs at least two testing dates on the same test.":template==="arsenal"?"No classified pitch results have been saved for this player yet.":template==="leaderboard"?"No team rankings are available yet.":"No results are available for this selection yet.";
 
  return <div className={styles.studio}>
-  <section aria-label="Graphic templates" className={styles.templates}>{GRAPHICS_TEMPLATES.filter(item=>staff||!item.staffOnly).map(item=>{const Icon=icons[item.id];return <button type="button" key={item.id} className={styles.template} aria-pressed={template===item.id} onClick={()=>chooseTemplate(item.id)}><span className={styles.templateIcon}><Icon size={20}/></span><span><strong>{item.label}</strong><small>{item.description}</small></span>{template===item.id&&<Check size={15} className={styles.selectedCheck}/>}</button>;})}</section>
   <div className={styles.workspace}>
-   <section className={styles.controls} aria-label="Customize graphic">
-    <header><span className={styles.step}>01</span><h2>Make It Yours</h2></header>
-    {staff&&hasPlayer&&<><label className={styles.search}><Search size={15}/><input aria-label="Find a player for graphic" placeholder="Search player name" value={search} onChange={event=>setSearch(event.target.value)}/></label><label className={styles.field}>Player<select aria-label="Graphic player" value={selectedId} onChange={event=>{setSelectedId(event.target.value);setGroupKey("");setMetricKeys([]);setStatus("");}}><option value="">Choose a player</option>{visiblePlayers.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}{selectedOption&&!visiblePlayers.some(p=>p.id===selectedId)&&<option value={selectedId}>{selectedOption.name}</option>}</select></label></>}
-    {!staff&&player&&hasPlayer&&<div className={styles.ownPlayer}><UserRound size={18}/><strong>{player.player.name}</strong></div>}
-    {template==="comparison"&&<label className={styles.field}>Compare With<select aria-label="Second graphic player" value={secondId} onChange={event=>setSecondId(event.target.value)}><option value="">Choose another player</option>{players.filter(p=>p.id!==selectedId).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label>}
-    {hasPlayer&&!['arsenal','trend'].includes(template)&&groups.length>0&&<><label className={styles.field}>Results<select aria-label="Graphic results" value={selectedGroup?.key??""} onChange={event=>{setGroupKey(event.target.value);setMetricKeys([]);}}>{groups.map(group=><option key={group.key} value={group.key}>{group.label} · {group.source}</option>)}</select></label>{template==="spotlight"?<label className={styles.field}>Spotlight Stat<select aria-label="Spotlight stat" value={metrics[0]?.key??""} onChange={event=>setMetricKeys([event.target.value])}>{metricChoices.map(metric=><option key={metric.key} value={metric.key}>{metric.label}</option>)}</select></label>:<details className={styles.metricOptions}><summary>Choose Stats <span>{metrics.length} / 6</span></summary><div>{metricChoices.map(metric=><label key={metric.key}><input type="checkbox" checked={metrics.some(item=>item.key===metric.key)} disabled={(metrics.length===6&&!metrics.some(item=>item.key===metric.key))||(metrics.length===1&&metrics[0]?.key===metric.key)} onChange={()=>toggleMetric(metric.key)}/>{metric.label}</label>)}</div></details>}</>}
-    {template==="arsenal"&&contexts.length>0&&<label className={styles.field}>Pitching Source<select aria-label="Graphic pitching source" value={context} onChange={event=>setArsenalContext(event.target.value)}>{contexts.map(value=><option key={value} value={value}>{value==="Practice"?value:`In-Game · ${value}`}</option>)}</select></label>}
-    {template==="trend"&&!!player?.trends.length&&<label className={styles.field}>Progress Stat<select aria-label="Graphic progress stat" value={selectedTrend?.key??""} onChange={event=>setTrendKey(event.target.value)}>{player.trends.map(trend=><option key={trend.key} value={trend.key}>{trend.label} · {trend.source}</option>)}</select></label>}
-    {template==="leaderboard"&&boards.length>0&&<><label className={styles.field}>Leaderboard<select aria-label="Graphic leaderboard" value={selectedBoard?.key??""} onChange={event=>setBoardKey(event.target.value)}>{boards.map(board=><option key={board.key} value={board.key}>{board.label} · {board.context} · {board.source}</option>)}</select></label><label className={styles.field}>Players to Show<select value={topCount} onChange={event=>{setTopCount(Number(event.target.value));if(Number(event.target.value)===10)setFormat("story");}}><option value={5}>Top 5</option><option value={10}>Top 10</option></select></label></>}
-    <label className={styles.field}>Headline <span>Optional</span><input maxLength={56} value={headline} placeholder="Use template headline" onChange={event=>setHeadline(event.target.value)}/></label>
-    <div className={styles.divider}/>
-    <span className={styles.controlLabel}>Format</span><div className={styles.formats}>{formats.map(item=><button type="button" key={item.key} aria-pressed={format===item.key} onClick={()=>{setFormat(item.key);setStatus("");}}><span className={`${styles.formatShape} ${styles[item.key]}`} aria-hidden="true"/><strong>{item.label}</strong><small>{item.detail}</small></button>)}</div>
-    <span className={styles.controlLabel}>Colorway</span><div className={styles.themes}>{(["black","red","cream"] as GraphicsTheme[]).map(color=><button key={color} type="button" aria-label={`${color} graphic theme`} aria-pressed={theme===color} onClick={()=>{setTheme(color);setStatus("");}}><span className={styles[color]}/>{color==="black"?"Boxer Black":color==="red"?"Pacific Red":"Classic Cream"}{theme===color&&<Check size={12}/>}</button>)}</div>
+   <section className={styles.controls} aria-label="Create graphic">
+    <header><span className={styles.eyebrow}>READY TO POST</span><h2>Create Your Graphic</h2></header>
+    <label className={styles.field}>Graphic<select aria-label="Graphic type" value={template} onChange={event=>chooseTemplate(event.target.value as GraphicsTemplate)}>{GRAPHICS_TEMPLATES.filter(item=>staff||!item.staffOnly).map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
+    {staff&&hasPlayer&&<GraphicsPlayerPicker label="Player" players={players} value={selectedId} onChange={id=>{setSelectedId(id);setGroupKey("");setMetricKeys([]);setStatus("");}}/>}
+    {!staff&&player&&hasPlayer&&<div className={styles.ownPlayer}><UserRound size={16}/><strong>{player.player.name}</strong></div>}
+    {template==="comparison"&&<GraphicsPlayerPicker label="Compare With" players={players.filter(p=>p.id!==selectedId)} value={secondId} onChange={setSecondId}/>}
+    {hasPlayer&&!['arsenal','trend'].includes(template)&&groups.length>0&&<label className={styles.field}>{template==="comparison"?"Shared Stats":"Stats"}<select aria-label="Graphic results" value={selectedGroup?.key??""} onChange={event=>{setGroupKey(event.target.value);setMetricKeys([]);}}>{groups.map(group=><option key={group.key} value={group.key}>{group.label}</option>)}</select></label>}
+    {template==="spotlight"&&metricChoices.length>0&&<label className={styles.field}>Featured Stat<select aria-label="Spotlight stat" value={metrics[0]?.key??""} onChange={event=>setMetricKeys([event.target.value])}>{metricChoices.map(metric=><option key={metric.key} value={metric.key}>{metric.label}</option>)}</select></label>}
+    {template==="arsenal"&&contexts.length>0&&<label className={styles.field}>Session<select aria-label="Graphic pitching source" value={context} onChange={event=>setArsenalContext(event.target.value)}>{contexts.map(value=><option key={value} value={value}>{value==="Game"?"In-Game":value}</option>)}</select></label>}
+    {template==="trend"&&!!player?.trends.length&&<label className={styles.field}>Stat<select aria-label="Graphic progress stat" value={selectedTrend?.key??""} onChange={event=>setTrendKey(event.target.value)}>{player.trends.map(trend=><option key={trend.key} value={trend.key}>{trend.label} · {trend.source}</option>)}</select></label>}
+    {template==="leaderboard"&&boards.length>0&&<label className={styles.field}>Leaderboard<select aria-label="Graphic leaderboard" value={selectedBoard?.key??""} onChange={event=>setBoardKey(event.target.value)}>{Object.entries(categoryLabels).map(([category,label])=><optgroup key={category} label={label}>{boards.filter(board=>board.category===category).map(board=><option key={board.key} value={board.key}>{board.label} · {graphicsContextLabel(board)}</option>)}</optgroup>)}</select></label>}
+    <div className={styles.presets}><span className={styles.controlLabel}>Post Size</span><div className={styles.formats}>{formats.map(item=><button type="button" key={item.key} aria-pressed={format===item.key} aria-label={`${item.label} ${item.detail}`} onClick={()=>{setFormat(item.key);setStatus("");}}><span className={`${styles.formatShape} ${styles[item.key]}`} aria-hidden="true"/><strong>{item.label}</strong><small>{item.detail}</small></button>)}</div></div>
+    <details className={styles.customize}><summary><SlidersHorizontal size={15}/>Customize</summary><div className={styles.customFields}>
+     <label className={styles.field}>Headline<input maxLength={56} value={headline} placeholder="Use default headline" onChange={event=>setHeadline(event.target.value)}/></label>
+     <span className={styles.controlLabel}>Colors</span><div className={styles.themes}>{(["black","red","cream"] as GraphicsTheme[]).map(color=><button key={color} type="button" aria-label={`${color} graphic theme`} aria-pressed={theme===color} onClick={()=>{setTheme(color);setStatus("");}}><span className={styles[color]}/>{color==="black"?"Black":color==="red"?"Red":"Cream"}{theme===color&&<Check size={12}/>}</button>)}</div>
+     {hasPlayer&&!['arsenal','trend','spotlight'].includes(template)&&metricChoices.length>0&&<fieldset className={styles.metricOptions}><legend>Included Stats <span>{metrics.length} / 6</span></legend>{metricChoices.map(metric=><label key={metric.key}><input type="checkbox" checked={metrics.some(item=>item.key===metric.key)} disabled={(metrics.length===6&&!metrics.some(item=>item.key===metric.key))||(metrics.length===1&&metrics[0]?.key===metric.key)} onChange={()=>toggleMetric(metric.key)}/>{metric.label}</label>)}</fieldset>}
+     {template==="leaderboard"&&<label className={styles.field}>Players<select aria-label="Players to show" value={topCount} onChange={event=>setTopCount(Number(event.target.value))}><option value={5}>Top 5</option><option value={10}>Top 10</option></select></label>}
+     <button type="button" className={styles.squareOption} aria-pressed={format==="square"} onClick={()=>{setFormat("square");setStatus("");}}>Use Square Size <span>1:1</span></button>
+     <button type="button" className={styles.textButton} disabled={!svg||busy||!!currentError||downloading} onClick={()=>download("svg")}><Download size={14}/>Download Editable SVG</button>
+    </div></details>
+    {card&&!busy&&!currentError&&<details className={styles.caption}><summary>Caption &amp; Stat Details</summary><textarea aria-label="Suggested graphic caption" readOnly value={socialCaption} rows={7}/><details className={styles.fullDetails}><summary>Full Stat Details</summary><textarea aria-label="Full graphic stat details" readOnly value={caption} rows={7}/></details></details>}
    </section>
    <section className={styles.previewPanel} aria-label="Graphic preview and download">
-    <header className={styles.previewHeading}><div><span className={styles.step}>02</span><h2>Preview & Download</h2></div><span>{size.width} × {size.height} px</span></header>
+    <header className={styles.previewHeading}><div><span className={styles.eyebrow}>YOUR POST</span><h2>{GRAPHICS_TEMPLATES.find(item=>item.id===template)?.label}</h2></div><div className={styles.exportBar}><button type="button" className="btn btn-primary" disabled={!svg||busy||!!currentError||downloading} onClick={()=>download("png")}>{downloading?<LoaderCircle size={17} className={styles.spin}/>:<Download size={17}/>}Save Image</button><button type="button" className="btn btn-secondary" disabled={!card||busy||!!currentError} onClick={copyCaption} aria-label="Copy Caption" title="Copy Caption">{captionCopied?<Check size={16}/>:<Copy size={16}/>}<span className={styles.copyLabel}>Copy Caption</span></button></div></header>
+    <p className={styles.status} role="status">{status==="Caption copied."&&!captionCopied?"":status}</p>
     <div className={styles.previewStage} aria-busy={busy}>
-     {busy?<div className={styles.empty}><LoaderCircle className={styles.spin} size={30}/><strong>Loading Saved Results</strong><p>Your graphic will use the selected player’s verified data.</p></div>:currentError?<div className={styles.empty}><ImageIcon size={30}/><strong>Couldn’t Load Results</strong><p>{currentError}</p><button className="btn btn-secondary" onClick={()=>setRetry(value=>value+1)}>Try Again</button></div>:rendered.error?<div className={styles.empty}><ImageIcon size={30}/><strong>Give This Graphic More Room</strong><p>{rendered.error}</p><button className="btn btn-secondary" onClick={()=>setFormat("story")}>Use Story Format</button></div>:source?<>
-      {/* A self-contained SVG preview uses the same document as both downloads. */}
+     {busy?<div className={styles.empty}><LoaderCircle className={styles.spin} size={28}/><strong>Loading Results</strong></div>:currentError?<div className={styles.empty}><ImageIcon size={30}/><strong>Couldn’t Load Results</strong><p>{currentError}</p><button className="btn btn-secondary" onClick={()=>setRetry(value=>value+1)}>Try Again</button></div>:rendered.error?<div className={styles.empty}><ImageIcon size={30}/><strong>A Little More Room</strong><p>{rendered.error}</p><button className="btn btn-secondary" onClick={()=>setFormat("story")}>Use Story Size</button></div>:source?<>
+      {/* The exact export document, shown without any image footer or fine print. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={source} alt={`${GRAPHICS_TEMPLATES.find(item=>item.id===template)?.label} preview${card?.name?` for ${card.name}`:""}`} className={styles.previewImage} style={{aspectRatio:`${size.width} / ${size.height}`}}/>
-     </>:<div className={styles.empty}><ImageIcon size={34}/><strong>Ready When You Are</strong><p>{emptyMessage}</p></div>}
+     </>:<div className={styles.empty}><ImageIcon size={34}/><strong>{hasPlayer&&!selectedId?"Choose a Player":"Ready When You Are"}</strong><p>{emptyMessage}</p></div>}
     </div>
-    <div className={styles.exportBar}><button type="button" className="btn btn-primary" disabled={!svg||busy||!!currentError||downloading} onClick={()=>download("png")}>{downloading?<LoaderCircle size={16} className={styles.spin}/>:<Download size={16}/>}Download PNG</button><button type="button" className="btn btn-secondary" disabled={!svg||busy||!!currentError||downloading} onClick={()=>download("svg")}>Download SVG</button><span>PNG for sharing · SVG for editing</span></div>
-    <p className={styles.status} role="status">{status}</p>
-    {card&&!busy&&!currentError&&<details className={styles.caption}><summary>Suggested Caption</summary><textarea aria-label="Suggested graphic caption" readOnly value={caption} rows={5}/><button type="button" className="btn btn-secondary" onClick={copyCaption}>{captionCopied?<Check size={14}/>:<Copy size={14}/>}Copy Caption</button></details>}
+
    </section>
   </div>
  </div>;
