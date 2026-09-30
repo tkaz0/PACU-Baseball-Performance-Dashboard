@@ -33,17 +33,17 @@ describe("public MLB pitcher study reference integrity", () => {
     expect(references.filter(reference => reference.throws === "L")).toHaveLength(101);
   });
 
-  it("keeps 100 unique featured IDs inside the verified pool with known throwing hands", () => {
+  it("keeps 50 unique featured IDs inside the verified pool with known throwing hands", () => {
     const byId = new Map(references.map(reference => [reference.id, reference]));
-    expect(source.featuredCount).toBe(100);
+    expect(source.featuredCount).toBe(50);
     expect(FEATURED_PITCHER_STUDY_IDS).toHaveLength(source.featuredCount);
     expect(new Set(FEATURED_PITCHER_STUDY_IDS).size).toBe(source.featuredCount);
     for (const id of FEATURED_PITCHER_STUDY_IDS) {
       expect(byId.has(id), `featured MLB ID ${id}`).toBe(true);
       expect(["R", "L"]).toContain(byId.get(id)?.throws);
     }
-    expect(FEATURED_PITCHER_STUDY_IDS.filter(id => byId.get(id)?.throws === "R")).toHaveLength(75);
-    expect(FEATURED_PITCHER_STUDY_IDS.filter(id => byId.get(id)?.throws === "L")).toHaveLength(25);
+    expect(FEATURED_PITCHER_STUDY_IDS.filter(id => byId.get(id)?.throws === "R")).toHaveLength(37);
+    expect(FEATURED_PITCHER_STUDY_IDS.filter(id => byId.get(id)?.throws === "L")).toHaveLength(13);
   });
 
   it("requires recorded size, known hand, and at least 500 season pitches", () => {

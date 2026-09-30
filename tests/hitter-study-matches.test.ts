@@ -40,9 +40,9 @@ describe("same-side recognizable MLB study examples", () => {
     expect(HITTER_STUDY_FIT_WEIGHTS).toEqual({ attackAngle: 0.7, build: 0.3 });
   });
 
-  it("limits candidates to the 75 curated verified names without limiting rank denominators", () => {
-    expect(FEATURED_HITTER_STUDY_IDS).toHaveLength(75);
-    expect(new Set(FEATURED_HITTER_STUDY_IDS).size).toBe(75);
+  it("limits candidates to the 50 curated verified names without limiting rank denominators", () => {
+    expect(FEATURED_HITTER_STUDY_IDS).toHaveLength(50);
+    expect(new Set(FEATURED_HITTER_STUDY_IDS).size).toBe(50);
     expect(FEATURED_HITTER_STUDY_IDS.every(featuredId => HITTER_STUDY_REFERENCES.some(item => item.id === featuredId))).toBe(true);
     const corpus = [{ ...reference(1), id: 1 }, reference(2, 13), reference(3, 14), reference(4, 15)];
     expect(ids(hitterStudyMatches(profile(), corpus, right))).toEqual([id(2), id(3), id(4)]);

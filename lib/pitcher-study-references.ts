@@ -38,7 +38,7 @@ export const PITCHER_STUDY_REFERENCE_SOURCE = {
   "listedSizeAsOf": "2026-09-29",
   "listedThrowsAsOf": "2026-09-29",
   "referenceCount": 368,
-  "featuredCount": 100,
+  "featuredCount": 50,
   "pitchReferenceCount": 1519,
   "sourcePitcherCount": 478,
   "minimumSeasonPitches": 500,
@@ -460,7 +460,8 @@ export const PITCHER_STUDY_REFERENCES: readonly PitcherStudyReference[] = [
   {"id": 808967, "name": "Yoshinobu Yamamoto", "throws": "R", "heightInches": 70, "weightLb": 176, "totalPitches": 2789, "pitches": [{"pitchType": "Four-Seam Fastball", "statcastCode": "FF", "pitchCount": 982, "usagePercent": 35.2, "averageVelocity": 95.4, "averageSpin": 2200.0}, {"pitchType": "Splitter", "statcastCode": "FS", "pitchCount": 710, "usagePercent": 25.5, "averageVelocity": 90.9, "averageSpin": 1429.0}, {"pitchType": "Curveball", "statcastCode": "CU", "pitchCount": 491, "usagePercent": 17.6, "averageVelocity": 76.8, "averageSpin": 2761.0}, {"pitchType": "Cutter", "statcastCode": "FC", "pitchCount": 311, "usagePercent": 11.2, "averageVelocity": 91.1, "averageSpin": 2435.0}, {"pitchType": "Sinker", "statcastCode": "SI", "pitchCount": 217, "usagePercent": 7.8, "averageVelocity": 94.8, "averageSpin": 2240.0}, {"pitchType": "Slider", "statcastCode": "SL", "pitchCount": 77, "usagePercent": 2.8, "averageVelocity": 86.3, "averageSpin": 2781.0}]},
 ];
 
-/** Editorial study/watch list, not an ability ranking. All IDs occur in the full pool. */
+/** Fifty recognizable MLB names, curated at the owner’s request. Editorial familiarity,
+ * not a measured popularity or ability rank. The full cohort above still supplies size ranks. */
 export const FEATURED_PITCHER_STUDY_IDS: readonly number[] = [
   434378, // Justin Verlander
   453286, // Max Scherzer
@@ -480,12 +481,12 @@ export const FEATURED_PITCHER_STUDY_IDS: readonly number[] = [
   650633, // Michael King
   656302, // Dylan Cease
   656427, // Jack Flaherty
-  656557, // Tanner Houck
-  656605, // Mitch Keller
+  621111, // Walker Buehler
+  592332, // Kevin Gausman
   657277, // Logan Webb
   660271, // Shohei Ohtani
   664285, // Framber Valdez
-  664299, // Cristian Javier
+  662253, // Andrés Muñoz
   666142, // Cole Ragans
   666157, // Nick Lodolo
   666200, // Jesús Luzardo
@@ -497,9 +498,9 @@ export const FEATURED_PITCHER_STUDY_IDS: readonly number[] = [
   669456, // Shane Bieber
   669923, // George Kirby
   675911, // Spencer Strider
-  680885, // Spencer Schwellenbach
+  573186, // Marcus Stroman
   686613, // Hunter Brown
-  691587, // Eury Pérez
+  661395, // Jhoan Duran
   693433, // Bryan Woo
   694973, // Paul Skenes
   808967, // Yoshinobu Yamamoto
@@ -512,54 +513,4 @@ export const FEATURED_PITCHER_STUDY_IDS: readonly number[] = [
   445276, // Kenley Jansen
   628452, // Raisel Iglesias
   661403, // Emmanuel Clase
-  662253, // Andrés Muñoz
-  661395, // Jhoan Duran
-  664854, // Ryan Helsley
-  670280, // David Bednar
-  664126, // Pete Fairbanks
-  656730, // Trevor Megill
-  605280, // Clay Holmes
-  547179, // Michael Lorenzen
-  518876, // Merrill Kelly
-  450203, // Charlie Morton
-  500779, // Jose Quintana
-  571578, // Patrick Corbin
-  571760, // Andrew Heaney
-  573186, // Marcus Stroman
-  579328, // Yusei Kikuchi
-  592332, // Kevin Gausman
-  592791, // Jameson Taillon
-  592836, // Taijuan Walker
-  593423, // Frankie Montas
-  601713, // Nick Pivetta
-  605135, // Chris Bassitt
-  607625, // Seth Lugo
-  621107, // Zach Eflin
-  621111, // Walker Buehler
-  621121, // Lance McCullers Jr.
-  622663, // Luis Severino
-  624133, // Ranger Suarez
-  640455, // Sean Manaea
-  641816, // Tyler Mahle
-  641927, // Bailey Ober
-  656876, // Drew Rasmussen
-  656849, // David Peterson
-  657376, // Clarke Schmidt
-  661563, // Luis Gil
-  663460, // Kris Bubic
-  663554, // Casey Mize
-  663903, // Brady Singer
-  664062, // Tony Gonsolin
-  665795, // Edward Cabrera
-  669160, // Dustin May
-  669194, // Ryne Nelson
-  669358, // Shane Baz
-  669432, // Trevor Rogers
-  671096, // Andrew Abbott
-  681857, // Reese Olson
-  571510, // Matthew Boyd
-  605488, // Jeffrey Springs
-  663855, // Jordan Hicks
-  671922, // Cade Smith
-  694819, // Jacob Misiorowski
 ];

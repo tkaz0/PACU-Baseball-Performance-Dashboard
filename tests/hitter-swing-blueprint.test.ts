@@ -194,7 +194,7 @@ describe("Practice swing blueprint", () => {
       card.percentile={value:rank,sampleSize:9,unit,period:"fall_2026",direction:"neutral"}; card.percentileStatus="available";
     }
     const html=renderToStaticMarkup(createElement(HitterSwingBlueprint,{readings,performance:cards,bats:"R"}));
-    expect(html).toContain("75 familiar MLB names");
+    expect(html).toContain("50 familiar MLB names");
     expect(html).toContain("Height: 75th percentile among 9 Pacific players");
     expect(html).toContain("Weight: 50th percentile among 9 Pacific players");
     expect(html).toMatch(/Height: \d+(?:st|nd|rd|th) percentile among 226 MLB players/);
