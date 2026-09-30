@@ -4,6 +4,8 @@ Pacific Baseball's independent performance workspace provides private player pro
 
 The home route opens the role-aware Pacific Baseball dashboard for signed-in staff and players, and the sign-in page for visitors. Staff can continue to roster and imports; players can open their own profiles and game stats. Every dashboard requires login. [Information Imports](https://pacubaseballperformance.com/imports) gives active Admins and Coaches labeled upload areas, including Blast Motion session summaries that save reviewed readings directly to private profiles. The advanced browser workspace remains local until readings are explicitly shared. Admin **View as Coach** includes the same performance import tools; reviewed saves use the signed-in administrator account. Player View as remains read-only.
 
+**Graphics** turns authorized saved results into player cards, stat spotlights, percentile cards, pitch arsenals, progress reports, team leaderboards, comparisons, and a dashboard showcase. Download branded PNG/SVG images in post, portrait, story, or slide sizes, and copy a suggested caption. Players use their own results; staff have team options. See [Graphics Studio](docs/GRAPHICS.md).
+
 Built with Next.js 16, React 19, TypeScript, Tailwind 4, Supabase Auth/PostgreSQL and Vercel. Consult [HOSTED-SETUP](docs/HOSTED-SETUP.md) for completed environment receipts.
 
 ## Start here

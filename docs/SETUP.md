@@ -451,3 +451,6 @@ Team game-summary status: valid recorded zero-AB lines contribute zero to pooled
 ## September 29 weekly source status
 
 Apply the additive `202609290001_weekly_source_check_status.sql` migration before deploying the Home source-status reader. It stores only the latest staff-recorded check outcome and server timestamp for the two approved Fall game sheets and Player Metrics workbook. It does not fetch sources, import numbers, change access, or alter existing measurements. Staff Home and `/imports/source-status` show that check separately from the actual database save date: current game snapshot creation time or the latest imported Player Metrics reading. An empty check means no check has been recorded in the site, not that the source was never inspected. After each completed Monday source inspection, the operator records Checked, Needs review, or Check failed through the signed-in staff page. Do not record Checked when source access or validation failed. The scheduled check still depends on this Mac/Codex, connected sources, and an active staff session.
+
+
+Graphics Studio is available at `/graphics` after sign-in. It uses existing ordinary-session readers and bundled brand assets; no service keys, third-party image API, new environment variables, or migrations are required. See GRAPHICS.md.
