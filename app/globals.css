@@ -854,7 +854,7 @@ html[data-theme="dark"] {
 @media (prefers-reduced-motion: reduce) { .workspace-loading-title, .workspace-loading-grid span { animation: none; } }
 /* Compact phone header: logo and Menu share one row; appearance lives in Settings. */
 @media (max-width: 600px) {
-  .baseball-sidebar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 16px 10px; }
+  .baseball-sidebar { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 16px 10px; }
   .baseball-sidebar .sidebar-brand-link { flex: 0 0 auto; margin-right: auto; padding: 0; }
   .baseball-sidebar .workspace-navigation { display: contents; }
   .baseball-sidebar .workspace-menu-toggle { width: auto; flex: 0 0 auto; margin-top: 0; }
