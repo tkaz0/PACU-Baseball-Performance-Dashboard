@@ -1,5 +1,7 @@
 import { UUID_PATTERN } from "@/lib/types";
 export const BATTING_FIELDS={pa:"PA",ab:"AB",h:"Hits",doubles:"Doubles",triples:"Triples",hr:"HR",bb:"BB",hbp:"HBP",sf:"Sac Fly",sh:"Sac Bunt",k:"K",sb:"SB",gdp:"GDP",rbi:"RBI"} as const;
+// RBI stays valid for previously saved logs but is no longer entered or shown.
+export const BATTING_ENTRY_FIELDS=Object.fromEntries(Object.entries(BATTING_FIELDS).filter(([key])=>key!=="rbi")) as Omit<typeof BATTING_FIELDS,"rbi">;
 export const PITCHING_FIELDS={pitches:"Pitches",strikes:"Strikes",bf:"Batters Faced",k:"K",bb:"BB",h:"Hits Allowed",r:"Runs",er:"Earned Runs",outs:"Outs Recorded"} as const;
 export type GameCounts=Record<string,number>;
 export type GameLogInput={requestId:string;id:string;expectedVersion:number;athleteId:string;playedOn:string;opponent:string;gameNumber:number;kind:"game"|"intrasquad";batting:GameCounts;pitching:GameCounts};

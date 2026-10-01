@@ -70,14 +70,15 @@ describe("automatic ranking boards", () => {
     expect(visibleLeaderboardComparisons("hitting", [{ ...weight, metricKey: "max_exit_velocity", unit: "mph" }])).toEqual([]);
     expect(visibleLeaderboardComparisons("physicality", [{ ...weight, athleteCount: 0 }, { ...weight, unit: "mph" }])).toEqual([]);
   });
-  it("renders rankings and category navigation without filtering controls", () => {
+  it("renders rankings and category navigation with only the player filter", () => {
     const output = renderToStaticMarkup(createElement(LeaderboardBoard, { group: "physicality", panels: [{ comparison: weight, rows: [{ ...row, source: "renpho", value: 180, measuredAt: "2026-08-09" }] }] }));
     expect(output).toContain('aria-label="Leaderboard group"');
     expect(output).toContain('href="/leaderboards?group=hitting"');
     expect(output).toContain('<time dateTime="2026-08-09">Aug 9, 2026</time>');
     expect(output).toContain("RENPHO");
     expect(output).not.toContain("Awaiting Testing");
-    for (const unwanted of ["<form", "<select", "Show Results", "summer baseline"]) expect(output).not.toContain(unwanted);
+    for (const unwanted of ["Show Results", "summer baseline", 'name="metric"', 'name="source"']) expect(output).not.toContain(unwanted);
+    expect(output).toContain('aria-label="Filter players"');
     expect(output).toContain("<details");
   });
   it("keeps an empty category clear without ranks or zero-filled player results", () => {
@@ -120,11 +121,22 @@ describe("total muscle mass ranking", () => {
     expect(leaderboardMetrics("physicality").map(m=>m.key)).toContain("muscle_mass");
     expect(leaderboardMetrics("physicality").map(m=>m.key)).not.toContain("muscle_mass_pct");
     const output=renderToStaticMarkup(createElement(LeaderboardResults,{metric:LEADERBOARD_METRICS.find(m=>m.key==="muscle_mass")!,rows:[{...row,value:100,derived:false}],unit:"lb",source:"renpho",period:"fall_2026"}));
-    expect(output).toContain("Muscle Mass");expect(output).toContain("Highest First");expect(output).toContain("Fall 2026");expect(output).toContain(">lb<");expect(output).not.toContain("≈");
+    expect(output).toContain("Muscle Mass");expect(output).toContain("Highest First");expect(output).toContain("Fall 2026");expect(output).toContain(">\u00a0lb<");expect(output).not.toContain("≈");
   });
 });
 
 it("withholds paused speed boards even when they have recorded results",()=>{
  const options:LeaderboardComparison[]=["steal_break","steal_reaction","steal_12_42ft","steal_start_12ft"].map(metricKey=>({metricKey:metricKey as LeaderboardComparison["metricKey"],source:"player metrics",unit:"s",period:"fall_2026",athleteCount:5}));
  expect(visibleLeaderboardComparisons("physicality",options).map(o=>o.metricKey)).toEqual(["steal_start_12ft"]);
+});
+
+describe("leaderboard player filter", () => {
+  it("keeps full-team ranks while narrowing by position or name", async () => {
+    const { filterLeaderboardRows } = await import("@/components/leaderboard-board");
+    const base = { athleteCode: "SYN-1", jerseyNumber: 7, profileId: null, value: 1, measuredAt: "2026-09-10", source: "RENPHO", derived: false };
+    const rows = [{ ...base, rank: 1, name: "Fictional Pitcher", position: "P" }, { ...base, rank: 2, name: "Fictional Fielder", position: "SS", jerseyNumber: 12 }];
+    expect(filterLeaderboardRows(rows, "pitchers", "").map(row => row.rank)).toEqual([1]);
+    expect(filterLeaderboardRows(rows, "position", "").map(row => row.rank)).toEqual([2]);
+    expect(filterLeaderboardRows(rows, "all", "12").map(row => row.name)).toEqual(["Fictional Fielder"]);
+  });
 });

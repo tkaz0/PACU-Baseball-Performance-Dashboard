@@ -91,3 +91,12 @@ it("highlights only comparable directional results, including lower-is-better ra
  expect(comparisonLead(10,5,"neutral",true)).toBeNull();expect(comparisonLead(10,5,"higher",false)).toBeNull();expect(comparisonLead(undefined,5,"higher",true)).toBeNull();
  expect(coachingValue(12.345,"pitching_r9","per9")).toBe("12.35");
 });
+it("treats changes under one percent as steady instead of a decline",()=>{
+ const row=progressRows(data([reading(171,"2026-09-06"),reading(170.2,"2026-09-12")]),key,today,30)[0];
+ expect(row).toMatchObject({steady:true,tone:"neutral"});
+ expect(progressRows(data([reading(150,"2026-09-06"),reading(147,"2026-09-12")]),key,today,30)[0]).toMatchObject({steady:false,tone:"negative"});
+});
+it("hides earlier manual height readings from Team Progress",()=>{
+ const d=data([reading(71,"2026-09-06",{metric:"height",label:"Height",unit:"in",source:"Manual testing · Renpho"}),reading(72,"2026-09-07",{metric:"height",label:"Height",unit:"in"})]);
+ expect(coachingVariables(d,"Physicality",today).map(v=>v.source)).toEqual(["RENPHO"]);
+});

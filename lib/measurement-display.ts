@@ -22,6 +22,11 @@ export function isBatSpeedMetric(metric: string): boolean {
   return /(?:^|_)bat_speed$/i.test(metric) || /\bbat speed\b/i.test(metric) || /^batspeed$/i.test(metric);
 }
 
+/** Spin reads as whole RPM everywhere; stored and calculated values keep full precision. */
+export const isSpinMetric = (metric: string) => /spin/i.test(metric);
+export const formatSpin = (value: number) => Math.round(value).toLocaleString("en-US");
+
 export function formatMetricNumber(value: number, metric: string, source?: string, fallback = String(value)): string {
+  if (isSpinMetric(metric)) return formatSpin(value);
   return isBatSpeedMetric(metric) ? value.toFixed(1) : formatSourceNumber(value, source, fallback);
 }

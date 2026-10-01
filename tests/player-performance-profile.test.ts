@@ -25,7 +25,7 @@ describe("player profile tabs and presentation",()=>{
   const performance=model([measurement("Weight",172,"lb","2026-09-02"),measurement("Height",70,"in","2026-09-03")]);
   const html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete:fictionalAthlete("position"),performance}));
   const overview=html.split('role="tabpanel"')[1];
-  expect(overview).toContain("Your body results are in Physicality");
+  expect(overview).toContain("Body results are in Physicality");
   expect(overview).toMatch(/Stats Available<\/dt><dd[^>]*>2<\/dd>/);
   expect(overview).toContain('dateTime="2026-09-03"');
   expect(overview).not.toContain('dateTime="2026-09-02"');
@@ -128,7 +128,7 @@ it("keeps the full Fall arsenal in the In-Game tab and hides only broad Full Swi
  const html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete:fictionalAthlete("pitcher","P"),performance,blastReadings:readings}));
  const panels=html.split('role="tabpanel"');
  expect(panels[1]).not.toContain("Full Pitch Arsenal");
- expect(panels[3]).toContain("Full Pitch Arsenal");expect(panels[3]).toContain("Unspecified Pitch");expect(panels[3]).toContain("81.1");expect(panels[3]).toContain("2100.1");
+ expect(panels[3]).toContain("Full Pitch Arsenal");expect(panels[3]).toContain("Unspecified Pitch");expect(panels[3]).toContain("81.1");expect(panels[3]).toContain("2,100");
  expect(panels[1]).not.toContain('data-value="85"');expect(panels[3]).not.toContain('data-value="85"');
  expect(panels[3]).toContain("Pitch Mix");expect(panels[3]).not.toContain("No in-game results");
  expect(panels[4]).toContain('data-value="86"');expect(panels[4]).toContain('data-value="87"');

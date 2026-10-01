@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowUpRight, ScanLine } from "lucide-react";
 import { requireRenderAccess } from "@/lib/render-access";
 import { canReadPresentedAthlete } from "@/lib/access-preview";
-import { loadStaffAthleteChoices } from "@/lib/staff-athlete-search-server";
+import { loadDesignAthleteChoices } from "@/lib/staff-athlete-search-server";
 import { loadAthletePerformance } from "@/lib/performance-server";
 import { getPlayerPerformance } from "@/lib/player-performance";
 import { seasonDesignNavigation } from "@/lib/design-navigation";
@@ -32,7 +32,7 @@ export default async function PitchDesignPage({ searchParams }: { searchParams?:
   if (requestedId !== undefined && (typeof requestedId !== "string" || !UUID_PATTERN.test(requestedId) || !canReadPresentedAthlete(access, requestedId))) notFound();
   const athleteId = requestedId ?? (staff ? null : access.athleteId);
   if (athleteId && (!UUID_PATTERN.test(athleteId) || !canReadPresentedAthlete(access, athleteId))) notFound();
-  const players = staff ? await loadStaffAthleteChoices(access) : [];
+  const players = staff ? await loadDesignAthleteChoices(access, "pitch") : [];
   let athlete: PitchAthlete | null = null;
   if (athleteId) {
     const { data, error } = await access.supabase.from("athletes")

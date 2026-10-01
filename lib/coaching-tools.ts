@@ -18,6 +18,7 @@ export function coachingCategory(metric:string):CoachingCategory {
 }
 export function coachingReadingVisible(row:AnalyticsReading):boolean {
  const m=COACHING_METRICS.find(m=>m.key===row.metric);
+ if(row.metric==="height"&&row.source.startsWith("Manual testing"))return false;
  return !!m && /^2026-\d{2}-\d{2}$/.test(row.date) && Number.isFinite(Date.parse(row.date)) && new Date(row.date).toISOString().slice(0,10)===row.date && validatePlayerMetricValue(m.key,row.value,row.unit);
 }
 export function coachingEligible(player:CoachingPlayer,metric:string):boolean {
@@ -76,6 +77,8 @@ export function progressTone(metric:string,change:number):"positive"|"negative"|
  const direction=metric==="body_fat_pct"?"lower":["muscle_mass","body_score"].includes(metric)?"higher":COACHING_METRICS.find(m=>m.key===metric)?.direction??"neutral";
  return direction==="neutral"?"neutral":(direction==="higher"?change>0:change<0)?"positive":"negative";
 }
+/** Changes smaller than this share of the previous result are shown as steady, not as a gain or decline. */
+export const STEADY_CHANGE_PCT = 1;
 export function progressRows(data:CoachingData,key:string,today:string,retestDays:number){
  const metric=data.readings.find(r=>variableKey(r)===key)?.metric;
  if(!metric)return [];
@@ -84,7 +87,8 @@ export function progressRows(data:CoachingData,key:string,today:string,retestDay
   const delta=tests.latest&&tests.previous?tests.latest.value-tests.previous.value:null;
   const percent=delta!==null&&tests.previous!.value>0?100*delta/tests.previous!.value:null;
   const due=tests.latest?daysBetween(tests.latest.date,today)>retestDays:!tests.conflict;
-  return {player,...tests,delta,percent,due,tone:progressTone(metric,delta??0)};
+  const steady=delta!==null&&(delta===0||(percent!==null&&Math.abs(percent)<STEADY_CHANGE_PCT));
+  return {player,...tests,delta,percent,due,steady,tone:steady?"neutral" as const:progressTone(metric,delta??0)};
  }).sort((a,b)=>Math.abs(b.percent??0)-Math.abs(a.percent??0)||a.player.name.localeCompare(b.player.name));
 }
 export function compareTests(data:CoachingData,a:string,b:string,category:CoachingCategory,today:string,maxGap:number){

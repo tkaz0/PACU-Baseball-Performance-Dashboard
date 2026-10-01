@@ -13,6 +13,10 @@ export type ManualTestingSaveResult =
   | { status: "saved"; receipt: { import_id: string; created: number; unchanged: number }; athleteId: string }
   | { status: "invalid" | "uncertain"; error: string };
 
+/** Height now comes only from RENPHO reports; manual entry no longer offers it. Earlier manual readings stay saved. */
+export const MANUAL_TESTING_EXCLUDED: ReadonlySet<string> = new Set(["height"]);
+export const manualTestingAvailable = (athlete: TestingAthlete, key: string) => !MANUAL_TESTING_EXCLUDED.has(key) && isTestingEligible(athlete, key as PlayerMetricKey);
+
 const dateValid = (date: unknown): date is string => typeof date === "string" && /^20\d{2}-\d{2}-\d{2}$/.test(date)
   && Number.isFinite(Date.parse(date)) && new Date(date).toISOString().slice(0, 10) === date;
 function numeric(value: unknown, label: string): number {
@@ -57,7 +61,7 @@ export async function prepareManualTesting(value: unknown, athlete: TestingAthle
   for (const [index, row] of input.rows.entries()) {
     const definition = row && PLAYER_METRICS.find(metric => metric.key === row.metricKey);
     if (!row || typeof row !== "object" || Array.isArray(row) || Object.keys(row).some(key => !["metricKey", "unit", "value", "feet", "inches"].includes(key))
-      || !definition || !isTestingEligible(athlete, definition.key)) throw new Error(`Choose an available measurement for row ${index + 1}.`);
+      || !definition || !manualTestingAvailable(athlete, definition.key)) throw new Error(`Choose an available measurement for row ${index + 1}.`);
     if (used.has(definition.key)) throw new Error(`${definition.label} is listed twice. Keep one reviewed value for this test.`);
     used.add(definition.key);
     const height = definition.key === "height" && row.unit === "ft-in";

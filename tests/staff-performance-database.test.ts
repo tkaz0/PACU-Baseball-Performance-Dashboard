@@ -36,17 +36,17 @@ describe("manual testing through the existing staff import RPC", () => {
   const manualAthlete: TestingAthlete = { id: athleteId, athleteCode: "SYN-001", name: "Fictional Player", jerseyNumber: 0,
     primaryPosition: "CF", secondaryPosition: null, playerType: "position", rosterStatus: "active" };
   const manualInput = (): ManualTestingInput => ({ submissionId: "55555555-5555-4555-8555-555555555555", athleteCode: "SYN-001", testedOn: "2026-09-12", protocol: "Fictional testing station",
-    rows: [{ metricKey: "height", unit: "ft-in", value: "", feet: "5", inches: "11.5" }, { metricKey: "weight", unit: "lb", value: "180.2" }] });
+    rows: [{ metricKey: "body_fat_pct", unit: "%", value: "15.2" }, { metricKey: "weight", unit: "lb", value: "180.2" }] });
   async function reviewed(draft = manualInput()) {
     return prepareReviewedPerformanceRows((await prepareManualTesting(draft, manualAthlete, "2026-09-19")).measurements);
   }
-  it.each([["Coach", coach], ["Admin session used by Coach view", admin]])("%s saves reviewed height and weight once, with idempotent retries and atomic conflict rejection", async (_label, actor) => {
+  it.each([["Coach", coach], ["Admin session used by Coach view", admin]])("%s saves reviewed body fat and weight once, with idempotent retries and atomic conflict rejection", async (_label, actor) => {
     const rows = await reviewed();
     expect(await asUser(actor, () => save(rows))).toMatchObject({ created: 2, unchanged: 0 });
     expect(await asUser(actor, async () => save(await reviewed()))).toMatchObject({ created: 0, unchanged: 2 });
     const stored = (await db.query<{ metric_key: string; unit: string; value: number; source: string; imported_by: string }>("select metric_key,unit,value,source,imported_by from public.performance_measurements order by metric_key")).rows;
     expect(stored).toEqual([
-      { metric_key: "height", unit: "in", value: 71.5, source: "Manual testing · Fictional testing station", imported_by: actor },
+      { metric_key: "body_fat_pct", unit: "%", value: 15.2, source: "Manual testing · Fictional testing station", imported_by: actor },
       { metric_key: "weight", unit: "lb", value: 180.2, source: "Manual testing · Fictional testing station", imported_by: actor },
     ]);
     const conflicting = manualInput();

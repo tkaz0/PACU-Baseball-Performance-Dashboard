@@ -9,7 +9,7 @@ import type { PlayerPerformance } from "@/lib/player-performance";
 const fake = vi.hoisted(() => ({ access: vi.fn(), choices: vi.fn(), from: vi.fn(), select: vi.fn(), eq: vi.fn(), single: vi.fn(), load: vi.fn(), team: vi.fn(), speed: vi.fn(), blueprint: vi.fn() }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/render-access", () => ({ requireRenderAccess: fake.access }));
-vi.mock("@/lib/staff-athlete-search-server", () => ({ loadStaffAthleteChoices: fake.choices }));
+vi.mock("@/lib/staff-athlete-search-server", () => ({ loadDesignAthleteChoices: fake.choices }));
 vi.mock("@/lib/performance-server", () => ({ loadAthletePerformance: fake.load }));
 vi.mock("@/lib/hitting-team-server", () => ({ loadHittingTeamAverages: fake.team }));
 vi.mock("@/lib/blast-speed-percentile-server", () => ({ loadBlastBatSpeedPercentile: fake.speed }));
@@ -81,8 +81,8 @@ describe("Swing Design access and routing", () => {
   it.each([["admin", false], ["coach", false], ["coach", true]] as const)("allows staff selection (%s, preview %s) without loading everyone’s readings", async (role, preview) => {
     const trusted = access([role], null, preview); fake.access.mockResolvedValueOnce(trusted);
     const html = renderToStaticMarkup(await page());
-    expect(fake.choices).toHaveBeenCalledExactlyOnceWith(trusted);
-    expect(html).toContain("Choose a Hitter"); expect(html).toContain("Fictional Teammate");
+    expect(fake.choices).toHaveBeenCalledExactlyOnceWith(trusted, "swing");
+    expect(html).toContain("Choose a Hitter"); expect(html).toContain("2 hitters · choose one");
     expect(fake.from).not.toHaveBeenCalled(); expect(fake.load).not.toHaveBeenCalled(); expect(fake.team).not.toHaveBeenCalled(); expect(fake.speed).not.toHaveBeenCalled();
   });
   it("loads only the staff-selected athlete", async () => {

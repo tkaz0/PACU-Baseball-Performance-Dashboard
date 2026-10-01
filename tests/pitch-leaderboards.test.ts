@@ -71,7 +71,7 @@ it("renders the entire arsenal in separate pitch and context sections with all f
  expect(output).toContain("FB (4-Seam) · Max Spin");
  expect(output).toContain("SL · Average Spin");
  expect(output).toContain("81.2");expect(output).toContain("71.2");expect(output).toContain("61.2");
- expect(output).toContain("1900.2");expect(output).toContain("12 pitches");
+ expect(output).toContain("1,900");expect(output).toContain("12 pitches");
  expect(output).not.toContain("81.234");expect(output).not.toContain('href="/athletes/');
  expect(output).toContain('href="/leaderboards?group=pitching&amp;session=practice"');
 });

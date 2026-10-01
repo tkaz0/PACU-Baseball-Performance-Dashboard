@@ -7,6 +7,7 @@
 .field select,.field input { width:100%; min-height:42px; border:1px solid var(--line-subtle); border-radius:8px; padding:8px 12px; font-size:13px; color:var(--text-primary); background:var(--surface-panel); }
 .metricField { flex:1; min-width:220px; max-width:540px; }
 .summary { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); border:1px solid var(--line-subtle); border-radius:12px; overflow:hidden; background:var(--surface-panel); }
+.summaryFive { grid-template-columns:repeat(5,minmax(0,1fr)); }
 .summary div { padding:16px 20px; border-left:1px solid var(--line-subtle); }
 .summary div:first-child { border-left:0; }
 .summary strong { display:block; font-size:26px; line-height:1.2; font-variant-numeric:tabular-nums; }
@@ -48,7 +49,7 @@
 .track span { display:block; height:100%; background:currentColor; border-radius:4px; }
 .legend { display:flex; flex-wrap:wrap; gap:8px 20px; font-size:12px; font-weight:600; }
 .key { width:9px; height:9px; background:currentColor; border-radius:50%; display:inline-block; margin-right:7px; }
-@media (max-width:700px) { .summary { grid-template-columns:1fr 1fr; } .summary div:nth-child(3) { border-left:0; } .summary div:nth-child(n+3) { border-top:1px solid var(--line-subtle); } .row { grid-template-columns:1fr 90px; gap:8px 16px; } .row>div:nth-child(2) { grid-column:1; grid-row:auto; } .row>div:nth-child(3) { grid-column:1; } .row>div:nth-child(4) { grid-column:2; grid-row:2; } .comparisonGrid,.players { grid-template-columns:1fr; } .dueList { grid-template-columns:1fr 1fr; } .metricField { min-width:0; flex-basis:100%; } }
+@media (max-width:700px) { .summary { grid-template-columns:1fr 1fr; } .summary div:nth-child(odd) { border-left:0; } .summary div:nth-child(n+3) { border-top:1px solid var(--line-subtle); } .row { grid-template-columns:1fr 90px; gap:8px 16px; } .row>div:nth-child(2) { grid-column:1; grid-row:auto; } .row>div:nth-child(3) { grid-column:1; } .row>div:nth-child(4) { grid-column:2; grid-row:2; } .comparisonGrid,.players { grid-template-columns:1fr; } .dueList { grid-template-columns:1fr 1fr; } .metricField { min-width:0; flex-basis:100%; } }
 
 :global(html[data-theme="dark"]) .positive { color:#78d8a4; }
 :global(html[data-theme="dark"]) .negative { color:#ff9aa8; }

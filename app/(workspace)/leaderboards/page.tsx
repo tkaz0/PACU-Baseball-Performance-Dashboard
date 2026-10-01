@@ -16,5 +16,7 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
   const pitchSelection = selectPitchLeaderboards(comparisons, typeof query.pitch === "string" ? query.pitch : undefined);
   const selected = group === "pitching" ? pitchSelection.comparisons : comparisons;
   const panels = await loadLeaderboardPanels(selected, comparison => loadLeaderboard(access, comparison));
-  return <><PageHeading section="Pacific Baseball / Team Results" title="Leaderboards" description="Fall 2026 · Recorded team results." /><LeaderboardBoard group={group} panels={panels} session={session} pitches={pitchSelection.pitches} selectedPitch={pitchSelection.selectedPitch} /></>;
+  const position = query.pos === "pitchers" || query.pos === "position" ? query.pos : "all";
+  const search = typeof query.q === "string" ? query.q.trim().slice(0, 60) : "";
+  return <><PageHeading section="Pacific Baseball / Team Results" title="Leaderboards" description="Fall 2026 · Recorded team results." /><LeaderboardBoard group={group} panels={panels} session={session} pitches={pitchSelection.pitches} selectedPitch={pitchSelection.selectedPitch} position={position} search={search} /></>;
 }

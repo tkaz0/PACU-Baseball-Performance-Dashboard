@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowUpRight, ScanLine } from "lucide-react";
 import { requireRenderAccess } from "@/lib/render-access";
 import { canReadPresentedAthlete } from "@/lib/access-preview";
-import { loadStaffAthleteChoices } from "@/lib/staff-athlete-search-server";
+import { loadDesignAthleteChoices } from "@/lib/staff-athlete-search-server";
 import { loadAthletePerformance } from "@/lib/performance-server";
 import { loadHittingTeamAverages } from "@/lib/hitting-team-server";
 import { loadBlastBatSpeedPercentile } from "@/lib/blast-speed-percentile-server";
@@ -35,7 +35,7 @@ export default async function SwingDesignPage({ searchParams }: { searchParams?:
   if (requestedId !== undefined && (typeof requestedId !== "string" || !UUID_PATTERN.test(requestedId) || !canReadPresentedAthlete(access, requestedId))) notFound();
   const athleteId = requestedId ?? (staff ? null : access.athleteId);
   if (athleteId && (!UUID_PATTERN.test(athleteId) || !canReadPresentedAthlete(access, athleteId))) notFound();
-  const players = staff ? await loadStaffAthleteChoices(access) : [];
+  const players = staff ? await loadDesignAthleteChoices(access, "swing") : [];
   let athlete: SwingAthlete | null = null;
   if (athleteId) {
     const { data, error } = await access.supabase.from("athletes")

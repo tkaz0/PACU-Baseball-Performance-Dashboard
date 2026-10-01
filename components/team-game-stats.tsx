@@ -1,3 +1,4 @@
+import { countLabel } from "@/lib/game-opportunities";
 import { formatInnings } from "@/lib/pitching-stats";
 import Link from "next/link";
 import { StatInfo } from "@/components/stat-info";
@@ -8,7 +9,7 @@ import { formatTeamGameMetric, teamGameMetricStatus, teamGameSummary, type TeamG
 import styles from "./team-game-stats.module.css";
 const colors=["#4b91ce","#83b8d9","#9c9ba3","#d57976","#d73c48"];
 const updated=(date:string)=>new Date(date).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric",timeZone:"America/Los_Angeles"});
-const sample=(m:TeamGameMetric)=>m.opportunities===undefined?null:m.opportunityLabel==="outs"?`${formatInnings(m.opportunities)} IP`:`${m.opportunities.toLocaleString("en-US")} ${m.opportunityLabel}`;
+const sample=(m:TeamGameMetric)=>m.opportunities===undefined?null:m.opportunityLabel==="outs"?`${formatInnings(m.opportunities)} IP`:countLabel(m.opportunities,m.opportunityLabel??"");
 function Metric({metric:m}:{metric:TeamGameMetric}){
  const b=statBenchmark(m.metric,{scope:"team",unit:m.unit}),grade=b&&m.value!==null?benchmarkGrade(m.value,b):null;
  return <div className={styles.card}><dt>{m.label}<StatInfo metric={m.metric} label={m.label} scope="team" value={m.value} unit={m.unit}/></dt><dd>{formatTeamGameMetric(m)}</dd>

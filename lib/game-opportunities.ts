@@ -22,3 +22,11 @@ export function gameOpportunities(rows:readonly SharedGameStat[],source:string,m
  const n=metric==="batting_est_wobacon"?values.get("ab")!-values.get("punchies")!+values.get("sac_fly")!:metric==="batting_hh_pct"?qpaSheetAB(values)!-values.get("punchies")!-values.get("sac_bunt")!:keys.reduce((sum,k)=>sum+values.get(k)!,0);
  return Number.isSafeInteger(n)&&n>0?n:null;
 }
+/** "1 walk", "2 walks"; abbreviations such as PA/AB stay as written. */
+export function countLabel(count:number|string,label:string):string{
+ const n=typeof count==="number"?count:Number(String(count).replace(/,/g,""));
+ const text=typeof count==="number"?count.toLocaleString("en-US"):count;
+ if(n!==1)return `${text} ${label}`;
+ const singular=label.replace(/(\w+)$/,word=>/^[a-z]/.test(word)?word.replace(/ies$/,"y").replace(/(ch|sh|x)es$/,"$1").replace(/s$/,""):word);
+ return `${text} ${singular}`;
+}

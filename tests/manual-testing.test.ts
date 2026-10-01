@@ -16,14 +16,18 @@ const prepare = (value: unknown, selected = athlete) => prepareManualTesting(val
 
 describe("manual testing measurements", () => {
   it("prepares exact canonical observations from entered values, without a vendor source claim", async () => {
-    const draft = input({ rows: [row(), row({ metricKey: "height", unit: "ft-in", value: "", feet: "5", inches: "11.5" })] });
+    const draft = input({ rows: [row(), row({ metricKey: "grip_dominant", unit: "lb", value: "120.5" })] });
     const before = structuredClone(draft), result = await prepare(draft);
     expect(result.measurements).toHaveLength(2);
     expect(result.measurements[0]).toMatchObject({ athlete_code: "SYN-001", metric: "Weight", unit: "lb", value: 180.2,
       source: "Manual testing · Fictional field protocol", source_sheet: "Manual testing", source_row: 1 });
-    expect(result.measurements[1]).toMatchObject({ metric: "Height", value: 71.5, unit: "in" });
-    expect(prepareReviewedPerformanceRows(result.measurements).map(reading => reading.metric_key)).toEqual(["weight", "height"]);
+    expect(result.measurements[1]).toMatchObject({ metric: "Dominant Grip", value: 120.5, unit: "lb" });
+    expect(prepareReviewedPerformanceRows(result.measurements).map(reading => reading.metric_key)).toEqual(["weight", "grip_dominant"]);
     expect(draft).toEqual(before);
+  });
+
+  it("no longer accepts height, which now comes only from RENPHO reports", async () => {
+    await expect(prepare(input({ rows: [row({ metricKey: "height", unit: "ft-in", value: "", feet: "5", inches: "11" })] }))).rejects.toThrow("Choose an available measurement");
   });
 
   it("preserves one submission's provenance across explicit retries and unsaved edits", async () => {

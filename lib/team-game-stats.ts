@@ -16,7 +16,7 @@ export type TeamGameSummary = {
 };
 type Counts = Map<string, number>;
 type Ratio = { top: number; bottom: number };
-const battingCounts = [["pa", "PA"], ["ab", "AB"], ["base_hit", "Hits"], ["pumps", "HR"], ["rbi", "RBI"], ["sb", "SB"], ["gdp", "GDP"]] as const;
+const battingCounts = [["pa", "PA"], ["ab", "AB"], ["base_hit", "Hits"], ["pumps", "HR"], ["sb", "SB"], ["gdp", "GDP"]] as const;
 const pitchingCounts = [["pitches", "Pitches"], ["strikes", "Strikes"], ["k", "K"], ["bb_outcome", "BB"], ["h", "Hits Allowed"], ["r", "Runs Allowed"]] as const;
 
 /** Aggregate only one current source snapshot. Never average player rates or mix manual logs. */

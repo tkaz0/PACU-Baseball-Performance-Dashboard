@@ -57,7 +57,11 @@ export function latestAnalyticsReadings(readings: readonly AnalyticsReading[]): 
 }
 export function analyticsVariables(readings: readonly AnalyticsReading[]): AnalyticsVariable[] {
   const variables=new Map<string,AnalyticsVariable>();
-  for(const row of latestAnalyticsReadings(readings.filter(row=>analyticsReadingVisible(row)))){const key=variableKey(row),old=variables.get(key);if(old)old.count++;else variables.set(key,{key,metric:row.metric,label:analyticsDisplayLabel(row),unit:row.unit,source:row.source,count:1});}
+  const visible=latestAnalyticsReadings(readings.filter(row=>analyticsReadingVisible(row)));
+  // Each weekly Blast report is its own source; number the weeks so same-named stats stay distinguishable without showing report dates.
+  const blastWeeks=[...new Set(visible.map(row=>parseBlastSource(row.source)).filter(b=>b!==null).map(b=>`${b.start}:${b.end}`))].sort();
+  const label=(row:AnalyticsReading)=>{const blast=parseBlastSource(row.source);const base=analyticsDisplayLabel(row);return blast&&blastWeeks.length>1?base.replace(/ \(Practice\)$/," (Practice · Blast Week "+(blastWeeks.indexOf(`${blast.start}:${blast.end}`)+1)+")"):base;};
+  for(const row of visible){const key=variableKey(row),old=variables.get(key);if(old)old.count++;else variables.set(key,{key,metric:row.metric,label:label(row),unit:row.unit,source:row.source,count:1});}
   return [...variables.values()].sort((a,b)=>a.label.localeCompare(b.label)||a.unit.localeCompare(b.unit)||a.source.localeCompare(b.source));
 }
 export function pairAnalytics(players: readonly AnalyticsPlayer[], readings: readonly AnalyticsReading[], xKey: string, yKey: string, maxGap: number) {

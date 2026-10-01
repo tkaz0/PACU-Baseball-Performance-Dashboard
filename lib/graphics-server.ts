@@ -12,7 +12,7 @@ import { profileTrends } from "@/lib/profile-trends";
 import { coachingValue } from "@/lib/coaching-tools";
 import { gameOverviewMetrics } from "@/lib/game-overview";
 import { GAME_METRIC_LABELS, gameValue, type GameComparison, type GameLeaderboardRow } from "@/lib/game-metrics";
-import { gameOpportunityLabel } from "@/lib/game-opportunities";
+import { gameOpportunityLabel, countLabel} from "@/lib/game-opportunities";
 import { formatInnings } from "@/lib/pitching-stats";
 import { fallArsenalPitches } from "@/lib/pitch-arsenal";
 import { pitchTypeLabel } from "@/lib/imports/pitch-assignments";
@@ -34,7 +34,7 @@ const gameSample = (source: string, metric: string, count: number | null | undef
   const label = gameOpportunityLabel(source, metric);
   if (!label || count == null || !Number.isSafeInteger(count) || count <= 0) return "Sample not recorded";
   const early = (source === "qpa_fall_2026" && label === "PA" && count < 20) || (label === "pitches" && count < 50);
-  return `${label === "outs" ? `${formatInnings(count)} IP` : `${count.toLocaleString("en-US")} ${label}`}${early ? " · Early sample" : ""}`;
+  return `${label === "outs" ? `${formatInnings(count)} IP` : countLabel(count,label)}${early ? " · Early sample" : ""}`;
 };
 const gameDate = (date: string) => `Updated ${pacificTestingDate(new Date(date))}`;
 

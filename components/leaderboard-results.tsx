@@ -14,7 +14,7 @@ function ResultValue({ row, metric, unit }: { row: LeaderboardRow; metric: Leade
   if (height) return <span className="whitespace-nowrap" title={`Recorded: ${String(row.value)} ${unit}`}>{height}</span>;
   return <>{row.derived && metric.key === "muscle_mass_pct"
     ? <span title={`Exact calculated value: ${String(row.value)} ${unit}; calculated from same-report muscle and weight`}>≈{row.value.toLocaleString("en-US", { maximumFractionDigits: 1 })}</span>
-    : <span className="break-all">{formatMetricNumber(row.value,metric.key,row.source,unit === "s" ? row.value.toFixed(2) : String(row.value))}</span>}{unit !== "ratio" && <span className={styles.unit}>{unit}</span>}</>;
+    : <span className="break-all">{formatMetricNumber(row.value,metric.key,row.source,unit === "s" ? row.value.toFixed(2) : String(row.value))}</span>}{unit !== "ratio" && <span className={styles.unit}>{unit === "%" ? unit : `\u00a0${unit}`}</span>}</>;
 }
 
 function RankingTable({ rows, metric, unit, continued = false, tiedRanks, barMax }: { rows: LeaderboardRow[]; metric: LeaderboardMetricDefinition; unit: string; continued?: boolean; tiedRanks: ReadonlySet<number>; barMax?: number }) {
@@ -32,26 +32,26 @@ function RankingTable({ rows, metric, unit, continued = false, tiedRanks, barMax
   </table></div>;
 }
 
-export function LeaderboardResults({ rows, metric, unit, source, period }: { rows: LeaderboardRow[]; metric: LeaderboardMetricDefinition; unit: string; source?: string; period?: PlayerPerformancePeriod }) {
+export function LeaderboardResults({ rows, teamRows = rows, metric, unit, source, period }: { rows: LeaderboardRow[]; teamRows?: LeaderboardRow[]; metric: LeaderboardMetricDefinition; unit: string; source?: string; period?: PlayerPerformancePeriod }) {
   // The extended leaderboard response is deployed with the Fall-best database migration.
   // Keep the heading accurate while an older database response is still active.
   const fallBestActive = isFallBestMetric(metric.key) && rows.length > 0 && "sampleCount" in rows[0];
   const fallAverageActive = fallAverageKeys.has(metric.key) && rows.some(row => row.derived);
   const mixedAverages = fallAverageActive && rows.some(row => !row.derived);
   const showBars = isPitchLeaderboardMetric(metric.key) || (metric.group === "hitting" && !isTimedMetric(metric.key)) || metric.key === "infield_velocity" || metric.key === "outfield_velocity";
-  const barMax = showBars ? Math.max(0, ...rows.map(row => row.value)) : undefined;
+  const barMax = showBars ? Math.max(0, ...teamRows.map(row => row.value)) : undefined;
   const rankCounts = new Map<number, number>();
-  for (const row of rows) rankCounts.set(row.rank, (rankCounts.get(row.rank) ?? 0) + 1);
+  for (const row of teamRows) rankCounts.set(row.rank, (rankCounts.get(row.rank) ?? 0) + 1);
   const tiedRanks = new Set([...rankCounts].filter(([, count]) => count > 1).map(([rank]) => rank));
   return <section className={`panel leaderboard-card ${styles.card}`}>
     <header className={styles.heading}>
-      <div className={styles.eyebrow}><span>{source ? leaderboardSourceLabel(isPitchLeaderboardMetric(metric.key) ? source.split(" · ").slice(0, -1).join(" · ") : source) : "Team Testing"}{period ? ` · ${period === "fall_2026" ? "Fall 2026" : "Jun–Aug 2026"}` : ""}</span><span>{rows.length} {rows.length === 1 ? "Player" : "Players"}</span></div>
-      <h2>{isPitchLeaderboardMetric(metric.key) && source ? pitchLeaderboardLabel(metric, source) : leaderboardMetricLabel(metric)}<StatInfo metric={metric.key} label={isPitchLeaderboardMetric(metric.key) && source ? pitchLeaderboardLabel(metric, source) : leaderboardMetricLabel(metric)} cohort={rows.map(row=>row.value)} source={source} unit={unit} period={period} /></h2>
+      <div className={styles.eyebrow}><span>{source ? leaderboardSourceLabel(isPitchLeaderboardMetric(metric.key) ? source.split(" · ").slice(0, -1).join(" · ") : source) : "Team Testing"}{period ? ` · ${period === "fall_2026" ? "Fall 2026" : "Jun–Aug 2026"}` : ""}</span><span>{rows.length !== teamRows.length ? `${rows.length} of ${teamRows.length}` : rows.length} {teamRows.length === 1 ? "Player" : "Players"}</span></div>
+      <h2>{isPitchLeaderboardMetric(metric.key) && source ? pitchLeaderboardLabel(metric, source) : leaderboardMetricLabel(metric)}<StatInfo metric={metric.key} label={isPitchLeaderboardMetric(metric.key) && source ? pitchLeaderboardLabel(metric, source) : leaderboardMetricLabel(metric)} cohort={teamRows.map(row=>row.value)} source={source} unit={unit} period={period} /></h2>
       <p title={isTimedMetric(metric.key) ? "Fastest comparable Fall trial per athlete; equal values share a rank." : fallBestActive ? "Best recorded Fall result within this source and session type; equal values share a rank." : fallAverageActive ? "Reading-count-weighted average across saved Fall sessions when every session has a verified count; otherwise the latest session." : metric.direction === "neutral" ? "Numerical comparisons, not a health or performance rating." : "Latest comparable result per athlete; equal values share a rank."}>{fallBestActive ? `Fall Best · ${leaderboardOrderLabel(metric)}` : fallAverageActive ? `Fall Average · ${leaderboardOrderLabel(metric)}` : leaderboardOrderLabel(metric)}</p>
       {mixedAverages && <p className={styles.contextNote}>Latest-session results are marked below.</p>}
     </header>
-    <LeaderboardAverage basis={isFallBestMetric(metric.key) || isTimedMetric(metric.key) ? "best" : fallAverageKeys.has(metric.key) ? "average" : "result"} values={rows.map(row => row.value)} label={leaderboardMetricLabel(metric)} format={value => metric.key === "height" ? formatHeight(value, unit) ?? String(value) : `${formatMetricNumber(value, metric.key, source, value.toLocaleString("en-US", { maximumFractionDigits: unit === "s" ? 2 : 1 }))}${unit === "ratio" ? "" : unit === "%" ? "%" : ` ${unit === "score" ? "pts" : unit}`}`} />
+    <LeaderboardAverage basis={isFallBestMetric(metric.key) || isTimedMetric(metric.key) ? "best" : fallAverageKeys.has(metric.key) ? "average" : "result"} values={teamRows.map(row => row.value)} label={leaderboardMetricLabel(metric)} format={value => metric.key === "height" ? formatHeight(value, unit) ?? String(value) : `${formatMetricNumber(value, metric.key, source, value.toLocaleString("en-US", { maximumFractionDigits: unit === "s" ? 2 : 1 }))}${unit === "ratio" ? "" : unit === "%" ? "%" : ` ${unit === "score" ? "pts" : unit}`}`} />
     {rows.length ? <><RankingTable rows={rows.slice(0, 5)} metric={metric} unit={unit} tiedRanks={tiedRanks} barMax={barMax} />{rows.length > 5 && <details className={styles.more}><summary>Show {rows.length - 5} More</summary><RankingTable rows={rows.slice(5)} metric={metric} unit={unit} tiedRanks={tiedRanks} barMax={barMax} continued /></details>}</>
-      : <p className="muted m-0 p-6 text-sm">Results will appear after testing data is added.</p>}
+      : <p className="muted m-0 p-6 text-sm">{teamRows.length ? "No matching players on this board." : "Results will appear after testing data is added."}</p>}
   </section>;
 }

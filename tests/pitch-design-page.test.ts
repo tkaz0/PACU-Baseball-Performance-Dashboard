@@ -7,7 +7,7 @@ import type { Measurement } from "@/lib/imports/engine";
 const fake = vi.hoisted(() => ({ access: vi.fn(), choices: vi.fn(), from: vi.fn(), select: vi.fn(), eq: vi.fn(), single: vi.fn(), load: vi.fn(), dashboard: vi.fn() }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/render-access", () => ({ requireRenderAccess: fake.access }));
-vi.mock("@/lib/staff-athlete-search-server", () => ({ loadStaffAthleteChoices: fake.choices }));
+vi.mock("@/lib/staff-athlete-search-server", () => ({ loadDesignAthleteChoices: fake.choices }));
 vi.mock("@/lib/performance-server", () => ({ loadAthletePerformance: fake.load }));
 vi.mock("@/components/pitch-design-dashboard", () => ({ PitchDesignDashboard: fake.dashboard }));
 vi.mock("next/navigation", () => ({ notFound: () => { throw new Error("NOT_FOUND"); }, useRouter: () => ({ push: vi.fn() }) }));
@@ -107,10 +107,11 @@ describe("Pitch Design access and routing", () => {
   it.each([["admin", false], ["coach", false], ["coach", true]] as const)("shows staff choices without loading any athlete's readings (%s, View as %s)", async (role, preview) => {
     const trusted = access([role], ownId, preview); fake.access.mockResolvedValueOnce(trusted);
     const html = renderToStaticMarkup(await page());
-    expect(fake.choices).toHaveBeenCalledExactlyOnceWith(trusted);
+    expect(fake.choices).toHaveBeenCalledExactlyOnceWith(trusted, "pitch");
     expect(html).toContain("Choose a Pitcher");
     expect(html).toContain("Find a Player");
-    expect(html).toContain("Fictional Teammate");
+    // The single searchable picker lists names when opened; the closed state shows the eligible count.
+    expect(html).toContain("2 pitchers · choose one");
     expect(html).not.toContain("@example.com");
     expect(fake.from).not.toHaveBeenCalled();
     expect(fake.load).not.toHaveBeenCalled();
@@ -124,7 +125,7 @@ describe("Pitch Design access and routing", () => {
     fake.single.mockResolvedValueOnce({ data: selectedAthlete, error: null });
     fake.load.mockResolvedValueOnce({ measurements: selectedReadings, batches: [], percentileOverrides: [] });
     const html = renderToStaticMarkup(await page({ athlete: otherId }));
-    expect(fake.choices).toHaveBeenCalledExactlyOnceWith(trusted);
+    expect(fake.choices).toHaveBeenCalledExactlyOnceWith(trusted, "pitch");
     expect(fake.from).toHaveBeenCalledExactlyOnceWith("athletes");
     expect(fake.eq).toHaveBeenCalledExactlyOnceWith("id", otherId);
     expect(fake.load).toHaveBeenCalledExactlyOnceWith(trusted, selectedAthlete, { includePercentiles: true });

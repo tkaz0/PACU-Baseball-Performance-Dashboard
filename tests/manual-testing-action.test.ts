@@ -11,7 +11,7 @@ import { saveManualTesting } from "@/app/(workspace)/testing/entry/actions";
 
 const athlete: TestingAthlete = { id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", athleteCode: "SYN-001", name: "Fictional Avery Northstar", jerseyNumber: 0,
   primaryPosition: "CF", secondaryPosition: null, playerType: "position", rosterStatus: "active" };
-const input = (): ManualTestingInput => ({ submissionId: "11111111-1111-4111-8111-111111111111", athleteCode: "SYN-001", testedOn: "2026-06-01", protocol: "Fictional testing", rows: [{ metricKey: "height", unit: "ft-in", value: "", feet: "5", inches: "11" }] });
+const input = (): ManualTestingInput => ({ submissionId: "11111111-1111-4111-8111-111111111111", athleteCode: "SYN-001", testedOn: "2026-06-01", protocol: "Fictional testing", rows: [{ metricKey: "grip_dominant", unit: "lb", value: "120.5" }] });
 beforeEach(() => { vi.resetAllMocks(); fake.access.mockResolvedValue({}); fake.roster.mockResolvedValue([athlete]); fake.save.mockResolvedValue({ import_id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb", created: 1, unchanged: 0 }); });
 
 describe("manual testing server entry", () => {
@@ -35,7 +35,7 @@ describe("manual testing server entry", () => {
     expect(result).toMatchObject({ status: "saved", athleteId: athlete.id, receipt: { created: 1 } });
     expect(fake.save).toHaveBeenCalledOnce();
     const [measurements, confirmed] = fake.save.mock.calls[0];
-    expect(confirmed).toBe(true); expect(measurements[0]).toMatchObject({ athlete_code: "SYN-001", metric: "Height", value: 71, unit: "in", source: "Manual testing · Fictional testing" });
+    expect(confirmed).toBe(true); expect(measurements[0]).toMatchObject({ athlete_code: "SYN-001", metric: "Dominant Grip", value: 120.5, unit: "lb", source: "Manual testing · Fictional testing" });
     expect(measurements[0]).not.toHaveProperty("name"); expect(measurements[0]).not.toHaveProperty("rows");
     expect(fake.revalidate.mock.calls.map(call => call[0])).toEqual(["/testing", "/testing/entry"]);
   });

@@ -1,4 +1,4 @@
-import { gameOpportunityLabel } from "@/lib/game-opportunities";
+import { gameOpportunityLabel, countLabel} from "@/lib/game-opportunities";
 import { formatInnings } from "@/lib/pitching-stats";
 import { gameValue, type GameLeaderboardRow } from "@/lib/game-metrics";
 import type { LeaderboardComparison, LeaderboardRow } from "@/lib/leaderboards";
@@ -20,6 +20,6 @@ export function homeGameBoard(key: string, category: string, title: string, href
   const unit=matching.length&&matching.every(row=>row.unit===matching[0].unit)?matching[0].unit:undefined;
   const ranked = matching
     .sort((a, b) => a.rank - b.rank || a.code.localeCompare(b.code))
-    .map(row => ({ rank: row.rank, code: row.code, name: row.name, profileId: row.profileId, value: gameValue(row.value, row.unit), numericValue: row.value, ...(row.opportunities != null ? {sample: gameOpportunityLabel(source,metric) === "outs" ? `${formatInnings(row.opportunities)} IP` : `${row.opportunities} ${gameOpportunityLabel(source,metric) ?? "chances"}`} : {}), isYou: !!athleteId && row.profileId === athleteId }));
+    .map(row => ({ rank: row.rank, code: row.code, name: row.name, profileId: row.profileId, value: gameValue(row.value, row.unit), numericValue: row.value, ...(row.opportunities != null ? {sample: gameOpportunityLabel(source,metric) === "outs" ? `${formatInnings(row.opportunities)} IP` : countLabel(row.opportunities,gameOpportunityLabel(source,metric) ?? "chances")} : {}), isYou: !!athleteId && row.profileId === athleteId }));
   return { key, metric, source, unit, period: "fall_2026", eventId, category, title, href, rows: ranked, total: ranked.length, yourRank: ranked.find(row => row.isYou)?.rank ?? null };
 }

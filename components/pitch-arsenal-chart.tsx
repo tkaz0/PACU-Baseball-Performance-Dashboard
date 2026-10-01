@@ -1,6 +1,6 @@
 import type { ArsenalPitch } from "@/lib/pitch-arsenal";
 import { PITCH_TYPES, pitchTypeLabel } from "@/lib/imports/pitch-assignments";
-import { formatSourceNumber } from "@/lib/measurement-display";
+import { formatSourceNumber, formatSpin } from "@/lib/measurement-display";
 import { StatInfo } from "@/components/stat-info";
 import styles from "./pitch-arsenal-chart.module.css";
 
@@ -37,10 +37,10 @@ function ArsenalScatter({ pitches, scope }: { pitches: readonly ArsenalPitch[]; 
       {points.map((pitch, index) => {
         const cx=x(pitch.averageVelocity!),cy=y(pitch.averageSpin!), color=pitchArsenalColor(pitch.pitchType);
         const shape=pointShapes[index%pointShapes.length];
-        return <g key={pitch.source} data-pitch-type={pitch.pitchType}><title>{`${pitchTypeLabel(pitch.pitchType)}: ${formatSourceNumber(pitch.averageVelocity!,pitch.source)} mph, ${formatSourceNumber(pitch.averageSpin!,pitch.source)} RPM; velocity n=${pitch.velocityReadings ?? "unknown"}, spin n=${pitch.spinReadings ?? "unknown"}`}</title>{shape==="circle"?<circle cx={cx} cy={cy} r="7" fill={color} stroke="var(--surface-panel)" strokeWidth="2"/>:shape==="square"?<rect x={cx-7} y={cy-7} width="14" height="14" rx="2" fill={color} stroke="var(--surface-panel)" strokeWidth="2"/>:<path d={`M ${cx} ${cy-9} L ${cx+9} ${cy} L ${cx} ${cy+9} L ${cx-9} ${cy} Z`} fill={color} stroke="var(--surface-panel)" strokeWidth="2"/>}</g>;
+        return <g key={pitch.source} data-pitch-type={pitch.pitchType}><title>{`${pitchTypeLabel(pitch.pitchType)}: ${formatSourceNumber(pitch.averageVelocity!,pitch.source)} mph, ${formatSpin(pitch.averageSpin!)} RPM; velocity n=${pitch.velocityReadings ?? "unknown"}, spin n=${pitch.spinReadings ?? "unknown"}`}</title>{shape==="circle"?<circle cx={cx} cy={cy} r="7" fill={color} stroke="var(--surface-panel)" strokeWidth="2"/>:shape==="square"?<rect x={cx-7} y={cy-7} width="14" height="14" rx="2" fill={color} stroke="var(--surface-panel)" strokeWidth="2"/>:<path d={`M ${cx} ${cy-9} L ${cx+9} ${cy} L ${cx} ${cy+9} L ${cx-9} ${cy} Z`} fill={color} stroke="var(--surface-panel)" strokeWidth="2"/>}</g>;
       })}
     </svg></div>
-    <ul className={styles.legend}>{points.map(pitch=><li key={pitch.source}><span style={{backgroundColor:pitchArsenalColor(pitch.pitchType)}} aria-hidden="true"/><strong>{pitchTypeLabel(pitch.pitchType)}</strong><small>Average / high: {formatSourceNumber(pitch.averageVelocity!,pitch.source)} / {pitch.maxVelocity===null?"—":formatSourceNumber(pitch.maxVelocity,pitch.source)} mph · {formatSourceNumber(pitch.averageSpin!,pitch.source)} / {pitch.maxSpin===null?"—":formatSourceNumber(pitch.maxSpin,pitch.source)} RPM</small></li>)}</ul>
+    <ul className={styles.legend}>{points.map(pitch=><li key={pitch.source}><span style={{backgroundColor:pitchArsenalColor(pitch.pitchType)}} aria-hidden="true"/><strong>{pitchTypeLabel(pitch.pitchType)}</strong><small>Average / high: {formatSourceNumber(pitch.averageVelocity!,pitch.source)} / {pitch.maxVelocity===null?"—":formatSourceNumber(pitch.maxVelocity,pitch.source)} mph · {formatSpin(pitch.averageSpin!)} / {pitch.maxSpin===null?"—":formatSpin(pitch.maxSpin)} RPM</small></li>)}</ul>
     <p className={styles.note}>Speed and spin can be recorded on different pitches. The results below show how many readings went into each average.</p>
   </figure>;
 }

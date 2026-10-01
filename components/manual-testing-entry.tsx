@@ -7,13 +7,14 @@ import { saveManualTesting } from "@/app/(workspace)/testing/entry/actions";
 import { prepareManualTesting, type ManualTestingInput, type ManualTestingReview, type ManualTestingRow, type ManualTestingSaveResult } from "@/lib/manual-testing";
 import { TESTING_CATEGORIES, isTestingEligible, testingMetrics, type TestingAthlete, type TestingCategory } from "@/lib/testing-checklist";
 import { PLAYER_METRICS } from "@/lib/player-performance";
+import { MANUAL_TESTING_EXCLUDED } from "@/lib/manual-testing";
 import { formatHeight } from "@/lib/measurement-display";
 import { UUID_PATTERN } from "@/lib/types";
 
 type EntryRow = ManualTestingRow & { category: TestingCategory };
 function newRow(athlete?: TestingAthlete, key?: string, category: TestingCategory = "physicality"): EntryRow {
-  const metric = PLAYER_METRICS.find(item => item.key === key && (!athlete || isTestingEligible(athlete, item.key)))
-    ?? testingMetrics(category).find(item => !athlete || isTestingEligible(athlete, item.key))
+  const metric = PLAYER_METRICS.find(item => item.key === key && !MANUAL_TESTING_EXCLUDED.has(item.key) && (!athlete || isTestingEligible(athlete, item.key)))
+    ?? testingMetrics(category).find(item => !MANUAL_TESTING_EXCLUDED.has(item.key) && (!athlete || isTestingEligible(athlete, item.key)))
     ?? PLAYER_METRICS.find(item => item.key === "weight")!;
   const group = TESTING_CATEGORIES.find(item => item.metricKeys.includes(metric.key))!.key;
   return { category: group, metricKey: metric.key, unit: metric.key === "height" ? "ft-in" : metric.units[0], value: "",
@@ -46,7 +47,7 @@ export function ManualTestingEntry({ athletes, today, initialAthleteCode, initia
   const matches = query.trim() ? athletes.filter(player => `${player.name} ${player.athleteCode}`.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 8) : [];
   const expanded = open && !!query.trim() && !attempted;
   const locked = busy || attempted;
-  const categories = TESTING_CATEGORIES.filter(category => testingMetrics(category.key).some(metric => !athlete || isTestingEligible(athlete, metric.key)));
+  const categories = TESTING_CATEGORIES.filter(category => testingMetrics(category.key).some(metric => !MANUAL_TESTING_EXCLUDED.has(metric.key) && (!athlete || isTestingEligible(athlete, metric.key))));
 
   function invalidate() { setReview(null); setConfirmed(false); setResult(null); setError(""); }
   function selectAthlete(selected: TestingAthlete) {
@@ -131,7 +132,7 @@ export function ManualTestingEntry({ athletes, today, initialAthleteCode, initia
       <fieldset disabled={locked || !athlete} className="min-w-0 space-y-4">
         <legend className="mb-3 text-base font-bold">Measurements</legend>
         {rows.map((row, index) => {
-          const available = testingMetrics(row.category).filter(metric => !athlete || isTestingEligible(athlete, metric.key));
+          const available = testingMetrics(row.category).filter(metric => !MANUAL_TESTING_EXCLUDED.has(metric.key) && (!athlete || isTestingEligible(athlete, metric.key)));
           const metric = PLAYER_METRICS.find(item => item.key === row.metricKey)!;
           return <div key={index} className="rounded-xl border border-[var(--line-subtle)] bg-[var(--surface-raised)] p-4">
             <div className="mb-3 flex items-center justify-between gap-3"><h3 className="m-0 text-sm font-bold">Measurement {index + 1}</h3>{rows.length > 1 && <button type="button" className="btn btn-secondary !min-h-8 !px-2 !py-1" aria-label={`Remove measurement ${index + 1}`} onClick={() => { invalidate(); setRows(current => current.filter((_, position) => position !== index)); }}><Trash2 size={14} aria-hidden="true" /></button>}</div>

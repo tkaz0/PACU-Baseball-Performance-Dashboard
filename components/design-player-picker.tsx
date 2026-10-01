@@ -14,8 +14,8 @@ export function DesignPlayerPicker({ players, selectedId, kind }: { players: Sta
   const [active, setActive] = useState(-1);
   const [pending, startTransition] = useTransition();
   const visible = players.filter(player => matchesStaffAthlete(player, search));
-  const suggestions = visible.slice(0, 8);
-  const expanded = open && !!search.trim() && !pending;
+  const suggestions = visible;
+  const expanded = open && !pending;
   const selected = players.find(player => player.id === selectedId);
   useEffect(() => {
     if (expanded && active >= 0) document.getElementById(`${inputId}-option-${active}`)?.scrollIntoView({ block: "nearest" });
@@ -26,7 +26,7 @@ export function DesignPlayerPicker({ players, selectedId, kind }: { players: Sta
     startTransition(() => router.push(id ? `/${kind}-design?athlete=${encodeURIComponent(id)}` : `/${kind}-design`));
   }
   return <section className="panel mb-5 p-4 sm:p-5" aria-label={`Choose a player for ${title}`} aria-busy={pending}>
-    <div className="grid gap-3 sm:grid-cols-2">
+    <div className="grid gap-3">
       <div className="relative min-w-0" onBlur={event => {
         if (!event.currentTarget.contains(event.relatedTarget)) { setOpen(false); setActive(-1); }
       }}>
@@ -35,19 +35,19 @@ export function DesignPlayerPicker({ players, selectedId, kind }: { players: Sta
           <input id={inputId} className="!pl-9" type="search" role="combobox" aria-autocomplete="list" aria-expanded={expanded}
             aria-controls={expanded ? `${inputId}-listbox` : undefined} aria-activedescendant={expanded && suggestions[active] ? `${inputId}-option-${active}` : undefined}
             aria-describedby={`${inputId}-help`} maxLength={100} autoComplete="off" spellCheck={false} disabled={pending}
-            placeholder="Name or PAC ID" value={search} onFocus={() => setOpen(true)}
+            placeholder={selected ? `${selected.name} · ${selected.athleteCode}` : `Search or browse ${kind === "pitch" ? "pitchers" : "hitters"}`} value={search} onFocus={() => setOpen(true)}
             onChange={event => { setSearch(event.target.value); setOpen(true); setActive(-1); }}
             onKeyDown={event => {
               if (event.nativeEvent.isComposing) return;
               if (event.key === "Escape") { if (expanded) event.preventDefault(); setOpen(false); setActive(-1); }
-              if ((event.key === "ArrowDown" || event.key === "ArrowUp") && search.trim() && suggestions.length) {
+              if ((event.key === "ArrowDown" || event.key === "ArrowUp") && suggestions.length) {
                 event.preventDefault(); setOpen(true);
                 setActive(index => event.key === "ArrowDown" ? (index + 1) % suggestions.length : (index <= 0 ? suggestions.length : index) - 1);
               }
               if (event.key === "Enter" && expanded && suggestions[active]) { event.preventDefault(); choose(suggestions[active].id); }
             }} />
         </span>
-        <span id={`${inputId}-help`} className="sr-only">Type a name or PAC ID, then select a player. Use the arrow keys and Enter to open their {kind} results.</span>
+        <span id={`${inputId}-help`} className="sr-only">Type a name or PAC ID, or browse the list, then select a player. Use the arrow keys and Enter to open their {kind} results.</span>
         {expanded && <div className="panel absolute left-0 right-0 z-50 mt-2 overflow-hidden shadow-lg">
           <ul id={`${inputId}-listbox`} role="listbox" aria-label={`${title} player suggestions`} className="m-0 max-h-80 list-none overflow-y-auto p-1">
             {suggestions.map((player, index) => <li key={player.id} role="presentation">
@@ -60,19 +60,11 @@ export function DesignPlayerPicker({ players, selectedId, kind }: { players: Sta
             </li>)}
           </ul>
           {!suggestions.length && <p className="m-0 px-4 py-3 text-sm text-[var(--text-secondary)]">No matching players. Try a first name, last name, or PAC ID.</p>}
-          {visible.length > 8 && <p className="m-0 border-t border-[var(--line-subtle)] px-4 py-2 text-xs text-[var(--text-secondary)]">Showing 8 of {visible.length} matches. Keep typing to narrow the list.</p>}
         </div>}
       </div>
-      <label className="min-w-0 text-sm font-semibold">Player
-        <select className="mt-2" value={selectedId} disabled={pending} onChange={event => choose(event.target.value)}>
-          <option value="">Select a player</option>
-          {visible.map(player => <option key={player.id} value={player.id}>{player.name} · {player.athleteCode}</option>)}
-          {selected && !visible.some(player => player.id === selectedId) && <option value={selected.id}>{selected.name} · {selected.athleteCode}</option>}
-        </select>
-      </label>
     </div>
     <p role="status" aria-live="polite" className="mt-2 flex min-h-4 items-center gap-2 text-xs text-[var(--text-secondary)]">
-      {pending ? <><LoaderCircle className="animate-spin motion-reduce:animate-none" size={13} aria-hidden="true"/>Loading {kind} results…</> : search.trim() ? `${visible.length} matching ${visible.length === 1 ? "player" : "players"}` : `Choose a player to open their ${kind === "pitch" ? "pitch arsenal" : "practice swing results"}.`}
+      {pending ? <><LoaderCircle className="animate-spin motion-reduce:animate-none" size={13} aria-hidden="true"/>Loading {kind} results…</> : search.trim() ? `${visible.length} matching ${visible.length === 1 ? "player" : "players"}` : `${players.length} ${kind === "pitch" ? "pitchers" : "hitters"} · choose one to open their ${kind === "pitch" ? "pitch arsenal" : "practice swing results"}.`}
     </p>
   </section>;
 }

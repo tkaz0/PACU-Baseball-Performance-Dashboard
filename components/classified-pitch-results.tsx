@@ -1,7 +1,7 @@
 import { pitchTypeLabel } from "@/lib/imports/pitch-assignments";
 import { leaderboardTestDate } from "@/lib/leaderboards";
 import type { Measurement } from "@/lib/imports/engine";
-import { formatSourceNumber } from "@/lib/measurement-display";
+import { formatSourceNumber, formatSpin } from "@/lib/measurement-display";
 import { fallArsenalPitches, type FallArsenalPitch } from "@/lib/pitch-arsenal";
 import { PitchArsenalChart } from "@/components/pitch-arsenal-chart";
 import { PitchSeparationChart } from "@/components/pitch-separation-chart";
@@ -13,12 +13,12 @@ function Average({ pitch, family }: { pitch: FallArsenalPitch; family: "velocity
   const velocity = family === "velocity", value = velocity ? pitch.averageVelocity : pitch.averageSpin;
   const basis = velocity ? pitch.velocityBasis : pitch.spinBasis, count = velocity ? pitch.velocityReadings : pitch.spinReadings;
   const first = velocity ? pitch.velocityAverageFirstDate : pitch.spinAverageFirstDate, last = velocity ? pitch.velocityAverageLastDate : pitch.spinAverageLastDate;
-  return <td data-label={velocity ? "Avg Velocity · mph" : "Avg Spin · RPM"}><strong>{value === null ? "—" : formatSourceNumber(value, pitch.source)}</strong><StatInfo metric={velocity ? "classified_avg_velocity" : "classified_avg_spin"} label={`${pitchTypeLabel(pitch.pitchType)} Average ${velocity ? "Velocity" : "Spin"}`} source={pitch.source} unit={velocity ? "mph" : "rpm"} value={value}/><small>{value === null ? "Needs complete readings" : basis === "fall" ? "Fall average" : "Latest session"}</small>{value !== null && <small>{dateRange(first, last)} · n={count ?? "—"}</small>}</td>;
+  return <td data-label={velocity ? "Avg Velocity · mph" : "Avg Spin · RPM"}><strong>{value === null ? "—" : velocity ? formatSourceNumber(value, pitch.source) : formatSpin(value)}</strong><StatInfo metric={velocity ? "classified_avg_velocity" : "classified_avg_spin"} label={`${pitchTypeLabel(pitch.pitchType)} Average ${velocity ? "Velocity" : "Spin"}`} source={pitch.source} unit={velocity ? "mph" : "rpm"} value={value}/><small>{value === null ? "Needs complete readings" : basis === "fall" ? "Fall average" : "Latest session"}</small>{value !== null && <small>{dateRange(first, last)} · n={count ?? "—"}</small>}</td>;
 }
 function Maximum({ pitch, family }: { pitch: FallArsenalPitch; family: "velocity" | "spin" }) {
   const value = family === "velocity" ? pitch.maxVelocity : pitch.maxSpin, date = family === "velocity" ? pitch.maxVelocityDate : pitch.maxSpinDate;
   const count = family === "velocity" ? pitch.maxVelocityReadings : pitch.maxSpinReadings;
-  return <td data-label={family === "velocity" ? "Max Velocity · mph" : "Max Spin · RPM"}><strong>{value === null ? "—" : formatSourceNumber(value, pitch.source)}</strong><small>{value === null ? "Not recorded" : "Fall best"}</small>{date && <small>{leaderboardTestDate(date)}{count === null || count === undefined ? "" : ` · n=${count}`}</small>}</td>;
+  return <td data-label={family === "velocity" ? "Max Velocity · mph" : "Max Spin · RPM"}><strong>{value === null ? "—" : family === "velocity" ? formatSourceNumber(value, pitch.source) : formatSpin(value)}</strong><small>{value === null ? "Not recorded" : "Fall best"}</small>{date && <small>{leaderboardTestDate(date)}{count === null || count === undefined ? "" : ` · n=${count}`}</small>}</td>;
 }
 
 /** Own-athlete readings supplied by the authorized profile route, never a peer lookup. */

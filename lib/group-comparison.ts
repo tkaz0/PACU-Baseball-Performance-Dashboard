@@ -4,7 +4,7 @@ import { arsenalComparisonFields, arsenalComparisonValue } from "@/lib/player-co
 import { classifiedPitchSource } from "@/lib/imports/classified-pitch-results";
 import { pitchTypeLabel } from "@/lib/imports/pitch-assignments";
 import { pitchSourceLabel } from "@/lib/pitch-display";
-import { gameOpportunityLabel } from "@/lib/game-opportunities";
+import { gameOpportunityLabel, countLabel} from "@/lib/game-opportunities";
 import { formatInnings } from "@/lib/pitching-stats";
 import { PITCHING_CUMULATIVE } from "@/lib/pitching-cumulative";
 import { leaderboardTestDate } from "@/lib/leaderboards";
@@ -28,7 +28,7 @@ function sample(source:string,metric:string,count:number|null|undefined):string{
  const label=gameOpportunityLabel(source,metric);
  if(!label||count==null||!Number.isSafeInteger(count)||count<=0)return "";
  const early=(source==="qpa_fall_2026"&&label==="PA"&&count<20)||(label==="pitches"&&count<50);
- return `${label==="outs"?`${formatInnings(count)} IP`:`${count.toLocaleString("en-US")} ${label}`}${early?" · Early sample":""}`;
+ return `${label==="outs"?`${formatInnings(count)} IP`:countLabel(count,label)}${early?" · Early sample":""}`;
 }
 const gameOrder=["batting_production_plus","batting_avg","batting_obp","batting_est_slg","batting_est_iso","batting_hh_pct","batting_est_wobacon","batting_bb_pct","batting_k_pct","qpa_pct","pumps","sb","batting_sb_per_pa","gdp","pitching_r9","pitching_k9","pitching_bb9","pitching_whip","strike_pct","pitching_k_bb","weak_contact_pct","hard_contact_pct"];
 /** Read-only comparison of the already authorized staff projection; no raw source or identity writes. */

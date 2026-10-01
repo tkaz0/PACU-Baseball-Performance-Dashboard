@@ -18,7 +18,7 @@ export function coachUpdateDigest(data:CoachingData,today:string){
   const players=new Map(data.players.map(player=>[player.id,player]));
   const recent=data.readings.filter(row=>coachingReadingVisible(row)&&row.date>="2026-09-01"&&row.date<=today&&day(row.importedAt)>=since&&day(row.importedAt)<=today);
   const byPlayer=new Map<string,{id:string;name:string;readings:number;lastDate:string;areas:Set<string>}>();
-  for(const row of recent){const player=players.get(row.athleteId);if(!player)continue;const item=byPlayer.get(player.id)??{id:player.id,name:player.name,readings:0,lastDate:row.date,areas:new Set<string>()};item.readings++;if(row.date>item.lastDate)item.lastDate=row.date;item.areas.add(row.source.startsWith("RENPHO")?"Physicality":row.source.startsWith("Blast")?"Blast Practice":row.source.startsWith("Full Swing")?"Full Swing":"Testing");byPlayer.set(player.id,item);}
+  for(const row of recent){const player=players.get(row.athleteId);if(!player)continue;const item=byPlayer.get(player.id)??{id:player.id,name:player.name,readings:0,lastDate:row.date,areas:new Set<string>()};item.readings++;if(row.date>item.lastDate)item.lastDate=row.date;item.areas.add(row.source.startsWith("RENPHO")?"RENPHO":row.source.startsWith("Blast")?"Blast":row.source.startsWith("Full Swing")?"Full Swing":"Testing");byPlayer.set(player.id,item);}
   const fall=data.readings.filter(row=>coachingReadingVisible(row)&&row.date>="2026-09-01"&&row.date<=today);
   const groups=new Map<string,typeof fall>();for(const row of fall){const key=partition(row);groups.set(key,[...(groups.get(key)??[]),row]);}
   const changes:CoachChange[]=[];
