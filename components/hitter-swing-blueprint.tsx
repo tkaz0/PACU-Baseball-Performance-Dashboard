@@ -13,7 +13,7 @@ import { PercentileBar } from "@/components/percentile-bar";
 import styles from "./hitter-swing-blueprint.module.css";
 
 const BLAST_DEFINITIONS = "https://blast-motion.helpjuice.com/what-are-the-blast-baseball-metrics-47-version";
-function degrees(value: number) { return `${value > 0 ? "+" : ""}${value.toFixed(1)}°`; }
+function degrees(value: number) { return `${value > 0 ? "+" : value < 0 ? "−" : ""}${Math.abs(value).toFixed(1)}°`; }
 function ordinal(value:number) { const n=Math.round(value), last=n%100; return `${n}${last>=11&&last<=13?"th":n%10===1?"st":n%10===2?"nd":n%10===3?"rd":"th"}`; }
 function testedDate(value: string) { return new Intl.DateTimeFormat("en-US",{month:"short",day:"numeric",timeZone:"UTC"}).format(new Date(`${value.slice(0,10)}T12:00:00Z`)); }
 function point(x: number, y: number, length: number, angle: number) {

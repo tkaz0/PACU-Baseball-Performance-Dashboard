@@ -2,7 +2,7 @@
 .toolbar { display:flex; flex-wrap:wrap; align-items:end; gap:12px 20px; }
 .tabs { display:flex; flex-wrap:wrap; gap:4px; padding:4px; border:1px solid var(--line-subtle); border-radius:10px; width:fit-content; background:var(--surface-panel); }
 .tabs button { background:transparent; border:0; border-radius:7px; padding:10px 14px; color:var(--text-secondary); font-size:13px; font-weight:700; cursor:pointer; }
-.tabs button[aria-pressed=true] { color:white; background:#a82032; }
+.tabs button[aria-pressed=true] { color:white; background:var(--brand-red, #b51217); }
 .field { display:grid; gap:6px; font-size:12px; font-weight:700; color:var(--text-secondary); min-width:0; }
 .field select,.field input { width:100%; min-height:42px; border:1px solid var(--line-subtle); border-radius:8px; padding:8px 12px; font-size:13px; color:var(--text-primary); background:var(--surface-panel); }
 .metricField { flex:1; min-width:220px; max-width:540px; }

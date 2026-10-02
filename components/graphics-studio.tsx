@@ -98,7 +98,7 @@ export function GraphicsStudio({staff,players,ownAthleteId,fixture}:{staff:boole
  return <div className={styles.studio}>
   <div className={styles.workspace}>
    <section className={styles.controls} aria-label="Create graphic">
-    <header><span className={styles.eyebrow}>READY TO POST</span><h2>Create Your Graphic</h2></header>
+    <header><span className={styles.eyebrow}>STEP 1 · SET UP</span><h2>Create Your Graphic</h2></header>
     <label className={styles.field}>Graphic<select aria-label="Graphic type" value={template} onChange={event=>chooseTemplate(event.target.value as GraphicsTemplate)}>{GRAPHICS_TEMPLATES.filter(item=>staff||!item.staffOnly).map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select></label>
     {staff&&hasPlayer&&<GraphicsPlayerPicker label="Player" players={players} value={selectedId} onChange={id=>{setSelectedId(id);setGroupKey("");setMetricKeys([]);setStatus("");}}/>}
     {!staff&&player&&hasPlayer&&<div className={styles.ownPlayer}><UserRound size={16}/><strong>{player.player.name}</strong></div>}

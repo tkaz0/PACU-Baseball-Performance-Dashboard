@@ -47,3 +47,14 @@
 .earlyTag{display:inline-flex;margin-left:6px;padding:0 6px;border:1px solid var(--line-subtle);border-radius:6px;font-style:normal}
 .tag{border-color:transparent!important;background:var(--surface-raised)!important;color:var(--text-secondary)!important}
 .attention>:last-child:nth-child(odd){grid-column:1/-1}
+
+/* Light theme: a pale branded banner with the full-color university mark. */
+.markOnLight{display:none}
+:global(html[data-theme="light"]) .welcome{border-color:#ead6d9;background:radial-gradient(ellipse at 95% 0,#b5121722,transparent 60%),linear-gradient(180deg,#fff,#fbf6f6);color:var(--text-primary)}
+:global(html[data-theme="light"]) .welcome .kicker{color:#a91016}
+:global(html[data-theme="light"]) .welcomeTitle>div>p:last-child{color:var(--text-secondary)}
+:global(html[data-theme="light"]) .heroAction{border-color:#d9c3c6;color:#7d0c10;background:#fff}
+:global(html[data-theme="light"]) .markOnDark{display:none}
+:global(html[data-theme="light"]) .markOnLight{display:contents}
+.markOnDark{display:contents}
+:global(html[data-theme="light"]) .homeMark{border-right-color:#ead6d9}

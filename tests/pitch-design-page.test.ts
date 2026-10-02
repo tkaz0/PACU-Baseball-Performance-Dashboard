@@ -47,7 +47,7 @@ beforeEach(() => {
     { id: otherId, name: "Fictional Teammate", athleteCode: "SYN-002", searchName: "Fictional Teammate" },
   ]);
   fake.load.mockResolvedValue({ measurements: readings, batches: [], percentileOverrides: [] });
-  fake.dashboard.mockImplementation(() => createElement("section", { "aria-label": "Pitch design dashboard" }, "Fictional pitch design"));
+  fake.dashboard.mockImplementation((props: { header?: { name: string; actions?: unknown } }) => createElement("section", { "aria-label": "Pitch design dashboard" }, "Fictional pitch design", props.header?.name, props.header?.actions as never));
 });
 
 describe("Pitch Design access and routing", () => {

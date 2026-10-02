@@ -48,12 +48,12 @@ export default async function PitchDesignPage({ searchParams }: { searchParams?:
   const content = athlete && showPitching ? await (async () => {
     const shared = await loadAthletePerformance(access, athlete, { includePercentiles: true });
     const performance = getPlayerPerformance({ readings: shared.measurements, batches: shared.batches, athleteCode: athlete.athlete_code, cohortAthleteCodes: [], percentileOverrides: shared.percentileOverrides });
-    return <PitchDesignDashboard readings={shared.measurements} performance={performance} throws={season?.throws}/>;
+    return <PitchDesignDashboard readings={shared.measurements} performance={performance} throws={season?.throws} header={{ name: athleteName(athlete), detail: `${athlete.athlete_code}${season?.throws ? ` · Throws ${season.throws}` : ""}`, actions: <><PrintButton label="Print Scouting Card"/><Link prefetch={false} className="btn btn-secondary no-print" href={`/athletes/${athlete.id}`}>Player Profile <ArrowUpRight size={15} aria-hidden="true"/></Link></> }}/>;
   })() : null;
   return <>
     <PageHeading section="Pacific Baseball / Player Development" title="Pitch Design" description="Your arsenal, grip options, and MLB pitchers to study."/>
     {staff && <PitchDesignPlayerPicker key={athlete?.id ?? "none"} players={players} selectedId={athlete?.id ?? ""}/>}
-    {athlete && <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--line-subtle)] bg-[var(--surface-panel)] px-5 py-4">
+    {athlete && !content && <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--line-subtle)] bg-[var(--surface-panel)] px-5 py-4">
       <div className="min-w-0"><h2 className="break-words text-lg font-semibold">{athleteName(athlete)}</h2><p className="mt-1 text-xs text-[var(--text-secondary)]">{athlete.athlete_code}{season?.throws ? ` · Throws ${season.throws}` : ""} · Fall 2026</p></div>
       <div className="flex flex-wrap items-center gap-3">{content && <PrintButton label="Print Scouting Card"/>}<Link prefetch={false} className="text-link text-sm no-print" href={`/athletes/${athlete.id}`}>Player Profile <ArrowUpRight size={15} aria-hidden="true"/></Link></div>
     </div>}

@@ -110,7 +110,7 @@ describe("Practice swing blueprint", () => {
     expect(diagram(html, "vertical")).toContain('data-angle="-30"');
     expect(diagram(html, "body")).toContain('data-angle="28"');
     expect(html).toContain("+12.0°");
-    expect(html).toContain("-30.0°");
+    expect(html).toContain("−30.0°");
     expect(html).toMatch(/illustrat(?:ed|ive|ion)/i);
     expect(html).toMatch(/not a recording of your body motion|not a personalized biomechanical reconstruction/i);
     expect(html).toMatch(/custom Pacific descriptions|custom.*descriptive/i);

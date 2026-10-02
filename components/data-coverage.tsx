@@ -1,14 +1,14 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { Check, CircleDashed, Minus, TriangleAlert, Upload } from "lucide-react";
+import { Check, Circle, CircleDashed, Minus, TriangleAlert, Upload } from "lucide-react";
 import { COVERAGE_GROUPS, type CoverageCell, type DataCoverage as CoverageData } from "@/lib/data-coverage";
 import { leaderboardTestDate } from "@/lib/leaderboards";
 import styles from "./data-coverage.module.css";
 
 const titles: Record<CoverageCell["status"], string> = { recorded: "Recorded", partial: "Partial", missing: "Needs testing", review: "Needs review", not_applicable: "Not applicable" };
 function CoverageStatus({ cell, label }: { cell: CoverageCell; label: string }) {
-  const Icon = cell.status === "recorded" ? Check : cell.status === "review" ? TriangleAlert : cell.status === "not_applicable" ? Minus : CircleDashed;
+  const Icon = cell.status === "recorded" ? Check : cell.status === "review" ? TriangleAlert : cell.status === "not_applicable" ? Minus : cell.status === "missing" ? Circle : CircleDashed;
   return <div className={styles.cell} data-status={cell.status}><span className={styles.mobileLabel}>{label}</span>
     {cell.expected ? <details><summary><span className={styles.status}><Icon size={15} aria-hidden="true" />{titles[cell.status]}</span><span className={styles.meta}>{cell.recorded}/{cell.expected} metrics{cell.latest ? ` · ${leaderboardTestDate(cell.latest)}` : ""}</span></summary>
       <ul className={styles.metrics}>{cell.metrics.map(metric => <li key={metric.label}><span>{metric.label}</span><span>{metric.status === "missing" ? "Missing" : metric.status === "review" ? "Review same-day results" : leaderboardTestDate(metric.date!)}</span></li>)}</ul>

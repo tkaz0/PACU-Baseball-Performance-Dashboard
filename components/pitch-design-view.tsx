@@ -88,11 +88,12 @@ function ContextView({ model, context }: { model: PitchDesignModel; context: Pit
   </>;
 }
 
-export function PitchDesignView({ model }: { model: PitchDesignModel }) {
+export type PitchDesignHeader = { name: string; detail: string; actions?: React.ReactNode };
+export function PitchDesignView({ model, header }: { model: PitchDesignModel; header?: PitchDesignHeader }) {
   const [selectedContext, setSelectedContext] = useState<string>(model.contexts[0]?.category ?? "");
   const context = model.contexts.find(item => item.category === selectedContext) ?? model.contexts[0];
   return <div className={styles.page}>
-    <section className={styles.hero}><div><span className={styles.eyebrow}>Pacific Baseball · Pitch Development</span><h2>Build Your Arsenal.</h2><p>Know what you throw. Explore what comes next.</p><div className={styles.heroMeta}><span>{context ? `${context.pitches.length} recorded pitch ${context.pitches.length === 1 ? "type" : "types"}` : "Classified results coming soon"}</span>{model.throws && <span>{model.throws === "L" ? "Left" : "Right"}-handed</span>}{model.body.height && <span>{formatHeight(model.body.height.value, "in")}</span>}{model.body.weight && <span>{number(model.body.weight.value)} lb</span>}</div></div><Target className={styles.heroArt} size={110} strokeWidth={.9} aria-hidden="true"/></section>
+    <section className={styles.hero}><div><span className={styles.eyebrow}>Pitch Design · Fall 2026</span><h2>{header?.name ?? "Your Arsenal"}</h2><p>{header?.detail ?? "Know what you throw. Explore what comes next."}</p><div className={styles.heroMeta}><span>{context ? `${context.pitches.length} recorded pitch ${context.pitches.length === 1 ? "type" : "types"}` : "Classified results coming soon"}</span>{model.throws && <span>{model.throws === "L" ? "Left" : "Right"}-handed</span>}{model.body.height && <span>{formatHeight(model.body.height.value, "in")}</span>}{model.body.weight && <span>{number(model.body.weight.value)} lb</span>}</div></div>{header?.actions ? <div className={styles.heroActions}>{header.actions}</div> : <Target className={styles.heroArt} size={110} strokeWidth={.9} aria-hidden="true"/>}</section>
     {model.contexts.length > 0 ? <>
       {model.contexts.length > 1 && <div className={`${styles.contexts} no-print`} role="group" aria-label="Pitch Design setting">{model.contexts.map(item => <button key={item.category} type="button" aria-pressed={context?.category === item.category} onClick={() => setSelectedContext(item.category)}>{categoryLabel(item.category)}<span>{item.pitches.length} {item.pitches.length === 1 ? "pitch type" : "pitch types"}</span></button>)}</div>}
       <ContextView key={context.category} model={model} context={context}/>
