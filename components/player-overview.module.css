@@ -114,3 +114,9 @@
 .additionalHighlights > summary:focus-visible { outline:2px solid var(--accent-readable); outline-offset:3px; border-radius:3px; }
 .additionalHighlights > ul { margin-top:12px; }
 .additionalHighlights[open] > summary > svg { transform:rotate(180deg); }
+/* Phones: smaller ring so it never overlaps the stat label. */
+@media (max-width: 700px) {
+  .heroTop :global(.percentile-ring) { width: 38px; height: 38px; }
+  .headlineStats dt { font-size: 11px; letter-spacing: .02em; }
+  .heroTop > div { min-width: 0; }
+}

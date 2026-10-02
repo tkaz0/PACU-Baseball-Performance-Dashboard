@@ -12,3 +12,7 @@
   .navigation > button svg { width:16px; height:16px; }
 }
 @media (prefers-reduced-motion:reduce) { .navigation > button { transition:none; } }
+
+/* Keep every tab visible: the action link wraps below instead of squeezing the tabs. */
+.navigation { flex: 1 1 600px; }
+.navigation > button { min-width: max-content; padding-inline: 12px; }

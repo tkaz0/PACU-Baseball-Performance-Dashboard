@@ -17,6 +17,7 @@ export function PacificLogo({ variant = "athletics", tone = "light", decorative 
     height={university ? 166 : 119}
     className={`pacific-logo ${university ? "pacific-logo-university" : "pacific-logo-athletics"} ${className}`}
     unoptimized
+    loading="eager"
   />;
 }
 

@@ -8,7 +8,7 @@ import { qpaAnalytics, pitchingAnalytics } from "@/lib/game-analytics";
 import "server-only";
 import { coachingReadingVisible, coachingGames } from "@/lib/coaching-tools";
 import { requireRenderImportAccess as requireImportAccess } from "@/lib/render-access";
-import { UUID_PATTERN } from "@/lib/types";
+import { UUID_PATTERN, formatClassYear } from "@/lib/types";
 import { analyticsReadingVisible } from "@/lib/analytics";
 import { buildVisitDigest } from "@/lib/dashboard-visit-digest";
 import type { DashboardVisitWindow } from "@/lib/personal-dashboard-server";
@@ -59,7 +59,7 @@ async function loadTeamSource(includeFullRoster=false, includeGames=true, includ
   const [players, gameRows]=await Promise.all([analyticsPages((from,to)=>supabase.from("athletes").select("id,athlete_code,first_name,preferred_name,last_name,athlete_seasons!inner(season,academic_class,primary_position,secondary_position,player_type,bats,throws,roster_status)",{count:"exact"}).eq("athlete_seasons.season","2026-27").order("id").range(from,to),row=>{
     if(!object(row)||!text(row.id)||!UUID_PATTERN.test(row.id)||!text(row.athlete_code,40)||!text(row.first_name,100)||!text(row.last_name,100)||(row.preferred_name!==null&&!text(row.preferred_name,100))||!Array.isArray(row.athlete_seasons)||row.athlete_seasons.length!==1)return fail();
     const s=row.athlete_seasons[0];if(!object(s)||s.season!=="2026-27"||(s.secondary_position!=null&&!text(s.secondary_position))||["academic_class","primary_position","player_type","bats","throws","roster_status"].some(k=>s[k]!==null&&!text(s[k])))return fail();
-    return {id:row.id,code:row.athlete_code,name:`${row.preferred_name||row.first_name} ${row.last_name}`,academicClass:s.academic_class??"",position:s.primary_position??"",secondaryPosition:s.secondary_position??"",playerType:s.player_type??"",bats:s.bats??"",throws:s.throws??"",status:s.roster_status} as AnalyticsPlayer&{status:string|null;secondaryPosition:string};
+    return {id:row.id,code:row.athlete_code,name:`${row.preferred_name||row.first_name} ${row.last_name}`,academicClass:formatClassYear(typeof s.academic_class==="string"?s.academic_class:null),position:s.primary_position??"",secondaryPosition:s.secondary_position??"",playerType:s.player_type??"",bats:s.bats??"",throws:s.throws??"",status:s.roster_status} as AnalyticsPlayer&{status:string|null;secondaryPosition:string};
   },1000), includeGames ? loadGameStats(access) : Promise.resolve([])]);
   const eligible=players.filter(p=>includeFullRoster||p.status===null||p.status==="active"||p.status==="redshirt");
   if(new Set(players.map(p=>p.id)).size!==players.length)return fail();

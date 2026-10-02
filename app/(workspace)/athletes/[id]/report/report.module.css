@@ -1,24 +1,35 @@
 .page { max-width: 980px; margin: 0 auto; }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-bottom: 18px; }
-.report { padding: 28px; border: 1px solid var(--line-subtle); border-radius: 16px; background: var(--surface-panel); }
-.header { display: flex; align-items: center; gap: 20px; padding-bottom: 18px; border-bottom: 3px solid #b51217; }
+.report { padding: 22px 24px; border: 1px solid var(--line-subtle); border-radius: 16px; background: var(--surface-panel); }
+.header { display: flex; align-items: center; gap: 16px; padding-bottom: 12px; border-bottom: 3px solid #b51217; }
 .photo { box-shadow: 0 0 0 3px var(--line-subtle); }
 .identity { flex: 1; min-width: 0; }
-.identity h1 { margin: 2px 0 4px; font-size: 32px; font-weight: 900; letter-spacing: -.03em; }
+.identity h1 { margin: 2px 0 2px; font-size: 26px; font-weight: 900; letter-spacing: -.03em; }
 .identity p { margin: 0; color: var(--text-secondary); font-size: 13px; }
 .kicker { color: #b51217 !important; font-size: 12px !important; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .brand { display: grid; justify-items: end; gap: 6px; color: var(--text-secondary); }
-.heroes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 20px 0; }
-.heroes > div { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--line-subtle); border-radius: 12px; font-size: 13px; font-weight: 700; }
-.columns { display: grid; grid-template-columns: 1.3fr 1fr; gap: 22px; }
-.columns h2, .arsenal h2 { margin: 6px 0 8px; font-size: 16px; font-weight: 800; }
-.table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-.table th { padding: 6px 4px; border-bottom: 1px solid var(--line-subtle); color: var(--text-secondary); font-size: 11.5px; text-align: left; text-transform: uppercase; letter-spacing: .05em; }
-.table td { padding: 6px 4px; border-bottom: 1px solid var(--line-subtle); vertical-align: middle; }
+.heroes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 12px 0; }
+.heroes > div { display: flex; align-items: center; gap: 8px; padding: 6px 10px; font-size: 12px !important; border: 1px solid var(--line-subtle); border-radius: 12px; font-size: 13px; font-weight: 700; }
+.columns { display: grid; grid-template-columns: 1.25fr 1fr; gap: 18px; }
+.columns h2, .arsenal h2 { margin: 2px 0 4px; font-size: 14px; font-weight: 800; }
+.table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.table th { padding: 4px 4px; border-bottom: 1px solid var(--line-subtle); color: var(--text-secondary); font-size: 11.5px; text-align: left; text-transform: uppercase; letter-spacing: .05em; }
+.table td { padding: 3px 4px; border-bottom: 1px solid var(--line-subtle); vertical-align: middle; }
 .table td small { display: block; color: var(--text-secondary); font-size: 11px; }
 .num { font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .pctl { display: inline-flex; min-width: 30px; justify-content: center; padding: 2px 6px; border-radius: 6px; background: var(--surface-raised); font-weight: 800; font-size: 12px; }
 .muted { color: var(--text-secondary); }
-.arsenal { margin-top: 18px; }
-.footer { margin-top: 18px; padding-top: 10px; border-top: 1px solid var(--line-subtle); color: var(--text-secondary); font-size: 11px; line-height: 1.5; }
+.arsenal { margin-top: 10px; }
+.footer { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line-subtle); color: var(--text-secondary); font-size: 11px; line-height: 1.5; }
 @media (max-width: 760px) { .columns { grid-template-columns: 1fr; } .heroes { grid-template-columns: repeat(2, minmax(0, 1fr)); } .header { flex-wrap: wrap; } .report { padding: 18px; } }
+.more { margin: 4px 0 0; color: var(--text-secondary); font-size: 11.5px; }
+.table td small { display: inline !important; margin-left: 6px; }
+.arsenalTable :global(table) { font-size: 11.5px; }
+.arsenalTable :global(td), .arsenalTable :global(th) { padding-top: 3px !important; padding-bottom: 3px !important; }
+@media print {
+  .report { padding: 0; border: 0; font-size: 11px; }
+  .identity h1 { font-size: 22px; }
+  .table { font-size: 10.5px; }
+  .table td small, .footer, .more { font-size: 9.5px; }
+  .heroes > div { font-size: 10.5px !important; }
+}

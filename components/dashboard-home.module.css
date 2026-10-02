@@ -25,12 +25,17 @@
 
 @media(max-width:440px){.rankGrid{grid-template-columns:1fr}.rankResult>div{display:flex}.rankCardHead h3{font-size:15px}.rankValue{font-size:13px}.rankList li{min-height:64px}.rankNumber{width:25px;height:25px;flex-basis:25px}.rankSample{font-size:12px}.quickLinks strong{font-size:12px}.quickLinks small{font-size:12px}.weekCard>div{display:block}.weekCard .panelLink{display:inline-flex;margin-top:9px}.weekCard p{text-align:left}.weekCardTitle{justify-content:space-between}.weekCardTitle h3{order:0}.freshness{line-height:1.5}}
 
-.homeColumns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:18px;align-items:start}.attention{display:grid;gap:14px;min-width:0}.leadersColumn{min-width:0}.leadersColumn .rankGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.homeColumns{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;align-items:start}.attention{display:grid;gap:14px;min-width:0}.leadersColumn{min-width:0}.leadersColumn .rankGrid{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
 .weekGrid[data-four]{grid-template-columns:repeat(4,minmax(0,1fr))}.coverageTile{align-items:center}.weekCardTitle strong small{font-size:.55em;color:var(--text-secondary);font-weight:600}
-@media(max-width:1250px){.weekGrid[data-four]{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:1000px){.homeColumns{grid-template-columns:1fr}.weekGrid[data-four]{grid-template-columns:1fr}}@media(max-width:440px){.leadersColumn .rankGrid{grid-template-columns:1fr}}
+@media(max-width:1250px){.weekGrid[data-four]{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:1000px){.weekGrid[data-four]{grid-template-columns:1fr}}@media(max-width:440px){.leadersColumn .rankGrid{grid-template-columns:1fr}}
 .rankList li{gap:10px}
 
 /* Clearer page hierarchy: section headings stand above card titles. */
 .blockHeading{margin-top:8px;margin-bottom:16px}.blockHeading h2{font-size:24px!important;line-height:1.2;letter-spacing:-.025em;font-weight:800}
 .sectionTitle h2{font-size:19px!important;letter-spacing:-.02em}
 @media(max-width:700px){.blockHeading h2{font-size:20px!important}}
+
+/* Side-by-side only when both columns have room; leaders first when stacked. */
+@media(min-width:1500px){.homeColumns{grid-template-columns:minmax(0,1fr) minmax(0,1.35fr)}}
+@media(max-width:1499px){.leadersColumn{order:-1}.attention{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}}
+.rankName{overflow-wrap:normal;word-break:normal}

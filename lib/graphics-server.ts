@@ -1,7 +1,7 @@
 import "server-only";
 import type { requireAccess } from "@/lib/auth";
 import { canImportPresentedAccess, canReadPresentedAthlete } from "@/lib/access-preview";
-import { UUID_PATTERN, athleteName, type RosterAthlete } from "@/lib/types";
+import { UUID_PATTERN, athleteName, type RosterAthlete, formatClassYear } from "@/lib/types";
 import { loadAthletePerformance, type AthletePerformanceData } from "@/lib/performance-server";
 import { loadGameStats, type SharedGameStat } from "@/lib/game-server";
 import { loadGameComparisons, loadGameLeaderboards } from "@/lib/game-comparison-server";
@@ -111,7 +111,7 @@ export function buildGraphicsPlayerData(input: AthletePerformanceData & {
     context: `${trend.period} · Recorded results`, points: trend.points.map(point => ({ date: point.date, value: point.value })),
   })));
   return { player: { id: athlete.id, name: athleteName(athlete), code: athlete.athlete_code, position: season.primary_position ?? "", secondaryPosition: season.secondary_position ?? "",
-    academicClass: season.academic_class ?? "", bats: season.bats ?? "", throws: season.throws ?? "" }, metrics, arsenals, trends };
+    academicClass: formatClassYear(season.academic_class), bats: season.bats ?? "", throws: season.throws ?? "" }, metrics, arsenals, trends };
 }
 
 /** The effective presentation role is checked before roster lookup, including Admin-as-Player. */

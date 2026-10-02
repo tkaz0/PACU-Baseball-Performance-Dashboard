@@ -66,3 +66,6 @@
 .workspace button:focus-visible,.workspace summary:focus-visible,.tableScroll:focus-visible{outline:2px solid var(--accent-readable);outline-offset:3px}
 @media(max-width:700px){.modeBar{align-items:flex-start}.modes button{padding:10px;font-size:12px;gap:5px}.season{display:none}.selectionHeading{display:grid;padding:18px;gap:17px}.selectionHeading h2{font-size:22px}.selectionFooter{padding:12px 18px;gap:10px}.boardHeading{padding:17px 16px 10px;align-items:flex-start;flex-wrap:wrap}.tableHelp{padding:0 16px 13px}.tableHelp span{display:block}.boardHeading h2{font-size:17px}.table .playerColumn{min-width:135px;max-width:160px}.table td,.table th{padding:12px;min-width:130px}.playerColumn a{font-size:12px}.result strong{font-size:16px}.boardFoot{padding:13px 16px}.sourceField{min-width:0;width:100%;flex-basis:100%;max-width:100%}.controls{gap:10px}.metricChoices{left:auto;right:0;width:min(240px,85vw)}}
 .detailToggle input,.metricChoices input{width:16px;height:16px;min-height:0;margin:0;flex-shrink:0}
+
+.detailToggle { display: inline-flex !important; align-items: center !important; gap: 8px !important; min-height: 40px; }
+.detailToggle input { margin: 0 !important; width: 16px; height: 16px; }

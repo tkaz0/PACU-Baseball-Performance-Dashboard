@@ -1,3 +1,4 @@
+import { countLabel } from "@/lib/game-opportunities";
 import { ScaleLegend } from "@/components/charts/scale-legend";
 import { PercentileRing } from "@/components/charts/percentile-ring";
 import { Sparkline } from "@/components/charts/sparkline";
@@ -121,7 +122,7 @@ export function PlayerOverview({ cards, gameStats = [], gameComparisons = [], sh
   type Headline = { key: string; guide: StatGuideContext; label: string; value: string; detail: string; percentile: number | null; neutral: boolean; trend: ProfileTrend | null; lowerIsBetter: boolean };
   const headline = headlineKeys.flatMap((key): Headline[] => {
     const game = games.find(item => item.metric === key);
-    if (game) return [{key, guide:{source:game.source,unit:game.unit,period:"fall_2026" as const,eventId:game.eventId,value:game.value}, label:game.label, value:gameValue(game.value,game.unit), detail:game.opportunities == null ? "In-Game · Fall 2026" : `${game.opportunities} chances · In-Game`, percentile: game.comparison && game.comparison.sampleSize >= 5 ? game.comparison.percentile : null, neutral: game.direction === "neutral", trend: null as ProfileTrend | null, lowerIsBetter: game.direction === "lower"}];
+    if (game) return [{key, guide:{source:game.source,unit:game.unit,period:"fall_2026" as const,eventId:game.eventId,value:game.value}, label:game.label, value:gameValue(game.value,game.unit), detail:game.opportunities == null ? "In-Game · Fall 2026" : `${countLabel(game.opportunities, "chances")} · In-Game`, percentile: game.comparison && game.comparison.sampleSize >= 5 ? game.comparison.percentile : null, neutral: game.direction === "neutral", trend: null as ProfileTrend | null, lowerIsBetter: game.direction === "lower"}];
     const card = availableCards.find(item => item.metric.key === key);
     if (!card?.latest) return [];
     return [{key,guide:{source:card.latest.source,unit:card.latest.unit,period:card.latest.period,value:card.latest.value} as StatGuideContext,label:profileMetricLabel(key,leaderboardMetricLabel(card.metric),card.latest.source),value:`${formatMetricNumber(card.latest.value,key,card.latest.source)} ${card.latest.unit === "ratio" ? "" : card.latest.unit}`.trim(),detail:`Tested ${leaderboardTestDate(card.latest.measuredAt)}`, percentile: card.percentile && card.percentile.sampleSize >= 5 && Number.isFinite(card.percentile.value) ? card.percentile.value : null, neutral: card.metric.direction === "neutral", trend: trends.find(trend => trend.key === key) ?? null, lowerIsBetter: card.metric.direction === "lower"}];

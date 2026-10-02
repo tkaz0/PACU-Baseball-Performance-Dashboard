@@ -2,7 +2,7 @@ import { gameCountMap } from "@/lib/advanced-game-stats";
 import { pitchTypeLabel } from "@/lib/imports/pitch-assignments";
 import type { Measurement } from "@/lib/imports/engine";
 import type { ImportBatch } from "@/lib/local-workspace";
-import { athleteName, type RosterAthlete } from "@/lib/types";
+import { athleteName, type RosterAthlete, formatClassYear } from "@/lib/types";
 import { getPlayerPerformance, normalizePlayerMetric, type PlayerPercentileOverride } from "@/lib/player-performance";
 import { getPlayerProfileLayout, getSessionPerformance, withoutWeeklyBlastCards } from "@/lib/player-profile-layout";
 import { getPlayerInsights } from "@/lib/player-insights";
@@ -72,7 +72,7 @@ export function buildExitMeetingReport(input: {
   const performance = getPlayerPerformance({ readings: input.measurements, batches: input.batches, athleteCode: athlete.athlete_code, cohortAthleteCodes: [], percentileOverrides: input.percentileOverrides });
   const clean = withoutWeeklyBlastCards(performance), layout = getPlayerProfileLayout(clean, season);
   const pitchingRole = season?.player_type?.trim().toLowerCase() === "pitcher" || season?.player_type?.trim().toLowerCase() === "two_way" || [season?.primary_position, season?.secondary_position].some(position => position?.trim().toUpperCase() === "P");
-  const report: ExitMeetingReport = { format, name: athleteName(athlete), code: athlete.athlete_code, jersey: season?.jersey_number == null ? "" : `#${season.jersey_number}`, position: [season?.primary_position, season?.secondary_position].filter(Boolean).join(" / ") || "Position not recorded", academicClass: season?.academic_class ?? "Class not recorded", batsThrows: `Bats ${season?.bats ?? "-"} / Throws ${season?.throws ?? "-"}`, season: "Fall 2026", generatedAt: input.generatedAt, lastTested: null, lastGameUpdate: null, strengths: [], development: [], jumps: [], sections: [], missing: [], notes: [] };
+  const report: ExitMeetingReport = { format, name: athleteName(athlete), code: athlete.athlete_code, jersey: season?.jersey_number == null ? "" : `#${season.jersey_number}`, position: [season?.primary_position, season?.secondary_position].filter(Boolean).join(" / ") || "Position not recorded", academicClass: (formatClassYear(season?.academic_class) || "Class not recorded"), batsThrows: `Bats ${season?.bats ?? "-"} / Throws ${season?.throws ?? "-"}`, season: "Fall 2026", generatedAt: input.generatedAt, lastTested: null, lastGameUpdate: null, strengths: [], development: [], jumps: [], sections: [], missing: [], notes: [] };
   const add = (id: string, title: string, subtitle: string, rows: ExitMeetingRow[], note?: string) => { if (rows.length) report.sections.push({ id, title, subtitle, rows, note }); };
   const cards = [...layout.physicality, ...layout.additionalBody, ...layout.speedAgility, ...(layout.showHitting ? [...layout.hitting, ...layout.otherHitting] : []), ...layout.fieldThrowing, ...layout.pitching];
   const insights = getPlayerInsights(cards.filter(card => card.metric.group !== "body"));

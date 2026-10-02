@@ -32,3 +32,9 @@ export function athleteName(a: Pick<Athlete, "first_name" | "preferred_name" | "
 }
 export function display(value: string | number | null | undefined) { return value == null || value === "" ? "—" : String(value).replaceAll("_", " "); }
 export const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/** "sophomore" → "Sophomore"; roster imports may store class years in any case. */
+export function formatClassYear(value: string | null | undefined): string {
+  const text = (value ?? "").trim();
+  return text ? text.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) : "";
+}
