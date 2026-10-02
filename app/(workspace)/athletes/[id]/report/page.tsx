@@ -9,7 +9,7 @@ import { getPlayerPerformance } from "@/lib/player-performance";
 import { getPlayerProfileLayout, profileShowsPitching } from "@/lib/player-profile-layout";
 import { profileMetricLabel } from "@/lib/profile-metric-label";
 import { leaderboardMetricLabel, leaderboardTestDate } from "@/lib/leaderboards";
-import { formatHeight, formatMetricNumber } from "@/lib/measurement-display";
+import { formatHeight, formatMetricNumber, formatSpin } from "@/lib/measurement-display";
 import { profileTrends } from "@/lib/profile-trends";
 import { recentPersonalBest } from "@/lib/personal-bests";
 import { loadGameStats } from "@/lib/game-server";
@@ -23,7 +23,8 @@ import { PlayerAvatar } from "@/components/player-avatar";
 import { PacificLogo } from "@/components/pacific-brand";
 import { PercentileRing } from "@/components/charts/percentile-ring";
 import { Sparkline } from "@/components/charts/sparkline";
-import { ClassifiedPitchResults } from "@/components/classified-pitch-results";
+import { fallArsenalPitches } from "@/lib/pitch-arsenal";
+import { pitchTypeLabel } from "@/lib/imports/pitch-assignments";
 import { PrintButton } from "@/components/print-button";
 import styles from "./report.module.css";
 
@@ -53,6 +54,7 @@ export default async function PlayerReport({ params }: { params: Promise<{ id: s
   const trends = new Map(profileTrends(cards).map(trend => [trend.key, trend]));
   const today = new Date().toISOString().slice(0, 10);
   const allGames = gameOverviewMetrics(gameStats, gameComparisons);
+  const arsenal = profileShowsPitching(season) ? fallArsenalPitches(shared.measurements).sort((a, b) => (b.count ?? 0) - (a.count ?? 0)).slice(0, 6) : [];
   const games = REPORT_GAME_KEYS.flatMap(key => allGames.filter(game => game.metric === key));
   const ranked = [
     ...cards.filter(card => card.percentile && card.percentile.sampleSize >= 5).map(card => ({ key: `t-${card.metric.key}-${card.latest!.source}`, label: profileMetricLabel(card.metric.key, leaderboardMetricLabel(card.metric), card.latest!.source), value: card.percentile!.value, neutral: card.metric.direction === "neutral" })),
@@ -80,7 +82,7 @@ export default async function PlayerReport({ params }: { params: Promise<{ id: s
           return <tr key={`${game.source}-${game.metric}`}><td><strong>{game.label}</strong><small>{game.source === "qpa_fall_2026" ? "Hitting" : "Pitching"}{game.opportunities != null ? ` · ${countLabel(game.opportunities, "chances")}` : ""}</small></td><td className={styles.num}>{gameValue(game.value, game.unit)}</td><td>{pct === null ? <span className={styles.muted}>—</span> : <span className={styles.pctl} style={game.direction === "neutral" ? undefined : percentileColor(pct)}>{pct}</span>}</td></tr>;
         })}</tbody></table> : <p className={styles.muted}>No game stats yet.</p>}</section>
       </div>
-      {profileShowsPitching(season) && <section className={styles.arsenal} aria-label="Pitch arsenal"><h2>Pitch Arsenal</h2><div className={styles.arsenalTable}><ClassifiedPitchResults readings={shared.measurements}/></div></section>}
+      {arsenal.length > 0 && <section className={styles.arsenal} aria-label="Pitch arsenal"><h2>Pitch Arsenal · Fall 2026</h2><table className={styles.table}><thead><tr><th>Pitch</th><th>Setting</th><th>Avg Velo</th><th>Max Velo</th><th>Avg Spin</th><th>Pitches</th></tr></thead><tbody>{arsenal.map(pitch => <tr key={pitch.source}><td><strong>{pitchTypeLabel(pitch.pitchType)}</strong></td><td>{pitch.category}</td><td className={styles.num}>{pitch.averageVelocity === null ? "—" : `${pitch.averageVelocity.toFixed(1)} mph`}</td><td className={styles.num}>{pitch.maxVelocity === null ? "—" : `${pitch.maxVelocity.toFixed(1)} mph`}</td><td className={styles.num}>{pitch.averageSpin === null ? "—" : `${formatSpin(pitch.averageSpin)} rpm`}</td><td>{pitch.count ?? "—"}</td></tr>)}</tbody></table></section>}
       <footer className={styles.footer}>Percentiles compare with at least five Pacific teammates on the same test, source and unit; red is the top of the team. Gray values are body or spin positions, not grades. Small game samples can swing widely. An independent project for Pacific Baseball.</footer>
     </article>
   </div>;
