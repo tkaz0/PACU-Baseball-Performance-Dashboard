@@ -15,6 +15,7 @@ vi.mock("@/components/access-preview-control", () => ({ AccessPreviewControl: fa
 vi.mock("@/components/staff-athlete-search", () => ({ StaffAthleteSearch: fake.search }));
 vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw new Error(`REDIRECT:${path}`); } }));
 vi.mock("next/link", () => ({ default: ({ href, children, ...props }: { href: string; children: ReactNode }) => createElement("a", { href, ...props }, children) }));
+vi.mock("@/lib/headshots-server", () => ({ loadTeamHeadshots: async () => new Map(), loadAthleteHeadshot: async () => null }));
 import WorkspaceLayout from "@/app/(workspace)/layout";
 import Roster from "@/app/(workspace)/roster/page";
 import { RosterTable } from "@/components/roster-table";

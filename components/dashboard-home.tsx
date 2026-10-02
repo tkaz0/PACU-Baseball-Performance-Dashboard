@@ -1,3 +1,5 @@
+import { PlayerAvatar } from "@/components/player-avatar";
+import { PercentileRing } from "@/components/charts/percentile-ring";
 import { countLabel } from "@/lib/game-opportunities";
 import type { ReactNode } from "react";
 import Link from "next/link";
@@ -38,25 +40,26 @@ function GameSnapshot({ summary, kind }: { summary: TeamGameSummary; kind: "Hitt
   </section>;
 }
 
-function RankRows({ rows, maximum }: { rows: HomeRank[]; maximum: number }) {
+function RankRows({ rows, maximum, headshots = {} }: { rows: HomeRank[]; maximum: number; headshots?: Readonly<Record<string, string>> }) {
   return <ol className={styles.rankList}>{rows.map(row => <li key={row.code} className={row.isYou ? styles.yourRow : undefined}>
-    <span className={styles.rankNumber}>{String(row.rank).padStart(2, "0")}</span><div className={styles.rankResult}><div><span className={styles.rankName}>{row.profileId ? <Link prefetch={false} href={`/athletes/${row.profileId}`}>{row.name}</Link> : row.name}{row.isYou && <small>You</small>}</span><strong className={styles.rankValue}>{row.value}</strong></div>{row.numericValue !== undefined && Number.isFinite(row.numericValue) && row.numericValue >= 0 && maximum > 0 && <span className={styles.rankTrack} aria-hidden="true"><span style={{ width: `${row.numericValue / maximum * 100}%` }}/></span>}{row.sample && <small className={styles.rankSample}>{row.sample}</small>}</div>
+    <span className={styles.rankNumber}>{String(row.rank).padStart(2, "0")}</span><PlayerAvatar name={row.name} path={headshots[row.code]} size={34}/><div className={styles.rankResult}><div><span className={styles.rankName}>{row.profileId ? <Link prefetch={false} href={`/athletes/${row.profileId}`}>{row.name}</Link> : row.name}{row.isYou && <small>You</small>}</span><strong className={styles.rankValue}>{row.value}</strong></div>{row.numericValue !== undefined && Number.isFinite(row.numericValue) && row.numericValue >= 0 && maximum > 0 && <span className={styles.rankTrack} aria-hidden="true"><span style={{ width: `${row.numericValue / maximum * 100}%` }}/></span>}{row.sample && <small className={styles.rankSample}>{row.sample}</small>}</div>
   </li>)}</ol>;
 }
-function HomeRankCard({ board }: { board: HomeLeaderboard }) {
+function HomeRankCard({ board, headshots }: { board: HomeLeaderboard; headshots?: Readonly<Record<string, string>> }) {
   const maximum = Math.max(0, ...board.rows.map(row => Number.isFinite(row.numericValue) ? row.numericValue! : 0));
   return <article className={styles.rankCard} aria-label={`${board.title} team leaderboard`}>
     <div className={styles.rankCardHead}><div><p className={styles.kicker}>{board.category}</p><h3>{board.title}{board.metric&&<StatInfo metric={board.metric} label={board.title} source={board.source} unit={board.unit} period={board.period} eventId={board.eventId}/>}</h3></div><Trophy size={17} aria-hidden="true"/></div>
-    <RankRows rows={board.rows.slice(0, 3)} maximum={maximum}/>
+    <RankRows rows={board.rows.slice(0, 3)} maximum={maximum} headshots={headshots}/>
     <div className={styles.rankMeta}><span>{board.total} {board.total === 1 ? "player" : "players"}{board.metric === "batting_production_plus" ? " · Team reference = 100" : maximum > 0 ? " · Bars start at zero" : ""}</span>{board.yourRank !== null && <span>You: <strong>#{board.yourRank}</strong></span>}</div>
     <Link prefetch={false} href={board.href} className={styles.rankFooter}>Full Leaderboard<ArrowUpRight size={14} aria-hidden="true"/></Link>
   </article>;
 }
-function CoachThisWeek({ digest, dueFocus, reviewCount }: { digest: ReturnType<typeof coachUpdateDigest>; dueFocus: DueCoachFocus[]; reviewCount: number }) {
+function CoachThisWeek({ digest, dueFocus, reviewCount, coverage }: { digest: ReturnType<typeof coachUpdateDigest>; dueFocus: DueCoachFocus[]; reviewCount: number; coverage?: { players: number; withResults: number } }) {
   const recent = digest.updatedPlayers[0], nextRetest = dueFocus[0], followUp = digest.stale[0];
   return <section aria-label="This week for coaches">
     <div className={styles.blockHeading}><div><p className={styles.kicker}>Coaching Desk</p><h2>This Week</h2></div><Link prefetch={false} href="/testing/changes" className={styles.panelLink}>All Changes<ArrowRight size={15}/></Link></div>
-    <div className={styles.weekGrid}>
+    <div className={styles.weekGrid} data-four={coverage ? true : undefined}>
+      {coverage && <article className={`${styles.weekCard} ${styles.coverageTile}`}><PercentileRing value={coverage.players ? 100 * coverage.withResults / coverage.players : 0} neutral label="Players with a saved Fall result" size={58}/><div><div className={styles.weekCardTitle}><h3>Saved Fall Results</h3><strong>{coverage.withResults}<small>/{coverage.players}</small></strong></div><p>Players with at least one Fall result</p><Link prefetch={false} href="/testing/coverage" className={styles.panelLink}>Checklist Coverage<ArrowRight size={13}/></Link></div></article>}
       <article className={styles.weekCard}><span className={styles.weekIcon}><Activity size={20} aria-hidden="true"/></span><div><div className={styles.weekCardTitle}><h3>Players Updated</h3><strong>{digest.updatedPlayers.length}</strong></div><p>{digest.changes.length} {digest.changes.length===1?"result":"results"} changed 5%+ from an earlier test</p>{recent && <p className={styles.weekPreview}>Latest: <Link prefetch={false} href={`/athletes/${recent.id}`}>{recent.name}</Link></p>}<Link prefetch={false} href="/testing/changes" className={styles.panelLink}>Review Updates<ArrowRight size={13}/></Link></div></article>
       <article className={styles.weekCard}><span className={styles.weekIcon}><Crosshair size={20} aria-hidden="true"/></span><div><div className={styles.weekCardTitle}><h3>Retests Due</h3><strong>{dueFocus.length}</strong></div><p>{digest.stale.length} longer testing gaps</p>{nextRetest ? <p className={styles.weekPreview}><Link prefetch={false} href={`/athletes/${nextRetest.athleteId}`}>{nextRetest.playerName}</Link> · {date(nextRetest.targetDate)}</p> : followUp ? <p className={styles.weekPreview}>Follow up: <Link prefetch={false} href={`/athletes/${followUp.id}`}>{followUp.name}</Link></p> : null}<Link prefetch={false} href="/testing/coverage" className={styles.panelLink}>Testing Checklist<ArrowRight size={13}/></Link></div></article>
       <article className={styles.weekCard} data-attention={reviewCount > 0 || undefined}><span className={styles.weekIcon}><ClipboardCheck size={20} aria-hidden="true"/></span><div><div className={styles.weekCardTitle}><h3>Game-Stat Review</h3><strong>{reviewCount}</strong></div><p>{reviewCount ? "Rates needing a source-count check" : "No team rates flagged"}</p><Link prefetch={false} href="/game-stats/review" className={styles.panelLink}>Review Game Stats<ArrowRight size={13}/></Link></div></article>
@@ -75,7 +78,7 @@ function ResultsCoverage({ summary, staff, profile }: { summary: HomeSummary; st
   </section>;
 }
 
-export function DashboardHome({ staff, athleteId, summary, designNavigation, leaderboards = [], dueFocus = [], sourceStatus = [], visit, weeklyPlan }: { weeklyPlan?:ReactNode; visit?:DashboardVisitWindow; staff: boolean; athleteId: string | null; designNavigation?: DesignNavigation; summary: (HomeSummary & { visitDigest?:VisitDigest; coachDigest?: ReturnType<typeof coachUpdateDigest> }) | null; leaderboards?: HomeLeaderboard[]; dueFocus?: DueCoachFocus[]; sourceStatus?:WeeklySourceStatusRow[] }) {
+export function DashboardHome({ staff, athleteId, summary, designNavigation, leaderboards = [], dueFocus = [], sourceStatus = [], visit, weeklyPlan, headshots = {} }: { headshots?: Readonly<Record<string, string>>; weeklyPlan?:ReactNode; visit?:DashboardVisitWindow; staff: boolean; athleteId: string | null; designNavigation?: DesignNavigation; summary: (HomeSummary & { visitDigest?:VisitDigest; coachDigest?: ReturnType<typeof coachUpdateDigest> }) | null; leaderboards?: HomeLeaderboard[]; dueFocus?: DueCoachFocus[]; sourceStatus?:WeeklySourceStatusRow[] }) {
   const profile = athleteId ? `/athletes/${athleteId}` : null;
   const actions = [...(staff ? [
     { href: "/roster", title: "Roster", detail: "Player profiles", icon: UsersRound },
@@ -99,17 +102,21 @@ export function DashboardHome({ staff, athleteId, summary, designNavigation, lea
       <Link prefetch={false} href={staff ? "/roster" : profile ?? "/settings"} className={styles.heroAction}>{staff ? "Explore Roster" : profile ? "Open My Profile" : "Account Settings"}<ArrowUpRight size={17}/></Link>
     </header>
     {summary && <div className={styles.freshness} aria-label="Dashboard update dates"><span><span className={styles.statusDot}/>{latestUpdate ? <>Latest Update <strong>{date(latestUpdate.date, true)}</strong></> : "Awaiting Fall results"}</span><span><Clock3 size={13} aria-hidden="true"/>Game Stats <strong>{latestGameUpdate ? date(latestGameUpdate, true) : "Awaiting results"}</strong></span></div>}
+    {summary && staff && summary.coachDigest && <CoachThisWeek coverage={{ players: summary.players, withResults: summary.playersWithResults }} digest={summary.coachDigest} dueFocus={dueFocus} reviewCount={[...summary.batting.rates, ...summary.pitching.rates].filter(rate => rate.pending && rate.pendingReason !== "missing").length}/>}
     {!summary ? <section className={styles.panel}><h2>Your profile is being connected</h2><p className={styles.empty}>Your administrator will link your account to the correct player profile. Your results will appear here once it is connected.</p></section> : <>
       <section aria-label="Fall game summary"><div className={styles.blockHeading}><div><p className={styles.kicker}>Competition</p><h2>{staff ? "Team Advanced Performance" : "My Advanced Performance"}</h2></div><Link prefetch={false} href="/game-stats" className={styles.panelLink}>All Game Stats<ArrowRight size={15}/></Link></div><div className={styles.gameGrid}>{(staff || summary.batting.entries > 0) && <GameSnapshot summary={summary.batting} kind="Hitting"/>}{(staff || summary.pitching.entries > 0) && <GameSnapshot summary={summary.pitching} kind="Pitching"/>}{!staff && !summary.batting.entries && !summary.pitching.entries && <p className={styles.empty}>Your game stats will appear after your first verified Fall update.</p>}</div></section>
-      <nav className={styles.quickLinks} data-staff={staff || undefined} aria-label="Home shortcuts">{actions.map(({ href, title, detail, icon: Icon }) => <Link prefetch={false} key={href} href={href}><span className={styles.actionIcon}><Icon size={18}/></span><span><strong>{title}</strong><small>{detail}</small></span><ArrowUpRight className={styles.actionArrow} size={14}/></Link>)}</nav>
+      {!staff && <nav className={styles.quickLinks} aria-label="Home shortcuts">{actions.map(({ href, title, detail, icon: Icon }) => <Link prefetch={false} key={href} href={href}><span className={styles.actionIcon}><Icon size={18}/></span><span><strong>{title}</strong><small>{detail}</small></span><ArrowUpRight className={styles.actionArrow} size={14}/></Link>)}</nav>}
       {weeklyPlan}
       {summary.visitDigest && visit && <DashboardVisit visit={visit} digest={summary.visitDigest} staff={staff} athleteId={athleteId}/>}
-      {staff && summary.coachDigest && <CoachThisWeek digest={summary.coachDigest} dueFocus={dueFocus} reviewCount={[...summary.batting.rates, ...summary.pitching.rates].filter(rate => rate.pending && rate.pendingReason !== "missing").length}/>}
-      <section aria-label="Featured team leaderboards"><div className={styles.blockHeading}><div><p className={styles.kicker}>Around the Team</p><h2>Performance Leaders</h2></div><Link prefetch={false} href="/leaderboards" className={styles.panelLink}>All Leaderboards<ArrowRight size={15}/></Link></div>{leaderboards.length ? <div className={styles.rankGrid}>{leaderboards.map(board => <HomeRankCard board={board} key={board.key}/>)}</div> : <div className={styles.rankEmpty}><Trophy size={23} aria-hidden="true"/><p>Team rankings will appear when Fall results are saved.</p></div>}</section>
-      {staff && <WeeklySourceStatus statuses={sourceStatus}/>}
-      <div className={styles.mainGrid}>
+      <div className={styles.homeColumns}>
+        <div className={styles.attention} aria-label="Needs attention">
+        {staff && <WeeklySourceStatus statuses={sourceStatus}/>}
         <ResultsCoverage summary={summary} staff={staff} profile={profile}/>
         <section className={styles.panel} aria-label="Recent data updates"><div className={styles.sectionTitle}><div><p className={styles.kicker}>Fresh from the Field</p><h2>Recent Updates</h2></div><Clock3 size={20} className={styles.subtleIcon}/></div>{summary.updates.length ? <ol className={styles.updates}>{summary.updates.slice(0, 3).map(update => <li key={update.key}><span className={styles.updateDot}/><div><strong>{update.label}</strong><span>{update.kind} to the dashboard</span></div><time dateTime={update.date}>{date(update.date)}</time></li>)}</ol> : <p className={styles.empty}>Updates appear when Fall measurements or game stats are saved.</p>}<div className={styles.panelFoot}><span>Most recent activity</span><Link prefetch={false} href={staff ? "/testing/changes" : profile ?? "/settings"}>{staff ? "See What Changed" : "Open My Profile"}<ArrowRight size={14}/></Link></div></section>
+        </div>
+        <div className={styles.leadersColumn}>
+      <section aria-label="Featured team leaderboards"><div className={styles.blockHeading}><div><p className={styles.kicker}>Around the Team</p><h2>Performance Leaders</h2></div><Link prefetch={false} href="/leaderboards" className={styles.panelLink}>All Leaderboards<ArrowRight size={15}/></Link></div>{leaderboards.length ? <div className={styles.rankGrid}>{leaderboards.map(board => <HomeRankCard board={board} key={board.key} headshots={headshots}/>)}</div> : <div className={styles.rankEmpty}><Trophy size={23} aria-hidden="true"/><p>Team rankings will appear when Fall results are saved.</p></div>}</section>
+        </div>
       </div>
     </>}
   </div>;

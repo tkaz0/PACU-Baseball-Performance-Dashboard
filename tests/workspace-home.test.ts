@@ -17,6 +17,7 @@ vi.mock("@/lib/personal-dashboard-server", () => ({ loadDashboardVisit: async ()
 vi.mock("@/app/(workspace)/overview/visit-actions", () => ({ recordDashboardVisit: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw new Error(`REDIRECT:${path}`); }, usePathname: () => "/roster",useRouter:()=>({refresh:vi.fn()}) }));
 vi.mock("next/link", () => ({ default: ({ href, children, ...props }: { href: string; children: ReactNode }) => createElement("a", { href, ...props }, children) }));
+vi.mock("@/lib/headshots-server", () => ({ loadTeamHeadshots: async () => new Map(), loadAthleteHeadshot: async () => null }));
 import Overview from "@/app/(workspace)/overview/page";
 import { Sidebar } from "@/components/sidebar";
 import { AccessPreviewNotice } from "@/components/access-preview-notice";
@@ -38,7 +39,8 @@ describe("role-aware dashboard landing", () => {
     expect(fake.due).toHaveBeenCalledTimes(role==="player"?0:1);
     expect(fake.status).toHaveBeenCalledTimes(role==="player"?0:1);
     if(role==="player")expect(fake.rpc).toHaveBeenCalledExactlyOnceWith("athlete_development_plans",{p_athlete_id:athleteId});else expect(fake.rpc).not.toHaveBeenCalled();
-    expect(html.includes('href="/imports"')).toBe(role!=="player");expect(html).toContain('href="/swing-design"');expect(html.includes('href="/pitch-design"')).toBe(role!=="player");expect(fake.from).not.toHaveBeenCalled();
+    // Staff use the sidebar for tools; only players keep Home shortcut tiles.
+    expect(html.includes('aria-label="Home shortcuts"')).toBe(role==="player");expect(html).not.toContain('href="/imports"');expect(html.includes('href="/swing-design"')).toBe(role==="player");expect(html).not.toContain('href="/pitch-design"');expect(fake.from).not.toHaveBeenCalled();
   });
   it("keeps the connection message for an unlinked player",async()=>{
     fake.access.mockResolvedValue(access(["player"],null));fake.home.mockResolvedValue(null);
@@ -88,7 +90,7 @@ describe("workspace navigation and preview notices", () => {
   });
   it("keeps secondary staff links available in a compact disclosure", () => {
     const html = renderToStaticMarkup(createElement(Sidebar, { roles: ["admin"], athleteId: null }));
-    expect(html).toContain('<summary>More Staff Tools');
+    expect(html).toContain('<summary>Data &amp; Testing');
     expect(html).toContain('href="/testing/changes"');
     expect(html).toContain('href="/testing/coverage"');
     expect(html).toContain('<summary>Administration');

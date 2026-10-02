@@ -44,7 +44,7 @@ export function FullSwingSessionReview({ session, fileHash, assignmentStore, inc
       if (!rows.length) return null;
       return <div key={role}><h4 className="mb-2 font-semibold">{role === "Batter" ? "Hitting" : "Pitching"} · {rows.length} {rows.length === 1 ? "player" : "players"}</h4><div className="table-wrap max-h-[32rem] overflow-auto"><table><caption className="sr-only">All {role.toLowerCase()} summaries</caption><thead><tr><th>Export Player</th><th>Pitches {role === "Batter" ? "Faced" : "Thrown"}</th>{metrics.map(m => <th key={m.key}>{m.label}<span className="block text-xs font-normal">{m.unit}</span></th>)}</tr></thead><tbody>{rows.map(p => <tr key={p.identity}><th scope="row" className="whitespace-nowrap">{p.identity}</th><td>{p.eventCount}</td>{metrics.map(m => {
         const raw = p.values[m.index], count = session.samples.find(s => s.identity === p.identity && s.role === role && s.metric === m.label)?.count;
-        return <td className="tabular-nums" key={m.key}>{raw ? number(Number(raw)) : "—"}{count !== undefined && <span className="muted block text-[11px]">n={count}</span>}</td>;
+        return <td className="tabular-nums" key={m.key}>{raw ? number(Number(raw)) : "—"}{count !== undefined && <span className="muted block text-xs">n={count}</span>}</td>;
       })}</tr>)}</tbody></table></div></div>;
     })}
     {resultContext && <div className="rounded-xl border border-[var(--line-subtle)] bg-[var(--surface-panel)] p-4" aria-label="Batted-ball contact review">

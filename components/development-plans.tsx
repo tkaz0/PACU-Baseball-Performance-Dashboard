@@ -22,6 +22,11 @@ export function WeeklyDevelopmentPlans({plans,athleteId,staff,canComplete,today}
   const featured=featuredDevelopmentPlan(visible,today),others=visible.filter(plan=>plan.id!==featured?.id);
   let newWeek=week;while(visible.some(plan=>plan.weekStart===newWeek)&&newWeek<"2027-12-27")newWeek=new Date(Date.parse(`${newWeek}T12:00:00Z`)+7*86400000).toISOString().slice(0,10);
   const addId=randomUUID();
+  // Empty plans stay out of the way: hidden for players, a single compact row for staff.
+  if(!visible.length){
+    if(!staff)return null;
+    return <section className={`${styles.section} ${styles.compact}`} aria-label="Weekly development plans"><div className={styles.compactRow}><ClipboardList size={17} aria-hidden="true"/><strong>Weekly Plan</strong><span>No plan yet</span></div><details className={styles.add}><summary>Add Weekly Plan</summary><DevelopmentPlanForm key={addId} athleteId={athleteId} planId={addId} requestId={randomUUID()} weekStart={newWeek} drillIds={Array.from({length:4},()=>randomUUID())}/></details></section>;
+  }
   return <section className={styles.section} aria-label="Weekly development plans">
     <div className={styles.heading}><div className={styles.icon}><ClipboardList size={20}/></div><div><p className={styles.eyebrow}>Player Development</p><h2>Weekly Plan</h2></div>{staff&&<span className={styles.staffHint}>Coach Assigned</span>}</div>
     {featured?<PlanCard plan={featured} staff={staff} canComplete={canComplete}/>:<p className={styles.empty}>Set one focus and a few drills for the week. Share the plan when it is ready.</p>}

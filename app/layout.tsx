@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AppearanceProvider } from "@/components/appearance-provider";
 import { APPEARANCE_BOOTSTRAP_SCRIPT } from "@/lib/appearance";
+import { SIDEBAR_BOOTSTRAP_SCRIPT } from "@/lib/sidebar-preference";
 import "./globals.css";
 import "./dashboard-presentation.css";
 export const metadata: Metadata = {
@@ -9,5 +10,5 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return <html lang="en" suppressHydrationWarning><head><script dangerouslySetInnerHTML={{ __html: APPEARANCE_BOOTSTRAP_SCRIPT }} /></head><body><AppearanceProvider>{children}</AppearanceProvider></body></html>;
+  return <html lang="en" suppressHydrationWarning><head><script dangerouslySetInnerHTML={{ __html: APPEARANCE_BOOTSTRAP_SCRIPT }} /><script dangerouslySetInnerHTML={{ __html: SIDEBAR_BOOTSTRAP_SCRIPT }} /></head><body><AppearanceProvider>{children}</AppearanceProvider></body></html>;
 }

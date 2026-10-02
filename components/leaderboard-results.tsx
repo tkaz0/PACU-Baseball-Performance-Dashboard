@@ -1,3 +1,4 @@
+import { PlayerAvatar } from "@/components/player-avatar";
 import { StatInfo } from "@/components/stat-info";
 import Link from "next/link";
 import { leaderboardMetricLabel, pitchLeaderboardLabel, isPitchLeaderboardMetric, leaderboardOrderLabel, leaderboardSourceLabel, leaderboardTestDate, type LeaderboardMetricDefinition, type LeaderboardRow } from "@/lib/leaderboards";
@@ -17,22 +18,22 @@ function ResultValue({ row, metric, unit }: { row: LeaderboardRow; metric: Leade
     : <span className="break-all">{formatMetricNumber(row.value,metric.key,row.source,unit === "s" ? row.value.toFixed(2) : String(row.value))}</span>}{unit !== "ratio" && <span className={styles.unit}>{unit === "%" ? unit : `\u00a0${unit}`}</span>}</>;
 }
 
-function RankingTable({ rows, metric, unit, continued = false, tiedRanks, barMax }: { rows: LeaderboardRow[]; metric: LeaderboardMetricDefinition; unit: string; continued?: boolean; tiedRanks: ReadonlySet<number>; barMax?: number }) {
+function RankingTable({ rows, metric, unit, continued = false, tiedRanks, barMax, headshots = {} }: { rows: LeaderboardRow[]; metric: LeaderboardMetricDefinition; unit: string; continued?: boolean; tiedRanks: ReadonlySet<number>; barMax?: number; headshots?: Readonly<Record<string, string>> }) {
   return <div className={styles.tableWrap}><table>
     <caption className="sr-only">{leaderboardMetricLabel(metric)} team results{continued ? ", continued" : ""}; recorded in {unit}</caption>
     <thead><tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col">Result</th></tr></thead>
     <tbody>{rows.map(row => <tr key={row.athleteCode} className={row.rank === 1 ? styles.leading : undefined}>
       <td><span aria-label={`${tiedRanks.has(row.rank) ? "Tied for rank" : "Rank"} ${row.rank}`} title={tiedRanks.has(row.rank) ? `Tied for rank ${row.rank}` : undefined} className={`${styles.rank} ${row.rank === 1 ? styles.first : ""}`}>{row.rank}</span></td>
-      <th scope="row"><span className={styles.player}>{row.profileId ? <Link href={`/athletes/${row.profileId}`} prefetch={false}>{row.name}</Link> : row.name}</span>
+      <th scope="row"><div className={styles.playerCell}><PlayerAvatar name={row.name} path={headshots[row.athleteCode]} size={row.rank <= 3 && !continued ? 38 : 32}/><div className="min-w-0 flex-1"><span className={styles.player}>{row.profileId ? <Link href={`/athletes/${row.profileId}`} prefetch={false}>{row.name}</Link> : row.name}</span>
         <span className={styles.playerMeta}>{row.jerseyNumber !== null ? `#${row.jerseyNumber}` : row.athleteCode}{row.position ? ` · ${row.position}` : ""}<span className={styles.date}><time dateTime={row.measuredAt}>{leaderboardTestDate(row.measuredAt)}</time></span></span>
         {barMax !== undefined && <span aria-hidden="true" className={styles.barTrack}><span className={unit === "rpm" ? styles.spinBar : styles.valueBar} style={{ width: `${barMax > 0 ? Math.max(0, Math.min(100, row.value / barMax * 100)) : 0}%` }} /></span>}
-      </th>
+      </div></div></th>
       <td className={styles.result}><ResultValue row={row} metric={metric} unit={unit} />{fallAverageKeys.has(metric.key) && row.source.startsWith("full swing") ? <span className={row.derived ? styles.resultContext : styles.latestContext} title={row.derived ? "Average across Fall sessions, weighted by verified reading counts." : "A count could not be verified for every Fall session. This is the latest session’s average."}>{row.derived ? "Fall average" : "Latest session"}</span> : null}{row.sampleCount && row.sampleUnit ? <span className={styles.sample}>{row.sampleCount} {row.sampleCount === 1 ? { swings: "swing", pitches: "pitch", trials: "trial" }[row.sampleUnit] : row.sampleUnit}</span> : row.source.startsWith("full swing") ? <span className={styles.sample} title="The original reading count has not been verified.">Count pending</span> : null}</td>
     </tr>)}</tbody>
   </table></div>;
 }
 
-export function LeaderboardResults({ rows, teamRows = rows, metric, unit, source, period }: { rows: LeaderboardRow[]; teamRows?: LeaderboardRow[]; metric: LeaderboardMetricDefinition; unit: string; source?: string; period?: PlayerPerformancePeriod }) {
+export function LeaderboardResults({ rows, teamRows = rows, metric, unit, source, period, headshots = {} }: { rows: LeaderboardRow[]; teamRows?: LeaderboardRow[]; headshots?: Readonly<Record<string, string>>; metric: LeaderboardMetricDefinition; unit: string; source?: string; period?: PlayerPerformancePeriod }) {
   // The extended leaderboard response is deployed with the Fall-best database migration.
   // Keep the heading accurate while an older database response is still active.
   const fallBestActive = isFallBestMetric(metric.key) && rows.length > 0 && "sampleCount" in rows[0];
@@ -51,7 +52,7 @@ export function LeaderboardResults({ rows, teamRows = rows, metric, unit, source
       {mixedAverages && <p className={styles.contextNote}>Latest-session results are marked below.</p>}
     </header>
     <LeaderboardAverage basis={isFallBestMetric(metric.key) || isTimedMetric(metric.key) ? "best" : fallAverageKeys.has(metric.key) ? "average" : "result"} values={teamRows.map(row => row.value)} label={leaderboardMetricLabel(metric)} format={value => metric.key === "height" ? formatHeight(value, unit) ?? String(value) : `${formatMetricNumber(value, metric.key, source, value.toLocaleString("en-US", { maximumFractionDigits: unit === "s" ? 2 : 1 }))}${unit === "ratio" ? "" : unit === "%" ? "%" : ` ${unit === "score" ? "pts" : unit}`}`} />
-    {rows.length ? <><RankingTable rows={rows.slice(0, 5)} metric={metric} unit={unit} tiedRanks={tiedRanks} barMax={barMax} />{rows.length > 5 && <details className={styles.more}><summary>Show {rows.length - 5} More</summary><RankingTable rows={rows.slice(5)} metric={metric} unit={unit} tiedRanks={tiedRanks} barMax={barMax} continued /></details>}</>
+    {rows.length ? <><RankingTable rows={rows.slice(0, 5)} metric={metric} unit={unit} tiedRanks={tiedRanks} barMax={barMax} headshots={headshots} />{rows.length > 5 && <details className={styles.more}><summary>Show {rows.length - 5} More</summary><RankingTable rows={rows.slice(5)} metric={metric} unit={unit} tiedRanks={tiedRanks} barMax={barMax} headshots={headshots} continued /></details>}</>
       : <p className="muted m-0 p-6 text-sm">{teamRows.length ? "No matching players on this board." : "Results will appear after testing data is added."}</p>}
   </section>;
 }

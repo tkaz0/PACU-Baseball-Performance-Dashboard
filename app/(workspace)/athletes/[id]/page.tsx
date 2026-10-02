@@ -39,6 +39,7 @@ import { getPlayerPerformance, normalizePlayerMetric, PLAYER_METRICS } from "@/l
 import { getRenphoReports } from "@/lib/renpho-charts";
 import { RenphoCharts } from "@/components/renpho-charts";
 import { PlayerPerformanceProfile } from "@/components/player-performance-profile";
+import { loadAthleteHeadshot } from "@/lib/headshots-server";
 import { profileMeasurementVisible, profileShowsHitting, profileShowsPitching } from "@/lib/player-profile-layout";
 
 export default async function Profile({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ preview?: string; focus?: string; goal?: string }> }) {
@@ -59,7 +60,7 @@ export default async function Profile({ params, searchParams }: { params: Promis
   const today = pacificTestingDate();
   const videoActions = { prepare: prepareSwingVideo, finish: finishSwingVideo, play: playSwingVideo };
   // Independent readers start together after the exact player passes live authorization.
-  const [gameLogs, gameStats, gameComparisons, shared, teamAverages, movement, contacts, focusItems, goals, videos, developmentPlans, annotations, blockCounts] = await Promise.all([
+  const [gameLogs, gameStats, gameComparisons, shared, teamAverages, movement, contacts, focusItems, goals, videos, developmentPlans, annotations, blockCounts, headshot] = await Promise.all([
     staff ? loadGameLogs(access, athlete.id) : Promise.resolve([]),
     loadGameStats(access, athlete.id), loadGameComparisons(access, athlete.id),
     loadAthletePerformance(access,athlete), showHitting ? loadHittingTeamAverages(access) : Promise.resolve([]),
@@ -67,6 +68,7 @@ export default async function Profile({ params, searchParams }: { params: Promis
     showHitting ? loadFullSwingContacts(access,athlete.id) : Promise.resolve([]), loadCoachFocusItems(access,athlete.id), loadPlayerGoals(access,athlete.id),
     showHitting ? loadSwingVideos(access,athlete.id).catch(()=>null) : Promise.resolve([]),
     loadDevelopmentPlans(access,athlete.id).catch(()=>null), loadTrendAnnotations(access,athlete.id).catch(()=>null), loadTrainingBlockCounts(access,athlete.id).catch(()=>null),
+    loadAthleteHeadshot(access,athlete.id),
   ]);
   const performance = getPlayerPerformance({ readings:shared.measurements, batches:shared.batches, athleteCode:athlete.athlete_code, cohortAthleteCodes:[], percentileOverrides:shared.percentileOverrides });
   const readings = shared.measurements.filter(reading => {
@@ -80,6 +82,7 @@ export default async function Profile({ params, searchParams }: { params: Promis
     <AccessPreviewNotice status={query?.preview} isPreview={!!access.preview} />
     {staff && <Link href="/roster" className="profile-back"><ArrowLeft size={15} />Team Roster</Link>}
     <PlayerPerformanceProfile
+      headshot={headshot}
       developmentPlan={developmentPlans ? <WeeklyDevelopmentPlans plans={developmentPlans} athleteId={athlete.id} staff={canImportPresentedAccess(access)} canComplete={canCompleteDevelopmentPlan(access,athlete.id)} today={today}/> : <p role="status" className="muted text-sm">Weekly plans are temporarily unavailable. Refresh to try again.</p>}
       trainingBlocks={<>{blockCounts===null&&<p role="status" className="muted text-sm">Swing counts are temporarily unavailable. Some session averages cannot be compared yet.</p>}<TrainingBlockComparison series={buildTrainingBlockSeries(readings,{athleteCode:athlete.athlete_code,showHitting,showPitching:profileShowsPitching(season),today,readingCounts:blockCounts??[]})}/></>}
       trendAnnotations={annotations ?? []}

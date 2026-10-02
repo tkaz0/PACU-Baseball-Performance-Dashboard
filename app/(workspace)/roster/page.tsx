@@ -7,6 +7,7 @@ import { StaffAthleteSearch } from "@/components/staff-athlete-search";
 import { matchesStaffAthlete, staffAthleteChoice } from "@/lib/staff-athlete-search";
 import { AccessPreviewNotice } from "@/components/access-preview-notice";
 import styles from "@/components/roster-presentation.module.css";
+import { loadTeamHeadshots } from "@/lib/headshots-server";
 const POSITION_FILTERS = [
   { key: "all", label: "All Positions", match: () => true },
   { key: "pitchers", label: "Pitchers", match: (p: string) => p === "P" },
@@ -18,7 +19,8 @@ const SORTS = [{ key: "name", label: "Last Name" }, { key: "jersey", label: "Jer
 const POSITION_ORDER = ["P", "C", "1B", "2B", "3B", "SS", "IF", "LF", "CF", "RF", "OF", ""];
 const CLASS_ORDER = ["freshman", "sophomore", "junior", "senior", "graduate", ""];
 export default async function Roster({ searchParams }: { searchParams: Promise<{ season?: string; q?: string; preview?: string; pos?: string; sort?: string }> }) {
-  const { supabase, roles, athleteId, preview } = await requireAccess();
+  const access = await requireAccess();
+  const { supabase, roles, athleteId, preview } = access;
   if (!roles.includes("admin") && !roles.includes("coach")) redirect(athleteId ? `/athletes/${athleteId}` : "/overview");
   const params = await searchParams;
   const { data, error } = await supabase.from("athletes").select("id,athlete_code,first_name,preferred_name,last_name,athlete_seasons(season,jersey_number,primary_position,academic_class)").order("last_name").limit(1000);
@@ -48,7 +50,7 @@ export default async function Roster({ searchParams }: { searchParams: Promise<{
       <button className="btn btn-secondary">Apply</button>
       <p className={styles.count}><strong>{athletes.length}</strong>{athletes.length !== seasonal.length ? ` of ${seasonal.length}` : ""} {athletes.length === 1 ? "player" : "players"}</p>
     </form>
-    <RosterTable athletes={athletes} season={season} />
+    <RosterTable athletes={athletes} season={season} headshots={Object.fromEntries(await loadTeamHeadshots(access))} />
     {all.length === 1000 && <p className="notice mt-4">Showing the first 1,000 identities. Narrow your search to find a player.</p>}
   </>;
 }

@@ -3,7 +3,7 @@
 .tabs { display:flex; flex-wrap:wrap; gap:4px; padding:4px; border:1px solid var(--line-subtle); border-radius:10px; width:fit-content; background:var(--surface-panel); }
 .tabs button { background:transparent; border:0; border-radius:7px; padding:10px 14px; color:var(--text-secondary); font-size:13px; font-weight:700; cursor:pointer; }
 .tabs button[aria-pressed=true] { color:white; background:#a82032; }
-.field { display:grid; gap:6px; font-size:11px; font-weight:700; color:var(--text-secondary); min-width:0; }
+.field { display:grid; gap:6px; font-size:12px; font-weight:700; color:var(--text-secondary); min-width:0; }
 .field select,.field input { width:100%; min-height:42px; border:1px solid var(--line-subtle); border-radius:8px; padding:8px 12px; font-size:13px; color:var(--text-primary); background:var(--surface-panel); }
 .metricField { flex:1; min-width:220px; max-width:540px; }
 .summary { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); border:1px solid var(--line-subtle); border-radius:12px; overflow:hidden; background:var(--surface-panel); }
@@ -11,11 +11,11 @@
 .summary div { padding:16px 20px; border-left:1px solid var(--line-subtle); }
 .summary div:first-child { border-left:0; }
 .summary strong { display:block; font-size:26px; line-height:1.2; font-variant-numeric:tabular-nums; }
-.summary span { display:block; font-size:11px; margin-top:5px; color:var(--text-secondary); }
+.summary span { display:block; font-size:12px; margin-top:5px; color:var(--text-secondary); }
 .panel { min-width:0; border:1px solid var(--line-subtle); background:var(--surface-panel); border-radius:12px; overflow:hidden; }
 .panelHead { padding:18px 20px; border-bottom:1px solid var(--line-subtle); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
 .panelHead h2 { font-size:15px; margin:0; }
-.meta { color:var(--text-secondary); font-size:11px; line-height:1.6; margin:3px 0 0; overflow-wrap:anywhere; }
+.meta { color:var(--text-secondary); font-size:12px; line-height:1.6; margin:3px 0 0; overflow-wrap:anywhere; }
 .row { display:grid; grid-template-columns:minmax(140px,1fr) minmax(140px,1fr) minmax(100px,1fr) 85px; align-items:center; gap:12px 20px; padding:13px 20px; border-bottom:1px solid var(--line-subtle); }
 .row:last-child { border-bottom:0; }
 .name { color:var(--text-primary); text-decoration:none; font-weight:700; font-size:13px; }
@@ -57,7 +57,7 @@
 :global(html[data-theme="dark"]) .b { color:#85bbf0; }
 
 .picker { position:relative; min-width:0; }
-.pickerLabel { display:block; margin-bottom:6px; font-size:11px; font-weight:700; color:var(--text-secondary); }
+.pickerLabel { display:block; margin-bottom:6px; font-size:12px; font-weight:700; color:var(--text-secondary); }
 .pickerTrigger { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; min-height:44px; border:1px solid var(--line-subtle); border-radius:8px; background:var(--surface-raised); padding:10px 12px; text-align:left; color:var(--text-primary); font-size:14px; font-weight:700; cursor:pointer; }
 .pickerTrigger span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .pickerTrigger svg { flex-shrink:0; }
@@ -65,13 +65,13 @@
 .pickerSearch { display:flex; align-items:center; gap:8px; border:1px solid var(--line-subtle); background:var(--surface-raised); padding:0 10px; border-radius:6px; }
 .pickerSearch svg { color:var(--text-secondary); flex-shrink:0; }
 .pickerSearch input { width:100%; min-width:0; margin:0; min-height:42px; border:0!important; background:transparent; padding:8px 0; color:var(--text-primary); font-size:13px; }
-.pickerCount { margin:8px 8px; font-size:11px; color:var(--text-secondary); }
+.pickerCount { margin:8px 8px; font-size:12px; color:var(--text-secondary); }
 .pickerList { max-height:min(280px,40svh); overflow-y:auto; overscroll-behavior:contain; }
 .pickerList button { display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; padding:10px; min-height:54px; text-align:left; border:0; border-radius:6px; background:transparent; color:var(--text-primary); cursor:pointer; }
 .pickerList button:hover,.pickerList button[data-active=true] { background:var(--surface-raised); }
 .pickerList button[aria-selected=true] { color:var(--accent-readable); }
 .pickerList strong { display:block; font-size:13px; font-weight:700; }
-.pickerList small { display:block; margin-top:3px; font-size:10px; color:var(--text-secondary); }
+.pickerList small { display:block; margin-top:3px; font-size:11.5px; color:var(--text-secondary); }
 .pickerEmpty { padding:8px; font-size:12px; color:var(--text-secondary); line-height:1.6; }
 .pickerTrigger:focus-visible,.pickerList button:focus-visible,.tabs button:focus-visible { outline:2px solid var(--accent-readable); outline-offset:3px; }
 
@@ -83,34 +83,34 @@
 .compareValue { min-width:0; padding:10px 6px; border-radius:8px; }
 .compareValue strong { font-size:23px; font-variant-numeric:tabular-nums; }
 .compareLabel h3 { margin:0; font-size:13px; }
-.compareNote { margin:5px 0 0; font-size:10px; color:var(--text-secondary); }
+.compareNote { margin:5px 0 0; font-size:11.5px; color:var(--text-secondary); }
 .leading { background:color-mix(in srgb,var(--accent-readable) 9%,transparent); box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent-readable) 22%,transparent); }
-.leadBadge { display:block; margin-top:5px; color:var(--accent-readable); font-size:10px; font-weight:750; text-transform:uppercase; letter-spacing:.06em; }
-@media(max-width:700px){.players{grid-template-columns:1fr 1fr;gap:8px}.player{padding:10px}.player .name{font-size:13px}.compareHead,.compareRow{grid-template-columns:minmax(0,1fr) minmax(100px,1.1fr) minmax(0,1fr);gap:6px}.compareRow{padding:8px 4px}.compareValue strong{font-size:18px}.compareLabel h3{font-size:12px}.compareHead{font-size:11px}.compareValue .meta{font-size:10px}}
+.leadBadge { display:block; margin-top:5px; color:var(--accent-readable); font-size:11.5px; font-weight:750; text-transform:uppercase; letter-spacing:.06em; }
+@media(max-width:700px){.players{grid-template-columns:1fr 1fr;gap:8px}.player{padding:10px}.player .name{font-size:13px}.compareHead,.compareRow{grid-template-columns:minmax(0,1fr) minmax(100px,1.1fr) minmax(0,1fr);gap:6px}.compareRow{padding:8px 4px}.compareValue strong{font-size:18px}.compareLabel h3{font-size:12px}.compareHead{font-size:12px}.compareValue .meta{font-size:11.5px}}
 
 .arsenalComparison{display:grid;gap:18px;min-width:0}
 .arsenalHeading{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 20px;padding:4px 0}
-.arsenalEyebrow{font-size:10px;font-weight:800;letter-spacing:.13em;color:var(--accent-readable)}
+.arsenalEyebrow{font-size:11.5px;font-weight:800;letter-spacing:.13em;color:var(--accent-readable)}
 .arsenalHeading h2{font-size:26px;letter-spacing:-.035em;margin:6px 0 2px}
 .arsenalContext{min-width:0;border:1px solid var(--line-subtle);border-radius:14px;overflow:hidden;background:var(--surface-panel)}
 .arsenalContext>h3{margin:0;padding:14px 18px;background:var(--surface-raised);font-size:13px;letter-spacing:.015em;border-bottom:1px solid var(--line-subtle)}
 .arsenalPlayerHead,.arsenalRow{display:grid;grid-template-columns:minmax(0,1fr) minmax(125px,.85fr) minmax(0,1fr);align-items:center;text-align:center;gap:12px;padding:10px 16px}
 .arsenalPlayerHead{font-size:12px;font-weight:800;border-bottom:1px solid var(--line-subtle)}
 .arsenalPlayerHead>span{min-width:0;overflow-wrap:anywhere}
-.arsenalPlayerHead>span:nth-child(2){color:var(--text-secondary);font-size:10px;font-weight:600}
+.arsenalPlayerHead>span:nth-child(2){color:var(--text-secondary);font-size:11.5px;font-weight:600}
 .arsenalPitch>header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px 10px;border-top:1px solid var(--line-subtle)}
 .arsenalPitch:first-of-type>header{border-top:0}
 .arsenalPitch>header strong{font-size:15px;font-weight:800;letter-spacing:-.015em}
-.arsenalPitch>header span{color:var(--text-secondary);font-size:10px}
+.arsenalPitch>header span{color:var(--text-secondary);font-size:11.5px}
 .arsenalRow{border-top:1px solid color-mix(in srgb,var(--line-subtle) 55%,transparent);padding-top:9px;padding-bottom:9px}
 .arsenalRow:nth-child(even){background:color-mix(in srgb,var(--surface-raised) 30%,transparent)}
 .arsenalRow h4{font-size:12px;line-height:1.4;margin:0}
-.arsenalRow .compareNote{font-size:10px;line-height:1.5}
+.arsenalRow .compareNote{font-size:11.5px;line-height:1.5}
 .arsenalValue{min-width:0;border-radius:8px;padding:9px 10px}
 .arsenalValue>strong{display:block;font-size:21px;font-variant-numeric:tabular-nums;letter-spacing:-.035em;white-space:nowrap}
-.arsenalValue .meta{font-size:10px;line-height:1.6;margin-top:7px}
+.arsenalValue .meta{font-size:11.5px;line-height:1.6;margin-top:7px}
 .arsenalBar{height:4px;max-width:180px;margin:8px auto 0;background:var(--surface-raised);border-radius:4px;overflow:hidden;text-align:left}
 .arsenalBar i{height:100%;display:block;background:currentColor;border-radius:4px}
 .arsenalHigher{font-weight:800;color:var(--accent-readable)}
-@media(max-width:700px){.arsenalHeading{display:block}.arsenalHeading>p{margin-top:8px}.arsenalHeading h2{font-size:23px}.arsenalPlayerHead,.arsenalRow{grid-template-columns:minmax(0,1fr) minmax(90px,.7fr) minmax(0,1fr);gap:4px;padding-left:5px;padding-right:5px}.arsenalValue{padding:8px 4px}.arsenalValue>strong{font-size:17px}.arsenalValue .meta{font-size:9px}.arsenalRow h4{font-size:11px}.arsenalRow .compareNote{font-size:9px}.arsenalPitch>header{padding:12px}.arsenalPlayerHead{font-size:11px}}
-@media(max-width:390px){.arsenalValue>strong{font-size:15px}.arsenalPlayerHead,.arsenalRow{grid-template-columns:minmax(0,1fr) 80px minmax(0,1fr)}.arsenalPitch>header span{font-size:9px}}
+@media(max-width:700px){.arsenalHeading{display:block}.arsenalHeading>p{margin-top:8px}.arsenalHeading h2{font-size:23px}.arsenalPlayerHead,.arsenalRow{grid-template-columns:minmax(0,1fr) minmax(90px,.7fr) minmax(0,1fr);gap:4px;padding-left:5px;padding-right:5px}.arsenalValue{padding:8px 4px}.arsenalValue>strong{font-size:17px}.arsenalValue .meta{font-size:11px}.arsenalRow h4{font-size:12px}.arsenalRow .compareNote{font-size:11px}.arsenalPitch>header{padding:12px}.arsenalPlayerHead{font-size:12px}}
+@media(max-width:390px){.arsenalValue>strong{font-size:15px}.arsenalPlayerHead,.arsenalRow{grid-template-columns:minmax(0,1fr) 80px minmax(0,1fr)}.arsenalPitch>header span{font-size:11px}}

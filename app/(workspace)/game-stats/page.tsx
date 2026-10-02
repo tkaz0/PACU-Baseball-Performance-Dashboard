@@ -1,3 +1,4 @@
+import { ScaleLegend } from "@/components/charts/scale-legend";
 import Link from "next/link";
 import { requireAccess } from "@/lib/auth";
 import { canImportPresentedAccess } from "@/lib/access-preview";
@@ -18,7 +19,7 @@ export default async function GameStatsPage() {
       if (error) throw new Error("Game roster could not be loaded.");
       names = new Map((data ?? []).map(a => [a.id, `${a.first_name} ${a.last_name}`]));
     }
-    return <><PageHeading section="Pacific Baseball / Competition" title="Team Game Stats" description="Fall 2026 · Cumulative hitting and pitching."><Link href="/game-stats/review" className="btn btn-secondary">Data Review</Link></PageHeading><TeamGameStats stats={stats} names={names}/></>;
+    return <><PageHeading section="Pacific Baseball / Competition" title="Team Game Stats" description="Fall 2026 · Cumulative hitting and pitching."><Link href="/game-stats/review" className="btn btn-secondary">Data Review</Link></PageHeading><div className="mb-5"><ScaleLegend low="Poor" high="Elite" note="Bands compare the team with 2025 Northwest Conference teams. Red marks the top band, as on Baseball Savant."/></div><TeamGameStats stats={stats} names={names}/></>;
   }
 
   // Player View follows the presented athlete even when the real account is an Admin.

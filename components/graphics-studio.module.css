@@ -2,11 +2,11 @@
 .workspace{display:grid;grid-template-columns:280px minmax(0,1fr);align-items:start;gap:24px;min-width:0}
 .controls{display:grid;gap:19px;min-width:0;padding:23px;background:var(--surface-panel);border:1px solid var(--line-subtle);border-radius:16px}
 .controls>header{display:grid;gap:7px;margin-bottom:2px}
-.eyebrow{font-size:9px;line-height:1.4;font-weight:800;letter-spacing:.15em;color:var(--accent-readable)}
+.eyebrow{font-size:11px;line-height:1.4;font-weight:800;letter-spacing:.15em;color:var(--accent-readable)}
 .controls h2,.previewHeading h2{font-size:17px;line-height:1.3;letter-spacing:-.035em;font-weight:800;margin:0;color:var(--text-primary)}
-.field{display:grid;gap:8px;min-width:0;font-size:11px;font-weight:750;color:var(--text-secondary)}
+.field{display:grid;gap:8px;min-width:0;font-size:12px;font-weight:750;color:var(--text-secondary)}
 .field input,.field select{min-width:0;max-width:100%;width:100%;height:43px;border-radius:8px;border:1px solid var(--line-subtle);background:var(--surface-raised);color:var(--text-primary);padding:9px 11px;margin:0;font-size:12px;font-weight:550}
-.controlLabel{display:block;font-size:11px;font-weight:750;color:var(--text-secondary);line-height:1.5}
+.controlLabel{display:block;font-size:12px;font-weight:750;color:var(--text-secondary);line-height:1.5}
 .playerPicker{position:relative;display:grid;gap:8px;min-width:0}
 .playerInput{display:flex;align-items:center;gap:8px;height:43px;border:1px solid var(--line-subtle);border-radius:8px;background:var(--surface-raised);padding:0 10px;color:var(--text-secondary)}
 .playerInput:focus-within{outline:2px solid var(--accent-readable);outline-offset:2px}
@@ -24,7 +24,7 @@
 .formats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
 .formats button{display:grid;justify-items:center;gap:6px;padding:13px 5px 10px;min-height:91px;border:1px solid var(--line-subtle);border-radius:9px;background:transparent;color:var(--text-primary);cursor:pointer}
 .formats button[aria-pressed=true]{border-color:var(--accent-readable);background:color-mix(in srgb,var(--accent-readable) 7%,var(--surface-panel));box-shadow:inset 0 0 0 1px var(--accent-readable)}
-.formats strong{font-size:10px;line-height:1.3;font-weight:750}.formats small{font-size:9px;color:var(--text-secondary);line-height:1}
+.formats strong{font-size:11.5px;line-height:1.3;font-weight:750}.formats small{font-size:11px;color:var(--text-secondary);line-height:1}
 .formatShape{display:block;border:1.5px solid var(--text-secondary);border-radius:3px;align-self:center}
 .formats button[aria-pressed=true] .formatShape{border-color:var(--accent-readable);background:color-mix(in srgb,var(--accent-readable) 12%,transparent)}
 .portrait{width:20px;height:25px}.story{width:15px;height:27px}.landscape{width:28px;height:16px}
@@ -34,34 +34,34 @@
 .customize>summary::after{content:'+';margin-left:auto;font-size:16px;font-weight:500}.customize[open]>summary::after{content:'−'}
 .customFields{display:grid;gap:14px;padding-top:18px;min-width:0}
 .themes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-top:-4px}
-.themes button{display:flex;align-items:center;justify-content:center;gap:5px;min-height:38px;padding:6px 4px;border:1px solid var(--line-subtle);border-radius:7px;background:transparent;color:var(--text-primary);font-size:10px;cursor:pointer}
+.themes button{display:flex;align-items:center;justify-content:center;gap:5px;min-height:38px;padding:6px 4px;border:1px solid var(--line-subtle);border-radius:7px;background:transparent;color:var(--text-primary);font-size:11.5px;cursor:pointer}
 .themes button[aria-pressed=true]{border-color:var(--accent-readable)}
 .themes button>span{width:13px;height:13px;border-radius:50%;border:1px solid #8886;flex-shrink:0}.themes button>svg{display:none}
 .black{background:#131519}.red{background:#b51217}.cream{background:#f4efdf}
 .metricOptions{margin:0;border:0;padding:3px 0 0;min-width:0;display:grid;gap:1px;max-height:250px;overflow:auto}
-.metricOptions legend{display:block;width:100%;padding:0 0 8px;font-size:11px;font-weight:750;color:var(--text-secondary)}.metricOptions legend span{float:right;font-weight:500}
-.metricOptions label{display:flex!important;align-items:center;gap:8px;font-size:11px;padding:7px 0;color:var(--text-primary);line-height:1.5;font-weight:500;cursor:pointer}
+.metricOptions legend{display:block;width:100%;padding:0 0 8px;font-size:12px;font-weight:750;color:var(--text-secondary)}.metricOptions legend span{float:right;font-weight:500}
+.metricOptions label{display:flex!important;align-items:center;gap:8px;font-size:12px;padding:7px 0;color:var(--text-primary);line-height:1.5;font-weight:500;cursor:pointer}
 .metricOptions input{width:15px;height:15px;min-height:0;margin:0;padding:0;accent-color:var(--accent-readable);flex-shrink:0}
-.squareOption{display:flex;justify-content:space-between;align-items:center;min-height:38px;border:1px solid var(--line-subtle);border-radius:7px;background:transparent;color:var(--text-secondary);padding:8px 10px;font-size:11px;cursor:pointer}
+.squareOption{display:flex;justify-content:space-between;align-items:center;min-height:38px;border:1px solid var(--line-subtle);border-radius:7px;background:transparent;color:var(--text-secondary);padding:8px 10px;font-size:12px;cursor:pointer}
 .squareOption[aria-pressed=true]{border-color:var(--accent-readable);color:var(--text-primary)}
-.textButton{display:flex;align-items:center;gap:7px;padding:5px 0;border:0;background:none;color:var(--text-secondary);font-size:11px;cursor:pointer}.textButton:disabled{opacity:.4;cursor:default}
+.textButton{display:flex;align-items:center;gap:7px;padding:5px 0;border:0;background:none;color:var(--text-secondary);font-size:12px;cursor:pointer}.textButton:disabled{opacity:.4;cursor:default}
 .caption{border-top:1px solid var(--line-subtle);padding-top:15px;margin-top:-3px}
-.caption summary{font-size:10px;cursor:pointer;color:var(--text-secondary);font-weight:600}
-.caption textarea{width:100%;margin:12px 0 0;resize:vertical;border:1px solid var(--line-subtle);border-radius:7px;background:var(--surface-raised);color:var(--text-primary);font-size:11px;line-height:1.6;padding:10px}
+.caption summary{font-size:11.5px;cursor:pointer;color:var(--text-secondary);font-weight:600}
+.caption textarea{width:100%;margin:12px 0 0;resize:vertical;border:1px solid var(--line-subtle);border-radius:7px;background:var(--surface-raised);color:var(--text-primary);font-size:12px;line-height:1.6;padding:10px}
 .fullDetails{margin-top:12px}
 .previewPanel{min-width:0;border:1px solid var(--line-subtle);border-radius:16px;overflow:hidden;background:var(--surface-panel)}
 .previewHeading{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:17px 22px;border-bottom:1px solid var(--line-subtle)}
-.previewHeading>div:not(.exportBar){display:grid;gap:5px}.previewHeading h2{font-size:15px}.dimensions{color:var(--text-secondary);font-size:10px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.previewHeading>div:not(.exportBar){display:grid;gap:5px}.previewHeading h2{font-size:15px}.dimensions{color:var(--text-secondary);font-size:11.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
 .previewStage{min-width:0;min-height:400px;display:grid;place-items:center;padding:24px;background-color:var(--surface-raised);background-image:radial-gradient(var(--line-subtle) 1px,transparent 1px);background-size:14px 14px;overflow:hidden}
 .previewImage{display:block;width:auto;max-width:100%;height:auto;max-height:min(760px,calc(100dvh - 260px));min-height:300px;object-fit:contain;filter:drop-shadow(0 10px 22px #0003)}
 .exportBar{display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-shrink:0}
 .exportBar>button{min-height:39px!important;min-width:130px;font-size:12px!important}
-.status{margin:0;font-size:11px;line-height:1.5;color:var(--text-secondary);text-align:center}.status:not(:empty){padding:10px 16px;border-bottom:1px solid var(--line-subtle)}
+.status{margin:0;font-size:12px;line-height:1.5;color:var(--text-secondary);text-align:center}.status:not(:empty){padding:10px 16px;border-bottom:1px solid var(--line-subtle)}
 .empty{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:15px;min-height:350px;padding:25px;color:var(--text-secondary);text-align:center}
 .empty svg{color:var(--accent-readable)}.empty strong{font-size:19px;color:var(--text-primary);letter-spacing:-.02em}.empty p{font-size:12px;line-height:1.7;max-width:300px;margin:0}
 .spin{animation:rotate 1s linear infinite}@keyframes rotate{to{transform:rotate(360deg)}}
 .studio button:focus-visible,.studio summary:focus-visible{outline:2px solid var(--accent-readable);outline-offset:3px}
 @media(min-width:1500px){.workspace{grid-template-columns:310px minmax(0,1fr)}.previewStage{min-height:520px}}
 @media(max-width:1000px){.workspace{grid-template-columns:245px minmax(0,1fr);gap:16px}.controls{padding:18px;gap:17px}.previewStage{padding:18px}.exportBar>button{min-width:0;padding:10px!important}.copyLabel{display:none}}
-@media(max-width:720px){.workspace{grid-template-columns:1fr;gap:15px}.controls{grid-template-columns:1fr 1fr;gap:16px;padding:18px}.controls>header{grid-column:1/-1;margin-bottom:0}.controls h2{font-size:17px}.controls>.field,.controls>.playerPicker,.controls>.presets,.controls>.customize,.controls>.caption,.controls>.ownPlayer{grid-column:1/-1}.presets{gap:8px}.formats button{display:flex;gap:8px;align-items:center;justify-content:center;min-height:48px;padding:8px}.formats strong{font-size:11px}.formats small{display:none}.formatShape{transform:scale(.7);margin-right:-3px}.field select,.field input,.playerInput input{font-size:16px}.playerMenu{min-width:0}.previewHeading{padding:14px 17px}.previewStage{padding:15px;min-height:280px}.previewImage{min-height:0;max-height:620px}.exportBar>button{min-width:0}.copyLabel{display:none}.previewHeading h2{font-size:14px}.empty{min-height:250px;padding:15px}.customize{padding-top:13px}.caption{padding-top:13px}.customFields{display:grid;grid-template-columns:1fr 1fr;gap:14px}.customFields>.themes,.customFields>.metricOptions,.customFields>.controlLabel,.customFields>.textButton{grid-column:1/-1}}
+@media(max-width:720px){.workspace{grid-template-columns:1fr;gap:15px}.controls{grid-template-columns:1fr 1fr;gap:16px;padding:18px}.controls>header{grid-column:1/-1;margin-bottom:0}.controls h2{font-size:17px}.controls>.field,.controls>.playerPicker,.controls>.presets,.controls>.customize,.controls>.caption,.controls>.ownPlayer{grid-column:1/-1}.presets{gap:8px}.formats button{display:flex;gap:8px;align-items:center;justify-content:center;min-height:48px;padding:8px}.formats strong{font-size:12px}.formats small{display:none}.formatShape{transform:scale(.7);margin-right:-3px}.field select,.field input,.playerInput input{font-size:16px}.playerMenu{min-width:0}.previewHeading{padding:14px 17px}.previewStage{padding:15px;min-height:280px}.previewImage{min-height:0;max-height:620px}.exportBar>button{min-width:0}.copyLabel{display:none}.previewHeading h2{font-size:14px}.empty{min-height:250px;padding:15px}.customize{padding-top:13px}.caption{padding-top:13px}.customFields{display:grid;grid-template-columns:1fr 1fr;gap:14px}.customFields>.themes,.customFields>.metricOptions,.customFields>.controlLabel,.customFields>.textButton{grid-column:1/-1}}
 @media(prefers-reduced-motion:reduce){.spin{animation:none}}

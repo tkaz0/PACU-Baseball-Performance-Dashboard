@@ -19,6 +19,7 @@ vi.mock("@/lib/game-server", () => ({ loadGameStats: fake.games }));
 vi.mock("next/navigation", () => ({ notFound: () => { throw new Error("NOT_FOUND"); },useRouter:()=>({refresh:vi.fn()}) }));
 vi.mock("next/link", () => ({ default: ({ href, children, ...props }: { href: string; children: ReactNode }) => createElement("a", { href, ...props }, children) }));
 vi.mock("@/components/renpho-charts", () => ({ RenphoCharts: fake.charts }));
+vi.mock("@/lib/headshots-server", () => ({ loadTeamHeadshots: async () => new Map(), loadAthleteHeadshot: async () => null }));
 
 import Profile from "@/app/(workspace)/athletes/[id]/page";
 
