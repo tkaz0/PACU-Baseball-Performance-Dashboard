@@ -10,11 +10,13 @@ const player = (id: string, position: string, secondaryPosition = "") => ({ id, 
 const game = (athleteId: string, metric: string, value: number, opportunities: number | null = null) => ({ athleteId, snapshotId: "s", metric, label: metric, source: metric.startsWith("pitching") ? "pitching_fall_2026" : "qpa_fall_2026", eventId: "", value, unit: "decimal", updatedAt: "2026-09-28", playedOn: null, opportunities, direction: "higher" as const, insightEligible: true });
 
 describe("depth chart", () => {
-  it("groups by primary then secondary position and orders hitters by PAC Production+", () => {
+  it("ranks secondary-position players together with primaries by PAC Production+", () => {
     const data = { players: [player("1", "SS"), player("2", "SS"), player("3", "2B", "SS"), player("4", "LF"), player("5", "P")], readings: [{ id: "r", athleteId: "1", metric: "max_exit_velocity", label: "Max EV", unit: "mph", source: "Full Swing · Practice", date: "2026-09-20", value: 99.24, importedAt: "2026-09-20T00:00:00Z" }],
       games: [game("1", "batting_production_plus", 90, 12), game("2", "batting_production_plus", 140, 15), game("5", "pitching_whip", 1.2, 30)] } as unknown as CoachingData;
     const chart = buildDepthChart(data);
     expect(chart.SS.map(p => [p.id, p.secondary])).toEqual([["2", false], ["1", false], ["3", true]]);
+    const withSecondaryLeader = buildDepthChart({ ...data, games: [...data.games, game("3", "batting_production_plus", 200, 10)] });
+    expect(withSecondaryLeader.SS.map(p => [p.id, p.secondary])).toEqual([["3", true], ["2", false], ["1", false]]);
     expect(chart.OF.map(p => p.id)).toEqual(["4"]);
     expect(chart.SS[1].stats.find(s => s.label === "Max EV")?.value).toBe("99.2 mph");
     expect(chart.P[0].stats[0]).toMatchObject({ label: "WHIP", sample: "30 outs" });

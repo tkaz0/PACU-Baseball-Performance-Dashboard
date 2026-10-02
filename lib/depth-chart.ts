@@ -10,7 +10,7 @@ const OUTFIELD = new Set(["LF", "CF", "RF", "OF"]);
 const slotOf = (position: string): DepthPosition | null => { const p = position.trim().toUpperCase(); return OUTFIELD.has(p) ? "OF" : (DEPTH_POSITIONS as readonly string[]).includes(p) ? p as DepthPosition : null; };
 const FASTBALL = /fastball|sinker|cutter/i;
 
-/** Groups the eligible roster by primary (then secondary) position with a few recorded key stats. No lineup score is invented. */
+/** Lists every eligible player at their primary and secondary positions, ranked together with a few recorded key stats. No lineup score is invented. */
 export function buildDepthChart(data: CoachingData): Record<DepthPosition, DepthPlayer[]> {
   const chart = Object.fromEntries(DEPTH_POSITIONS.map(p => [p, [] as DepthPlayer[]])) as Record<DepthPosition, DepthPlayer[]>;
   const game = (player: CoachingPlayer, metric: string): CoachingGame | undefined => data.games.find(g => g.athleteId === player.id && g.metric === metric);
@@ -35,6 +35,6 @@ export function buildDepthChart(data: CoachingData): Record<DepthPosition, Depth
       chart[slot].push({ id: player.id, code: player.code, name: player.name, academicClass: player.academicClass, secondary: isSecondary, stats, sortValue });
     }
   }
-  for (const slot of DEPTH_POSITIONS) chart[slot].sort((a, b) => Number(a.secondary) - Number(b.secondary) || (b.sortValue ?? -Infinity) - (a.sortValue ?? -Infinity) || a.name.localeCompare(b.name));
+  for (const slot of DEPTH_POSITIONS) chart[slot].sort((a, b) => (b.sortValue ?? -Infinity) - (a.sortValue ?? -Infinity) || Number(a.secondary) - Number(b.secondary) || a.name.localeCompare(b.name));
   return chart;
 }
