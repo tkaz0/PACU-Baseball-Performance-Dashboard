@@ -114,3 +114,4 @@
 .arsenalHigher{font-weight:800;color:var(--accent-readable)}
 @media(max-width:700px){.arsenalHeading{display:block}.arsenalHeading>p{margin-top:8px}.arsenalHeading h2{font-size:23px}.arsenalPlayerHead,.arsenalRow{grid-template-columns:minmax(0,1fr) minmax(90px,.7fr) minmax(0,1fr);gap:4px;padding-left:5px;padding-right:5px}.arsenalValue{padding:8px 4px}.arsenalValue>strong{font-size:17px}.arsenalValue .meta{font-size:11px}.arsenalRow h4{font-size:12px}.arsenalRow .compareNote{font-size:11px}.arsenalPitch>header{padding:12px}.arsenalPlayerHead{font-size:12px}}
 @media(max-width:390px){.arsenalValue>strong{font-size:15px}.arsenalPlayerHead,.arsenalRow{grid-template-columns:minmax(0,1fr) 80px minmax(0,1fr)}.arsenalPitch>header span{font-size:11px}}
+.diverging[data-steady] span { opacity: .35; }

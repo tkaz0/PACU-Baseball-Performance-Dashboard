@@ -62,7 +62,7 @@
 .secondarySpeed { border-top:1px solid var(--line-subtle); }
 .secondarySpeed>summary { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:17px 20px; font-size:12px; font-weight:650; cursor:pointer; list-style:none; }
 .secondarySpeed>summary::-webkit-details-marker { display:none; }
-.secondarySpeed>summary small { display:block; margin-top:4px; font-size:11.5px; font-weight:400; color:var(--text-secondary); }
+.secondarySpeed>summary small { display:block; margin-top:4px; font-size:11.5px; font-weight:750; color:var(--text-secondary); }
 .secondarySpeed>summary:focus-visible { outline:2px solid var(--accent-readable); outline-offset:-4px; }
 .secondarySpeed[open]>summary>svg { transform:rotate(180deg); }
 .secondarySpeed .teamSpeed { border-top:0; padding-top:8px; }
@@ -90,3 +90,6 @@
 @media(prefers-reduced-motion:reduce) { .blueprint * { scroll-behavior:auto; } }
 @media(max-width:650px) { .teamSpeed { padding:20px 14px; }.speedBars { grid-template-columns:1fr; gap:15px; } }
 @media(max-width:650px) { .secondarySpeed>summary { padding:16px 14px; }.supportingGrid { grid-template-columns:1fr; padding:0 14px 16px; } }
+
+.heading h2,.studyHeading h3,.proCard h4{font-weight:750}
+@media(max-width:900px){.angleGrid{grid-template-columns:1fr!important}}

@@ -30,3 +30,15 @@ export function countLabel(count:number|string,label:string):string{
  const singular=label.replace(/(\w+)$/,word=>/^[a-z]/.test(word)?word.replace(/ies$/,"y").replace(/(ch|sh|x)es$/,"$1").replace(/s$/,""):word);
  return `${text} ${singular}`;
 }
+/** "4 PA", "2.0 IP", "47 pitches": the real denominator behind a game rate, or null when it has none. */
+export function gameSampleText(source:string,metric:string,count:number|null|undefined):string|null{
+ const label=gameOpportunityLabel(source,metric);
+ if(!label||count==null||count<=0)return null;
+ return label==="outs"?`${Math.floor(count/3)}.${count%3} IP`:countLabel(count,label);
+}
+/** Same thresholds as the LimitedSample tag: under 50 pitches or 20 other opportunities. Outs and walks are never tagged. */
+export function isEarlyGameSample(source:string,metric:string,count:number|null|undefined):boolean{
+ const label=gameOpportunityLabel(source,metric);
+ if(!label||count==null||count<=0||label==="outs"||label==="walks")return false;
+ return count<(label==="pitches"?50:20);
+}

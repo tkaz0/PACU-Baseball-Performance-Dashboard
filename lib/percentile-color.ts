@@ -1,6 +1,6 @@
 /** Presentation only: percentile direction and cohort eligibility are decided upstream. */
 export function percentileColor(value: number) {
-  const stops = [[23, 100, 174], [104, 166, 212], [230, 231, 233], [230, 144, 145], [195, 33, 50]];
+  const stops = [[23, 100, 174], [104, 166, 212], [166, 171, 180], [230, 144, 145], [195, 33, 50]];
   const position = Math.max(0, Math.min(100, Number.isFinite(value) ? value : 50)) / 25;
   const index = Math.min(3, Math.floor(position)), fraction = position - index;
   const rgb = stops[index].map((channel, i) => Math.round(channel + (stops[index + 1][i] - channel) * fraction));

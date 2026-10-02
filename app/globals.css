@@ -576,7 +576,7 @@ html[data-theme="dark"] .badge-green { background: #1c382b; color: #aee1be; }
 html[data-theme="dark"] .notice { border-color: #6c5936; background: #332b1e; color: #edd096; }
 html[data-theme="dark"] .notice-error { border-color: #80444e; background: #3c222a; color: #ffc0c7; }
 html[data-theme="dark"] .notice-success { border-color: #416952; background: #1e3528; color: #b4e2c2; }
-html[data-theme="dark"] :is(th,.workspace-shell th) { background: #252c36; color: #bbc5d3; }
+:where(html[data-theme="dark"]) th { background: var(--surface-raised); color: var(--text-secondary); }
 html[data-theme="dark"] :is(th,td,.workspace-shell td) { border-color: #343d49; }
 html[data-theme="dark"] :is(tbody tr:hover,.workspace-shell tbody tr:hover) { background: #232a34; }
 html[data-theme="dark"] :is(.workspace-footer,.season-heading,.reading-summary,.reading-summary > div + div,.roster-section .table-wrap,.workspace-shell .roster-detail-panel,.login-access-note,.view-player-choice) { border-color: var(--line-subtle); }
@@ -919,7 +919,7 @@ html[data-sidebar="collapsed"] .sidebar-collapse-toggle .when-expanded { display
   .workspace-body { margin-left: 0 !important; }
   .workspace-main { padding: 0 !important; max-width: none !important; }
   :root, html[data-theme="dark"] { --surface-page: #fff; --surface-panel: #fff; --surface-raised: #f2f2f4; --line-subtle: #d9d9de; --text-primary: #111; --text-secondary: #555; }
-  section, table, tr { break-inside: avoid; }
+  tr { break-inside: avoid; }
 }
 .profile-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .profile-toolbar .profile-back { margin: 0; }
@@ -929,3 +929,16 @@ html[data-sidebar="collapsed"] .sidebar-collapse-toggle .when-expanded { display
   .player-identity-card dl dd.text-5xl { font-size: 38px !important; }
   .player-identity-card dl.shrink-0 { padding-left: 12px !important; }
 }
+
+/* Phone identity card: the jersey number becomes a chip so long names have room; card branding is hidden. */
+.profile-jersey-chip { display: none; }
+@media (max-width: 600px) {
+  .player-identity-card dl.shrink-0 { display: none !important; }
+  .profile-jersey-chip { display: inline-flex; padding: 1px 8px; border: 1px solid rgba(255,255,255,.25); border-radius: 6px; color: #fff; font-weight: 800; }
+  .player-identity-card > div:has(> div > .pacific-logo) { display: none; }
+}
+
+/* Review fixes: shared header actions, tab rows, heading weights. */
+.page-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.leaderboard-navigation a { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+:where(.workspace-main) :is(h1, h2, h3) { font-weight: 750; }

@@ -1,35 +1,61 @@
 .page { max-width: 980px; margin: 0 auto; }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; margin-bottom: 18px; }
-.report { padding: 22px 24px; border: 1px solid var(--line-subtle); border-radius: 16px; background: var(--surface-panel); }
+.actions :global(.profile-back) { margin: 0; }
+
+/* The report is a light paper sheet in every theme, so screen and print match. */
+.report {
+  --surface-panel: #fff; --surface-raised: #f2f2f4; --line-subtle: #dcdce1; --text-primary: #141518; --text-secondary: #555a64; --accent-readable: #a91016;
+  color-scheme: light; color: var(--text-primary); padding: 22px 24px; border: 1px solid var(--line-subtle); border-radius: 16px; background: #fff;
+}
 .header { display: flex; align-items: center; gap: 16px; padding-bottom: 12px; border-bottom: 3px solid #b51217; }
 .photo { box-shadow: 0 0 0 3px var(--line-subtle); }
 .identity { flex: 1; min-width: 0; }
-.identity h1 { margin: 2px 0 2px; font-size: 26px; font-weight: 900; letter-spacing: -.03em; }
+.identity h1 { margin: 2px 0 2px; color: var(--text-primary); font-size: 26px; font-weight: 900; letter-spacing: -.03em; }
 .identity p { margin: 0; color: var(--text-secondary); font-size: 13px; }
-.kicker { color: #b51217 !important; font-size: 12px !important; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
-.brand { display: grid; justify-items: end; gap: 6px; color: var(--text-secondary); }
+.kicker { color: var(--accent-readable); font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.brand { display: grid; justify-items: end; gap: 6px; color: var(--text-secondary); white-space: nowrap; }
 .heroes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 12px 0; }
-.heroes > div { display: flex; align-items: center; gap: 8px; padding: 6px 10px; font-size: 12px !important; border: 1px solid var(--line-subtle); border-radius: 12px; font-size: 13px; font-weight: 700; }
-.columns { display: grid; grid-template-columns: 1.25fr 1fr; gap: 18px; }
-.columns h2, .arsenal h2 { margin: 2px 0 4px; font-size: 14px; font-weight: 800; }
+.heroes > div { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid var(--line-subtle); border-radius: 12px; font-size: 12px; font-weight: 700; }
+.early { display: block; margin-top: 2px; color: var(--text-secondary); font-size: 11px; font-style: normal; font-weight: 600; }
+.columns { display: grid; grid-template-columns: 1.25fr 1fr; gap: 18px; align-items: start; }
+.columns h2, .arsenal h2 { margin: 2px 0 4px; color: var(--text-primary); font-size: 14px; font-weight: 800; }
+.tableWrap { overflow-x: auto; }
 .table { width: 100%; border-collapse: collapse; font-size: 12px; }
-.table th { padding: 4px 4px; border-bottom: 1px solid var(--line-subtle); color: var(--text-secondary); font-size: 11.5px; text-align: left; text-transform: uppercase; letter-spacing: .05em; }
+.table th { padding: 4px; border-bottom: 1px solid var(--line-subtle); background: transparent; color: var(--text-secondary); font-size: 11px; text-align: left; text-transform: uppercase; letter-spacing: .05em; }
 .table td { padding: 3px 4px; border-bottom: 1px solid var(--line-subtle); vertical-align: middle; }
-.table td small { display: block; color: var(--text-secondary); font-size: 11px; }
-.num { font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.pctl { display: inline-flex; min-width: 30px; justify-content: center; padding: 2px 6px; border-radius: 6px; background: var(--surface-raised); font-weight: 800; font-size: 12px; }
+.table td small { margin-left: 6px; color: var(--text-secondary); font-size: 11px; white-space: nowrap; }
+/* Dark-theme table rules elsewhere must not paint into the paper sheet. */
+.report :is(th, td) { border-color: var(--line-subtle) !important; }
+.report th { background: transparent !important; }
+.groupRow th { padding-top: 8px; color: var(--text-primary); font-size: 11px; font-weight: 800; letter-spacing: .08em; }
+.right { text-align: right !important; }
+.center { text-align: center !important; }
+.num { font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.pctl { display: inline-flex; min-width: 30px; justify-content: center; padding: 2px 6px; border-radius: 6px; font-size: 12px; font-weight: 800; }
+.pctlNeutral { border: 1px solid var(--line-subtle); background: transparent; color: var(--text-secondary); }
+.best { display: inline-flex; margin-left: 6px; padding: 0 6px; border: 1px solid var(--accent-readable); border-radius: 999px; color: var(--accent-readable); font-size: 10.5px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; vertical-align: 1px; }
+.trend { display: inline-flex; align-items: center; gap: 6px; }
+.trend small { margin: 0 !important; }
 .muted { color: var(--text-secondary); }
+.more { margin: 4px 0 0; color: var(--text-secondary); font-size: 11.5px; }
 .arsenal { margin-top: 10px; }
 .footer { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line-subtle); color: var(--text-secondary); font-size: 11px; line-height: 1.5; }
-@media (max-width: 760px) { .columns { grid-template-columns: 1fr; } .heroes { grid-template-columns: repeat(2, minmax(0, 1fr)); } .header { flex-wrap: wrap; } .report { padding: 18px; } }
-.more { margin: 4px 0 0; color: var(--text-secondary); font-size: 11.5px; }
-.table td small { display: inline !important; margin-left: 6px; }
-.arsenalTable :global(table) { font-size: 11.5px; }
-.arsenalTable :global(td), .arsenalTable :global(th) { padding-top: 3px !important; padding-bottom: 3px !important; }
+
+@media screen and (max-width: 760px) {
+  .columns { grid-template-columns: 1fr; }
+  .heroes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .header { flex-wrap: wrap; }
+  .identity { flex-basis: calc(100% - 80px); }
+  .brand { width: 100%; grid-auto-flow: column; justify-content: space-between; align-items: center; }
+  .report { padding: 18px; }
+}
+
 @media print {
-  .report { padding: 0; border: 0; font-size: 11px; }
+  .report { padding: 0; border: 0; border-radius: 0; font-size: 11px; }
   .identity h1 { font-size: 22px; }
   .table { font-size: 10.5px; }
-  .table td small, .footer, .more { font-size: 9.5px; }
-  .heroes > div { font-size: 10.5px !important; }
+  .table th { font-size: 9px; }
+  .table td small, .footer, .more, .early { font-size: 9.5px; }
+  .heroes > div { font-size: 10.5px; }
+  .table tr { break-inside: avoid; }
 }

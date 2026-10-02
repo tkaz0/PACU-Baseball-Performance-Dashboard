@@ -8,7 +8,7 @@ export default async function TestingEntryPage({ searchParams }: { searchParams:
   const athletes = await loadTestingRoster();
   const query = await searchParams;
   return <>
-    <PageHeading section="Testing" title="Enter Measurements" description="Choose a player, enter the results, and review before saving.">
+    <PageHeading section="Data &amp; Testing" title="Enter Measurements" description="Choose a player, enter the results, and review before saving.">
       <Link href="/testing" className="btn btn-secondary">Testing Checklist</Link>
     </PageHeading>
     <ManualTestingEntry athletes={athletes} today={pacificTestingDate()} initialAthleteCode={query.athlete} initialMetricKey={query.metric} />

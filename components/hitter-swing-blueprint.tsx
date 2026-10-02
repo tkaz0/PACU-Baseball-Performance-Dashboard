@@ -49,7 +49,7 @@ export function SwingAngleDiagram({ angle, kind }: { angle: number | null; kind:
       <path d="M45 278H380" stroke="#6e8198" strokeWidth="1"/>
       <BattingSkeleton />
       <path d={`M${x-25} ${y}H403`} stroke="#9cabbc" strokeWidth="1.5" strokeDasharray="4 5" />
-      <text x="398" y="27" textAnchor="end" fill="#adbdd0" fontSize="10">DASHED LINE · 0°</text>
+      <text x="398" y="27" textAnchor="end" fill="#adbdd0" fontSize="16">DASHED LINE · 0°</text>
       {angle !== null && start && end && arcEnd && <g stroke={isAttack ? "#63c9ff" : "#ff8c99"} fill="none" strokeLinecap="round">
         {Math.abs(angle) > .05 && <path d={`M${x+38} ${y} A38 38 0 0 ${angle>=0?0:1} ${arcEnd.x} ${arcEnd.y}`} strokeWidth="2"/>}
         {isAttack ? <>
@@ -62,9 +62,9 @@ export function SwingAngleDiagram({ angle, kind }: { angle: number | null; kind:
           <circle cx={x} cy={y} r="6" fill="#101c2a" strokeWidth="2"/>
         </>}
       </g>}
-      <text x="22" y="27" fill={isAttack ? "#63c9ff" : "#ff8c99"} fontSize="10" fontWeight="700" letterSpacing="1.6">{isAttack ? "BARREL TRAVEL" : "BAT SHAFT TILT"}</text>
+      <text x="22" y="27" fill={isAttack ? "#63c9ff" : "#ff8c99"} fontSize="16" fontWeight="700" letterSpacing="1.6">{isAttack ? "BARREL TRAVEL" : "BAT SHAFT TILT"}</text>
     </g>
-    {angle === null && <g><rect x="73" y="113" width="274" height="55" rx="8" fill="#101c2a" stroke="#53657c"/><text x="210" y="146" textAnchor="middle" fill="#e5edf7" fontSize="13">Awaiting a reviewed average</text></g>}
+    {angle === null && <g><rect x="73" y="113" width="274" height="55" rx="8" fill="#101c2a" stroke="#53657c"/><text x="210" y="146" textAnchor="middle" fill="#e5edf7" fontSize="18">Awaiting a reviewed average</text></g>}
   </svg>;
 }
 
@@ -75,8 +75,8 @@ export function BodyTiltDiagram({ angle }: { angle: number | null }) {
     <g aria-hidden="true">
       <g opacity=".35" transform="translate(29 12)"><BattingSkeleton/></g>
       <path d={`M${x} 40V265M85 278H335`} stroke="#9cabbc" strokeWidth="1.5" strokeDasharray="4 5"/>
-      <text x="22" y="27" fill="#e8ba69" fontSize="10" fontWeight="700" letterSpacing="1.6">BODY ROTATION AXIS</text>
-      <text x="398" y="27" textAnchor="end" fill="#adbdd0" fontSize="10">DASHED LINE · VERTICAL</text>
+      <text x="22" y="27" fill="#e8ba69" fontSize="16" fontWeight="700" letterSpacing="1.6">BODY ROTATION AXIS</text>
+      <text x="398" y="27" textAnchor="end" fill="#adbdd0" fontSize="16">DASHED LINE · VERTICAL</text>
       {end&&arcEnd&&angle!==null&&<g fill="none" stroke="#e8ba69" strokeLinecap="round">
         <path d={`M${x} ${y}L${end.x} ${end.y}`} strokeWidth="5"/>
         {Math.abs(angle)>.05&&<path d={`M${x} ${y-43} A43 43 0 0 ${angle>=0?1:0} ${arcEnd.x} ${arcEnd.y}`} strokeWidth="2"/>}
@@ -84,7 +84,7 @@ export function BodyTiltDiagram({ angle }: { angle: number | null }) {
         <circle cx={end.x} cy={end.y} r="5" fill="#e8ba69"/>
       </g>}
     </g>
-    {angle===null&&<g><rect x="73" y="113" width="274" height="55" rx="8" fill="#101c2a" stroke="#53657c"/><text x="210" y="146" textAnchor="middle" fill="#e5edf7" fontSize="13">Awaiting a reviewed average</text></g>}
+    {angle===null&&<g><rect x="73" y="113" width="274" height="55" rx="8" fill="#101c2a" stroke="#53657c"/><text x="210" y="146" textAnchor="middle" fill="#e5edf7" fontSize="18">Awaiting a reviewed average</text></g>}
   </svg>;
 }
 

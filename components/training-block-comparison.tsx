@@ -13,7 +13,7 @@ const day = (value: string) => new Date(`${value}T12:00:00Z`).toLocaleDateString
 const period = (window: TrainingBlockWindow) => window.start === window.end ? day(window.start) : `${day(window.start)} – ${day(window.end)}`;
 const unit = (value: string) => ({ deg: "°", rpm: "RPM", points: "pts" }[value] ?? value);
 const number = (value: number, series: TrainingBlockSeries) => value.toFixed(series.unit === "s" ? 2 : 1);
-const result = (value: number | null, series: TrainingBlockSeries) => value === null ? "—" : series.metricKey === "height" ? formatHeight(value, series.unit) ?? `${number(value, series)} ${unit(series.unit)}` : `${number(value, series)} ${unit(series.unit)}`;
+const result = (value: number | null, series: TrainingBlockSeries) => value === null ? "—" : series.metricKey === "height" ? formatHeight(value, series.unit) ?? `${number(value, series)}${series.unit === "deg" ? "" : " "}${unit(series.unit)}` : `${number(value, series)} ${unit(series.unit)}`;
 const methodLabel = { weighted: "Weighted Average", maximum: "Best Result", fastest: "Best Time", latest: "Latest Test" } as const;
 const issues: Record<NonNullable<TrainingBlockSummary["issue"]>, string> = {
   empty: "No results in this block",
@@ -32,7 +32,7 @@ function ComparisonBars({ series, a, b }: { series: TrainingBlockSeries; a: Trai
   const zero = x(0);
   return <svg viewBox="0 0 320 54" className={styles.bars} role="img" aria-label={`${series.label}. Block 1: ${result(a.value, series)}. Block 2: ${result(b.value, series)}. Bars share a zero baseline.`}>
     <line x1={zero} x2={zero} y1="2" y2="52" stroke="var(--line-strong, var(--line-subtle))" />
-    {[a, b].map((summary, index) => summary.value === null ? null : <rect key={index} x={Math.min(zero, x(summary.value))} y={index * 27 + 4} width={Math.max(Math.abs(x(summary.value) - zero), 1)} height="17" rx="4" fill={index ? "var(--accent-readable)" : "var(--text-tertiary, #8793a6)"} opacity={index ? 1 : .65} />)}
+    {[a, b].map((summary, index) => summary.value === null ? null : <rect key={index} x={Math.min(zero, x(summary.value))} y={index * 27 + 4} width={Math.max(Math.abs(x(summary.value) - zero), 1)} height="17" rx="4" fill={index ? "var(--text-primary)" : "var(--text-secondary)"} fillOpacity={index ? 0.85 : 0.45} opacity={index ? 1 : .65} />)}
   </svg>;
 }
 
@@ -58,7 +58,7 @@ function MetricComparison({ series, windows }: { series: TrainingBlockSeries; wi
     <div className={styles.results}><Summary label="Block 1" series={series} value={a}/><Summary label="Block 2" series={series} value={b}/></div>
     <div className={styles.change} data-tone={change?.tone ?? "neutral"}>
       <DeltaIcon size={16} aria-hidden="true"/>
-      {change ? <><strong>{change.delta > 0 ? "+" : ""}{number(change.delta, series)} {unit(series.unit)}</strong><span>{change.delta === 0 ? "No change" : change.tone === "improved" ? "Improved" : change.tone === "decreased" ? series.direction === "lower" ? "Slower" : "Lower" : "Change"}</span></> : <span>Two complete blocks show the change</span>}
+      {change ? <><strong>{change.delta > 0 ? "+" : change.delta < 0 ? "−" : ""}{number(Math.abs(change.delta), series)}{series.unit === "deg" ? "" : " "}{unit(series.unit)}</strong><span>{change.delta === 0 ? "No change" : change.tone === "improved" ? "Improved" : change.tone === "decreased" ? series.direction === "lower" ? "Slower" : "Lower" : "Change"}</span></> : <span>Two complete blocks show the change</span>}
     </div>
   </article>;
 }
@@ -79,7 +79,7 @@ export function TrainingBlockComparison({ series }: { series: TrainingBlockSerie
   if (!series.length) return null;
   const editWindow = (index: 0 | 1, key: keyof TrainingBlockWindow, value: string) => setWindows(current => current.map((window, position) => position === index ? { ...window, [key]: value } : window) as [TrainingBlockWindow, TrainingBlockWindow]);
   return <section className={styles.section} aria-labelledby={`${id}-title`}>
-    <header className={styles.header}><div><span className={styles.eyebrow}><CalendarRange size={15} aria-hidden="true"/> Fall Development</span><h2 id={`${id}-title`}>Compare Training Blocks</h2><p>See how your results changed between two parts of the fall.</p></div><span className={styles.legend}><i aria-hidden="true"/>Block 1 <i aria-hidden="true"/>Block 2</span></header>
+    <header className={styles.header}><div><span className={styles.eyebrow}><CalendarRange size={15} aria-hidden="true"/> Fall Development</span><h2 id={`${id}-title`}>Compare Training Blocks</h2><p>How results changed between two parts of the fall.</p></div><span className={styles.legend}><i aria-hidden="true"/>Block 1 <i aria-hidden="true"/>Block 2</span></header>
     <div className={styles.windows}>{windows.map((window, index) => <fieldset key={index} className={styles.window}><legend>Block {index + 1}</legend><label htmlFor={`${id}-${index}-from`}>From<input type="date" id={`${id}-${index}-from`} value={window.start} min="2026-09-01" max="2026-12-31" onChange={event => editWindow(index as 0 | 1, "start", event.target.value)} /></label><label htmlFor={`${id}-${index}-to`}>Through<input type="date" id={`${id}-${index}-to`} value={window.end} min="2026-09-01" max="2026-12-31" onChange={event => editWindow(index as 0 | 1, "end", event.target.value)} /></label></fieldset>)}</div>
     <div className={styles.controls}><label htmlFor={`${id}-category`}>Category<select id={`${id}-category`} value={selectedCategory} onChange={event => { setCategory(event.target.value as TrainingBlockSeries["category"]); setExpanded(false); }}>{available.map(item => <option key={item}>{item}</option>)}</select></label><label htmlFor={`${id}-source`}>Results<select id={`${id}-source`} value={selectedSource} onChange={event => { setSource(event.target.value); setExpanded(false); }}>{sources.map(item => <option key={item} value={item}>{pitchSourceLabel(item)}</option>)}</select></label></div>
     {error ? <p className={styles.error} role="status">{error}</p> : <div className={styles.grid}>{(expanded ? selected : selected.slice(0, 4)).map(item => <MetricComparison key={item.id} series={item} windows={windows}/>)}</div>}

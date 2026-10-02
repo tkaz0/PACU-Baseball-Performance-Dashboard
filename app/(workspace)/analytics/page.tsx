@@ -10,5 +10,5 @@ export default async function AnalyticsPage({searchParams}:{searchParams:Promise
   const query=await searchParams;
   const initialX=typeof query.x==="string"&&query.x.length<=600?query.x:"",initialY=typeof query.y==="string"&&query.y.length<=600?query.y:"";
   const initialPeriod=query.period==="earlier"?"earlier":"fall",initialWindow=typeof query.window==="string"?Number(query.window):30;
-  return <><PageHeading section="Pacific Baseball / Coaching Tools" title="Analytics" description="See how two team stats move together."/><AnalyticsNavigation current="scatter"/><AnalyticsExplorer key={JSON.stringify([initialX,initialY,initialPeriod,initialWindow])} data={data} savedViews={savedViews} initialX={initialX} initialY={initialY} initialPeriod={initialPeriod} initialWindow={initialWindow}/></>;
+  return <><PageHeading section="Coaching" title="Analytics" description="See how two team stats move together."/><AnalyticsNavigation current="scatter"/><AnalyticsExplorer key={JSON.stringify([initialX,initialY,initialPeriod,initialWindow])} data={data} savedViews={savedViews} initialX={initialX} initialY={initialY} initialPeriod={initialPeriod} initialWindow={initialWindow}/></>;
 }

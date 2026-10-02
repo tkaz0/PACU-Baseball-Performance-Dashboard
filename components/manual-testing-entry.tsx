@@ -137,15 +137,15 @@ export function ManualTestingEntry({ athletes, today, initialAthleteCode, initia
           return <div key={index} className="rounded-xl border border-[var(--line-subtle)] bg-[var(--surface-raised)] p-4">
             <div className="mb-3 flex items-center justify-between gap-3"><h3 className="m-0 text-sm font-bold">Measurement {index + 1}</h3>{rows.length > 1 && <button type="button" className="btn btn-secondary !min-h-8 !px-2 !py-1" aria-label={`Remove measurement ${index + 1}`} onClick={() => { invalidate(); setRows(current => current.filter((_, position) => position !== index)); }}><Trash2 size={14} aria-hidden="true" /></button>}</div>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <label>Category {index + 1}<select value={row.category} onChange={event => updateRow(index, newRow(athlete, undefined, event.target.value as TestingCategory))}>{categories.map(category => <option key={category.key} value={category.key}>{category.label}</option>)}</select></label>
-              <label>Measurement {index + 1}<select value={row.metricKey} onChange={event => updateRow(index, newRow(athlete, event.target.value))}>
+              <label>Category<span className="sr-only"> {index + 1}</span><select value={row.category} onChange={event => updateRow(index, newRow(athlete, undefined, event.target.value as TestingCategory))}>{categories.map(category => <option key={category.key} value={category.key}>{category.label}</option>)}</select></label>
+              <label>Measurement<span className="sr-only"> {index + 1}</span><select value={row.metricKey} onChange={event => updateRow(index, newRow(athlete, event.target.value))}>
                 {available.map(option => <option key={option.key} value={option.key} disabled={rows.some((other, position) => position !== index && other.metricKey === option.key)}>{option.label}</option>)}
               </select></label>
-              <label>Unit {index + 1}<select value={row.unit} onChange={event => updateRow(index, { category: row.category, metricKey: row.metricKey, unit: event.target.value, value: "", ...(event.target.value === "ft-in" ? { feet: "", inches: "" } : {}) })}>
+              <label>Unit<span className="sr-only"> {index + 1}</span><select value={row.unit} onChange={event => updateRow(index, { category: row.category, metricKey: row.metricKey, unit: event.target.value, value: "", ...(event.target.value === "ft-in" ? { feet: "", inches: "" } : {}) })}>
                 {metric.key === "height" && <option value="ft-in">Feet &amp; Inches</option>}{metric.units.map(unit => <option key={unit} value={unit}>{unit}</option>)}
               </select></label>
-              {row.unit === "ft-in" ? <div className="grid grid-cols-2 gap-3"><label>Feet {index + 1}<input inputMode="numeric" value={row.feet ?? ""} maxLength={10} onChange={event => updateRow(index, { ...row, feet: event.target.value })} /></label><label>Inches {index + 1}<input inputMode="decimal" value={row.inches ?? ""} maxLength={10} onChange={event => updateRow(index, { ...row, inches: event.target.value })} /></label></div>
-                : <label>Value {index + 1}<input inputMode="decimal" value={row.value} maxLength={40} placeholder="Enter result" onChange={event => updateRow(index, { ...row, value: event.target.value })} /></label>}
+              {row.unit === "ft-in" ? <div className="grid grid-cols-2 gap-3"><label>Feet<span className="sr-only"> {index + 1}</span><input inputMode="numeric" value={row.feet ?? ""} maxLength={10} onChange={event => updateRow(index, { ...row, feet: event.target.value })} /></label><label>Inches<span className="sr-only"> {index + 1}</span><input inputMode="decimal" value={row.inches ?? ""} maxLength={10} onChange={event => updateRow(index, { ...row, inches: event.target.value })} /></label></div>
+                : <label>Value<span className="sr-only"> {index + 1}</span><input inputMode="decimal" value={row.value} maxLength={40} placeholder="Enter result" onChange={event => updateRow(index, { ...row, value: event.target.value })} /></label>}
             </div>
           </div>;
         })}

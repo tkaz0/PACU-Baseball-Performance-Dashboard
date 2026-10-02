@@ -1,10 +1,10 @@
-import { gameOpportunityLabel, countLabel} from "@/lib/game-opportunities";
+import { gameOpportunityLabel, countLabel, isEarlyGameSample } from "@/lib/game-opportunities";
 import { formatInnings } from "@/lib/pitching-stats";
 import { gameValue, type GameLeaderboardRow } from "@/lib/game-metrics";
 import type { LeaderboardComparison, LeaderboardRow } from "@/lib/leaderboards";
 import { formatMetricNumber } from "@/lib/measurement-display";
 
-export type HomeRank = { rank: number; code: string; name: string; profileId: string | null; value: string; numericValue?: number; sample?: string; isYou: boolean };
+export type HomeRank = { rank: number; code: string; name: string; profileId: string | null; value: string; numericValue?: number; sample?: string; early?: boolean; isYou: boolean };
 export type HomeLeaderboard = { key: string; metric?: string; source?: string; unit?: string; period?: "fall_2026" | "summer_2026"; eventId?: string; category: string; title: string; href: string; rows: HomeRank[]; total: number; yourRank: number | null };
 
 export function homeMeasurementBoard(key: string, category: string, title: string, href: string, rows: readonly LeaderboardRow[], comparison: LeaderboardComparison, athleteId: string | null): HomeLeaderboard {
@@ -20,6 +20,6 @@ export function homeGameBoard(key: string, category: string, title: string, href
   const unit=matching.length&&matching.every(row=>row.unit===matching[0].unit)?matching[0].unit:undefined;
   const ranked = matching
     .sort((a, b) => a.rank - b.rank || a.code.localeCompare(b.code))
-    .map(row => ({ rank: row.rank, code: row.code, name: row.name, profileId: row.profileId, value: gameValue(row.value, row.unit), numericValue: row.value, ...(row.opportunities != null ? {sample: gameOpportunityLabel(source,metric) === "outs" ? `${formatInnings(row.opportunities)} IP` : countLabel(row.opportunities,gameOpportunityLabel(source,metric) ?? "chances")} : {}), isYou: !!athleteId && row.profileId === athleteId }));
+    .map(row => ({ rank: row.rank, code: row.code, name: row.name, profileId: row.profileId, value: gameValue(row.value, row.unit), numericValue: row.value, ...(row.opportunities != null ? {sample: gameOpportunityLabel(source,metric) === "outs" ? `${formatInnings(row.opportunities)} IP` : countLabel(row.opportunities,gameOpportunityLabel(source,metric) ?? "chances"), early: isEarlyGameSample(source, metric, row.opportunities)} : {}), isYou: !!athleteId && row.profileId === athleteId }));
   return { key, metric, source, unit, period: "fall_2026", eventId, category, title, href, rows: ranked, total: ranked.length, yourRank: ranked.find(row => row.isYou)?.rank ?? null };
 }

@@ -1,3 +1,4 @@
+import { pacificTestingDate } from "@/lib/testing-checklist";
 import { recentPersonalBest } from "@/lib/personal-bests";
 import { PlayerAvatar } from "@/components/player-avatar";
 import type { TrendAnnotation } from "@/lib/trend-annotations";
@@ -61,7 +62,7 @@ function Percentile({ card }: { card: PlayerMetricCard }) {
   if (!card.latest || !percentile || !Number.isFinite(percentile.value) || percentile.value < 0 || percentile.value > 100 || percentile.sampleSize < 5) return null;
   const rounded = Math.round(percentile.value), neutral = card.metric.direction === "neutral";
   return <div className="mt-3 border-t border-[var(--line-subtle)] pt-2" data-testid="player-percentile" data-metric-key={card.metric.key} data-percentile={percentile.value} data-sample-size={percentile.sampleSize} data-direction={card.metric.direction}>
-    <div className="mb-2 flex flex-wrap items-baseline justify-between gap-1 text-xs text-[var(--text-secondary)]"><span>{percentile.sampleSize} teammates</span><span><strong className="text-[var(--text-primary)]">{rounded}</strong> percentile</span></div>
+    <div className="mb-2 flex flex-wrap items-baseline justify-between gap-1 text-xs text-[var(--text-secondary)]"><span>of {percentile.sampleSize} players</span><span><strong className="text-[var(--text-primary)]">{rounded}{ordinalSuffix(rounded)}</strong> percentile</span></div>
     <PercentileBar value={percentile.value} sampleSize={percentile.sampleSize} label={card.metric.label} descriptive={neutral} testId="player-percentile-bar" />
   </div>;
 }
@@ -82,15 +83,16 @@ function MetricSparkline({card}:{card:PlayerMetricCard}) {
     </svg>
   </div>;
 }
+const ordinalSuffix = (n: number) => { const t = n % 100; return t >= 11 && t <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] ?? "th"; };
 function MetricCard({ card, teamAverages=[] }: { card: PlayerMetricCard; teamAverages?: readonly HittingTeamAverage[] }) {
   const reading = card.latest;
-  const best = recentPersonalBest(card, new Date().toISOString().slice(0, 10));
+  const best = recentPersonalBest(card, pacificTestingDate());
   return <li className={`performance-metric-card flex min-w-0 flex-col rounded-lg border border-[var(--line-subtle)] p-3 sm:p-4 ${reading ? "bg-[var(--surface-panel)]" : "border-dashed bg-[var(--surface-page)]"}`} data-testid="player-metric" data-metric-key={card.metric.key} data-value={reading?.value} data-unit={reading?.unit} data-date={reading?.measuredAt}>
     <h3 className={presentation.metricTitle}>{profileMetricLabel(card.metric.key,card.metric.key === "bat_speed" ? "Bat Speed (Unspecified)" : card.metric.label,reading?.source)}<StatInfo metric={card.metric.key} label={card.metric.label} value={reading?.value} source={reading?.source} unit={reading?.unit} period={reading?.period} percentile={card.percentile?.sampleSize && card.percentile.sampleSize >= 5 ? card.percentile.value : null} /></h3>
     <div className={presentation.metricValue}>{reading ? <><span className={presentation.readingValue}>{card.timedTrials && <span className={presentation.bestLabel}>Best</span>}<ReadingValue reading={reading} /></span><MeasurementChange change={playerRenphoChange(card)} metric={card.metric.key}/></> : <span className="font-medium text-[var(--text-secondary)]" aria-label="Not yet tested">—</span>}</div>
     {reading && card.metric.group === "hitting" && /^Full Swing · (Game|Intrasquad|Practice|Hitting)$/.test(reading.source) && <HittingTeamAverageLine average={hittingTeamAverage(teamAverages,card.metric.key,reading.unit,reading.source)}/>}
     {!reading && <p className="mb-0 mt-3 text-xs text-[var(--text-secondary)]">Not Yet Tested</p>}
-    {card.timedTrials && <p className="mb-0 mt-2 text-sm text-[var(--text-secondary)]">Average <strong className="tabular-nums text-[var(--text-primary)]">{card.timedTrials.average.toFixed(2)} s</strong><span className="ml-2 text-xs">{card.timedTrials.count} {card.timedTrials.count === 1 ? "trial" : "trials"} · Fall 2026</span></p>}
+    {card.timedTrials && card.timedTrials.count > 1 && <p className="mb-0 mt-2 text-sm text-[var(--text-secondary)]">Average <strong className="tabular-nums text-[var(--text-primary)]">{card.timedTrials.average.toFixed(2)} s</strong><span className="ml-2 text-xs">{card.timedTrials.count} {card.timedTrials.count === 1 ? "trial" : "trials"} · Fall 2026</span></p>}
     {reading && <div className={presentation.metricMeta}>
       {card.metric.group !== "body" && <p className={presentation.metricSource}>{pitchSourceLabel(reading.source)}</p>}
       <p className={presentation.metricDate}>{parseBlastSource(reading.source) ? <>Reporting Week: {blastPeriodLabel(parseBlastSource(reading.source)!.start,parseBlastSource(reading.source)!.end)}</> : <>Last Tested: <time dateTime={card.timedTrials?.lastTested ?? reading.measuredAt}>{measurementDate(card.timedTrials?.lastTested ?? reading.measuredAt)}</time></>}{reading.derived ? " · Calculated" : ""}</p>
@@ -146,7 +148,7 @@ export function PlayerPerformanceProfile({ headshot, athlete, performance, seaso
   const latestBlast = layout.showHitting ? blastReadings?.flatMap(r => { const period=parseBlastSource(r.source); return period?[period]:[]; }).sort((a,b)=>b.end.localeCompare(a.end))[0] : undefined;
   const newerReport = latestBlast && latestBlast.end > (lastTested ?? "") ? latestBlast : null;
   const tabs: ProfileTab[] = [
-    { id: "overview", label: "Overview", content: <><PlayerOverview teamAverages={teamAverages} twoWay={selectedSeason?.player_type?.trim().toLowerCase() === "two_way"} showMethods={!simplified} cards={[...cards, ...(bodyScoreCard ? [bodyScoreCard] : [])]} gameStats={overviewGameStats} gameComparisons={gameComparisons} />{developmentPlan}{coachFocus}{goals}{layout.showHitting&&<PracticeGameBridge performance={performance} blastReadings={blastReadings}/>}</> },
+    { id: "overview", label: "Overview", content: <><PlayerOverview beforeMethods={layout.showHitting ? <PracticeGameBridge performance={performance} blastReadings={blastReadings}/> : null} teamAverages={teamAverages} twoWay={selectedSeason?.player_type?.trim().toLowerCase() === "two_way"} showMethods={!simplified} cards={[...cards, ...(bodyScoreCard ? [bodyScoreCard] : [])]} gameStats={overviewGameStats} gameComparisons={gameComparisons} />{developmentPlan}{coachFocus}{goals}</> },
     { id: "physicality", label: "Physicality", content: <>
       {!layout.physicality.length && !layout.additionalBody.length && !bodyScore && <p className={presentation.emptyState}>No physicality measurements recorded yet.</p>}
       <MetricGroup id="body-measurements" title="Physicality" cards={layout.physicality} />
@@ -169,7 +171,7 @@ export function PlayerPerformanceProfile({ headshot, athlete, performance, seaso
       <div className="pointer-events-none absolute -right-24 -top-32 -z-10 size-80 rotate-45 border border-white/[.05]" aria-hidden="true" />
       <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><PacificLogo className="w-9 shrink-0" decorative /><p className="m-0 text-xs font-bold uppercase tracking-[.18em] text-[#e0e0e3]">Pacific Baseball<span className="mx-2 text-[#a4a4aa]" aria-hidden="true">/</span>Performance</p></div>{fictional && <span className="shrink-0 rounded border border-white/20 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-white">Fictional profile</span>}</div>
       <div className="my-3 flex items-center justify-between gap-4 sm:my-3 sm:gap-6">
-        <div className="flex min-w-0 items-center gap-4 sm:gap-5"><PlayerAvatar name={athleteName(athlete)} path={headshot} size={88} className="player-identity-photo"/><div className="min-w-0"><h1 className="m-0 text-3xl font-black leading-[1.08] tracking-tight text-white sm:text-4xl">{athleteName(athlete)}</h1><p className={presentation.identityRole}>{position || "Position to be added"}{roleLabel && <span>{roleLabel}</span>}</p></div></div>
+        <div className="flex min-w-0 items-center gap-4 sm:gap-5"><PlayerAvatar name={athleteName(athlete)} path={headshot} size={88} className="player-identity-photo"/><div className="min-w-0"><h1 className="m-0 text-3xl font-black leading-[1.08] tracking-tight text-white sm:text-4xl">{athleteName(athlete)}</h1><p className={presentation.identityRole}>{position || "Position to be added"}{roleLabel && <span>{roleLabel}</span>}{selectedSeason?.jersey_number != null && <span className="profile-jersey-chip">#{selectedSeason.jersey_number}</span>}</p></div></div>
         <dl className="m-0 shrink-0 border-l border-white/15 pl-4 text-center sm:pl-8"><dt className="text-xs font-semibold uppercase tracking-[.1em] text-[#b3b4ba]">Jersey Number</dt><dd className="m-0 mt-2 text-5xl font-black leading-none tracking-tighter text-white sm:text-5xl">{display(selectedSeason?.jersey_number)}</dd></dl>
       </div>
       <dl className="m-0 grid grid-cols-2 gap-x-5 gap-y-2 border-t border-white/15 pt-4 text-xs sm:grid-cols-4"><div><dt className="text-xs uppercase tracking-wider text-[#a7a8af]">Bats / Throws</dt><dd className="m-0 mt-1.5 font-semibold">{display(selectedSeason?.bats)} / {display(selectedSeason?.throws)}</dd></div><div><dt className="text-xs uppercase tracking-wider text-[#a7a8af]">Season</dt><dd className="m-0 mt-1.5 font-semibold">{selectedSeason?.season ?? "To be added"}</dd></div><div><dt className="text-xs uppercase tracking-wider text-[#a7a8af]">PAC ID</dt><dd className="m-0 mt-1.5 font-mono font-semibold">{athlete.athlete_code}</dd></div><div><dt className="text-xs uppercase tracking-wider text-[#a7a8af]">{newerReport ? "Latest Report" : "Last Tested"}</dt><dd className="m-0 mt-1.5 font-semibold">{newerReport ? blastPeriodLabel(newerReport.start,newerReport.end) : lastTested ? <time dateTime={lastTested}>{measurementDate(lastTested)}</time> : "Not Yet Tested"}</dd></div></dl>

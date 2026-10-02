@@ -6,7 +6,7 @@ import { percentileColor } from "@/lib/percentile-color";
 describe("Pacific percentile presentation", () => {
   it("uses blue, a neutral midpoint and red without changing percentile values", () => {
     expect(percentileColor(0).backgroundColor).toBe("rgb(23, 100, 174)");
-    expect(percentileColor(50).backgroundColor).toBe("rgb(230, 231, 233)");
+    expect(percentileColor(50).backgroundColor).toBe("rgb(166, 171, 180)");
     expect(percentileColor(100).backgroundColor).toBe("rgb(195, 33, 50)");
     const html = renderToStaticMarkup(createElement(PercentileBar, { value: 87.125, sampleSize: 8, label: "Fictional test" }));
     expect(html).toContain('aria-valuenow="87.125"'); expect(html).toContain('left:87.125%'); expect(html).toContain('>87</span>');

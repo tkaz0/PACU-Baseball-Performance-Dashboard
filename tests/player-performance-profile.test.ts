@@ -73,11 +73,11 @@ describe("player profile tabs and presentation",()=>{
   expect(html).toContain('>In-Game</button>');expect(html).toContain('>Practice</button>');expect((html.match(/role="tab"/g)??[])).toHaveLength(5);
   const overview=html.split('role="tabpanel"')[1];expect(overview.includes("Max Exit Velocity")).toBe(hitting);expect(overview.includes("Home to 1st")).toBe(hitting);
   expect(html.includes("Speed &amp; Agility")).toBe(hitting);expect(html.includes('data-metric-key="home_to_first"')).toBe(hitting);expect(html.includes("Sep 4, 2026")).toBe(hitting);
-  expect(overview).toContain("Strengths");expect(overview).toContain("Areas to Work On");expect(overview).toContain("Biggest Jumps");
+  expect(overview).toContain("Strengths");expect(overview).toContain("Areas to Work On");expect(/Biggest Jumps|Biggest jumps appear after a repeat test/.test(overview)).toBe(true);
  });
  it("shows eligible percentile bars without transmitting another athlete's raw provenance",()=>{
   const readings=Array.from({length:5},(_,i)=>measurement("Weight",170+i,"lb","2026-09-03",`SYN-00${i+1}`));const performance=getPlayerPerformance({readings,athleteCode:"SYN-001",cohortAthleteCodes:readings.map(r=>r.athlete_code)}),html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete:fictionalAthlete("position"),performance}));
-  expect(html).toContain('role="meter"');expect(html).toContain('data-percentile="0"');expect(html).toContain("5 teammates");expect(html).toContain('data-direction="neutral"');expect(html).not.toContain("fictional-SYN-002.csv");
+  expect(html).toContain('role="meter"');expect(html).toContain('data-percentile="0"');expect(html).toContain("of 5 players");expect(html).toContain('data-direction="neutral"');expect(html).not.toContain("fictional-SYN-002.csv");
  });
 });
 

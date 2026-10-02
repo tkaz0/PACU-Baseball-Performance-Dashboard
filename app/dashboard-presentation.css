@@ -90,7 +90,6 @@ body { -webkit-font-smoothing: antialiased; }
   .workspace-shell .page-description { font-size: 12px; }
   .page-heading-copy { padding-left: 13px; }
   .player-identity-card { padding: 18px 16px; border-radius: 13px; }
-  .profile-tab-navigation { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px; }
   .profile-tab-navigation [role="tab"] { min-width: 0; padding-inline: 4px; font-size: 11px; }
   .workspace-footer { margin-inline: 16px; }
   .leaderboard-navigation[aria-label="Leaderboard session"] { width: 100%; }
