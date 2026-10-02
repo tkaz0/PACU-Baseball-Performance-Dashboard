@@ -88,7 +88,7 @@ describe("protected profile route authorization and integration", () => {
     expect(fake.eq).toHaveBeenCalledExactlyOnceWith("id", ownId.toUpperCase());
     expect(fake.load).toHaveBeenCalledExactlyOnceWith(trusted, athlete);
     expect(fake.contacts).toHaveBeenCalledExactlyOnceWith(trusted, athlete.id);
-    expect(fake.goals).toHaveBeenCalledExactlyOnceWith(trusted, athlete.id);
+    expect(fake.goals).not.toHaveBeenCalled(); // Goals, coach focus and weekly plans are hidden for now.
     expect(fake.games).toHaveBeenCalledExactlyOnceWith(trusted, athlete.id);
     expect(fake.logs).not.toHaveBeenCalled();
     expect(fake.team).toHaveBeenCalledExactlyOnceWith(trusted);
@@ -98,9 +98,7 @@ describe("protected profile route authorization and integration", () => {
     expect(html).not.toContain('data-testid="hitter-swing-blueprint"');
     expect(fake.movement).toHaveBeenCalledExactlyOnceWith(trusted,athlete.id,athlete.athlete_code);
     expect(fake.rpc.mock.calls).toEqual([
-      ["athlete_focus_items",{p_athlete_id:athlete.id}],
       ["athlete_swing_videos",{p_athlete_id:athlete.id}],
-      ["athlete_development_plans",{p_athlete_id:athlete.id}],
       ["athlete_trend_annotations",{p_athlete_id:athlete.id}],
       ["athlete_training_block_samples",{p_athlete_id:athlete.id,p_offset:0}],
     ]);
@@ -133,22 +131,22 @@ describe("protected profile route authorization and integration", () => {
     fake.access.mockResolvedValueOnce(access(["admin"], null));
     const admin = renderToStaticMarkup(await Profile({ params: Promise.resolve({ id: ownId }) }));
     expect(admin).toContain("Roster Details"); expect(admin).toContain("private-roster@example.com"); expect(admin).toContain('href="/imports"');
-    for(const html of [coach,preview,admin]){expect(html).toContain("Add Weekly Plan");expect(html).toContain("Add Coaching Note");expect(html).toContain("Attach Video");expect(html).not.toContain('aria-label="Complete Fictional drill"');}
+    for(const html of [coach,preview,admin]){expect(html).not.toContain("Add Weekly Plan");expect(html).not.toContain("Add Coach Focus");expect(html).toContain("Add Coaching Note");expect(html).toContain("Attach Video");expect(html).not.toContain('aria-label="Complete Fictional drill"');}
   });
   it.each([false,true])("shows only shared development content and keeps staff controls out of Player View (preview=%s)",async preview=>{
     fake.access.mockResolvedValueOnce(access(["player"],ownId,preview));fake.contacts.mockResolvedValue([contact]);
     fake.rpc.mockImplementation(async(name:string)=>({data:name==="athlete_development_plans"?[ownPlan,{...ownPlan,id:"22222222-2222-4222-8222-222222222222",weekStart:"2026-10-05",focus:"Fictional hidden staff plan",shared:false}]:name==="athlete_trend_annotations"?[ownAnnotation,{...ownAnnotation,id:"66666666-6666-4666-8666-666666666666",note:"Fictional hidden chart note",shared:false}]:[],error:null}));
     const html=renderToStaticMarkup(await Profile({params:Promise.resolve({id:ownId})}));
-    expect(html).toContain(ownPlan.focus);expect(html).toContain(ownPlan.drills[0].cue);expect(html).toContain(ownAnnotation.note);
+    expect(html).not.toContain(ownPlan.focus);expect(html).toContain(ownAnnotation.note);
     for(const hidden of [ownPlan.staffNote,"Fictional hidden staff plan","Fictional hidden chart note","Add Weekly Plan","Edit Weekly Plan","Add Coaching Note","Edit Note","Attach Video","Attach Swing Video"])expect(html).not.toContain(hidden);
-    expect(html.includes('aria-label="Complete Fictional drill"')).toBe(!preview);
+    expect(html).not.toContain('aria-label="Complete Fictional drill"');
     for(const [,args] of fake.rpc.mock.calls)expect(args.p_athlete_id).toBe(ownId);
   });
   it("isolates optional video, weekly-plan, note and sample-reader failures without losing the profile",async()=>{
     fake.contacts.mockResolvedValue([contact]);fake.rpc.mockImplementation(async(name:string)=>name==="athlete_focus_items"?{data:[],error:null}:{data:null,error:{code:"FICTITIOUS_ERROR"}});
     const html=renderToStaticMarkup(await Profile({params:Promise.resolve({id:ownId})}));
     expect(html).toContain("Fictional Profile");expect(html).toContain('data-value="10"');expect(html).toContain("Game Stats");
-    for(const message of ["Weekly plans are temporarily unavailable","Coaching notes are temporarily unavailable","Swing videos are temporarily unavailable","Swing counts are temporarily unavailable"])expect(html).toContain(message);
+    for(const message of ["Coaching notes are temporarily unavailable","Swing videos are temporarily unavailable","Swing counts are temporarily unavailable"])expect(html).toContain(message);
     expect(html).not.toContain("Attach Video");expect(html).not.toContain("FICTITIOUS_ERROR");
   });
   it("uses own aggregate overlays without peer rows and keeps baseball outside Fall out of history", async () => {
@@ -179,18 +177,12 @@ describe("protected profile route authorization and integration", () => {
     await expect(Profile({ params: Promise.resolve({ id: ownId }) })).rejects.toThrow("Fictional performance unavailable");
     expect(fake.charts).not.toHaveBeenCalled();
   });
-  it("shows only shared focus titles in Player View and keeps staff notes private",async()=>{
-    fake.rpc.mockResolvedValueOnce({data:[
-      {id:"11111111-1111-4111-8111-111111111111",athleteId:ownId,title:"Fictional shared goal",staffNote:"Private coach note",targetDate:"2026-10-10",shared:true,completedAt:null,createdAt:"2026-09-20T00:00:00Z"},
-      {id:"22222222-2222-4222-8222-222222222222",athleteId:ownId,title:"Fictional staff-only goal",staffNote:"Another private note",targetDate:null,shared:false,completedAt:null,createdAt:"2026-09-20T00:00:00Z"},
-    ],error:null});
-    fake.access.mockResolvedValueOnce(access(["player"],ownId,true));
+  it("no longer shows coach focus, goals or weekly plans on profiles",async()=>{
+    fake.access.mockResolvedValueOnce(access(["coach"],null));
     const html=renderToStaticMarkup(await Profile({params:Promise.resolve({id:ownId})}));
-    expect(html).toContain("Fictional shared goal");
-    expect(html).not.toContain("Fictional staff-only goal");
-    expect(html).not.toContain("Private coach note");
-    expect(html).not.toContain("Another private note");
-    expect(html).not.toContain("Add Coach Focus");
+    for(const hidden of ["Coach Focus","Add Coach Focus","Add Numeric Goal","Weekly Plan"])expect(html).not.toContain(hidden);
+    expect(fake.rpc.mock.calls.map(([name])=>name)).not.toContain("athlete_focus_items");
+    expect(fake.rpc.mock.calls.map(([name])=>name)).not.toContain("athlete_development_plans");
   });
 });
 it("renders aggregate hitting comparisons on an own-player profile without peer queries",async()=>{

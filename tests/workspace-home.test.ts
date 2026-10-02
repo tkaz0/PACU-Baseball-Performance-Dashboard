@@ -36,9 +36,9 @@ describe("role-aware dashboard landing", () => {
     const html=renderToStaticMarkup(await Overview({searchParams:Promise.resolve({})}));
     expect(fake.home).toHaveBeenCalledWith(current,{since:null,viewedAt:"2026-09-27T12:00:00Z",record:false});expect(fake.leaderboards).toHaveBeenCalledWith(current);expect(html).toContain(role==="player"?"My Dashboard":"Team Dashboard");
     expect(fake.navigation).toHaveBeenCalledWith(current);
-    expect(fake.due).toHaveBeenCalledTimes(role==="player"?0:1);
+    expect(fake.due).not.toHaveBeenCalled(); // Coach focus is hidden for now.
     expect(fake.status).toHaveBeenCalledTimes(role==="player"?0:1);
-    if(role==="player")expect(fake.rpc).toHaveBeenCalledExactlyOnceWith("athlete_development_plans",{p_athlete_id:athleteId});else expect(fake.rpc).not.toHaveBeenCalled();
+    expect(fake.rpc).not.toHaveBeenCalled(); // Weekly plans are hidden for now.
     // Staff use the sidebar for tools; only players keep Home shortcut tiles.
     expect(html.includes('aria-label="Home shortcuts"')).toBe(role==="player");expect(html).not.toContain('href="/imports"');expect(html.includes('href="/swing-design"')).toBe(role==="player");expect(html).not.toContain('href="/pitch-design"');expect(fake.from).not.toHaveBeenCalled();
   });
@@ -57,14 +57,10 @@ describe("role-aware dashboard landing", () => {
     const html=renderToStaticMarkup(await Overview({searchParams:Promise.resolve({preview:"read-only"})}));expect(html).toContain("No change was saved");
   });
   it.each([undefined,"anything","https://example.com"])("ignores unsupported preview query values: %s",value=>{expect(workspacePreviewQuery(value)).toBe("");});
-  it.each([false,true])("shows only the own shared weekly plan on Player Home and limits completion to actual players (preview=%s)",async preview=>{
-    fake.access.mockResolvedValue(access(["player"],athleteId,preview));fake.home.mockResolvedValue(buildHomeSummary([],[],[],"2026-09-30"));
-    const plan={id:"11111111-1111-4111-8111-111111111111",athleteId,weekStart:"2026-09-28",focus:"Fictional shared weekly plan",drills:[{id:"33333333-3333-4333-8333-333333333333",title:"Fictional drill",cue:"Fictional shared cue",completedAt:null}],staffNote:"Fictional hidden staff note",shared:true,archived:false,revision:1,createdAt:"2026-09-29T00:00:00Z",updatedAt:"2026-09-29T00:00:00Z"};
-    fake.rpc.mockResolvedValue({data:[plan,{...plan,id:"22222222-2222-4222-8222-222222222222",weekStart:"2026-10-05",focus:"Fictional hidden staff plan",shared:false}],error:null});
+  it("no longer loads or shows weekly plans on Player Home",async()=>{
+    fake.access.mockResolvedValue(access(["player"],athleteId));fake.home.mockResolvedValue(buildHomeSummary([],[],[],"2026-09-30"));
     const html=renderToStaticMarkup(await Overview({searchParams:Promise.resolve({})}));
-    expect(fake.rpc).toHaveBeenCalledExactlyOnceWith("athlete_development_plans",{p_athlete_id:athleteId});expect(html).toContain(plan.focus);expect(html).toContain(plan.drills[0].cue);
-    for(const hidden of [plan.staffNote,"Fictional hidden staff plan","Add Weekly Plan","Edit Weekly Plan"])expect(html).not.toContain(hidden);
-    expect(html.includes('aria-label="Complete Fictional drill"')).toBe(!preview);expect(fake.from).not.toHaveBeenCalled();
+    expect(fake.rpc).not.toHaveBeenCalled();expect(html).not.toContain("Weekly Plan");
   });
   it("keeps Home available when its optional weekly plan reader fails",async()=>{
     fake.access.mockResolvedValue(access(["player"]));fake.home.mockResolvedValue(buildHomeSummary([],[],[],"2026-09-30"));fake.rpc.mockResolvedValue({data:null,error:{code:"FICTITIOUS_ERROR"}});

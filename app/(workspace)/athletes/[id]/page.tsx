@@ -1,7 +1,5 @@
 import { loadSwingVideos } from "@/lib/swing-videos-server";
 import { prepareSwingVideo, finishSwingVideo, playSwingVideo } from "./video-actions";
-import { loadDevelopmentPlans, canCompleteDevelopmentPlan } from "@/lib/development-plans-server";
-import { WeeklyDevelopmentPlans } from "@/components/development-plans";
 import { loadTrendAnnotations } from "@/lib/trend-annotations-server";
 import { TrendAnnotations } from "@/components/trend-annotations";
 import { loadTrainingBlockCounts } from "@/lib/training-blocks-server";
@@ -16,10 +14,6 @@ import { profileMetricLabel } from "@/lib/profile-metric-label";
 import { ClassifiedPitchResults } from "@/components/classified-pitch-results";
 import { HitterContactMap } from "@/components/hitter-contact-map";
 import { loadFullSwingContacts } from "@/lib/full-swing-contacts-server";
-import { loadCoachFocusItems } from "@/lib/coach-focus-server";
-import { CoachFocusItems } from "@/components/coach-focus-items";
-import { loadPlayerGoals } from "@/lib/player-goals-server";
-import { PlayerGoals } from "@/components/player-goals";
 import { formatSourceNumber } from "@/lib/measurement-display";
 import { loadGameLogs } from "@/lib/game-log-server";
 import { PlayerGameLog } from "@/components/player-game-log";
@@ -60,14 +54,14 @@ export default async function Profile({ params, searchParams }: { params: Promis
   const today = pacificTestingDate();
   const videoActions = { prepare: prepareSwingVideo, finish: finishSwingVideo, play: playSwingVideo };
   // Independent readers start together after the exact player passes live authorization.
-  const [gameLogs, gameStats, gameComparisons, shared, teamAverages, movement, contacts, focusItems, goals, videos, developmentPlans, annotations, blockCounts, headshot] = await Promise.all([
+  const [gameLogs, gameStats, gameComparisons, shared, teamAverages, movement, contacts, videos, annotations, blockCounts, headshot] = await Promise.all([
     staff ? loadGameLogs(access, athlete.id) : Promise.resolve([]),
     loadGameStats(access, athlete.id), loadGameComparisons(access, athlete.id),
     loadAthletePerformance(access,athlete), showHitting ? loadHittingTeamAverages(access) : Promise.resolve([]),
     loadMovementScreening(access,athlete.id,athlete.athlete_code),
-    showHitting ? loadFullSwingContacts(access,athlete.id) : Promise.resolve([]), loadCoachFocusItems(access,athlete.id), loadPlayerGoals(access,athlete.id),
+    showHitting ? loadFullSwingContacts(access,athlete.id) : Promise.resolve([]),
     showHitting ? loadSwingVideos(access,athlete.id).catch(()=>null) : Promise.resolve([]),
-    loadDevelopmentPlans(access,athlete.id).catch(()=>null), loadTrendAnnotations(access,athlete.id).catch(()=>null), loadTrainingBlockCounts(access,athlete.id).catch(()=>null),
+    loadTrendAnnotations(access,athlete.id).catch(()=>null), loadTrainingBlockCounts(access,athlete.id).catch(()=>null),
     loadAthleteHeadshot(access,athlete.id),
   ]);
   const performance = getPlayerPerformance({ readings:shared.measurements, batches:shared.batches, athleteCode:athlete.athlete_code, cohortAthleteCodes:[], percentileOverrides:shared.percentileOverrides });
@@ -83,11 +77,10 @@ export default async function Profile({ params, searchParams }: { params: Promis
     {staff && <Link href="/roster" className="profile-back"><ArrowLeft size={15} />Team Roster</Link>}
     <PlayerPerformanceProfile
       headshot={headshot}
-      developmentPlan={developmentPlans ? <WeeklyDevelopmentPlans plans={developmentPlans} athleteId={athlete.id} staff={canImportPresentedAccess(access)} canComplete={canCompleteDevelopmentPlan(access,athlete.id)} today={today}/> : <p role="status" className="muted text-sm">Weekly plans are temporarily unavailable. Refresh to try again.</p>}
       trainingBlocks={<>{blockCounts===null&&<p role="status" className="muted text-sm">Swing counts are temporarily unavailable. Some session averages cannot be compared yet.</p>}<TrainingBlockComparison series={buildTrainingBlockSeries(readings,{athleteCode:athlete.athlete_code,showHitting,showPitching:profileShowsPitching(season),today,readingCounts:blockCounts??[]})}/></>}
       trendAnnotations={annotations ?? []}
       trendNotes={annotations ? <TrendAnnotations items={annotations} athleteId={athlete.id} staff={canImportPresentedAccess(access)} today={today}/> : <p role="status" className="muted text-sm">Coaching notes are temporarily unavailable. Refresh to try again.</p>}
-      pitchDesignHref={`/pitch-design?athlete=${athlete.id}`} swingDesignHref={`/swing-design?athlete=${athlete.id}`} goals={<PlayerGoals data={goals} athleteId={athlete.id} staff={canImportPresentedAccess(access)} status={query?.goal}/>} coachFocus={<CoachFocusItems athleteId={athlete.id} items={focusItems} staff={canImportPresentedAccess(access)} status={query?.focus}/>} teamAverages={teamAverages} blastReadings={shared.measurements} timelineReadings={readings} practicePitchResults={<ClassifiedPitchResults readings={shared.measurements} context="practice" />} pitchResults={<ClassifiedPitchResults readings={shared.measurements} />} contactResults={<HitterContactMap contacts={contacts} context="in_game" bats={season?.bats} athleteId={athlete.id} videoActions={videoActions} videos={videos??[]} canAttachVideo={videos!==null&&canImportPresentedAccess(access)} videosAvailable={videos!==null} />} practiceContactResults={<HitterContactMap contacts={contacts} context="practice" bats={season?.bats} athleteId={athlete.id} videoActions={videoActions} videos={videos??[]} canAttachVideo={videos!==null&&canImportPresentedAccess(access)} videosAvailable={videos!==null} />} simplified={!staff} overviewGameStats={gameStats} gameComparisons={gameComparisons} gameStats={<><AthleteGameStats stats={gameStats} comparisons={gameComparisons} showDetails={staff}/>{staff&&<PlayerGameLog logs={gameLogs}/>}</>} athlete={athlete} performance={performance} season={season}
+      pitchDesignHref={`/pitch-design?athlete=${athlete.id}`} swingDesignHref={`/swing-design?athlete=${athlete.id}`} teamAverages={teamAverages} blastReadings={shared.measurements} timelineReadings={readings} practicePitchResults={<ClassifiedPitchResults readings={shared.measurements} context="practice" />} pitchResults={<ClassifiedPitchResults readings={shared.measurements} />} contactResults={<HitterContactMap contacts={contacts} context="in_game" bats={season?.bats} athleteId={athlete.id} videoActions={videoActions} videos={videos??[]} canAttachVideo={videos!==null&&canImportPresentedAccess(access)} videosAvailable={videos!==null} />} practiceContactResults={<HitterContactMap contacts={contacts} context="practice" bats={season?.bats} athleteId={athlete.id} videoActions={videoActions} videos={videos??[]} canAttachVideo={videos!==null&&canImportPresentedAccess(access)} videosAvailable={videos!==null} />} simplified={!staff} overviewGameStats={gameStats} gameComparisons={gameComparisons} gameStats={<><AthleteGameStats stats={gameStats} comparisons={gameComparisons} showDetails={staff}/>{staff&&<PlayerGameLog logs={gameLogs}/>}</>} athlete={athlete} performance={performance} season={season}
       action={canImportPresentedAccess(access) ? <Link href="/imports" className="text-link">Import Information <ArrowRight size={15} /></Link> : undefined}
       movementScreening={<MovementScreening report={movement} showReferences={staff}/>}
       muscleBalance={<RenphoMuscleBalance report={getRenphoReports(readings,shared.batches,athlete.athlete_code)[0]} />}
