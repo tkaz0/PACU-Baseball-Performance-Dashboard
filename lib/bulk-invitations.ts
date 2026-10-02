@@ -1,5 +1,5 @@
 export type BulkInviteStatus = "ready" | "connected" | "existing" | "email" | "duplicate" | "inactive" | "review";
-export type BulkInvitePlayer = { id:string; code:string; name:string; email:string; status:BulkInviteStatus; attemptId?:string };
+export type BulkInvitePlayer = { id:string; code:string; name:string; email:string; status:BulkInviteStatus; attemptId?:string; attemptedEmail?:string };
 export const BULK_INVITE_LABELS:Record<BulkInviteStatus,string>={ready:"Ready to invite",connected:"Account already linked",existing:"Sign-in already exists",email:"Roster email needed",duplicate:"Duplicate roster email",inactive:"Roster needs review",review:"Previous send needs review"};
 export type BulkInviteOutcome={status:"sent"|"skipped"|"review"|"limited";message:string};
 export function validBulkEmail(email:string){return email.length<=254&&/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);}

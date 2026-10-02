@@ -6,15 +6,18 @@ import { requireRenderAccess as requireAccess } from "@/lib/render-access";
 import { canReadPresentedAthlete } from "@/lib/access-preview";
 import { athleteName, display, formatClassYear, UUID_PATTERN, type RosterAthlete } from "@/lib/types";
 import { loadAthletePerformance } from "@/lib/performance-server";
-import { getPlayerPerformance } from "@/lib/player-performance";
-import { getPlayerProfileLayout, profileSessionContext, profileShowsPitching, withoutUnclassifiedPitchVelocity, withoutWeeklyBlastCards } from "@/lib/player-profile-layout";
+import { getPlayerPerformance, type PlayerMetricCard } from "@/lib/player-performance";
+import { profileSessionContext, profileShowsHitting, profileShowsPitching, withoutUnclassifiedPitchVelocity, withoutWeeklyBlastCards } from "@/lib/player-profile-layout";
+import { reportTestingSelection, reportHasPercentile } from "@/lib/player-report";
+import { blastFallSummary } from "@/lib/blast-fall";
+import { loadBlastBatSpeedPercentile } from "@/lib/blast-speed-percentile-server";
 import { profileMetricLabel } from "@/lib/profile-metric-label";
 import { leaderboardMetricLabel, leaderboardTestDate } from "@/lib/leaderboards";
 import { formatHeight, formatMetricNumber, formatSpin } from "@/lib/measurement-display";
 import { profileTrends } from "@/lib/profile-trends";
 import { recentPersonalBest } from "@/lib/personal-bests";
 import { pacificTestingDate } from "@/lib/testing-checklist";
-import { parseBlastSource } from "@/lib/blast-metrics";
+import { parseBlastSource, formatBlastValue, blastUnit } from "@/lib/blast-metrics";
 import { loadGameStats } from "@/lib/game-server";
 import { loadGameComparisons } from "@/lib/game-comparison-server";
 import { gameOverviewMetrics } from "@/lib/game-overview";
@@ -33,7 +36,7 @@ import styles from "./report.module.css";
 
 const REPORT_TESTS = 10;
 const REPORT_PITCHES = 8;
-const REPORT_GAME_KEYS = ["batting_production_plus", "batting_avg", "batting_obp", "batting_est_slg", "batting_bb_pct", "batting_k_pct", "pitching_whip", "pitching_k_bb", "pitching_k9", "pitching_bb9", "strike_pct"];
+const REPORT_GAME_KEYS = ["batting_production_plus", "batting_avg", "batting_obp", "batting_est_iso", "qpa_pct", "batting_bb_pct", "batting_k_pct", "pitching_whip", "pitching_k_bb", "pitching_r9", "pitching_k9", "pitching_bb9", "strike_pct"];
 
 /** One authorized athlete read shared by the page and its title. */
 const loadReportAthlete = cache(async (id: string) => {
@@ -68,25 +71,20 @@ export default async function PlayerReport({ params }: { params: Promise<{ id: s
   const coverage = (["Game", "Intrasquad", "Practice"] as const).map(category => ({ category, average: fullArsenal.some(p => p.category === category && p.averageVelocity !== null), maximum: fullArsenal.some(p => p.category === category && p.maxVelocity !== null) }));
   const classified = withoutUnclassifiedPitchVelocity(performance, coverage);
   const display_ = shared.measurements.some(r => parseBlastSource(r.source)) ? withoutWeeklyBlastCards(classified) : classified;
-  const layout = getPlayerProfileLayout(display_, season);
-  const groups = [
-    { label: "Physicality", cards: layout.physicality }, { label: "Speed & Agility", cards: layout.speedAgility },
-    { label: "Hitting", cards: layout.showHitting ? layout.hitting : [] }, { label: "Throwing", cards: [...layout.fieldThrowing, ...layout.pitching] },
-  ].map(g => ({ ...g, cards: g.cards.filter(card => card.latest) }));
-  const all = groups.flatMap(g => g.cards);
-  const hasPct = (card: (typeof all)[number]) => !!card.percentile && card.percentile.sampleSize >= 5;
-  // One page: tests with a team percentile first, then the rest, capped; shown in the profile's group order.
-  const chosen = new Set([...all.filter(hasPct), ...all.filter(card => !hasPct(card))].slice(0, REPORT_TESTS));
-  const shownGroups = groups.map(g => ({ ...g, cards: g.cards.filter(card => chosen.has(card)) })).filter(g => g.cards.length);
-  const hiddenTests = all.length - chosen.size;
+  const blast = profileShowsHitting(season) ? blastFallSummary(shared.measurements) : null;
+  const blastPercentile = blast ? await loadBlastBatSpeedPercentile(access, athlete.id) : null;
+  const batAverage = blast?.metrics.find(metric => metric.key === "avg_bat_speed")?.average;
+  const blastPct = blastPercentile && batAverage != null && Math.abs(blastPercentile.observedValue - batAverage) < 1e-8 && blastPercentile.swingCount === blast?.totalSwings && blastPercentile.reportCount === blast?.reportCount && blastPercentile.firstDate === blast?.firstDate && blastPercentile.lastDate === blast?.lastDate ? blastPercentile.percentile : null;
+  const { chosen, shownGroups, hiddenTests } = reportTestingSelection(display_, season, blast ? 8 : REPORT_TESTS);
+  const hasPct = reportHasPercentile;
   const trends = new Map(profileTrends([...chosen]).map(trend => [trend.key, trend]));
   const showTrend = [...chosen].some(card => trends.has(card.metric.key));
-  const label = (card: (typeof all)[number]) => {
+  const label = (card: PlayerMetricCard) => {
     const base = profileMetricLabel(card.metric.key, leaderboardMetricLabel(card.metric), card.latest!.source);
     return card.metric.group === "body" ? base : `${base} (${profileSessionContext(card.latest!.source) === "in_game" ? "In-Game" : "Practice"})`;
   };
   const unit = (u: string) => u === "ratio" ? "" : u === "%" ? "%" : ` ${u}`;
-  const value = (card: (typeof all)[number]) => card.metric.key === "height" ? formatHeight(card.latest!.value, card.latest!.unit) ?? "" : `${formatMetricNumber(card.latest!.value, card.metric.key, card.latest!.source)}${unit(card.latest!.unit)}`;
+  const value = (card: PlayerMetricCard) => card.metric.key === "height" ? formatHeight(card.latest!.value, card.latest!.unit) ?? "" : `${formatMetricNumber(card.latest!.value, card.metric.key, card.latest!.source)}${unit(card.latest!.unit)}`;
   const games = REPORT_GAME_KEYS.flatMap(key => gameOverviewMetrics(gameStats, gameComparisons).filter(game => game.metric === key));
   const gameGroups = [{ label: "Hitting", rows: games.filter(g => g.source === "qpa_fall_2026") }, { label: "Pitching", rows: games.filter(g => g.source !== "qpa_fall_2026") }].filter(g => g.rows.length);
   const arsenal = fullArsenal.slice(0, REPORT_PITCHES), hiddenPitches = fullArsenal.length - arsenal.length;
@@ -112,15 +110,17 @@ export default async function PlayerReport({ params }: { params: Promise<{ id: s
             const trend = trends.get(card.metric.key), best = recentPersonalBest(card, today), pct = hasPct(card) ? Math.round(card.percentile!.value) : null;
             const change = trend ? trend.points.at(-1)!.value - trend.points[0].value : null;
             return <tr key={`${card.metric.key}-${card.latest!.source}`}><td><strong>{label(card)}</strong>{best && <span className={styles.best}>Fall Best</span>}<small>{leaderboardTestDate(card.latest!.measuredAt)}</small></td><td className={styles.num}>{value(card)}</td>
-              {showTrend && <td>{trend ? <span className={styles.trend}><Sparkline points={trend.points} width={56} height={16} label={`${card.metric.label} trend`} lowerIsBetter={card.metric.direction === "lower"}/><small>{change! > 0 ? "+" : change! < 0 ? "−" : ""}{formatMetricNumber(Math.abs(change!), card.metric.key, card.latest!.source, Math.abs(change!).toFixed(1))}</small></span> : null}</td>}
+              {showTrend && <td>{trend ? <span className={styles.trend}><Sparkline points={trend.points} width={56} height={16} label={`${card.metric.label} trend`} direction={card.metric.direction}/><small>{change! > 0 ? "+" : change! < 0 ? "−" : ""}{formatMetricNumber(Math.abs(change!), card.metric.key, card.latest!.source, Math.abs(change!).toFixed(1))}</small></span> : null}</td>}
               <td className={styles.center}><Pctl value={pct} neutral={card.metric.direction === "neutral"}/></td></tr>;
-          })}</tbody>)}</table> : <p className={styles.muted}>No Fall testing results yet.</p>}{hiddenTests > 0 && <p className={styles.more}>+{hiddenTests} more on the full profile</p>}</section>
+          })}</tbody>)}</table> : <p className={styles.muted}>No Fall testing results yet.</p>}{hiddenTests > 0 && <p className={styles.more}>+{hiddenTests} more testing measurements on the full profile</p>}
+          {blast && <section className={styles.blast} aria-label="Blast practice averages"><h2>Blast Practice · Fall Averages</h2><p className={styles.more}>{blast.totalSwings !== null ? `${blast.totalSwings} swings · ${blast.reportCount} reports` : "Fall averages pending report review"}{blast.lastDate ? ` · Through ${leaderboardTestDate(blast.lastDate)}` : ""}</p><table className={styles.table}><thead><tr><th>Measurement</th><th className={styles.right}>Average</th><th className={styles.center}>Pctl</th></tr></thead><tbody>{blast.metrics.map(metric => <tr key={metric.key}><td><strong>{metric.label.replace(" (Practice)", "")}</strong></td><td className={styles.num}>{metric.average === null ? "—" : `${formatBlastValue(metric.average, metric.unit)} ${blastUnit(metric.unit)}`}</td><td className={styles.center}><Pctl value={metric.key === "avg_bat_speed" && blastPct !== null ? Math.round(blastPct) : null} neutral={metric.key !== "avg_bat_speed"}/></td></tr>)}</tbody></table><p className={styles.more}>Swing-weighted averages; weekly peaks remain on the profile.</p></section>}
+        </section>
         <section aria-label="Game stats"><h2>Game Stats · Fall 2026</h2>{gameGroups.length ? <table className={styles.table}><thead><tr><th>Stat</th><th className={styles.right}>Value</th><th className={styles.center}>Pctl</th></tr></thead>{gameGroups.map(group => <tbody key={group.label}><tr className={styles.groupRow}><th colSpan={3} scope="colgroup">{group.label}</th></tr>{group.rows.map(game => {
           const pct = game.comparison && game.comparison.sampleSize >= 5 && game.comparison.percentile !== null ? Math.round(game.comparison.percentile) : null, sample = gameSampleText(game.source, game.metric, game.opportunities);
           return <tr key={`${game.source}-${game.metric}`}><td><strong>{game.label}</strong><small>{sample}{isEarlyGameSample(game.source, game.metric, game.opportunities) ? " · Early sample" : ""}</small></td><td className={styles.num}>{gameValue(game.value, game.unit)}</td><td className={styles.center}><Pctl value={pct} neutral={game.direction === "neutral"}/></td></tr>;
         })}</tbody>)}</table> : <p className={styles.muted}>No game stats yet.</p>}</section>
       </div>
-      {arsenal.length > 0 && <section className={styles.arsenal} aria-label="Pitch arsenal"><h2>Pitch Arsenal · Fall 2026</h2><div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Pitch</th><th>Setting</th><th className={styles.right}>Avg Velo</th><th className={styles.right}>Max Velo</th><th className={styles.right}>Avg Spin</th><th className={styles.right}>Pitches</th></tr></thead><tbody>{arsenal.map(pitch => <tr key={pitch.source}><td><strong>{pitchTypeLabel(pitch.pitchType)}</strong></td><td>{pitch.category}</td><td className={styles.num}>{pitch.averageVelocity === null ? "—" : `${pitch.averageVelocity.toFixed(1)} mph${pitch.velocityBasis === "latest" ? "†" : ""}`}</td><td className={styles.num}>{pitch.maxVelocity === null ? "—" : `${pitch.maxVelocity.toFixed(1)} mph`}</td><td className={styles.num}>{pitch.averageSpin === null ? "—" : `${formatSpin(pitch.averageSpin)} rpm${pitch.spinBasis === "latest" ? "†" : ""}`}</td><td className={styles.num}>{pitch.count ?? "—"}</td></tr>)}</tbody></table></div>
+      {arsenal.length > 0 && <section className={styles.arsenal} aria-label="Pitch arsenal"><h2>Pitch Arsenal · Fall 2026</h2><div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Pitch</th><th>Setting</th><th className={styles.right}>Avg Velo</th><th className={styles.right}>Max Velo</th><th className={styles.right}>Avg Spin</th><th className={styles.right}>Max Spin</th><th className={styles.right}>Pitches</th></tr></thead><tbody>{arsenal.map(pitch => <tr key={pitch.source}><td><strong>{pitchTypeLabel(pitch.pitchType)}</strong></td><td>{pitch.category}</td><td className={styles.num}>{pitch.averageVelocity === null ? "—" : `${pitch.averageVelocity.toFixed(1)} mph${pitch.velocityBasis === "latest" ? "†" : ""}`}</td><td className={styles.num}>{pitch.maxVelocity === null ? "—" : `${pitch.maxVelocity.toFixed(1)} mph`}</td><td className={styles.num}>{pitch.averageSpin === null ? "—" : `${formatSpin(pitch.averageSpin)} rpm${pitch.spinBasis === "latest" ? "†" : ""}`}</td><td className={styles.num}>{pitch.maxSpin === null ? "—" : `${formatSpin(pitch.maxSpin)} rpm`}</td><td className={styles.num}>{pitch.count ?? "—"}</td></tr>)}</tbody></table></div>
         {(hiddenPitches > 0 || latestFallback) && <p className={styles.more}>{latestFallback ? "† Latest-session average (a session count could not be verified). " : ""}{hiddenPitches > 0 ? `+${hiddenPitches} more on the full profile.` : ""}</p>}</section>}
       <footer className={styles.footer}>Percentiles compare with at least five Pacific teammates on the same test, source and unit; red is the top of the team. Outlined values are body or spin positions, not grades. Small game samples can swing widely. PACU Baseball Performance is an independent project for Pacific Baseball; it is not an official university application.</footer>
     </article>

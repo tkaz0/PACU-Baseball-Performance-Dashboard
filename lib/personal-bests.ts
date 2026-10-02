@@ -6,8 +6,10 @@ import type { PlayerMetricCard } from "@/lib/player-performance";
  */
 export function recentPersonalBest(card: PlayerMetricCard, today: string, windowDays = 21): { previous: number } | null {
   const latest = card.latest, direction = card.metric.direction;
-  if (!latest || latest.derived || card.timedTrials || direction === "neutral" || latest.period !== "fall_2026") return null;
-  const earlier = card.history.filter(r => r.source === latest.source && r.unit === latest.unit && r.period === latest.period && !r.derived && r.measuredAt < latest.measuredAt && Number.isFinite(r.value));
+  if (!latest || !Number.isFinite(latest.value) || latest.derived || card.timedTrials || direction === "neutral" || latest.period !== "fall_2026") return null;
+  const comparable = card.history.filter(r => r.athleteCode === latest.athleteCode && r.metricKey === latest.metricKey && r.source === latest.source && r.unit === latest.unit && r.period === latest.period && !r.derived && Number.isFinite(r.value));
+  if (comparable.some(r => r.measuredAt === latest.measuredAt && (direction === "lower" ? r.value < latest.value : r.value > latest.value))) return null;
+  const earlier = comparable.filter(r => r.measuredAt < latest.measuredAt);
   if (!earlier.length) return null;
   const previous = direction === "lower" ? Math.min(...earlier.map(r => r.value)) : Math.max(...earlier.map(r => r.value));
   const improved = direction === "lower" ? latest.value < previous : latest.value > previous;

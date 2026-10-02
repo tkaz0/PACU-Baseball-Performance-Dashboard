@@ -25,6 +25,12 @@ describe("charts", () => {
     expect(html).toContain("Fictional stat: 100th percentile on the team");
     expect(renderToStaticMarkup(createElement(PercentileRing, { value: 40, label: "Height", neutral: true }))).toContain("var(--text-secondary)");
   });
+  it("keeps neutral changes gray and describes movement without calling it improvement", () => {
+    for(const values of [[180,185],[185,180]]){
+      const html=renderToStaticMarkup(createElement(Sparkline,{points:values.map((value,i)=>({date:`2026-09-${10+i}`,value})),label:"Weight",direction:"neutral"}));
+      expect(html).toContain("var(--text-secondary)");expect(html).not.toContain("improving");expect(html).not.toContain("declining");expect(html).toContain(values[1]>values[0]?"increased":"decreased");
+    }
+  });
   it("draws a trend only with at least two tests", () => {
     expect(renderToStaticMarkup(createElement(Sparkline, { points: [{ date: "2026-09-01", value: 1 }], label: "One test" }))).toBe("");
     expect(renderToStaticMarkup(createElement(Sparkline, { points: [{ date: "2026-09-01", value: 1 }, { date: "2026-09-08", value: 2 }], label: "Two tests" }))).toContain("<polyline");

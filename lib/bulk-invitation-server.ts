@@ -1,7 +1,7 @@
 import "server-only";
 import {requireAdminWorkspaceAccess} from "@/lib/auth";
 import {createAuthAdministrator,invitationsEnabled} from "@/lib/supabase/auth-admin";
-import {classifyBulkPlayers} from "@/lib/bulk-invitations";
+import {classifyBulkPlayers,validBulkEmail} from "@/lib/bulk-invitations";
 import {athleteName} from "@/lib/types";
 export async function prepareBulkInvitations(){
  const access=await requireAdminWorkspaceAccess();
@@ -21,5 +21,10 @@ export async function prepareBulkInvitations(){
   if(data.nextPage!==page+1)throw new Error("The sign-in directory could not be verified.");
  }
  if(!complete)throw new Error("The sign-in directory could not be fully checked.");
- return classifyBulkPlayers((roster.data??[]).map(r=>({id:r.id,code:r.athlete_code,name:athleteName(r),email:r.pacific_email,eligible:r.athlete_seasons.some(s=>s.season==="2026-27"&&(s.roster_status===null||["active","redshirt"].includes(s.roster_status)))})),new Set((links.data??[]).map(r=>r.athlete_id)),existing,new Set(attempts.data.filter((r:{status:string})=>r.status!=="rate_limited").map((r:{athlete_id:string})=>r.athlete_id)),access.user.email).map(player=>({...player,attemptId:attempts.data.find((r:{athlete_id:string})=>r.athlete_id===player.id)?.id as string|undefined}));
+ return classifyBulkPlayers((roster.data??[]).map(r=>({id:r.id,code:r.athlete_code,name:athleteName(r),email:r.pacific_email,eligible:r.athlete_seasons.some(s=>s.season==="2026-27"&&(s.roster_status===null||["active","redshirt"].includes(s.roster_status)))})),new Set((links.data??[]).map(r=>r.athlete_id)),existing,new Set(attempts.data.filter((r:{status:string})=>r.status!=="rate_limited").map((r:{athlete_id:string})=>r.athlete_id)),access.user.email).map(player=>{
+  const attempt=attempts.data.find((r:{athlete_id:string})=>r.athlete_id===player.id);
+  // Never substitute today's roster email for an earlier send's recipient.
+  const attemptedEmail=typeof attempt?.email==="string"&&validBulkEmail(attempt.email)&&attempt.email===attempt.email.trim().toLowerCase()?attempt.email:undefined;
+  return {...player,attemptId:attempt?.id as string|undefined,attemptedEmail};
+ });
 }

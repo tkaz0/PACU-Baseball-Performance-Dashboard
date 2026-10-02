@@ -52,7 +52,7 @@ export async function analyticsPages<T>(request:(from:number,to:number)=>Promise
   }
   return rows;
 }
-async function loadTeamSource(includeFullRoster=false, includeGames=true, includeArsenal=false){
+async function loadTeamSource(includeFullRoster=false, includeGames=true, includeArsenal=false, includeReadings=true){
   // Fresh trusted account check also denies Admin-as-Player before any team query.
   const access=await requireImportAccess();
   const {supabase}=access;
@@ -91,7 +91,7 @@ async function loadTeamSource(includeFullRoster=false, includeGames=true, includ
       return [...left,...right];
     }
   }
-  for(let start=0;start<eligible.length;start+=10){
+  for(let start=0;includeReadings && start<eligible.length;start+=10){
     const page=await readBatch(eligible.slice(start,start+10).map(p=>p.id),20000-readings.length);
     // Failed attempts never publish partially parsed rows or duplicate arsenal samples.
     for(const row of page){readings.push(row.reading);if(row.arsenal)arsenalReadings.push(row.arsenal);}
@@ -110,6 +110,12 @@ export async function loadAnalytics():Promise<AnalyticsDataset>{
 export async function loadCoachingData(){
   const data=await loadTeamSource();
   return {players:data.players,readings:data.readings.filter(coachingReadingVisible),games:coachingGames(data.games)};
+}
+
+/** Current eligible roster and cumulative game stats only; no testing or CSV queries. */
+export async function loadTopPerformersData(){
+  const data=await loadTeamSource(false,true,false,false);
+  return {players:data.players,games:coachingGames(data.games,data.rankingGames)};
 }
 
 /** Staff comparison can select any current-season roster identity, even without results. */

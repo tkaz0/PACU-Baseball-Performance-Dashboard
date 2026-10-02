@@ -1,0 +1,35 @@
+import { it, expect, vi } from 'vitest';
+import { renderToStaticMarkup } from 'react-dom/server';
+import type { Measurement } from '@/lib/imports/engine';
+import { BLAST_REPORT_METRICS, blastSource } from '@/lib/blast-metrics';
+const fake=vi.hoisted(()=>({access:vi.fn(),performance:vi.fn(),games:vi.fn(),percentile:vi.fn(),canRead:vi.fn()}));
+vi.mock('server-only',()=>({}));
+vi.mock('@/lib/render-access',()=>({requireRenderAccess:fake.access}));
+vi.mock('@/lib/access-preview',()=>({canReadPresentedAthlete:fake.canRead}));
+vi.mock('@/lib/performance-server',()=>({loadAthletePerformance:fake.performance}));
+vi.mock('@/lib/game-server',()=>({loadGameStats:fake.games}));
+vi.mock('@/lib/game-comparison-server',()=>({loadGameComparisons:async()=>[]}));
+vi.mock('@/lib/blast-speed-percentile-server',()=>({loadBlastBatSpeedPercentile:fake.percentile}));
+vi.mock('@/lib/headshots-server',()=>({loadAthleteHeadshot:async()=>null}));
+import PlayerReport from '@/app/(workspace)/athletes/[id]/report/page';
+const id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const row=(metric:string,value:number,unit:string,source='RENPHO',date='2026-09-15',hash='a'):Measurement=>({id:`fictional-${source}-${metric}-${date}`,athlete_code:'SYN-001',measured_at:date,source,metric,value,unit,source_file:'fictional.csv',source_sheet:'CSV',source_row:2,file_hash:hash.repeat(64)});
+it('renders a fictional full two-way report with core body values and cumulative Blast averages',async()=>{
+ fake.canRead.mockReturnValue(true);
+ const athlete={id,athlete_code:'SYN-001',first_name:'Fictional',preferred_name:null,last_name:'Player',athlete_seasons:[{athlete_id:id,season:'2026-27',jersey_number:12,primary_position:'OF',secondary_position:'P',player_type:'two_way',bats:'L',throws:'R',academic_class:'junior',roster_status:'active'}]};
+ const chain={select:vi.fn(),eq:vi.fn(),maybeSingle:vi.fn().mockResolvedValue({data:athlete,error:null})};chain.select.mockReturnValue(chain);chain.eq.mockReturnValue(chain);
+ fake.access.mockResolvedValue({supabase:{from:()=>chain},roles:['admin']});
+ const body=[row('Weight',180,'lb'),row('Weight',175,'lb','RENPHO','2026-09-01'),row('Height',72,'in'),row('Muscle Mass',145,'lb'),row('Body Fat Percentage',15,'%'),row('Body Score',90,'points'),row('Dominant Grip',115,'lb'),row('Non-Dominant Grip',108,'lb'),row('Home to First',4.2,'s','Player Metrics'),row('Home to Second',7.2,'s','Player Metrics')];
+ const blast=(hash:string,start:string,end:string,speed:number,count:number)=>BLAST_REPORT_METRICS.filter(m=>['blast_swing_count','avg_bat_speed','blast_peak_hand_speed','blast_attack_angle','blast_early_connection','blast_vertical_bat_angle'].includes(m.key)).map(m=>row(m.label,m.key==='blast_swing_count'?count:m.key==='avg_bat_speed'?speed:m.key==='blast_peak_hand_speed'?23:m.key==='blast_vertical_bat_angle'?-30:m.key==='blast_early_connection'?95:12,m.unit,blastSource('average',start,end),end,hash));
+ const fullSwing=['Four-Seam Fastball','Slider','Changeup','Curveball'].flatMap((pitch,i)=>['Intrasquad','Practice'].flatMap((category)=>[['Pitch Type Average Velocity',80-i*4,'mph'],['Pitch Type Max Velocity',84-i*4,'mph'],['Pitch Type Average Spin',2000-i*100,'rpm'],['Pitch Type Max Spin',2200-i*100,'rpm'],['Pitch Type Count',20,'count']].map(([metric,value,unit])=>row(metric as string,value as number,unit as string,`Full Swing · ${category} · ${pitch}`,'2026-09-20','f'))));
+ fake.performance.mockResolvedValue({measurements:[...body,...blast('b','2026-09-13','2026-09-20',60,10),...blast('c','2026-09-21','2026-09-27',80,30),...fullSwing],batches:[],percentileOverrides:[]});fake.percentile.mockResolvedValue(null);
+ const stat=(source:string,metric:string,value:number)=>({source,metric,value,athlete_id:id,unit:metric==='qpa_pct'?'%':'count',scope:source==='qpa_fall_2026'?'cumulative_fall':'pitching_event',event_id:source==='qpa_fall_2026'?null:'fall-2026-week-1',played_on:null,source_row:2,source_column:1,derived_from:[],snapshot_id:'fictional-snapshot',fetched_at:'2026-09-28T12:00:00Z',content_hash:'a'.repeat(64)});
+ fake.games.mockResolvedValue([...Object.entries({pa:10,ab:8,base_hit:3,bb:2,hbp:0,sac_fly:0,pumps:1,hh_extra_base_hit:1,k:2,qpa_pct:60}).map(([m,v])=>stat('qpa_fall_2026',m,v)),...Object.entries({innings_outs:15,k:6,bb_outcome:2,h:3,r:1,strikes:35,pitches:50}).map(([m,v])=>stat('pitching_fall_2026',m,v))]);
+ const html=renderToStaticMarkup(await PlayerReport({params:Promise.resolve({id})}));
+ expect(html).toContain('Muscle Mass');expect(html).toContain('Body Fat');expect(html).toContain('Body Score');expect(html).toContain('Blast Practice');expect(html).toContain('75.0 mph');expect(html).toContain('40 swings');expect(html).toContain('4-Seam Fastball');expect(html).toContain('Max Spin');expect(html).not.toContain('improving from 175 to 180');
+});
+it('blocks an unauthorized player report before loading measurements or game stats',async()=>{
+ fake.performance.mockClear();fake.games.mockClear();fake.canRead.mockReturnValue(false);
+ await expect(PlayerReport({params:Promise.resolve({id})})).rejects.toThrow();
+ expect(fake.performance).not.toHaveBeenCalled();expect(fake.games).not.toHaveBeenCalled();
+});

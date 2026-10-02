@@ -39,6 +39,7 @@
 .muted { color: var(--text-secondary); }
 .more { margin: 4px 0 0; color: var(--text-secondary); font-size: 12px; }
 .arsenal { margin-top: 10px; }
+.blast { margin-top: 10px; }
 .footer { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line-subtle); color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
 
 @media screen and (max-width: 760px) {
