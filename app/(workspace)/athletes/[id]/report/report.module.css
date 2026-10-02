@@ -16,30 +16,30 @@
 .brand { display: grid; justify-items: end; gap: 6px; color: var(--text-secondary); white-space: nowrap; }
 .heroes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 12px 0; }
 .heroes > div { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid var(--line-subtle); border-radius: 12px; font-size: 12px; font-weight: 700; }
-.early { display: block; margin-top: 2px; color: var(--text-secondary); font-size: 11px; font-style: normal; font-weight: 600; }
+.early { display: block; margin-top: 2px; color: var(--text-secondary); font-size: 12px; font-style: normal; font-weight: 600; }
 .columns { display: grid; grid-template-columns: 1.25fr 1fr; gap: 18px; align-items: start; }
 .columns h2, .arsenal h2 { margin: 2px 0 4px; color: var(--text-primary); font-size: 14px; font-weight: 800; }
 .tableWrap { overflow-x: auto; }
 .table { width: 100%; border-collapse: collapse; font-size: 12px; }
-.table th { padding: 4px; border-bottom: 1px solid var(--line-subtle); background: transparent; color: var(--text-secondary); font-size: 11px; text-align: left; text-transform: uppercase; letter-spacing: .05em; }
+.table th { padding: 4px; border-bottom: 1px solid var(--line-subtle); background: transparent; color: var(--text-secondary); font-size: 12px; text-align: left; text-transform: uppercase; letter-spacing: .05em; }
 .table td { padding: 3px 4px; border-bottom: 1px solid var(--line-subtle); vertical-align: middle; }
-.table td small { margin-left: 6px; color: var(--text-secondary); font-size: 11px; white-space: nowrap; }
+.table td small { margin-left: 6px; color: var(--text-secondary); font-size: 12px; white-space: nowrap; }
 /* Dark-theme table rules elsewhere must not paint into the paper sheet. */
 .report :is(th, td) { border-color: var(--line-subtle) !important; }
 .report th { background: transparent !important; }
-.groupRow th { padding-top: 8px; color: var(--text-primary); font-size: 11px; font-weight: 800; letter-spacing: .08em; }
+.groupRow th { padding-top: 8px; color: var(--text-primary); font-size: 12px; font-weight: 800; letter-spacing: .08em; }
 .right { text-align: right !important; }
 .center { text-align: center !important; }
 .num { font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .pctl { display: inline-flex; min-width: 30px; justify-content: center; padding: 2px 6px; border-radius: 6px; font-size: 12px; font-weight: 800; }
 .pctlNeutral { border: 1px solid var(--line-subtle); background: transparent; color: var(--text-secondary); }
-.best { display: inline-flex; margin-left: 6px; padding: 0 6px; border: 1px solid var(--accent-readable); border-radius: 999px; color: var(--accent-readable); font-size: 10.5px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; vertical-align: 1px; }
+.best { display: inline-flex; margin-left: 6px; padding: 0 6px; border: 1px solid var(--accent-readable); border-radius: 999px; color: var(--accent-readable); font-size: 12px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; vertical-align: 1px; }
 .trend { display: inline-flex; align-items: center; gap: 6px; }
 .trend small { margin: 0 !important; }
 .muted { color: var(--text-secondary); }
-.more { margin: 4px 0 0; color: var(--text-secondary); font-size: 11.5px; }
+.more { margin: 4px 0 0; color: var(--text-secondary); font-size: 12px; }
 .arsenal { margin-top: 10px; }
-.footer { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line-subtle); color: var(--text-secondary); font-size: 11px; line-height: 1.5; }
+.footer { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line-subtle); color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
 
 @media screen and (max-width: 760px) {
   .columns { grid-template-columns: 1fr; }
@@ -51,11 +51,11 @@
 }
 
 @media print {
-  .report { padding: 0; border: 0; border-radius: 0; font-size: 11px; }
+  .report { padding: 0; border: 0; border-radius: 0; font-size: 12px; }
   .identity h1 { font-size: 22px; }
-  .table { font-size: 10.5px; }
-  .table th { font-size: 9px; }
+  .table { font-size: 12px; }
+  .table th { font-size: 12px; }
   .table td small, .footer, .more, .early { font-size: 9.5px; }
-  .heroes > div { font-size: 10.5px; }
+  .heroes > div { font-size: 12px; }
   .table tr { break-inside: avoid; }
 }

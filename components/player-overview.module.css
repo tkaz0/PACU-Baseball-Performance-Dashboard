@@ -36,7 +36,7 @@
 .resultValue { display:block; margin-top:3px; font-size:24px; font-weight:800; line-height:1.1; letter-spacing:-.035em; font-variant-numeric:tabular-nums; }
 .percentileBadge { display:grid; place-items:center; flex-shrink:0; width:44px; padding:6px 0; border-radius:10px; }
 .percentileBadge strong { font-size:19px; line-height:1.1; font-variant-numeric:tabular-nums; }
-.percentileBadge > span { margin-top:3px; font-size:11.5px; font-weight:750; letter-spacing:.06em; }
+.percentileBadge > span { margin-top:3px; font-size:12px; font-weight:750; letter-spacing:.06em; }
 .highlightBar { position:relative; height:4px; margin-top:12px; border-radius:4px; background:var(--surface-raised); }
 .highlightBar > span { display:block; height:100%; border-radius:inherit; }
 .highlightBar > i { position:absolute; top:-2px; bottom:-2px; left:50%; border-left:1px solid var(--text-secondary); opacity:.45; }
@@ -45,7 +45,7 @@
 .jumpReadings { margin:0 0 4px; font-size:12px; font-weight:650; font-variant-numeric:tabular-nums; }
 .highlightGroups { display:grid; gap:14px; }
 .highlightGroups > div + div { border-top:1px solid var(--line-subtle); padding-top:12px; }
-.disciplineLabel { margin:0 0 8px; font-size:11.5px; font-weight:750; text-transform:uppercase; letter-spacing:.08em; color:var(--text-secondary); }
+.disciplineLabel { margin:0 0 8px; font-size:12px; font-weight:750; text-transform:uppercase; letter-spacing:.08em; color:var(--text-secondary); }
 .comparisonBoard { min-width:0; margin-top:6px; padding:0 16px 16px; border:1px solid var(--line-subtle); border-radius:14px; background:var(--surface-panel); }
 .comparisonBoard:not([open]) { padding-bottom:0; }
 .comparisonBoard[open] { display:grid; gap:16px; }
@@ -61,15 +61,15 @@
 .primaryComparisons,.gameCards,.testingCards { display:grid; gap:16px; min-width:0; align-items:start; }
 .comparisonCard { height:100%; }
 .comparisonHeader { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-bottom:12px; border-bottom:1px solid var(--line-subtle); }
-.comparisonHeader p { margin:0 0 5px; color:var(--accent-readable); font-size:11.5px; font-weight:750; letter-spacing:.08em; text-transform:uppercase; }
+.comparisonHeader p { margin:0 0 5px; color:var(--accent-readable); font-size:12px; font-weight:750; letter-spacing:.08em; text-transform:uppercase; }
 .comparisonHeader h3 { margin:0; font-size:19px; font-weight:800; letter-spacing:-.025em; }
-.comparisonHeader > span { padding:5px 8px; border-radius:6px; color:var(--text-secondary); background:var(--surface-raised); font-size:11.5px; font-weight:650; white-space:nowrap; }
+.comparisonHeader > span { padding:5px 8px; border-radius:6px; color:var(--text-secondary); background:var(--surface-raised); font-size:12px; font-weight:650; white-space:nowrap; }
 .comparisonCaption { margin:9px 0 0; color:var(--text-secondary); font-size:12px; line-height:1.5; }
 .comparisonCard > ul > li:first-child { border-top:0; }
 .comparisonCard li > div > p { overflow-wrap:anywhere; }
 .additionalRows { margin-top:12px; border-top:1px solid var(--line-subtle); padding-top:10px; }
 .additionalRows > summary { display:flex; align-items:center; gap:8px; min-height:36px; font-size:12px; font-weight:700; cursor:pointer; list-style:none; }
-.additionalRows > summary span { margin-left:auto; color:var(--text-secondary); padding:2px 7px; background:var(--surface-raised); border-radius:5px; font-size:11.5px; }
+.additionalRows > summary span { margin-left:auto; color:var(--text-secondary); padding:2px 7px; background:var(--surface-raised); border-radius:5px; font-size:12px; }
 .additionalRows > summary svg { color:var(--text-secondary); transition:transform .15s; }
 .additionalRows[open] > summary svg { transform:rotate(180deg); }
 .additionalRows > summary::-webkit-details-marker,.moreTesting > summary::-webkit-details-marker { display:none; }
@@ -117,7 +117,7 @@
 /* Phones: smaller ring so it never overlaps the stat label. */
 @media (max-width: 700px) {
   .heroTop :global(.percentile-ring) { width: 38px; height: 38px; }
-  .headlineStats dt { font-size: 11px; letter-spacing: .02em; }
+  .headlineStats dt { font-size: 12px; letter-spacing: .02em; }
   .heroTop > div { min-width: 0; }
 }
 .quietNote { margin:0; padding:10px 14px; border:1px dashed var(--line-subtle); border-radius:12px; color:var(--text-secondary); font-size:13px; }

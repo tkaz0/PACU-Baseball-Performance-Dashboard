@@ -1,4 +1,4 @@
-.eyebrow {color:var(--text-secondary);font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem}
+.eyebrow {color:var(--text-secondary);font-size:.75rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem}
 .fields {display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:1rem}
 .fields label {display:grid;gap:.4rem;min-width:0;font-size:.85rem;font-weight:600}
 .fields input,.fields select,.matchRow select {width:100%;min-width:0}
@@ -12,7 +12,7 @@
 .tableWrap table {width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:.86rem}
 .tableWrap th,.tableWrap td {padding:.6rem .5rem;border-bottom:1px solid var(--line-subtle);text-align:right;white-space:nowrap}
 .tableWrap th:first-child {text-align:left;white-space:normal;font-weight:500}
-.tableWrap thead th {font-size:.74rem;color:var(--text-secondary)}
+.tableWrap thead th {font-size:.75rem;color:var(--text-secondary)}
 .confirm {display:flex;gap:.7rem;align-items:flex-start;font-size:.85rem}
 .confirm input {margin-top:.2rem;flex-shrink:0}
 .reportHeader {display:flex;gap:.75rem;align-items:center;justify-content:space-between;flex-wrap:wrap}
@@ -29,14 +29,14 @@
 .hittingCard::before {content:"";position:absolute;inset:0 0 auto;height:3px;background:var(--brand-red)}
 .metricTop {display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:8px}
 .metricNumber {font-size:12px;letter-spacing:.08em;color:var(--text-secondary);font-variant-numeric:tabular-nums}
-.metricContext {font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;border:1px solid var(--line-subtle);border-radius:20px;padding:3px 7px;color:var(--text-secondary)}
+.metricContext {font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;border:1px solid var(--line-subtle);border-radius:20px;padding:3px 7px;color:var(--text-secondary)}
 .hittingCard h4 {margin:0;min-height:48px;font-size:13px;line-height:1.5;font-weight:650;color:var(--text-primary)}
 .primaryValue {display:flex;align-items:baseline;gap:7px;margin:12px 0 2px;font-variant-numeric:tabular-nums}
 .primaryValue strong {font-size:clamp(28px,2.5vw,38px);letter-spacing:-.05em;line-height:1.2;color:var(--text-primary)}
 .primaryValue>span {font-size:12px;color:var(--text-secondary)}
 .averageLabel {margin:0;color:var(--text-secondary);font-size:12px}
 .peakValue {display:flex;align-items:center;justify-content:space-between;gap:7px;border-top:1px solid var(--line-subtle);margin-top:20px;padding-top:14px;font-size:12px;color:var(--text-secondary)}
-.peakValue>span>span {display:block;font-size:11.5px;margin-top:2px}
+.peakValue>span>span {display:block;font-size:12px;margin-top:2px}
 .peakValue strong {font-size:13px;color:var(--text-primary);white-space:nowrap;font-variant-numeric:tabular-nums}
 .compactCards .metricTop {margin-bottom:12px}
 @media(max-width:1250px){.hittingCards{grid-template-columns:repeat(3,minmax(0,1fr))}}

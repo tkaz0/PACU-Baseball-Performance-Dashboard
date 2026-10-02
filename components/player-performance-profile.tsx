@@ -74,12 +74,14 @@ function MetricSparkline({card}:{card:PlayerMetricCard}) {
   const coordinates=trend.points.map((point,index)=>({x:3+index*124/(trend.points.length-1),y:34-(point.value-base)/span*30}));
   const latest=trend.points.at(-1)!,previous=trend.points.at(-2)!;
   const delta=latest.value-previous.value;
-  const label=`${trend.label}: ${trend.points.length} test dates, ${previous.value} to ${latest.value} ${trend.unit}`;
-  return <div className="mt-auto flex items-center justify-between gap-3 border-t border-[var(--line-subtle)] pt-3" aria-label={label}>
+  // Same cue as every other trend: red improving, blue declining, gray for neutral or unchanged.
+  const improving=delta===0||card.metric.direction==="neutral"?null:card.metric.direction==="lower"?delta<0:delta>0;
+  const trendColor=improving===null?"var(--text-secondary)":improving?"var(--accent-readable)":"var(--chart-blue, #367ea3)";
+  return <div className="mt-auto flex items-center justify-between gap-3 border-t border-[var(--line-subtle)] pt-3">
     <span className="text-xs text-[var(--text-secondary)]">Since previous test <strong className="ml-1 font-semibold tabular-nums text-[var(--text-primary)]">{delta>0?"+":""}{formatMetricNumber(delta,card.metric.key,trend.source,delta.toFixed(isTimedMetric(card.metric.key)?2:1))} {trend.unit}</strong></span>
     <svg viewBox="0 0 130 38" width="94" height="32" className="shrink-0" role="img" aria-label={`${trend.label} trend across ${trend.points.length} dates`}>
-      <polyline points={coordinates.map(point=>`${point.x},${point.y}`).join(" ")} fill="none" stroke="var(--accent-readable)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-      <circle cx={coordinates.at(-1)!.x} cy={coordinates.at(-1)!.y} r="3.5" fill="var(--accent-readable)"/>
+      <polyline points={coordinates.map(point=>`${point.x},${point.y}`).join(" ")} fill="none" stroke={trendColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx={coordinates.at(-1)!.x} cy={coordinates.at(-1)!.y} r="3.5" fill={trendColor}/>
     </svg>
   </div>;
 }

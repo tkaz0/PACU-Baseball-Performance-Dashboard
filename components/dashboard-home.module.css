@@ -58,3 +58,14 @@
 :global(html[data-theme="light"]) .markOnLight{display:contents}
 .markOnDark{display:contents}
 :global(html[data-theme="light"]) .homeMark{border-right-color:#ead6d9}
+
+/* Type scale: titles above body above meta. */
+.weekCardTitle h3{font-size:14px!important}.quickLinks strong,.updates strong,.rankName{font-size:13px!important}.rankName small,.updates time,.rankSample{font-size:12px!important}
+@media(max-width:700px){.weekCardTitle h3{font-size:13px!important}}
+/* Week cards stay two across down to phones; attention panels use two explicit tracks on mid widths. */
+@media(max-width:1000px){.weekGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:560px){.weekGrid{grid-template-columns:1fr!important}}
+@media(min-width:760px) and (max-width:1499px){.attention{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:759px){.attention{grid-template-columns:1fr!important}}
+.rankTrack{overflow:visible!important}.rankTrack>span:first-child{border-radius:inherit}
+.referenceTick{width:2px!important;background:var(--text-primary)!important;box-shadow:0 0 0 1px var(--surface-panel)}

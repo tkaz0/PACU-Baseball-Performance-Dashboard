@@ -9,7 +9,7 @@
 .readingValue { display: inline-flex; align-items: baseline; white-space: nowrap; }
 .bestLabel { margin-right: 7px; color: var(--text-secondary); font-size: 12px; font-weight: 650; letter-spacing: 0; }
 .metricMeta { margin-top: auto; padding-top: 14px; }
-.metricSource { width: fit-content; max-width: 100%; margin: 0 0 6px; padding: 3px 7px; border-radius: 5px; background: var(--surface-raised); color: var(--text-secondary); font-size: 11.5px; font-weight: 650; line-height: 1.4; overflow-wrap: anywhere; }
+.metricSource { width: fit-content; max-width: 100%; margin: 0 0 6px; padding: 3px 7px; border-radius: 5px; background: var(--surface-raised); color: var(--text-secondary); font-size: 12px; font-weight: 650; line-height: 1.4; overflow-wrap: anywhere; }
 .metricDate { margin: 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
 .metricDate time { white-space: nowrap; }
 .profile :global(.performance-metric-card) [data-testid="player-percentile"] { margin-top: 12px; padding-top: 9px; }
@@ -21,7 +21,7 @@
 .metricGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
 .sessionMeasurements { display: grid; gap: 24px; }
 .sessionHeading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid var(--line-subtle); }
-.sessionHeading p { margin: 0 0 5px; color: var(--text-secondary); font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; }
+.sessionHeading p { margin: 0 0 5px; color: var(--text-secondary); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; }
 .sessionHeading p span { padding: 0 6px; color: var(--text-secondary); opacity: .6; }
 .sessionHeading h2 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -.025em; line-height: 1.3; }
 .seasonBadge { display: inline-flex; flex-shrink: 0; padding: 6px 10px; border: 1px solid var(--line-subtle); border-radius: 999px; color: var(--text-secondary); font-size: 12px; font-weight: 650; }
@@ -46,7 +46,7 @@
 }
 
 .identityRole { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:12px 0 0; color:#d6d6dc; font-size:13px; font-weight:650; }
-.identityRole > span { padding:4px 8px; border:1px solid #ffffff22; border-radius:5px; color:#eeeef0; background:#ffffff0a; font-size:11.5px; font-weight:700; letter-spacing:.04em; }
+.identityRole > span { padding:4px 8px; border:1px solid #ffffff22; border-radius:5px; color:#eeeef0; background:#ffffff0a; font-size:12px; font-weight:700; letter-spacing:.04em; }
 .sessionDisciplines { display:grid; gap:22px; min-width:0; align-items:start; }
 .sessionDisciplines > .metricGroup { padding:18px; border:1px solid var(--line-subtle); border-radius:16px; background:color-mix(in srgb,var(--surface-panel) 55%,var(--surface-page)); }
 .sessionDisciplines > .metricGroup .metricGrid { grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr)); }

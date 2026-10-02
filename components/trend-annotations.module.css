@@ -1,6 +1,6 @@
 .section { min-width:0; padding:1.25rem; border:1px solid var(--line-subtle); border-radius:1rem; background:var(--surface-panel); scroll-margin-top:5rem; }
 .heading { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
-.heading p { margin:0 0 .3rem; color:var(--accent-readable); font-size:.65rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
+.heading p { margin:0 0 .3rem; color:var(--accent-readable); font-size:.75rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
 .heading h2 { margin:0; display:flex; align-items:center; gap:.5rem; font-size:1.1rem; }
 .heading > span { color:var(--text-secondary); font-size:.75rem; white-space:nowrap; }
 .hint, .empty { color:var(--text-secondary); font-size:.8rem; line-height:1.6; }

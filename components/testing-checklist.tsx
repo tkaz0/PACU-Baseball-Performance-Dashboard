@@ -18,7 +18,7 @@ export function TestingChecklist({ checklist }: { checklist: Checklist }) {
   const entry = `/testing/entry?metric=${encodeURIComponent(metric.key)}`;
   const rows = [...checklist.rows].sort((a, b) => Number(a.status === "recorded") - Number(b.status === "recorded"));
   return <div data-testid="testing-checklist">
-    <PageHeading section="Pacific Baseball / Staff" title="Fall Testing" description="See who still needs a test. Record results as your team completes them.">
+    <PageHeading section="Team" title="Fall Testing" description="See who still needs a test. Record results as your team completes them.">
       <Link href={entry} className="btn btn-primary"><Plus size={16} aria-hidden="true" />Enter Results</Link>
     </PageHeading>
 

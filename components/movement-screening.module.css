@@ -14,7 +14,7 @@
 .checks li:last-child { border-bottom:0; padding-bottom:0; }
 .reading { display:inline-flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:3px 6px; min-width:54px; padding:6px 8px; border:1px solid; border-radius:7px; font-size:14px; line-height:1.4; font-weight:750; font-variant-numeric:tabular-nums; }
 .unit { font-size:12px; font-weight:500; white-space:nowrap; }
-.status { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.025em; }
+.status { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.025em; }
 .green { color:#166534; background:#edf9f0; border-color:#bbdfc4; }
 .yellow { color:#854d0e; background:#fff8e5; border-color:#ecd296; }
 .red { color:#991b1b; background:#fff0f0; border-color:#edbaba; }
@@ -23,7 +23,7 @@
 .table { table-layout:fixed; width:100%; }
 .table th, .table td { padding:10px 5px; }
 .table th:first-child { width:42%; }
-.table thead th { font-size:11.5px; text-transform:none; letter-spacing:normal; color:var(--text-secondary); background:transparent; }
+.table thead th { font-size:12px; text-transform:none; letter-spacing:normal; color:var(--text-secondary); background:transparent; }
 .table tbody th { text-transform:none; letter-spacing:normal; font-size:13px; font-weight:500; text-align:left; }
 .table td,.table thead th:not(:first-child) { text-align:center; }
 :global(html[data-theme="dark"]) .green { color:#a7e7b7; background:#193d29; border-color:#326349; }

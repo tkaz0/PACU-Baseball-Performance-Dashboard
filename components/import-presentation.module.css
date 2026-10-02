@@ -61,4 +61,4 @@
 .selectedSource h2{margin:0;font-size:19px;font-weight:750;letter-spacing:-.025em}
 .selectedSource p{margin:5px 0 0;font-size:12px;line-height:1.5;color:var(--text-secondary)}
 .formatBadge{flex-shrink:0;border:1px solid var(--line-subtle);border-radius:999px;background:var(--surface-raised);color:var(--text-secondary);font-size:12px;font-weight:650;padding:6px 11px}
-@media(max-width:700px){.sourceHeading>span{display:none}.lane{min-height:83px;padding:14px 11px;gap:8px}.laneIcon{width:28px;height:28px}.selectedSource{align-items:flex-start;gap:9px}.selectedSource p{font-size:12px}.formatBadge{font-size:11.5px;padding:5px 8px}}
+@media(max-width:700px){.sourceHeading>span{display:none}.lane{min-height:83px;padding:14px 11px;gap:8px}.laneIcon{width:28px;height:28px}.selectedSource{align-items:flex-start;gap:9px}.selectedSource p{font-size:12px}.formatBadge{font-size:12px;padding:5px 8px}}

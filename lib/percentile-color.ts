@@ -7,3 +7,9 @@ export function percentileColor(value: number) {
   const luminance = rgb.map(channel => { const c = channel / 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; }).reduce((sum, c, i) => sum + c * [0.2126, 0.7152, 0.0722][i], 0);
   return { backgroundColor: `rgb(${rgb.join(', ')})`, color: luminance > 0.179 ? '#000000' : '#ffffff' };
 }
+
+/** 1st, 2nd, 3rd, 11th, 22nd… for visible text and screen-reader labels. */
+export function ordinal(n: number): string {
+  const v = Math.round(n), t = v % 100;
+  return `${v}${t >= 11 && t <= 13 ? "th" : ["th", "st", "nd", "rd"][v % 10] ?? "th"}`;
+}

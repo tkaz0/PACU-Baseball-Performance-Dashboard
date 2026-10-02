@@ -58,7 +58,7 @@ export default async function SwingDesignPage({ searchParams }: { searchParams?:
     return <HitterSwingBlueprint readings={shared.measurements} performance={performance} teamAverages={teamAverages} bats={season?.bats} batSpeedReference={speedReference?.athleteId === athlete.id ? speedReference : null}/>;
   })() : null;
   return <>
-    <PageHeading section="Pacific Baseball / Player Development" title="Swing Design" description="Bat path, barrel angle, posture, and same-side MLB swings to study."/>
+    <PageHeading section="Team" title="Swing Design" description="Bat path, barrel angle, posture, and same-side MLB swings to study."/>
     {staff && <SwingDesignPlayerPicker key={athlete?.id ?? "none"} players={players} selectedId={athlete?.id ?? ""}/>}
     {athlete && <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--line-subtle)] bg-[var(--surface-panel)] px-5 py-4">
       <div className="min-w-0"><h2 className="break-words text-lg font-semibold">{athleteName(athlete)}</h2><p className="mt-1 text-xs text-[var(--text-secondary)]">{athlete.athlete_code}{season?.bats ? ` · Bats ${season.bats}` : ""} · Fall 2026</p></div>

@@ -7,7 +7,7 @@ const date=(value:string)=>new Date(value).toLocaleDateString("en-US",{month:"sh
 const label={completed:"Checked",needs_review:"Needs review",failed:"Check failed"};
 export function WeeklySourceStatus({statuses}:{statuses:WeeklySourceStatus[]}) {
   return <section className={styles.panel} aria-label="Weekly data source status">
-    <div className={styles.heading}><div><p>Monday Night · 9 p.m. Pacific</p><h2>Weekly Data Sources</h2></div><Link href="/imports/source-status">Check Details <ArrowRight size={14} aria-hidden="true"/></Link></div>
+    <div className={styles.heading}><div><p>Monday Night · 9 p.m. Pacific</p><h2>Weekly Data Sources</h2>{(() => { const open = WEEKLY_SOURCES.filter(source => statuses.find(item => item.source === source.key)?.outcome !== "completed").length; return <span className={styles.summary} data-attention={open > 0 || undefined}>{open ? `${open} need attention` : "All sources checked"}</span>; })()}</div><Link href="/imports/source-status">Check Details <ArrowRight size={14} aria-hidden="true"/></Link></div>
     <div className={styles.rows}>{WEEKLY_SOURCES.map(source=>{
       const status=statuses.find(item=>item.source===source.key);
       const Icon=status?.outcome==="completed"?CircleCheck:status?.outcome?CircleAlert:Clock3;
