@@ -1,3 +1,4 @@
+import { loadTeamGameTrends } from "@/lib/game-trends-server";
 import { requireRenderAccess as requireAccess } from "@/lib/render-access";
 import { canImportPresentedAccess } from "@/lib/access-preview";
 import { AccessPreviewNotice } from "@/components/access-preview-notice";
@@ -14,5 +15,5 @@ export default async function Overview({searchParams}:{searchParams:Promise<{pre
   const staff=canImportPresentedAccess(access);
   const visit=await loadDashboardVisit(access,new Date().toISOString());
   const [params,summary,leaderboards,sourceStatus,designNavigation]=await Promise.all([searchParams,loadHomeSummary(access,visit),loadHomeLeaderboards(access),staff?loadWeeklySourceStatus(access):Promise.resolve([]),loadDesignNavigation(access)]);
-  return <><AccessPreviewNotice status={params.preview} isPreview={!!access.preview}/><DashboardHome headshots={leaderboards.length ? Object.fromEntries(await loadTeamHeadshots(access)) : {}} staff={staff} athleteId={access.athleteId} summary={summary} leaderboards={leaderboards} sourceStatus={sourceStatus} visit={visit} designNavigation={designNavigation}/></>;
+  return <><AccessPreviewNotice status={params.preview} isPreview={!!access.preview}/><DashboardHome gameTrends={staff ? await loadTeamGameTrends(access) : {}} headshots={leaderboards.length ? Object.fromEntries(await loadTeamHeadshots(access)) : {}} staff={staff} athleteId={access.athleteId} summary={summary} leaderboards={leaderboards} sourceStatus={sourceStatus} visit={visit} designNavigation={designNavigation}/></>;
 }

@@ -7,6 +7,7 @@ vi.mock("@/lib/game-server", () => ({ loadGameStats: mock.stats }));
 vi.mock("@/lib/game-log-server", () => ({ loadGameLogs: mock.logs }));
 vi.mock("@/lib/game-comparison-server", () => ({ loadGameComparisons: mock.comparisons }));
 vi.mock("next/link", () => ({ default: ({ href, children }: { href: string; children: ReactNode }) => createElement("a", { href }, children) }));
+vi.mock("@/lib/game-trends-server", () => ({ loadTeamGameTrends: async () => ({}) }));
 import Page from "@/app/(workspace)/game-stats/page";
 const id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const access = (role: string, preview = false, athleteId: string | null = id) => ({ roles: [role], actualRoles: preview ? ["admin"] : [role], athleteId, preview: preview ? { role, athleteId } : null, supabase: { from: mock.from } });

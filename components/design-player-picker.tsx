@@ -25,7 +25,7 @@ export function DesignPlayerPicker({ players, selectedId, kind }: { players: Sta
     setOpen(false); setActive(-1);
     startTransition(() => router.push(id ? `/${kind}-design?athlete=${encodeURIComponent(id)}` : `/${kind}-design`));
   }
-  return <section className="panel mb-5 p-4 sm:p-5" aria-label={`Choose a player for ${title}`} aria-busy={pending}>
+  return <section className="panel mb-5 p-4 sm:p-5 no-print" aria-label={`Choose a player for ${title}`} aria-busy={pending}>
     <div className="grid gap-3">
       <div className="relative min-w-0" onBlur={event => {
         if (!event.currentTarget.contains(event.relatedTarget)) { setOpen(false); setActive(-1); }

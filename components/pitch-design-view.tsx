@@ -38,7 +38,7 @@ function PitchCard({ pitch, onGrip }: { pitch: FallArsenalPitch; onGrip: () => v
 function GripLab({ selected, setSelected }: { selected: string; setSelected: (value: string) => void }) {
   const types = [...new Set(PITCH_GRIP_REFERENCES.flatMap(grip => grip.pitchTypes))];
   const grips = PITCH_GRIP_REFERENCES.filter(grip => grip.pitchTypes.includes(selected));
-  return <section id="pitch-grip-lab" className={styles.section} aria-labelledby="grip-title" tabIndex={-1}>
+  return <section id="pitch-grip-lab" className={`${styles.section} no-print`} aria-labelledby="grip-title" tabIndex={-1}>
     <header className={styles.sectionHeader}><div><span className={styles.eyebrow}><Fingerprint size={15} aria-hidden="true"/>The Grip Lab</span><h2 id="grip-title">Find Something to Try</h2><p>Grip references from Nate Rasmussen’s Pitch Grip Database.</p></div>
       <label className={styles.select}>Explore a Pitch<select value={selected} onChange={event => setSelected(event.target.value)}>{!types.includes(selected) && <option value={selected}>{pitchTypeLabel(selected)}</option>}{types.map(type => <option key={type} value={type}>{pitchTypeLabel(type)}</option>)}</select></label>
     </header>
@@ -80,7 +80,7 @@ function ContextView({ model, context }: { model: PitchDesignModel; context: Pit
     </section>
     <PitchSeparationChart pitches={context.pitches} category={context.category}/>
     <GripLab selected={gripPitch} setSelected={setGripPitch}/>
-    <section className={styles.section} aria-labelledby="study-title"><header className={styles.sectionHeader}><div><span className={styles.eyebrow}><CirclePlay size={15} aria-hidden="true"/>The Film Room</span><h2 id="study-title">Pitchers to Study</h2><p>Same throwing hand. Shared pitches. Ideas for your next bullpen.</p></div></header>
+    <section className={`${styles.section} no-print`} aria-labelledby="study-title"><header className={styles.sectionHeader}><div><span className={styles.eyebrow}><CirclePlay size={15} aria-hidden="true"/>The Film Room</span><h2 id="study-title">Pitchers to Study</h2><p>Same throwing hand. Shared pitches. Ideas for your next bullpen.</p></div></header>
       <div className={styles.studyGrid}>{context.studies.map(match => <StudyCard key={match.reference.id} match={match} body={model.body}/>)}</div>
       {!context.studies.length && <p className={styles.empty}>{!model.throws ? "Add a confirmed throwing hand to this player's roster entry to show same-handed MLB study references." : "More specifically classified pitch results are needed for a useful same-handed study match. Generic or unmatched pitch types are never guessed."}</p>}
       {!!context.studies.length && <p className={styles.note}>Study references, not a claim of identical mechanics. Compare sequencing and how each pitch complements the rest of the arsenal.</p>}
@@ -94,7 +94,7 @@ export function PitchDesignView({ model }: { model: PitchDesignModel }) {
   return <div className={styles.page}>
     <section className={styles.hero}><div><span className={styles.eyebrow}>Pacific Baseball · Pitch Development</span><h2>Build Your Arsenal.</h2><p>Know what you throw. Explore what comes next.</p><div className={styles.heroMeta}><span>{context ? `${context.pitches.length} recorded pitch ${context.pitches.length === 1 ? "type" : "types"}` : "Classified results coming soon"}</span>{model.throws && <span>{model.throws === "L" ? "Left" : "Right"}-handed</span>}{model.body.height && <span>{formatHeight(model.body.height.value, "in")}</span>}{model.body.weight && <span>{number(model.body.weight.value)} lb</span>}</div></div><Target className={styles.heroArt} size={110} strokeWidth={.9} aria-hidden="true"/></section>
     {model.contexts.length > 0 ? <>
-      <div className={styles.contexts} role="group" aria-label="Pitch Design setting">{model.contexts.map(item => <button key={item.category} type="button" aria-pressed={context?.category === item.category} onClick={() => setSelectedContext(item.category)}>{categoryLabel(item.category)}<span>{item.pitches.length} pitch types</span></button>)}</div>
+      <div className={`${styles.contexts} no-print`} role="group" aria-label="Pitch Design setting">{model.contexts.map(item => <button key={item.category} type="button" aria-pressed={context?.category === item.category} onClick={() => setSelectedContext(item.category)}>{categoryLabel(item.category)}<span>{item.pitches.length} pitch types</span></button>)}</div>
       <ContextView key={context.category} model={model} context={context}/>
     </> : <><section className={styles.empty}><Target size={28} aria-hidden="true"/><h2>{model.mixedAthletes ? "Pitch Results Need Review" : "Your Arsenal Starts Here"}</h2><p>{model.mixedAthletes ? "These readings cannot be combined safely. Ask a coach to review the player assignments." : "Saved Full Swing results with confirmed pitch types will build your velocity and spin charts here. You can explore the grip library now."}</p></section><EmptyGripLab/></>}
     <details className={styles.methods}><summary><Info size={16} aria-hidden="true"/>About the Numbers & Study Matches<ChevronDown size={15} aria-hidden="true"/></summary><div>

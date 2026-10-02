@@ -23,7 +23,7 @@ import { loadGameStats } from "@/lib/game-server";
 import { RenphoMuscleBalance } from "@/components/renpho-muscle-balance";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ArrowRight, ChevronDown } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronDown, FileText } from "lucide-react";
 import { requireRenderAccess as requireAccess } from "@/lib/render-access";
 import { display, UUID_PATTERN, type RosterAthlete } from "@/lib/types";
 import { canImportPresentedAccess, canReadPresentedAthlete } from "@/lib/access-preview";
@@ -74,7 +74,7 @@ export default async function Profile({ params, searchParams }: { params: Promis
   }).sort((a,b) => b.measured_at.localeCompare(a.measured_at) || a.metric.localeCompare(b.metric));
   return <>
     <AccessPreviewNotice status={query?.preview} isPreview={!!access.preview} />
-    {staff && <Link href="/roster" className="profile-back"><ArrowLeft size={15} />Team Roster</Link>}
+    <div className="profile-toolbar">{staff ? <Link href="/roster" className="profile-back"><ArrowLeft size={15} />Team Roster</Link> : <span/>}<Link prefetch={false} href={`/athletes/${athlete.id}/report`} className="btn btn-secondary"><FileText size={15} aria-hidden="true"/>Player Report</Link></div>
     <PlayerPerformanceProfile
       headshot={headshot}
       trainingBlocks={<>{blockCounts===null&&<p role="status" className="muted text-sm">Swing counts are temporarily unavailable. Some session averages cannot be compared yet.</p>}<TrainingBlockComparison series={buildTrainingBlockSeries(readings,{athleteCode:athlete.athlete_code,showHitting,showPitching:profileShowsPitching(season),today,readingCounts:blockCounts??[]})}/></>}

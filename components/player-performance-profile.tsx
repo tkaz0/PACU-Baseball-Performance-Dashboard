@@ -1,3 +1,4 @@
+import { recentPersonalBest } from "@/lib/personal-bests";
 import { PlayerAvatar } from "@/components/player-avatar";
 import type { TrendAnnotation } from "@/lib/trend-annotations";
 import { pitchSourceLabel } from "@/lib/pitch-display";
@@ -83,6 +84,7 @@ function MetricSparkline({card}:{card:PlayerMetricCard}) {
 }
 function MetricCard({ card, teamAverages=[] }: { card: PlayerMetricCard; teamAverages?: readonly HittingTeamAverage[] }) {
   const reading = card.latest;
+  const best = recentPersonalBest(card, new Date().toISOString().slice(0, 10));
   return <li className={`performance-metric-card flex min-w-0 flex-col rounded-lg border border-[var(--line-subtle)] p-3 sm:p-4 ${reading ? "bg-[var(--surface-panel)]" : "border-dashed bg-[var(--surface-page)]"}`} data-testid="player-metric" data-metric-key={card.metric.key} data-value={reading?.value} data-unit={reading?.unit} data-date={reading?.measuredAt}>
     <h3 className={presentation.metricTitle}>{profileMetricLabel(card.metric.key,card.metric.key === "bat_speed" ? "Bat Speed (Unspecified)" : card.metric.label,reading?.source)}<StatInfo metric={card.metric.key} label={card.metric.label} value={reading?.value} source={reading?.source} unit={reading?.unit} period={reading?.period} percentile={card.percentile?.sampleSize && card.percentile.sampleSize >= 5 ? card.percentile.value : null} /></h3>
     <div className={presentation.metricValue}>{reading ? <><span className={presentation.readingValue}>{card.timedTrials && <span className={presentation.bestLabel}>Best</span>}<ReadingValue reading={reading} /></span><MeasurementChange change={playerRenphoChange(card)} metric={card.metric.key}/></> : <span className="font-medium text-[var(--text-secondary)]" aria-label="Not yet tested">—</span>}</div>
@@ -93,6 +95,7 @@ function MetricCard({ card, teamAverages=[] }: { card: PlayerMetricCard; teamAve
       {card.metric.group !== "body" && <p className={presentation.metricSource}>{pitchSourceLabel(reading.source)}</p>}
       <p className={presentation.metricDate}>{parseBlastSource(reading.source) ? <>Reporting Week: {blastPeriodLabel(parseBlastSource(reading.source)!.start,parseBlastSource(reading.source)!.end)}</> : <>Last Tested: <time dateTime={card.timedTrials?.lastTested ?? reading.measuredAt}>{measurementDate(card.timedTrials?.lastTested ?? reading.measuredAt)}</time></>}{reading.derived ? " · Calculated" : ""}</p>
     </div>}
+    {best && reading && <p className="pb-badge"><span>New Fall Best</span>Previous best {formatMetricNumber(best.previous, card.metric.key, reading.source)} {reading.unit === "ratio" ? "" : reading.unit}</p>}
     <Percentile card={card} />
     <MetricSparkline card={card}/>
   </li>;

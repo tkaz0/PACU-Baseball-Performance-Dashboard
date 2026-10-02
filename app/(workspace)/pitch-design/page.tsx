@@ -9,6 +9,7 @@ import { getPlayerPerformance } from "@/lib/player-performance";
 import { seasonDesignNavigation } from "@/lib/design-navigation";
 import { athleteName, UUID_PATTERN, type RosterAthlete } from "@/lib/types";
 import { PageHeading } from "@/components/page-heading";
+import { PrintButton } from "@/components/print-button";
 import { PitchDesignDashboard } from "@/components/pitch-design-dashboard";
 import { PitchDesignPlayerPicker } from "@/components/pitch-design-player-picker";
 
@@ -54,7 +55,7 @@ export default async function PitchDesignPage({ searchParams }: { searchParams?:
     {staff && <PitchDesignPlayerPicker key={athlete?.id ?? "none"} players={players} selectedId={athlete?.id ?? ""}/>}
     {athlete && <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--line-subtle)] bg-[var(--surface-panel)] px-5 py-4">
       <div className="min-w-0"><h2 className="break-words text-lg font-semibold">{athleteName(athlete)}</h2><p className="mt-1 text-xs text-[var(--text-secondary)]">{athlete.athlete_code}{season?.throws ? ` · Throws ${season.throws}` : ""} · Fall 2026</p></div>
-      <Link prefetch={false} className="text-link text-sm" href={`/athletes/${athlete.id}`}>Player Profile <ArrowUpRight size={15} aria-hidden="true"/></Link>
+      <div className="flex flex-wrap items-center gap-3">{content && <PrintButton label="Print Scouting Card"/>}<Link prefetch={false} className="text-link text-sm no-print" href={`/athletes/${athlete.id}`}>Player Profile <ArrowUpRight size={15} aria-hidden="true"/></Link></div>
     </div>}
     {content ?? (athlete ? <EmptyPitchDesign title={season ? "Built for Pitchers" : "No Fall Roster Entry"}>{season ? "Pitch Design is available for pitchers and two-way players. Hitting results remain in Swing Design." : "This player needs a 2026–27 roster entry before Fall pitch results can appear."}</EmptyPitchDesign> : staff ? <EmptyPitchDesign title="Choose a Pitcher">Explore a pitcher’s arsenal, compare speed and spin, and find grips and MLB pitchers to study.</EmptyPitchDesign> : <EmptyPitchDesign title="Your Player Profile Is Not Linked">Ask a coach or administrator to link your account to your existing player profile.</EmptyPitchDesign>)}
   </>;

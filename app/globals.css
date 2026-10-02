@@ -908,3 +908,18 @@ html[data-theme="light"] .workspace-menu-toggle .text-gray-300 { color: #6b6f7a;
 .sidebar-collapse-toggle .when-collapsed { display: none; }
 html[data-sidebar="collapsed"] .sidebar-collapse-toggle .when-collapsed { display: block; }
 html[data-sidebar="collapsed"] .sidebar-collapse-toggle .when-expanded { display: none; }
+.pb-badge { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 10px 0 0; color: var(--text-secondary); font-size: 12px; }
+.pb-badge span { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 999px; background: linear-gradient(90deg, #b51217, #e0565c); color: #fff; font-size: 11.5px; font-weight: 800; letter-spacing: .03em; text-transform: uppercase; }
+
+/* Printing: only the page content, light colors, no navigation. */
+@media print {
+  @page { size: letter; margin: 12mm; }
+  html, body { background: #fff !important; color: #111 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .sidebar, .baseball-sidebar, .workspace-topbar, .workspace-footer, .no-print, .profile-back, [role="status"].workspace-loading { display: none !important; }
+  .workspace-body { margin-left: 0 !important; }
+  .workspace-main { padding: 0 !important; max-width: none !important; }
+  :root, html[data-theme="dark"] { --surface-page: #fff; --surface-panel: #fff; --surface-raised: #f2f2f4; --line-subtle: #d9d9de; --text-primary: #111; --text-secondary: #555; }
+  section, table, tr { break-inside: avoid; }
+}
+.profile-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.profile-toolbar .profile-back { margin: 0; }
