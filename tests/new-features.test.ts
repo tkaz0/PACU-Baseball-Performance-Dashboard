@@ -1,30 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { topPerformers } from "@/lib/top-performers";
 import { recentPersonalBest } from "@/lib/personal-bests";
 import { teamGameTrends } from "@/lib/game-trends";
-import type { CoachingData } from "@/lib/coaching-tools";
 import type { PlayerMetricCard } from "@/lib/player-performance";
-
-// Fictional players and values only.
-const player = (id: string, position: string, secondaryPosition = "") => ({ id, code: `SYN-${id}`, name: `Fictional ${id}`, academicClass: "Junior", position, secondaryPosition, playerType: position === "P" ? "pitcher" : "position", bats: "R", throws: "R" });
-const game = (athleteId: string, metric: string, value: number, opportunities: number | null = null) => ({ athleteId, snapshotId: "s", metric, label: metric, source: metric.startsWith("pitching") ? "pitching_fall_2026" : "qpa_fall_2026", eventId: "", value, unit: "decimal", updatedAt: "2026-09-28", playedOn: null, opportunities, direction: "higher" as const, insightEligible: true });
-
-describe("top performers", () => {
-  const cumulativeGame = (id: string, metric: string, value: number) => ({ ...game(id, metric, value, 10), unit: metric === "batting_production_plus" ? "index" : metric.startsWith("batting") ? "avg" : "decimal", eventId: metric.startsWith("pitching") ? "fall-2026-cumulative" : "" });
-  const data = { players: [player("1", "SS"), player("2", "SS"), {...player("3", "OF", "P"), playerType: "two_way"}, player("4", "P")], games: [cumulativeGame("1", "batting_production_plus", 90), cumulativeGame("2", "batting_production_plus", 140), cumulativeGame("3", "batting_production_plus", 140), cumulativeGame("1", "batting_obp", .6), cumulativeGame("2", "batting_obp", .5), cumulativeGame("4", "pitching_whip", 1.2), cumulativeGame("3", "pitching_whip", .8), cumulativeGame("4", "pitching_k_bb", 3), cumulativeGame("3", "pitching_k_bb", 2)] } as unknown as CoachingData;
-  it("ranks the chosen cumulative stat, includes two-ways in both groups, and shares tied ranks", () => {
-    expect(topPerformers(data, "hitting", "batting_production_plus").map(r => [r.player.id,r.rank])).toEqual([["2",1],["3",1],["1",3]]);
-    expect(topPerformers(data, "hitting", "batting_obp").map(r => [r.player.id,r.rank])).toEqual([["1",1],["2",2],["3",null]]);
-    expect(topPerformers(data, "pitching", "pitching_whip").map(r => r.player.id)).toEqual(["3","4"]);
-    expect(topPerformers(data, "pitching", "pitching_k_bb").map(r => r.player.id)).toEqual(["4","3"]);
-  });
-  it("never ranks a raw weekly period, wrong source, duplicate stat or missing result", () => {
-    const wrong = { ...cumulativeGame("1", "pitching_whip", 0), athleteId:"4", eventId:"fall-2026-week-1" };
-    const rows = topPerformers({ ...data, games: [wrong, {...cumulativeGame("1", "batting_obp", .9),source:"pitching_fall_2026"}, cumulativeGame("2", "batting_obp", .5), cumulativeGame("2", "batting_obp", .4)] } as unknown as CoachingData,"hitting","batting_obp");
-    expect(rows).toEqual([]);
-    expect(topPerformers({ ...data,games:[wrong] } as unknown as CoachingData,"pitching","pitching_whip")).toEqual([]);
-  });
-});
 
 describe("personal bests", () => {
   const card = (values: [string, number][], direction: "higher" | "lower" | "neutral" = "higher") => {

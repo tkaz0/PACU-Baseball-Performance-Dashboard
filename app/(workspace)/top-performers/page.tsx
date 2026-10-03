@@ -8,5 +8,5 @@ export const metadata = { title: "Top Performers" };
 export default async function TopPerformersPage() {
   const access = await requireRenderAccess(["admin", "coach"]);
   const [data, headshots] = await Promise.all([loadTopPerformersData(), loadTeamHeadshots(access)]);
-  return <><PageHeading section="Coaching" title="Top Performers" description="Cumulative Fall game stats. Choose a stat to rank hitters or pitchers, with sample sizes beside every result."><PrintButton label="Print Top Performers"/></PageHeading><TopPerformers data={data} headshots={Object.fromEntries(headshots)}/></>;
+  return <><PageHeading section="Coaching" title="Top Performers" description="One overall ranking from cumulative Fall game stats. Equal-weight scores, with the numbers and sample sizes behind each rank."><PrintButton label="Print Top Performers"/></PageHeading><TopPerformers data={data} headshots={Object.fromEntries(headshots)}/></>;
 }
