@@ -41,6 +41,9 @@ describe("complete Full Swing review safeguards", () => {
     const session = summarizeFullSwingSession({ headers: FULL_SWING_SESSION_HEADERS, rows: [FULL_SWING_SESSION_HEADERS.map(header => values[header] ?? "null")], rowNumbers: [2] });
     const markup = renderToStaticMarkup(createElement(FullSwingSessionReview, { session, bundled: true, resultContext: context }));
     expect(markup).toContain("Pitching Review");
+    expect(markup).toContain("Spin readings are in RPM.");
+    expect(markup).toContain("Check the RPM box first");
+    expect(markup).not.toContain("I confirm the export’s SpinRate values are RPM.");
     expect(markup).toContain("publish with the session");
     expect(markup).not.toContain("Save Contact Map Readings");
     expect(markup).not.toContain("Save Pitch Assignments");

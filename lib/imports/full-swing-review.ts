@@ -17,7 +17,7 @@ export function requireFullSwingPitchReview(review: FullSwingPitchReview | null,
   if (!hasPitchRows) return { assignments: [], assignmentVersion: 0, ready: true, pitchApproved: true, rpmConfirmed: true };
   if (!review?.ready) throw new Error("Wait for the saved pitch labels to load before publishing this session.");
   if (!hasPitchers) return { ...review, pitchApproved: true, rpmConfirmed: true };
-  if (!review.rpmConfirmed) throw new Error("Confirm that the export’s spin readings use RPM before publishing.");
+  if (!review.rpmConfirmed) throw new Error("In Pitching Review, check “Spin readings are in RPM” before publishing.");
   if (!review.pitchApproved) throw new Error("Review the pitch labels and any unassigned pitches before publishing this session.");
   return review;
 }
