@@ -29,7 +29,11 @@ export async function loadHomeSnapshot(access:Awaited<ReturnType<typeof requireA
     access.supabase.rpc("home_measurement_summary",{p_athlete_id:athleteId}),
     loadGameStats(access,athleteId??undefined),
   ]);
-  if(coverage.error)throw new Error("Home coverage could not be loaded. Refresh to try again.");
+  if(coverage.error){
+    // Log only the database status code; never source rows or private payloads.
+    const code=typeof coverage.error.code==="string"&&/^[A-Z0-9]{5,10}$/.test(coverage.error.code)?coverage.error.code:"unknown";
+    throw new Error(`Home coverage could not be loaded (${code}). Refresh to try again.`);
+  }
   const compact=validateHomeCoverage(coverage.data,athleteId,today);
   const groups=staff?compact.groups:compact.groups.filter(row=>profileMeasurementVisible(row,season));
   return buildHomeSummary(compact.playerIds,groups,games,today);
