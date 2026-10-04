@@ -25,6 +25,8 @@ Older files show **Saved Results** with completion not tracked. Reopening an ori
 
 Apply `202609270001_full_swing_publications.sql` before the consuming app. The normal active Admin/Coach user session calls `staff_publish_full_swing_session`; all private ledgers are closed to direct API/table access. Corrections and restore require Admin in both application and database checks. Player View stays blocked, and actual players do not receive source metadata or peer profile access.
 
+Apply `202610040004_full_swing_publication_field_order.sql` to make the exact JSON field-name comparison independent of the database locale. In an `en_US.UTF-8` database, the prior comparison ordered `assignments` before `assignmentVersion`, rejecting valid complete sessions. The repair preserves the field whitelist, numerical checks, role checks, transaction and retry contracts. An already reviewed locked import can retry the identical payload without refreshing the page.
+
 Publication revision, exact prior projection, expected pitch-label version and idempotent request ID guard concurrent/stale reviews. Numerical payloads use the existing canonical import, sample and contact validators. Payloads are bounded to 2,000 measurements, 500 sample rows and 500 contact rows; measurement chunks run inside the same transaction. Local tests use fictional players and cover rollback, retries, stale reviews, recomputation, access denial and exact restore. No real data is seeded by the migration.
 
 ## Retire the generic pitch label

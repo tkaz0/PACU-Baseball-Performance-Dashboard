@@ -76,6 +76,20 @@ beforeEach(async () => {
 });
 afterAll(() => db.close());
 
+it("uses locale-independent field validation while rejecting extra or missing publication fields", async () => {
+  const definition = (await db.query<{ definition: string }>("select pg_get_functiondef('private.validate_full_swing_publication(jsonb)'::regprocedure) definition")).rows[0].definition;
+  expect(definition).toContain('array_agg(k order by k collate "C")');
+  const extra = { ...payload(), unexpected: true };
+  const missing: Partial<Payload> = payload(); delete missing.assignmentVersion;
+  await as(coach, async () => {
+    await expect(publish(extra)).rejects.toThrow("Invalid Full Swing publication fields");
+    await expect(publish(missing as Payload)).rejects.toThrow("Invalid Full Swing publication fields");
+  });
+  expect((await counts()).publications).toBe(0);
+  const reordered = Object.fromEntries(Object.entries(payload()).reverse()) as Payload;
+  expect(await as(coach, () => publish(reordered))).toMatchObject({ revision: 1, measurementCount: 12 });
+});
+
 it("publishes all reviewed stages atomically, retries exactly, and returns a staff-only count receipt", async () => {
   const input = payload(), request = randomUUID();
   const result = await as(coach, () => publish(input, 0, false, request));
