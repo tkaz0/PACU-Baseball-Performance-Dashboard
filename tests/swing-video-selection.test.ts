@@ -11,7 +11,7 @@ const hash="a".repeat(64),athlete="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const contacts:SavedContact[]=[2,3].map(row=>({fileHash:hash,sourceRow:row,pitchNumber:row,sourceFile:"fictional.csv",playedOn:"2026-09-11",category:"intrasquad",exitVelocity:90,launchAngle:20,direction:5,distance:210}));
 function all(value:unknown):Element[]{if(Array.isArray(value))return value.flatMap(all);if(!isValidElement<Record<string,unknown>>(value))return [];return [value,...all(value.props.children)];}
 function render(locked:boolean,chart:"contact"|"spray"="contact"){
- fake.state.mockReturnValueOnce(["all",fake.session]).mockReturnValueOnce([chart,fake.chart]).mockReturnValueOnce([`${hash}:2`,fake.swing]).mockReturnValueOnce([locked,fake.lock]);
+ fake.state.mockReturnValueOnce(["all",fake.session]).mockReturnValueOnce([chart,fake.chart]).mockReturnValueOnce([true,vi.fn()]).mockReturnValueOnce([`${hash}:2`,fake.swing]).mockReturnValueOnce([locked,fake.lock]);
  return all(HitterContactMap({contacts,context:"in_game",athleteId:athlete,canAttachVideo:true,videoActions:{prepare:vi.fn(),finish:vi.fn(),play:vi.fn()}}));
 }
 beforeEach(()=>vi.resetAllMocks());

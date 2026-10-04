@@ -100,13 +100,13 @@ describe("checklist pagination and incomplete-response failures", () => {
     fake.readings = Array.from({ length: 1001 }, (_, index) => observation(index + 1, { value: index + 1 }));
     const result = await loadTestingChecklist("max_exit_velocity");
     expect(result.recordedCount).toBe(1);
-    expect(fake.queries.filter(query => query.table === "performance_measurements").map(query => query.range)).toEqual([[0, 499], [500, 999], [1000, 1499]]);
+    expect(fake.queries.filter(query => query.table === "performance_display_measurements").map(query => query.range)).toEqual([[0, 499], [500, 999], [1000, 1499]]);
   });
   it("batches roster IDs instead of making a query for every player or an oversized URL", async () => {
     fake.roster = Array.from({ length: 101 }, (_, index) => athlete(index + 1));
     fake.readings = [observation()];
     expect((await loadTestingChecklist("max_exit_velocity")).totalCount).toBe(101);
-    const measurements = fake.queries.filter(query => query.table === "performance_measurements");
+    const measurements = fake.queries.filter(query => query.table === "performance_display_measurements");
     expect(measurements).toHaveLength(2);
     expect(measurements.map(query => (query.filters.find(([key]) => key === "athlete_id")![1] as string[]).length)).toEqual([100, 1]);
   });
@@ -114,14 +114,14 @@ describe("checklist pagination and incomplete-response failures", () => {
     { table: "athletes", page: { data: [], error: { message: "Fictional provider failure" }, count: 1 } },
     { table: "athletes", page: { data: [athlete()], error: null, count: null } },
     { table: "athletes", page: { data: [athlete()], error: null, count: 1001 } },
-    { table: "performance_measurements", page: { data: [], error: null, count: 1 } },
-    { table: "performance_measurements", page: { data: [observation()], error: null, count: 20001 } },
+    { table: "performance_display_measurements", page: { data: [], error: null, count: 1 } },
+    { table: "performance_display_measurements", page: { data: [observation()], error: null, count: 20001 } },
   ])("fails explicitly for unavailable counts, provider errors or truncation %#", async ({ table, page }) => {
     fake.pages[table] = [page];
     await expect(loadTestingChecklist("max_exit_velocity")).rejects.toThrow("could not be verified");
   });
   it("fails if the source count changes between pages rather than presenting a partial checklist", async () => {
-    fake.pages.performance_measurements = [{ data: Array.from({ length: 500 }, (_, index) => observation(index)), error: null, count: 501 },
+    fake.pages.performance_display_measurements = [{ data: Array.from({ length: 500 }, (_, index) => observation(index)), error: null, count: 501 },
       { data: [observation(501)], error: null, count: 502 }];
     await expect(loadTestingChecklist("max_exit_velocity")).rejects.toThrow("could not be verified");
   });
@@ -134,7 +134,7 @@ describe("checklist pagination and incomplete-response failures", () => {
   });
   it("rejects measurements for another selected metric or an unrequested athlete", async () => {
     for (const changes of [{ metric_key: "weight" }, { athlete_id: uuid(50) }]) {
-      fake.pages.performance_measurements = [{ data: [observation(1, changes)], error: null, count: 1 }];
+      fake.pages.performance_display_measurements = [{ data: [observation(1, changes)], error: null, count: 1 }];
       await expect(loadTestingChecklist("max_exit_velocity")).rejects.toThrow("could not be verified");
     }
   });

@@ -127,3 +127,6 @@ Apply `202609200002_blast_period_guard.sql` after the compatible app. It blocks 
 
 
 An Admin can now open **Correct CSV Assignments** on a player profile and archive one reviewed Full Swing Max Spin or Max Distance reading, while keeping every other measurement from that file. The exact original row is retained privately for restoration, and re-import of its original coordinate is blocked. This corrects a saved summary reading; it does not silently recalculate other summaries from the original event CSV. The staff importer still requires source review for any replacement result.
+
+
+Full Swing low EV beyond a foul line is now labeled Likely Foul (<70 mph and |Direction| >45°). Saving preserves the original CSV summaries and paired contact for review; the dashboard EV display and denominators exclude flagged saved paired contact. Other outlier flags remain advisory. Missing directions stay unknown; All Contact lets staff/players inspect original contact and attached videos.

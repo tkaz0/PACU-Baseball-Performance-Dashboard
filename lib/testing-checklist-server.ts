@@ -82,7 +82,7 @@ export async function loadTestingChecklist(metricKey: string): Promise<TestingCh
       const metricKeys = metricKey === "muscle_mass_pct" ? ["muscle_mass_pct", "weight", "muscle_mass"] : [metricKey];
       const metricSet = new Set(metricKeys);
       const page = await readPages((from, to) => {
-        let query = access.supabase.from("performance_measurements").select(readingFields, { count: "exact" }).in("athlete_id", ids);
+        let query = access.supabase.from("performance_display_measurements").select(readingFields, { count: "exact" }).in("athlete_id", ids);
         query = metricKeys.length === 1 ? query.eq("metric_key", metricKey) : query.in("metric_key", metricKeys);
         return query.gte("measured_at", "2026-09-01").lte("measured_at", today < "2026-12-31" ? today : "2026-12-31").order("id").range(from, to);
       }, row => observation(row, idSet, metricSet), MAX_OBSERVATIONS - readings.length);

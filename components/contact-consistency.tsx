@@ -11,8 +11,8 @@ function Distribution({data,title,unit}:{data:ContactDistribution;title:string;u
     </div><p className={styles.range}>Full range {number(data.min)}–{number(data.max)} {unit}</p>
   </section>;
 }
-export function ContactConsistency({contacts}:{contacts:readonly ContactReading[]}) {
-  const data=contactConsistency(contacts);
+export function ContactConsistency({contacts,includeLikelyFouls=false}:{contacts:readonly ContactReading[];includeLikelyFouls?:boolean}) {
+  const data=contactConsistency(contacts,{includeLikelyFouls});
   if(!data.exitVelocity||!data.launchAngle)return <p role="status" className="muted mt-4 text-sm">No paired exit-speed and launch-angle readings in this selection.</p>;
   return <section className={styles.consistency} aria-label="Contact consistency">
     <div className={styles.heading}><h2>Contact Consistency</h2><details><summary aria-label="About contact consistency">i</summary><p>Bars show the share of recorded contacts in each band. Middle 80% runs from the 10th to the 90th percentile, interpolated between readings. A tighter range describes less variation; it does not automatically mean better contact. These are tracked batted balls, not confirmed hits. The session selector applies to both charts.</p></details></div>

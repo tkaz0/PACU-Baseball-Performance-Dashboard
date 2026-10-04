@@ -37,6 +37,6 @@ export function FullSwingMisreadReview({ readings, excluded, toggle, reviewed, s
       {pageCount > 1 && <div className="mt-3 flex items-center gap-3 text-xs"><button type="button" className="btn btn-secondary" disabled={selectedPage === 0} onClick={() => setPage(n => n - 1)}>Previous</button><span>Page {selectedPage + 1} of {pageCount}</span><button type="button" className="btn btn-secondary" disabled={selectedPage + 1 >= pageCount} onClick={() => setPage(n => n + 1)}>Next</button></div>}
     </details>
     <label className="mt-5 flex items-start gap-3 text-sm"><input type="checkbox" checked={reviewed} disabled={locked} onChange={event => setReviewed(event.target.checked)}/><span>I checked the readings against the CSV. Removed values will be left out of player summaries, pitch results and contact charts when this file is saved.</span></label>
-    <p className="muted mb-0 mt-2 text-xs">Flags are review hints, not automatic deletions. Unflagged values can also be removed. Already-saved files need a separate correction review.</p>
+    <p className="muted mb-0 mt-2 text-xs">Likely Foul means below 70 mph with Direction beyond ±45°. Saved paired readings flagged this way stay available for review and are excluded from exit velocity results. Other flags are review hints. Unflagged values can also be removed. Already-saved files need a separate correction review.</p>
   </section>;
 }

@@ -1,5 +1,6 @@
 import { FULL_SWING_SESSION_HEADERS, summarizeFullSwingSession, type FullSwingSession } from "@/lib/imports/full-swing-session";
 import type { ImportTable } from "@/lib/imports/engine";
+import { isLikelyFoul } from "@/lib/likely-foul";
 
 type Field = "RelSpeed" | "SpinRate" | "ExitSpeed" | "Angle" | "Direction" | "BatSpeed" | "Distance";
 export const LOW_EXIT_VELOCITY_REVIEW_MPH = 72;
@@ -42,7 +43,9 @@ export function inspectFullSwingReadings(table: ImportTable): FullSwingReadingRe
       if (!raw || raw.toLowerCase() === "null") continue;
       const value = numeric.test(raw) && Number.isFinite(Number(raw)) ? Number(raw) : null;
       const blocking = value === null || (spec.field === "Distance" ? value < 0 || value > 1000 : spec.field === "Angle" || spec.field === "Direction" ? Math.abs(value) > 90 : value <= 0 || (spec.field === "ExitSpeed" && value > 200));
-      const reason = blocking ? "Invalid or outside the supported measurement range" : value < spec.low ? spec.field === "ExitSpeed" ? `Below ${LOW_EXIT_VELOCITY_REVIEW_MPH} mph — check contact or tracking` : "Unusually low — check the source" : value > spec.high ? "Unusually high — check the source" : null;
+      const rawDirection=cells[table.headers.indexOf("Direction")].trim();
+      const likelyFoul=spec.field==="ExitSpeed"&&value!==null&&isLikelyFoul({exitVelocity:value,direction:numeric.test(rawDirection)?Number(rawDirection):null});
+      const reason = blocking ? "Invalid or outside the supported measurement range" : likelyFoul ? "Likely Foul — below 70 mph and beyond a foul line; excluded from exit velocity results" : value < spec.low ? spec.field === "ExitSpeed" ? `Below ${LOW_EXIT_VELOCITY_REVIEW_MPH} mph — check contact or tracking` : "Unusually low — check the source" : value > spec.high ? "Unusually high — check the source" : null;
       rows.push({ key: fullSwingValueKey(sourceRow, spec.field), sourceRow, pitchNumber: cells[0].trim(), identity: cells[spec.actorColumn].trim(), actor: spec.actor, field: spec.field, label: spec.label, unit: spec.unit, raw, value, reason, blocking });
     }
   }

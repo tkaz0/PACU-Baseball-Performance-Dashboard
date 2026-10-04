@@ -57,7 +57,7 @@ export function parseSessionPublications(value: unknown): SessionPublication[] {
 export async function loadSessionLibrary() {
   const { supabase } = await requireImportAccess();
   const [readings, contacts, publicationResponse] = await Promise.all([
-    pages((from, to) => supabase.from("performance_measurements").select(readingFields, { count: "exact" }).or("source.like.Full Swing · %,source.like.Blast Motion · %").gte("measured_at", "2026-09-01").lte("measured_at", "2026-12-31").order("observation_id").range(from, to), reading, 50000),
+    pages((from, to) => supabase.from("performance_display_measurements").select(readingFields, { count: "exact" }).or("source.like.Full Swing · %,source.like.Blast Motion · %").gte("measured_at", "2026-09-01").lte("measured_at", "2026-12-31").order("observation_id").range(from, to), reading, 50000),
     pages((from, to) => supabase.from("full_swing_contacts").select(contactFields, { count: "exact" }).gte("played_on", "2026-09-01").lte("played_on", "2026-12-31").order("file_hash").order("source_row").range(from, to), contact, 50000),
     supabase.rpc("staff_full_swing_session_publications"),
   ]);

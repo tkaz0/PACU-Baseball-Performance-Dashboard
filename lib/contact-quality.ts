@@ -1,7 +1,8 @@
-export type ContactReading = { exitVelocity:number; launchAngle:number };
+import { isLikelyFoul } from "@/lib/likely-foul";
+export type ContactReading = { exitVelocity:number; launchAngle:number; direction?:number|null };
 /** Descriptive team EV and recorded launch-angle windows, not hit outcomes. */
-export function contactQuality(rows:readonly ContactReading[]) {
-  const valid=rows.filter(row=>Number.isFinite(row.exitVelocity)&&row.exitVelocity>0&&row.exitVelocity<=200&&Number.isFinite(row.launchAngle)&&Math.abs(row.launchAngle)<=90);
+export function contactQuality(rows:readonly ContactReading[],{includeLikelyFouls=false}:{includeLikelyFouls?:boolean}={}) {
+  const valid=rows.filter(row=>(includeLikelyFouls||!isLikelyFoul(row))&&Number.isFinite(row.exitVelocity)&&row.exitVelocity>0&&row.exitVelocity<=200&&Number.isFinite(row.launchAngle)&&Math.abs(row.launchAngle)<=90);
   const hardHit=valid.filter(row=>row.exitVelocity>=90).length;
   const sweetSpot=valid.filter(row=>row.launchAngle>=8&&row.launchAngle<=32).length;
   const both=valid.filter(row=>row.exitVelocity>=90&&row.launchAngle>=8&&row.launchAngle<=32).length;

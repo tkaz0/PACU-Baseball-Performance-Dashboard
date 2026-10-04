@@ -1,4 +1,5 @@
 import type { ContactReading } from "@/lib/contact-quality";
+import { isLikelyFoul } from "@/lib/likely-foul";
 type Bin = { label: string; count: number; share: number };
 export type ContactDistribution = { count: number; mean: number; min: number; max: number; p10: number; p90: number; bins: Bin[] };
 /** Linear interpolation between ordered observations (R7). Descriptive, never a grade. */
@@ -13,8 +14,8 @@ function distribution(values: number[], bins: { label:string; accepts:(value:num
     bins:bins.map(bin=>{const count=values.filter(bin.accepts).length;return {label:bin.label,count,share:100*count/values.length};})};
 }
 /** Both charts use the same complete paired Full Swing contact population. */
-export function contactConsistency(rows: readonly ContactReading[]) {
-  const valid=rows.filter(r=>Number.isFinite(r.exitVelocity)&&r.exitVelocity>0&&r.exitVelocity<=200&&Number.isFinite(r.launchAngle)&&Math.abs(r.launchAngle)<=90);
+export function contactConsistency(rows: readonly ContactReading[],{includeLikelyFouls=false}:{includeLikelyFouls?:boolean}={}) {
+  const valid=rows.filter(r=>(includeLikelyFouls||!isLikelyFoul(r))&&Number.isFinite(r.exitVelocity)&&r.exitVelocity>0&&r.exitVelocity<=200&&Number.isFinite(r.launchAngle)&&Math.abs(r.launchAngle)<=90);
   return {exitVelocity:distribution(valid.map(r=>r.exitVelocity),[
     {label:"Below 70",accepts:v=>v<70},...[[70,80],[80,90],[90,100],[100,110]].map(([lo,hi])=>({label:`${lo}–<${hi}`,accepts:(v:number)=>v>=lo&&v<hi})),{label:"110+",accepts:v=>v>=110},
   ]),launchAngle:distribution(valid.map(r=>r.launchAngle),[

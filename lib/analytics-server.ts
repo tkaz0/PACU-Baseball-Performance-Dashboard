@@ -71,7 +71,7 @@ async function loadTeamSource(includeFullRoster=false, includeGames=true, includ
   type TeamReading={reading:AnalyticsReading;arsenal?:ArsenalReading&{athleteId:string}};
   const limited = createReadLimiter(3);
   async function readAttempt(ids:string[],maximum:number):Promise<TeamReading[]>{
-    return analyticsPages((from,to)=>limited(()=>supabase.from("performance_measurements").select(fields,{count:"exact"}).in("athlete_id",ids).gte("measured_at",homeRead?"2026-09-01":"2026-06-01").lte("measured_at","2026-12-31").order("observation_id").range(from,to)),row=>{
+    return analyticsPages((from,to)=>limited(()=>supabase.from("performance_display_measurements").select(fields,{count:"exact"}).in("athlete_id",ids).gte("measured_at",homeRead?"2026-09-01":"2026-06-01").lte("measured_at","2026-12-31").order("observation_id").range(from,to)),row=>{
     if(!object(row)||!text(row.observation_id,2000)||!text(row.athlete_id)||!ids.includes(row.athlete_id)||!text(row.metric_key)||!text(row.metric,300)||!text(row.unit,80)||!text(row.source,100)||typeof row.value!=="number"||!Number.isFinite(row.value)||(row.value<0&&!validBlastObservation(row.metric_key,row.value,row.unit,row.source,row.measured_at as string))||!text(row.measured_at)||!/^2026-\d{2}-\d{2}$/.test(row.measured_at)||!Number.isFinite(Date.parse(row.measured_at))||new Date(row.measured_at).toISOString().slice(0,10)!==row.measured_at||!text(row.imported_at)||!Number.isFinite(Date.parse(row.imported_at)))return fail();
     let arsenal:TeamReading["arsenal"];
     if(includeArsenal && classifiedPitchSource(row.source)) {

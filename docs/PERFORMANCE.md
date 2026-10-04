@@ -47,3 +47,6 @@ This follow-up supersedes the earlier note that initial Home waits for full meas
 Detailed history still loads for those activity sections; this is reduced main-page dependency and transport, not elimination of all history work or a guaranteed speed percentage. Coverage uses the same eligible cohort, Fall period, own-role filtering, latest dates and distinct-player counts. The compact response must reconcile its complete group counts and exact scope.
 
 Profiles keep URL-selected Quick/Full Detail. Quick physicality avoids movement-screening reads, and hidden supporting sections are not serialized. Classified arsenal values and muscle-balance review remain visible. Core history still supplies cumulative stats and Fall bests. Consistency charts are computed from already authorized paired contacts without additional database reads.
+
+
+October 4 EV presentation: numerical staff readers use the security-invoker performance_display_measurements projection; compact Home coverage remains original metadata. Fall EV rollups, aggregate means, own history and percentiles use one rule/retained denominator. Review and import receipts stay on immutable source tables. No browser-side team fetch, new private cache, extra source scraping or service-role access.

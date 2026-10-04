@@ -13,7 +13,7 @@ let responses: Record<string, Result[]>;
 let queries: { table: string; select: ReturnType<typeof vi.fn>; or: ReturnType<typeof vi.fn>; gte: ReturnType<typeof vi.fn>; lte: ReturnType<typeof vi.fn>; order: ReturnType<typeof vi.fn>; in: ReturnType<typeof vi.fn>; range: ReturnType<typeof vi.fn> }[];
 beforeEach(() => {
   vi.resetAllMocks(); queries = [];
-  responses = { performance_measurements: [page([reading()])], full_swing_contacts: [page([])], athletes: [page([{ id: playerId, athlete_code: "SYN-001", first_name: "Fictional", last_name: "Player", preferred_name: null }])] };
+  responses = { performance_display_measurements: [page([reading()])], full_swing_contacts: [page([])], athletes: [page([{ id: playerId, athlete_code: "SYN-001", first_name: "Fictional", last_name: "Player", preferred_name: null }])] };
   mocks.from.mockImplementation((table: string) => {
     const query = { table, select: vi.fn(), or: vi.fn(), gte: vi.fn(), lte: vi.fn(), order: vi.fn(), in: vi.fn(), range: vi.fn() };
     [query.select, query.or, query.gte, query.lte, query.order, query.in].forEach(method => method.mockReturnValue(query));
@@ -40,11 +40,11 @@ it("loads only bounded metadata from ordinary-session RLS tables and the staff p
   expect(mocks.rpc).toHaveBeenCalledWith("staff_full_swing_session_publications");
 });
 it("rejects truncation, changing page counts and expanded records rather than claiming no missing results", async () => {
-  responses.performance_measurements = [page([reading()], 2)];
+  responses.performance_display_measurements = [page([reading()], 2)];
   await expect(loadSessionLibrary()).rejects.toThrow("could not be verified");
-  responses.performance_measurements = [page([{ ...reading(), value: 80 }])]; responses.full_swing_contacts = [page([])];
+  responses.performance_display_measurements = [page([{ ...reading(), value: 80 }])]; responses.full_swing_contacts = [page([])];
   await expect(loadSessionLibrary()).rejects.toThrow("could not be verified");
-  responses.performance_measurements = [page(Array.from({ length: 500 }, (_, index) => reading(index)), 501), page([reading(500), reading(501)], 502)]; responses.full_swing_contacts = [page([])];
+  responses.performance_display_measurements = [page(Array.from({ length: 500 }, (_, index) => reading(index)), 501), page([reading(500), reading(501)], 502)]; responses.full_swing_contacts = [page([])];
   await expect(loadSessionLibrary()).rejects.toThrow("could not be verified");
 });
 it("fails safely if publication metadata cannot be loaded", async () => {
@@ -52,7 +52,7 @@ it("fails safely if publication metadata cannot be loaded", async () => {
   await expect(loadSessionLibrary()).rejects.toThrow("Saved sessions could not be verified");
 });
 it("does not load an unrelated roster when no supported source has saved results", async () => {
-  responses.performance_measurements = [page([])];
+  responses.performance_display_measurements = [page([])];
   expect(await loadSessionLibrary()).toEqual([]);
   expect(mocks.from).not.toHaveBeenCalledWith("athletes");
 });
