@@ -13,3 +13,31 @@ describe("complete private source captures",()=>{
  it("will not treat new numeric rows as silently ignored summaries",()=>{const capture=normalizeGameCapture(fixture(),contract,shape,now);capture.cells.find(c=>c.row===4&&c.column===2)!.entered=1;const parsed=parseGameSource({...capture,contentHash:"a".repeat(64)},contract,mapping().identities,[],now);expect(parsed.canImport).toBe(false);expect(parsed.issues.some(i=>i.code==="unreviewed_rows")).toBe(true);});
  it("accepts reviewed exact-tab mappings but refuses drafts, duplicate names and cross-tab reuse",()=>{expect(validateGameMappings(mapping(),contract,now).identities).toHaveLength(1);for(const changes of [{reviewed:false},{source:"pitching_fall_2026"},{identities:[...mapping().identities,...mapping().identities]},{reviewedAt:"2026-09-14T12:00:00Z"},{identities:[{sourceName:"Fictional Player",athleteCode:"PAC-0001\n"}]}])expect(()=>validateGameMappings({...mapping(),...changes},contract,now)).toThrow();});
 });
+
+// Fictional source data only. October 4 owner-approved blank-grid expansion.
+describe("reviewed 43-column QPA grid",()=>{
+ const wideShape={rows:968,columns:43,range:"'2026 - Fall'!A1:AQ968"};
+ function wideFixture(){const f=fixture();f.range=wideShape.range;f.response.sheets[0].properties.gridProperties={rowCount:968,columnCount:43};return f;}
+ it("captures the complete wider blank grid without adding metric definitions",()=>{
+  const captured=normalizeGameCapture(wideFixture(),contract,wideShape,now);
+  expect(captured.cells).toHaveLength(41624);
+  expect(captured.cells.at(-1)).toEqual({row:968,column:43});
+  const parsed=parseGameSource({...captured,contentHash:"a".repeat(64)},contract,mapping().identities,[],now);
+  expect(parsed.issues.filter(i=>i.severity==="error")).toEqual([]);
+  const previous=normalizeGameCapture(fixture(),contract,shape,now);
+  expect(captured.cells.filter(c=>c.entered!==undefined||c.effective!==undefined||c.formula||c.error)).toEqual(previous.cells.filter(c=>c.entered!==undefined||c.effective!==undefined||c.formula||c.error));
+ });
+ it("still refuses the old extent, a partial capture, or another grid change",()=>{
+  expect(()=>normalizeGameCapture(wideFixture(),contract,shape,now)).toThrow();
+  const partial=wideFixture();partial.range=shape.range;expect(()=>normalizeGameCapture(partial,contract,wideShape,now)).toThrow();
+  const wider=wideFixture();wider.response.sheets[0].properties.gridProperties.columnCount=44;expect(()=>normalizeGameCapture(wider,contract,wideShape,now)).toThrow();
+ });
+ it("blocks any new data, header, formula, error or effective-only value in the added columns",()=>{
+  for(const patch of [{entered:1},{entered:"New stat"},{formula:"=1",effective:1},{error:"DIVIDE_BY_ZERO"},{effective:1}]){
+   const captured=normalizeGameCapture(wideFixture(),contract,wideShape,now);
+   Object.assign(captured.cells.find(c=>c.row===2&&c.column===43)!,patch);
+   const parsed=parseGameSource({...captured,contentHash:"a".repeat(64)},contract,mapping().identities,[],now);
+   expect(parsed.canImport).toBe(false);expect(parsed.issues.some(i=>i.code==="unreviewed_columns")).toBe(true);
+  }
+ });
+});

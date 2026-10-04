@@ -67,12 +67,12 @@ export function parseGameSource(snapshot: GameSourceSnapshot, contract: Reviewed
   if (!["qpa_fall_2026", "pitching_fall_2026"].includes(source) || source !== contract.source || snapshot.spreadsheetId !== contract.spreadsheetId || snapshot.sheetId !== contract.sheetId || snapshot.sheetTitle !== contract.sheetTitle || snapshot.sheetTitle !== (qpa ? "2026 - Fall" : "FALL")) {
     problem("source", "The spreadsheet or tab does not match the reviewed Fall source."); return result;
   }
-  if (typeof snapshot.contentHash!=="string" || snapshot.contentHash.length!==64 || !/^[a-f0-9]{64}$/.test(snapshot.contentHash) || !Number.isFinite(Date.parse(snapshot.fetchedAt)) || Date.parse(snapshot.fetchedAt)>now+5*60*1000 || !Array.isArray(snapshot.cells) || snapshot.cells.length > 40000 || !Array.isArray(contract.detailRows) || contract.detailRows.length > 1000) {
+  if (typeof snapshot.contentHash!=="string" || snapshot.contentHash.length!==64 || !/^[a-f0-9]{64}$/.test(snapshot.contentHash) || !Number.isFinite(Date.parse(snapshot.fetchedAt)) || Date.parse(snapshot.fetchedAt)>now+5*60*1000 || !Array.isArray(snapshot.cells) || snapshot.cells.length > (qpa?968*43:40000) || !Array.isArray(contract.detailRows) || contract.detailRows.length > 1000) {
     problem("snapshot", "The source snapshot has invalid provenance or exceeds its bounded capacity."); return result;
   }
   const cells = new Map<string, GameSourceCell>();
   for (const cell of snapshot.cells) {
-    if (!Number.isSafeInteger(cell.row) || cell.row < 1 || cell.row > 2000 || !Number.isSafeInteger(cell.column) || cell.column < 1 || cell.column > 33 || cells.has(key(cell.row, cell.column)) || (cell.formula !== undefined && typeof cell.formula !== "string")) {
+    if (!Number.isSafeInteger(cell.row) || cell.row < 1 || cell.row > 2000 || !Number.isSafeInteger(cell.column) || cell.column < 1 || cell.column > (qpa?43:33) || cells.has(key(cell.row, cell.column)) || (cell.formula !== undefined && typeof cell.formula !== "string")) {
       problem("cells", "Source cells are duplicated or outside the supported grid."); return result;
     }
     cells.set(key(cell.row,cell.column),cell);
@@ -93,7 +93,7 @@ export function parseGameSource(snapshot: GameSourceSnapshot, contract: Reviewed
   }
   const rows = new Set(contract.detailRows);
   if (rows.size !== contract.detailRows.length || [...rows].some(row => !Number.isSafeInteger(row) || row < (qpa ? 2 : 3) || row > 2000)) problem("detail_rows", "The reviewed source detail-row coverage is invalid.");
-  for(const cell of cells.values()) if(cell.column>(qpa?29:26)&&(cell.entered!==undefined||cell.formula||cell.error)) problem("unreviewed_columns", "Source content appeared outside the reviewed columns. Review the changed source layout before syncing.",cell.row,cell.column);
+  for(const cell of cells.values()) if(cell.column>(qpa?29:26)&&(cell.entered!==undefined||cell.effective!==undefined||cell.formula||cell.error)) problem("unreviewed_columns", "Source content appeared outside the reviewed columns. Review the changed source layout before syncing.",cell.row,cell.column);
   const rawColumns=new Set<number>((qpa?QPA_RAW:PITCHING_RAW).map(([column])=>column));
   if(!qpa)rawColumns.add(18);
   for(const cell of cells.values()) if(!rows.has(cell.row)&&rawColumns.has(cell.column)&&(typeof cell.entered==="number"||(typeof cell.entered==="string"&&/^\d{1,10}$/.test(cell.entered.trim())))&&!cell.formula){

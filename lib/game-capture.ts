@@ -9,7 +9,7 @@ export function normalizeGameCapture(input:unknown,contract:ReviewedGameSource,s
  if(response.spreadsheetId!==contract.spreadsheetId||!Array.isArray(response.sheets)||response.sheets.length!==1||!object(response.sheets[0]))return fail();
  const sheet=response.sheets[0];
  if(!object(sheet.properties)||sheet.properties.sheetId!==contract.sheetId||sheet.properties.title!==contract.sheetTitle||!object(sheet.properties.gridProperties)||sheet.properties.gridProperties.rowCount!==shape.rows||sheet.properties.gridProperties.columnCount!==shape.columns||!Array.isArray(sheet.data)||sheet.data.length!==1||!object(sheet.data[0]))return fail();
- const data=sheet.data[0];if((data.startRow??0)!==0||(data.startColumn??0)!==0||(data.rowData!==undefined&&!Array.isArray(data.rowData))||shape.rows*shape.columns>40000)return fail();
+ const data=sheet.data[0];if((data.startRow??0)!==0||(data.startColumn??0)!==0||(data.rowData!==undefined&&!Array.isArray(data.rowData))||shape.rows*shape.columns>(contract.source==="qpa_fall_2026"?968*43:40000))return fail();
  const rows=(data.rowData??[])as unknown[];if(rows.length>shape.rows)return fail();
  const cells:GameSourceCell[]=[];
  for(let r=0;r<shape.rows;r++){

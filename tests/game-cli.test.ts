@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 import { GAME_SOURCES,GAME_CAPTURE_SHAPES } from "@/lib/game-source-config";
 import { QPA_HEADERS } from "@/lib/game-source";
 const repo=fileURLToPath(new URL("..",import.meta.url));let folder:string;
-const capture=()=>({source:"qpa_fall_2026",range:GAME_CAPTURE_SHAPES.qpa_fall_2026.range,fetchedAt:new Date().toISOString(),response:{spreadsheetId:GAME_SOURCES.qpa_fall_2026.spreadsheetId,sheets:[{properties:{sheetId:GAME_SOURCES.qpa_fall_2026.sheetId,title:"2026 - Fall",gridProperties:{rowCount:968,columnCount:33}},data:[{rowData:[{values:QPA_HEADERS.map(stringValue=>({userEnteredValue:{stringValue:String(stringValue)}}))}]}]}]}});
+const capture=()=>({source:"qpa_fall_2026",range:GAME_CAPTURE_SHAPES.qpa_fall_2026.range,fetchedAt:new Date().toISOString(),response:{spreadsheetId:GAME_SOURCES.qpa_fall_2026.spreadsheetId,sheets:[{properties:{sheetId:GAME_SOURCES.qpa_fall_2026.sheetId,title:"2026 - Fall",gridProperties:{rowCount:968,columnCount:43}},data:[{rowData:[{values:QPA_HEADERS.map(stringValue=>({userEnteredValue:{stringValue:String(stringValue)}}))}]}]}]}});
 const run=(input:string,output:string)=>spawnSync(process.execPath,[resolve(repo,"scripts/prepare-game-snapshot.mjs"),"--source","qpa_fall_2026","--input",input,"--output",output],{encoding:"utf8"});
 beforeEach(()=>{folder=mkdtempSync(resolve(tmpdir(),"pacu-fictional-game-"));});afterEach(()=>rmSync(folder,{recursive:true,force:true}));
 describe("private game preparation commands",()=>{

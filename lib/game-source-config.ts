@@ -8,6 +8,7 @@ export const GAME_SOURCES: Record<GameSourceKey, ReviewedGameSource> = {
 export const GAME_SOURCE_LABELS: Record<GameSourceKey,string> = { qpa_fall_2026: "QPA · 2026 - Fall", pitching_fall_2026: "Pitching · FALL" };
 export const GAME_SYNC_START = "2026-09-12";
 export const GAME_CAPTURE_SHAPES: Record<GameSourceKey,{rows:number;columns:number;range:string}> = {
- qpa_fall_2026:{rows:968,columns:33,range:"'2026 - Fall'!A1:AG968"},
+ // October 4 owner review: ten added blank columns; stat definitions remain A:AC.
+ qpa_fall_2026:{rows:968,columns:43,range:"'2026 - Fall'!A1:AQ968"},
  pitching_fall_2026:{rows:1025,columns:31,range:"'FALL'!A1:AE1025"},
 };
