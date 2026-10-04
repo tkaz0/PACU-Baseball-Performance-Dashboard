@@ -5,10 +5,10 @@ import type { Role } from "@/lib/types";
 import { workspaceHome, workspacePreviewQuery } from "@/lib/workspace-home";
 import { buildHomeSummary } from "@/lib/home-summary";
 
-const fake = vi.hoisted(() => ({ access: vi.fn(), from: vi.fn(), rpc:vi.fn(), home: vi.fn(), leaderboards: vi.fn(), due: vi.fn(), status: vi.fn(), navigation: vi.fn() }));
+const fake = vi.hoisted(() => ({ access: vi.fn(), from: vi.fn(), rpc:vi.fn(), home: vi.fn(), activity:vi.fn(), leaderboards: vi.fn(), due: vi.fn(), status: vi.fn(), navigation: vi.fn() }));
 vi.mock("server-only",()=>({}));
 vi.mock("@/lib/design-navigation-server", () => ({ loadDesignNavigation: fake.navigation }));
-vi.mock("@/lib/home-server", () => ({loadHomeSummary: fake.home}));
+vi.mock("@/lib/home-server", () => ({loadHomeSnapshot: fake.home,loadHomeActivity:fake.activity}));
 vi.mock("@/lib/home-leaderboards-server", () => ({loadHomeLeaderboards: fake.leaderboards}));
 vi.mock("@/lib/coach-focus-server", () => ({loadDueCoachFocus: fake.due}));
 vi.mock("@/lib/weekly-source-checks", () => ({loadWeeklySourceStatus: fake.status}));
@@ -28,14 +28,14 @@ const access = (roles: Role[], linked: string | null = athleteId, preview = fals
   roles, athleteId: linked, actualRoles: preview ? ["admin"] : roles,
   preview: preview ? { role: roles[0], athleteId: linked } : null, supabase: { from: fake.from,rpc:fake.rpc },
 });
-beforeEach(() => { vi.resetAllMocks();fake.rpc.mockResolvedValue({data:[],error:null}); fake.leaderboards.mockResolvedValue([]); fake.due.mockResolvedValue([]); fake.status.mockResolvedValue([]); fake.navigation.mockResolvedValue({ swing: true, pitch: false }); });
+beforeEach(() => { vi.resetAllMocks();fake.activity.mockResolvedValue({ok:true});fake.rpc.mockResolvedValue({data:[],error:null}); fake.leaderboards.mockResolvedValue([]); fake.due.mockResolvedValue([]); fake.status.mockResolvedValue([]); fake.navigation.mockResolvedValue({ swing: true, pitch: false }); });
 
 describe("role-aware dashboard landing", () => {
   it.each(["admin","coach","player"] as Role[])("opens Home for %s while preserving presented scope",async role=>{
     const current=access([role],athleteId,role==="player");fake.access.mockResolvedValue(current);fake.home.mockResolvedValue(buildHomeSummary([],[],[],"2026-09-29"));
     expect(workspaceHome(current)).toBe("/overview");
     const html=renderToStaticMarkup(await Overview({searchParams:Promise.resolve({})}));
-    expect(fake.home).toHaveBeenCalledWith(current,{since:null,viewedAt:"2026-09-27T12:00:00Z",record:false});expect(fake.leaderboards).toHaveBeenCalledWith(current);expect(html).toContain(role==="player"?"My Dashboard":"Team Dashboard");
+    expect(fake.home).toHaveBeenCalledWith(current);expect(fake.leaderboards).toHaveBeenCalledWith(current);expect(html).toContain(role==="player"?"My Dashboard":"Team Dashboard");
     expect(fake.navigation).toHaveBeenCalledWith(current);
     expect(fake.due).not.toHaveBeenCalled(); // Coach focus is hidden for now.
     expect(fake.status).toHaveBeenCalledTimes(role==="player"?0:1);

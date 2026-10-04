@@ -1,0 +1,26 @@
+.consistency { margin-top:20px; min-width:0; }
+.heading { position:relative; display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+.heading h2 { margin:0; font-size:18px; font-weight:750; }
+.heading details { position:static; }
+.heading summary { display:grid; place-items:center; width:28px; height:28px; border:1px solid var(--line-subtle); border-radius:50%; cursor:pointer; font-size:14px; font-weight:700; list-style:none; }
+.heading summary:focus-visible { outline:2px solid var(--accent-readable); outline-offset:3px; }
+.heading details p { position:absolute; z-index:5; width:min(300px,70vw); padding:16px; border:1px solid var(--line-subtle); border-radius:12px; background:var(--surface-panel); box-shadow:0 10px 30px #0003; font-size:12px; line-height:1.6; inset-inline-start:0; inset-inline-end:auto; }
+.grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.chart { border:1px solid var(--line-subtle); border-radius:14px; padding:18px; background:var(--surface-raised); min-width:0; }
+.chart header { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.chart h3 { margin:0; font-size:15px; font-weight:750; }
+.chart header span,.range,.note { color:var(--text-secondary); font-size:12px; }
+.numbers { display:flex; flex-wrap:wrap; gap:12px 24px; margin:18px 0; }
+.numbers dt { color:var(--text-secondary); font-size:12px; }
+.numbers dd { margin:4px 0 0; font-size:21px; font-weight:750; font-variant-numeric:tabular-nums; }
+.numbers small { font-size:12px; font-weight:500; }
+.bars { display:grid; gap:12px; }
+.row { display:grid; grid-template-columns:100px minmax(40px,1fr) 52px 24px; align-items:center; gap:8px; font-size:12px; font-variant-numeric:tabular-nums; }
+.row strong,.row small { text-align:right; font-size:12px; }
+.row small { color:var(--text-secondary); }
+.track { height:12px; background:var(--line-subtle); border-radius:3px; overflow:hidden; }
+.track i { display:block; height:100%; background:var(--accent-readable); border-radius:3px; }
+.range { margin:16px 0 0; }
+.note { margin:12px 0 0; }
+@media(max-width:900px) { .grid { grid-template-columns:1fr; } }
+@media(max-width:450px) { .chart { padding:14px; } .row { grid-template-columns:86px minmax(24px,1fr) 46px 18px; gap:5px; } }

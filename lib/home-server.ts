@@ -5,13 +5,46 @@ import { loadStaffHomeSummary } from "@/lib/analytics-server";
 import { loadAthletePerformance } from "@/lib/performance-server";
 import { loadGameStats } from "@/lib/game-server";
 import { profileMeasurementVisible } from "@/lib/player-profile-layout";
-import { buildHomeSummary } from "@/lib/home-summary";
+import { buildHomeSummary, type HomeSummary } from "@/lib/home-summary";
+import type { VisitDigest } from "@/lib/dashboard-visit-digest";
+import type { coachUpdateDigest } from "@/lib/coach-update-digest";
 import { pacificTestingDate } from "@/lib/testing-checklist";
 import { buildVisitDigest, visitMetricKey } from "@/lib/dashboard-visit-digest";
 import type { DashboardVisitWindow } from "@/lib/personal-dashboard-server";
 import type { RosterAthlete } from "@/lib/types";
+import { validateHomeCoverage } from "@/lib/home-coverage";
 
-export async function loadHomeSummary(access:Awaited<ReturnType<typeof requireAccess>>,visit?:DashboardVisitWindow) {
+/** Initial Home needs coverage metadata, not numerical measurement history. */
+export async function loadHomeSnapshot(access:Awaited<ReturnType<typeof requireAccess>>) {
+  const staff=canImportPresentedAccess(access), athleteId=staff?null:access.athleteId;
+  if(!staff&&!athleteId)return null;
+  let season: RosterAthlete["athlete_seasons"][number] | undefined;
+  if(athleteId){
+    const {data,error}=await access.supabase.from("athletes").select("id,athlete_seasons(*)").eq("id",athleteId).maybeSingle();
+    if(error||!data||data.id!==athleteId||!Array.isArray(data.athlete_seasons))throw new Error("Your home summary could not be loaded.");
+    season=(data.athlete_seasons as RosterAthlete["athlete_seasons"]).find(s=>s.season==="2026-27");
+  }
+  const today=pacificTestingDate();
+  const [coverage,games]=await Promise.all([
+    access.supabase.rpc("home_measurement_summary",{p_athlete_id:athleteId}),
+    loadGameStats(access,athleteId??undefined),
+  ]);
+  if(coverage.error)throw new Error("Home coverage could not be loaded. Refresh to try again.");
+  const compact=validateHomeCoverage(coverage.data,athleteId,today);
+  const groups=staff?compact.groups:compact.groups.filter(row=>profileMeasurementVisible(row,season));
+  return buildHomeSummary(compact.playerIds,groups,games,today);
+}
+
+/** Detailed change detection streams separately and retains its original rules. */
+export async function loadHomeActivity(access:Awaited<ReturnType<typeof requireAccess>>,visit:DashboardVisitWindow){
+  try {
+    const summary=await loadHomeSummary(access,visit);
+    return {ok:true as const,visitDigest:summary&&"visitDigest" in summary?summary.visitDigest:undefined,
+      coachDigest:summary&&"coachDigest" in summary?summary.coachDigest:undefined};
+  }catch{return {ok:false as const};}
+}
+
+export async function loadHomeSummary(access:Awaited<ReturnType<typeof requireAccess>>,visit?:DashboardVisitWindow):Promise<(HomeSummary & {visitDigest?:VisitDigest;coachDigest?:ReturnType<typeof coachUpdateDigest>})|null> {
   if(canImportPresentedAccess(access))return visit?loadStaffHomeSummary(visit):loadStaffHomeSummary();
   if(!access.athleteId)return null;
   // Presented athlete is applied before any query, including Admin-as-Player.

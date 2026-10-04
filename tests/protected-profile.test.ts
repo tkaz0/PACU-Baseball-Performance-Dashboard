@@ -140,7 +140,7 @@ describe("protected profile route authorization and integration", () => {
   });
   it("isolates optional video, weekly-plan, note and sample-reader failures without losing the profile",async()=>{
     fake.contacts.mockResolvedValue([contact]);fake.rpc.mockImplementation(async(name:string)=>name==="athlete_focus_items"?{data:[],error:null}:{data:null,error:{code:"FICTITIOUS_ERROR"}});
-    const html=(await Promise.all(["in-game","practice","progress"].map(tab=>Profile({params:Promise.resolve({id:ownId}),searchParams:Promise.resolve({tab})})))).map(view=>renderToStaticMarkup(view)).join("");
+    const html=(await Promise.all(["in-game","practice","progress"].map(tab=>Profile({params:Promise.resolve({id:ownId}),searchParams:Promise.resolve({tab,detail:"full"})})))).map(view=>renderToStaticMarkup(view)).join("");
     expect(html).toContain("Fictional Profile");expect(html).toContain('data-value="10"');expect(html).toContain("Game Stats");
     for(const message of ["Coaching notes are temporarily unavailable","Swing videos are temporarily unavailable","Swing counts are temporarily unavailable"])expect(html).toContain(message);
     expect(html).not.toContain("Attach Video");expect(html).not.toContain("FICTITIOUS_ERROR");
@@ -199,7 +199,7 @@ it("starts independent profile readers while game stats are still loading",async
 
 it.each(["physicality","in-game","practice","progress"])("loads only the readers needed for %s and preserves own-player scope",async tab=>{
  const trusted=access();fake.access.mockResolvedValue(trusted);
- const html=renderToStaticMarkup(await Profile({params:Promise.resolve({id:ownId}),searchParams:Promise.resolve({tab})}));
+ const html=renderToStaticMarkup(await Profile({params:Promise.resolve({id:ownId}),searchParams:Promise.resolve({tab,detail:"full"})}));
  expect(html).toContain(`aria-selected="true"`);
  expect(html).toContain(`panel-${tab}`);
  expect(fake.load).toHaveBeenCalledExactlyOnceWith(trusted,athlete);
@@ -224,6 +224,11 @@ it("keeps detailed staff controls in their tabs and never includes hidden-tab co
  expect(progress).toContain("Add Coaching Note");expect(progress).toContain("Testing Timeline");expect(progress).not.toContain("Attach Video");
 });
 it.each(["unknown",["in-game","practice"]])("falls back to Overview for an invalid tab without fetching extra data",async tab=>{
- await Profile({params:Promise.resolve({id:ownId}),searchParams:Promise.resolve({tab})});
+ await Profile({params:Promise.resolve({id:ownId}),searchParams:Promise.resolve({tab,detail:"full"})});
  expect(fake.contacts).not.toHaveBeenCalled();expect(fake.movement).not.toHaveBeenCalled();expect(fake.rpc).not.toHaveBeenCalled();
+});
+
+it("Quick View skips detailed movement reads, while Full Detail retains own-player scope",async()=>{
+ await Profile({params:Promise.resolve({id:ownId}),searchParams:Promise.resolve({tab:"physicality",detail:"quick"})});expect(fake.movement).not.toHaveBeenCalled();
+ await Profile({params:Promise.resolve({id:ownId}),searchParams:Promise.resolve({tab:"physicality",detail:"full"})});expect(fake.movement).toHaveBeenCalledExactlyOnceWith(expect.anything(),ownId,athlete.athlete_code);
 });

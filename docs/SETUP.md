@@ -472,3 +472,9 @@ October 4 owner-approved QPA layout update: the exact `2026 - Fall` grid is now 
 
 
 October 4 loading-speed update: profiles use a validated `?tab=` URL and load optional contacts/videos, movement screenings, annotations and history only for their visible tab. Overview remains the default; staff Measurement History is under Progress. Home reads Fall-only measurements through a request-local three-query queue, with unchanged cohorts, validation and the 20,000-row cap. Home and Team Game Stats stream optional historical trend charts after current stats. Trend readers fetch metadata first, then only each source's authoritative final Pacific-day snapshot within the existing 40-version window. Live authorization, View as restrictions, source definitions, stored readings and schedules remain unchanged; no migration or cross-request private cache is added. See [PERFORMANCE.md](PERFORMANCE.md).
+
+## October 4 compact Home and profile views
+
+Apply `202610040001_home_measurement_summary.sql` before deploying the consuming app. It adds a read-only invoker RPC under existing ordinary-session RLS and trusted active-account checks; no credentials or environment changes are required. It returns coverage metadata rather than measurement values. Check staff Home and linked Player Home after deployment, including Player View as. Coverage and game totals must match the previous page. Coaching updates stream after the main summary; a failure shows an explicit notice and does not mark a failed activity read as seen.
+
+Profiles default to Quick View. `?detail=full` restores supporting sections for the selected `?tab=`; switching tabs preserves the view and browser history. Full Detail never changes permissions. The hitter contact map's Consistency choice uses only existing paired contacts in the selected Game/Intrasquad or Practice session scope. No new imported data or scheduled sources are added.

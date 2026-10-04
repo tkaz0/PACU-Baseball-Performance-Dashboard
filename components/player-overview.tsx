@@ -102,14 +102,14 @@ function compactNumber(value: number): string {
   return value.toLocaleString("en-US", { maximumFractionDigits: 1 });
 }
 
-export function PlayerOverview({ cards, gameStats = [], gameComparisons = [], showMethods = true, twoWay = false, teamAverages=[], beforeMethods }: { beforeMethods?: React.ReactNode; teamAverages?:readonly HittingTeamAverage[]; twoWay?: boolean; cards: readonly PlayerMetricCard[]; gameStats?: readonly SharedGameStat[]; gameComparisons?: readonly GameComparison[]; showMethods?: boolean }) {
+export function PlayerOverview({ quick=false, cards, gameStats = [], gameComparisons = [], showMethods = true, twoWay = false, teamAverages=[], beforeMethods }: { quick?:boolean; beforeMethods?: React.ReactNode; teamAverages?:readonly HittingTeamAverage[]; twoWay?: boolean; cards: readonly PlayerMetricCard[]; gameStats?: readonly SharedGameStat[]; gameComparisons?: readonly GameComparison[]; showMethods?: boolean }) {
   const physicality = ["muscle_mass", "body_score", "body_fat_pct"].flatMap(key => cards.filter(card => card.metric.key === key));
   const testing = cards.filter(card => card.metric.group !== "body");
   const insights = getPlayerInsights(testing);
   const games = gameOverviewMetrics(gameStats, gameComparisons);
   const eligibleGames = games.filter(item => item.insightEligible && item.comparison && item.opportunities !== null);
-  const strengths = [...insights.strengths.map(testingInsight), ...eligibleGames.filter(item => item.comparison!.percentile! >= 75).map(gameInsight)].sort((a,b) => b.percentile - a.percentile || a.key.localeCompare(b.key)).slice(0,3);
-  const weaknesses = [...insights.weaknesses.map(testingInsight), ...eligibleGames.filter(item => item.comparison!.percentile! <= 25).map(gameInsight)].sort((a,b) => a.percentile - b.percentile || a.key.localeCompare(b.key)).slice(0,3);
+  const strengths = [...insights.strengths.map(testingInsight), ...eligibleGames.filter(item => item.comparison!.percentile! >= 75).map(gameInsight)].sort((a,b) => b.percentile - a.percentile || a.key.localeCompare(b.key)).slice(0,quick && !twoWay?1:3);
+  const weaknesses = [...insights.weaknesses.map(testingInsight), ...eligibleGames.filter(item => item.comparison!.percentile! <= 25).map(gameInsight)].sort((a,b) => a.percentile - b.percentile || a.key.localeCompare(b.key)).slice(0,quick && !twoWay?1:3);
   const comparableCount = insights.comparableMetricCount + eligibleGames.length;
   const availableCards = cards.filter(card => card.latest);
   const comparisonCards = availableCards.filter(card => card.percentile && card.percentile.sampleSize >= 5 && Number.isFinite(card.percentile.value) && card.percentile.value >= 0 && card.percentile.value <= 100);
@@ -137,11 +137,11 @@ export function PlayerOverview({ cards, gameStats = [], gameComparisons = [], sh
         { title: "Areas to Work On", icon: Crosshair, items: weaknesses, note: "Results in the bottom quarter of the team", empty: "No results fall in the bottom quarter right now." },
       ].map(({ title, icon: Icon, items, note, empty }) => <section className={overview.panel} key={title} aria-label={title} data-highlight={title === "Strengths" ? "strengths" : "weaknesses"}>
         <div className={overview.highlightHeader}><span className={overview.highlightIcon}><Icon size={18} aria-hidden="true" /></span><div><h2 className="m-0 text-base font-bold">{title}</h2><p className="mb-0 mt-1 text-xs text-[var(--text-secondary)]">{note}</p></div></div>
-        {items.length ? <RelativeResults items={items} separate={twoWay} /> : <p className="m-0 text-xs leading-5 text-[var(--text-secondary)]">{comparableCount ? empty : "Waiting for enough teammates with the same test or game stat."}</p>}
+        {items.length ? <RelativeResults items={quick && twoWay ? ["Hitting","Pitching","Athletic Testing","Position Throwing"].flatMap(d=>items.filter(i=>i.discipline===d).slice(0,1)) : items} separate={twoWay} /> : <p className="m-0 text-xs leading-5 text-[var(--text-secondary)]">{comparableCount ? empty : "Waiting for enough teammates with the same test or game stat."}</p>}
       </section>)}
       {insights.biggestJumps.length ? <section className={overview.panel} aria-label="Biggest jumps" data-highlight="progress">
         <div className={overview.highlightHeader}><span className={overview.highlightIcon}><ArrowUpRight size={18} aria-hidden="true" /></span><div><h2 className="m-0 text-base font-bold">Biggest Jumps</h2><p className="mb-0 mt-1 text-xs text-[var(--text-secondary)]">{showMethods ? "Progress since the previous test" : "Progress since your previous test"}</p></div></div>
-        <ul className={overview.highlightList}>{insights.biggestJumps.map(item => <li key={item.metric.key}>
+        <ul className={overview.highlightList}>{(quick?insights.biggestJumps.slice(0,1):insights.biggestJumps).map(item => <li key={item.metric.key}>
           {twoWay && <p className={overview.disciplineLabel}>{testingDiscipline(item.metric)}</p>}
           <h3 className="m-0 text-sm font-bold">{profileMetricLabel(item.metric.key,leaderboardMetricLabel(item.metric),item.latest.source)}<StatInfo metric={item.metric.key} label={leaderboardMetricLabel(item.metric)} value={item.latest.value} source={item.latest.source} unit={item.latest.unit} period={item.latest.period} /></h3>
           <p className={overview.jumpValue} title={`Relative improvement: ${item.relativeImprovementPercent}%`}>{compactNumber(item.relativeImprovementPercent)}% <span className="text-xs font-semibold">improvement</span></p>
@@ -151,7 +151,7 @@ export function PlayerOverview({ cards, gameStats = [], gameComparisons = [], sh
       </section> : <p className={overview.quietNote}>{showMethods ? "Biggest jumps appear after a repeat test." : "Your biggest jumps appear after a repeat test."}</p>}
     </div>
     {!comparableCount && <p className="m-0 max-w-3xl text-xs leading-6 text-[var(--text-secondary)]">Team comparisons need at least five players with the same test or game stat. {showMethods ? "This player’s own results are available in the other tabs." : "Your own results are available in the other tabs."}</p>}
-    {(physicality.some(card=>card.latest) || games.length > 0 || testingGroups.length > 0) && <details className={overview.comparisonBoard} aria-label="Detailed team comparisons">
+    {(physicality.some(card=>card.latest) || games.length > 0 || testingGroups.length > 0) && <details open={quick?undefined:true} className={overview.comparisonBoard} aria-label="Detailed team comparisons">
       <summary className={overview.boardHeader}><div><ChartNoAxesCombined size={20} aria-hidden="true"/><span>Detailed Team Comparisons</span></div><span>Percentiles, testing and game stats <ChevronDown size={16} aria-hidden="true"/></span></summary>
       <PercentileLegend/>
       {(physicality.some(card=>card.latest) || games.length > 0) && <div className={overview.primaryComparisons} data-has-body={physicality.some(card=>card.latest)} data-has-games={games.length>0}>
@@ -160,9 +160,9 @@ export function PlayerOverview({ cards, gameStats = [], gameComparisons = [], sh
       </div>}
       {testingGroups.length > 0 && <div className={overview.testingCards} aria-label="Testing percentiles">{testingGroups.map(group=><TestingComparisons key={group.id} teamAverages={teamAverages} title={group.title} context={group.context} cards={group.cards}/>)}</div>}
     </details>}
-    {trends.length > 0 && <details className={overview.moreTesting}><summary>Testing Trends <ChevronDown size={16} aria-hidden="true"/></summary><ProfileTrendChart series={trends}/></details>}
+    {!quick && trends.length > 0 && <details className={overview.moreTesting}><summary>Testing Trends <ChevronDown size={16} aria-hidden="true"/></summary><ProfileTrendChart series={trends}/></details>}
     {beforeMethods}
-    {showMethods && <details className="group border-t border-[var(--line-subtle)] pt-4 text-xs text-[var(--text-secondary)]"><summary className="flex min-h-8 w-fit cursor-pointer list-none items-center gap-2 font-semibold">How These Highlights Work<ChevronDown size={14} className="transition-transform group-open:rotate-180" aria-hidden="true" /></summary>
+    {!quick && showMethods && <details className="group border-t border-[var(--line-subtle)] pt-4 text-xs text-[var(--text-secondary)]"><summary className="flex min-h-8 w-fit cursor-pointer list-none items-center gap-2 font-semibold">How These Highlights Work<ChevronDown size={14} className="transition-transform group-open:rotate-180" aria-hidden="true" /></summary>
       <div className="mt-3 max-w-3xl space-y-2 leading-relaxed">
         <p>Strengths are in the top quarter of the Pacific team; areas to work on are in the bottom quarter. Testing comparisons use the same test, source, unit and period; game comparisons use the same current cumulative QPA or pitching snapshot, with at least five comparable players. Game highlights include advanced production rates, WHIP, K/BB, K/9, BB/9, Runs/9 and Strike %, with opportunity counts and limited-sample labels. Lower batting K % is favorable. Playing-time totals do not decide strengths or areas to work on. Up to three results appear in each section.</p>
         <p>Biggest jumps compare the latest result with the previous testing date for the same measurement, source, unit and period. Gains are ordered by relative percentage improvement; higher or lower values count as improvement according to the test. A percentage improvement is relative to the previous value, not a percentage-point change. Displayed improvement percentages are rounded to one decimal.</p>

@@ -39,3 +39,11 @@ In the live signed-in dashboard, compare Home and a profile before/after using t
 ## Remaining limits
 
 Home still reads Fall history to produce coverage and coaching updates. Profiles still read the player's core history to calculate bests and cumulative results. A future database summary projection could reduce those reads further, but would require its own reviewed schema, access checks and verification.
+
+## October 4 compact Home follow-up
+
+This follow-up supersedes the earlier note that initial Home waits for full measurement history. Migration `202610040001_home_measurement_summary.sql` adds a stable invoker read with the existing live account/RLS boundaries and limits. Main Home awaits only compact athlete/metric/unit/source coverage metadata plus current game stats, leaderboards and other small existing readers. It never waits for numerical measurement history to produce its main totals. Coaching pulse and since-last-visit changes share one separately streamed history promise, preserving all previous best/change/source rules. Activity failures display a notice rather than zeros; failed activity never mounts the visit-recording component. No shared cache or service credential is introduced.
+
+Detailed history still loads for those activity sections; this is reduced main-page dependency and transport, not elimination of all history work or a guaranteed speed percentage. Coverage uses the same eligible cohort, Fall period, own-role filtering, latest dates and distinct-player counts. The compact response must reconcile its complete group counts and exact scope.
+
+Profiles keep URL-selected Quick/Full Detail. Quick physicality avoids movement-screening reads, and hidden supporting sections are not serialized. Classified arsenal values and muscle-balance review remain visible. Core history still supplies cumulative stats and Fall bests. Consistency charts are computed from already authorized paired contacts without additional database reads.

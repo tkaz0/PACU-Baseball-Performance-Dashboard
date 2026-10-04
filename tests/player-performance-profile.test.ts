@@ -162,3 +162,11 @@ it.each(["average", "maximum"] as const)("keeps the uncovered broad velocity sta
  expect(filtered.pitching.find(card=>card.metric.key==="avg_pitch_velocity")?.latest?.value??null).toBe(available==="average"?null:81);
  expect(filtered.pitching.find(card=>card.metric.key==="max_pitch_velocity")?.latest?.value??null).toBe(available==="maximum"?null:85);
 });
+
+it("Quick View keeps the main body results and balance notice, with all indicators available in Full Detail",()=>{
+ const athlete=fictionalAthlete("position");const readings=[measurement("Weight",180,"lb"),measurement("Height",72,"in"),measurement("Muscle Mass",140,"lb"),measurement("Body Fat Percentage",15,"%"),measurement("Visceral Fat",5,"level")].map(r=>({...r,source:"RENPHO"}));
+ const props={athlete,performance:model(readings),selectedTab:"physicality" as const,muscleBalance:createElement("p",null,"Fictional balance review"),movementScreening:createElement("p",null,"Fictional movement details"),physicalityDetails:createElement("p",null,"Fictional report details")};
+ const quick=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{...props,detail:"quick"})),full=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{...props,detail:"full"}));
+ for(const html of [quick,full]){expect(html).toContain("Fictional balance review");expect(html).toContain('data-value="140"');expect(html).toContain('data-value="15"');expect(html).toContain("6′ 0″");}
+ expect(quick).not.toContain("Fictional movement details");expect(quick).not.toContain("Fictional report details");expect(full).toContain("Fictional movement details");expect(full).toContain("Fictional report details");expect(quick).toContain("Full Detail includes");
+});

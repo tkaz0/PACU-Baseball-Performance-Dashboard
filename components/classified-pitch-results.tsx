@@ -21,7 +21,7 @@ function Maximum({ pitch, family }: { pitch: FallArsenalPitch; family: "velocity
 }
 
 /** Own-athlete readings supplied by the authorized profile route, never a peer lookup. */
-export function ClassifiedPitchResults({ readings, pitches, context = "in_game", showChart = true }: { readings?: readonly Measurement[]; pitches?: readonly FallArsenalPitch[]; context?: "in_game" | "practice"; showChart?: boolean }) {
+export function ClassifiedPitchResults({ readings, pitches, context = "in_game", showChart = true, quick = false }: { readings?: readonly Measurement[]; pitches?: readonly FallArsenalPitch[]; context?: "in_game" | "practice"; showChart?: boolean; quick?: boolean }) {
   const selected = (pitches ?? fallArsenalPitches(readings ?? [])).filter(pitch => (pitch.category === "Practice" ? "practice" : "in_game") === context);
   if (!selected.length) return null;
   return <section aria-label={`${context === "practice" ? "Practice" : "In-Game"} pitch arsenal`} className={styles.section}>
@@ -36,7 +36,7 @@ export function ClassifiedPitchResults({ readings, pitches, context = "in_game",
           <Average pitch={pitch} family="velocity"/><Maximum pitch={pitch} family="velocity"/><Average pitch={pitch} family="spin"/><Maximum pitch={pitch} family="spin"/>
         </tr>)}</tbody></table></div>
         {showChart && <PitchArsenalChart pitches={group} scope="fall"/>}
-        {showChart && <PitchSeparationChart pitches={group} category={category}/>}
+        {showChart && !quick && <PitchSeparationChart pitches={group} category={category}/>}
       </div>;
     })}
     <p className={styles.note}>Fall averages use each session’s matching speed or spin reading count. If counts are incomplete, an available latest-session average is labeled separately. Maxima are the best saved Fall readings. Spin is descriptive; higher is not automatically better.</p>
