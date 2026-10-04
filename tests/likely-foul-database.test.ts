@@ -22,6 +22,12 @@ beforeAll(async()=>{
 },30000);
 beforeEach(async()=>{await db.exec('delete from public.full_swing_contacts;delete from private.full_swing_session_samples;delete from public.performance_measurements;delete from public.performance_imports;update public.app_accounts set is_active=true;');await db.query("insert into public.performance_imports(id,created_by,created_count) values($1,$2,3)",[receipt,staff]);});
 afterAll(()=>db.close());
+it('preserves non-EV floating-point values exactly with reduced JSON precision',async()=>{
+ await session('a'.repeat(64),[{ev:60,direction:46},{ev:100,direction:0}]);
+ await db.exec("update public.performance_measurements set value=60.123456789012345 where metric_key='avg_bat_speed'; set extra_float_digits=-3;");
+ try {expect((await db.query<{exact:boolean}>('select bool_and(d.value=m.value) exact from private.performance_display_measurements d join public.performance_measurements m using(id) where m.metric_key=\'avg_bat_speed\'')).rows[0].exact).toBe(true);}
+ finally {await db.exec('reset extra_float_digits');}
+});
 it('adjusts EV, weights Fall by retained contacts and keeps practice/bat speed/originals separate',async()=>{
  await session('a'.repeat(64),[{ev:60,direction:46},{ev:80,direction:0},{ev:100,direction:-20}]);await session('b'.repeat(64),[{ev:120,direction:0}]);await session('c'.repeat(64),[{ev:90,direction:0}],'practice');
  expect((await board())[0]).toMatchObject({value:100,sampleCount:3});expect((await board('max_exit_velocity'))[0]).toMatchObject({value:120,sampleCount:3});expect((await board('avg_exit_velocity','full swing · practice'))[0]).toMatchObject({value:90,sampleCount:1});expect((await board('avg_bat_speed'))[0]).toMatchObject({value:60,sampleCount:4});

@@ -481,3 +481,5 @@ Profiles default to Quick View. `?detail=full` restores supporting sections for 
 
 
 Apply 202610040002_likely_foul_exit_velocity.sql before the consuming app. It is a read-only display update: underlying rows, publication revisions and archived corrections remain intact. It adds invoker/RLS measurement views and an exact authorized scalar sample-count helper; original private sample evidence stays inaccessible directly; never grant writes or peer contact/history access. The existing raw correction/import readers stay on original tables.
+
+Apply 202610040003_likely_foul_display_precision.sql immediately afterward. The display views project source columns directly so non-EV values retain their exact binary precision even when a SQL session reduces JSON float precision. No source writes or access changes.
