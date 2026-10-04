@@ -1,7 +1,9 @@
+import { Suspense } from "react";
+import { HomeGameTrend } from "@/components/home-game-trend";
 import { loadTeamGameTrends } from "@/lib/game-trends-server";
 import { ScaleLegend } from "@/components/charts/scale-legend";
 import Link from "next/link";
-import { requireAccess } from "@/lib/auth";
+import { requireRenderAccess as requireAccess } from "@/lib/render-access";
 import { canImportPresentedAccess } from "@/lib/access-preview";
 import { loadGameStats } from "@/lib/game-server";
 import { loadGameComparisons } from "@/lib/game-comparison-server";
@@ -12,6 +14,7 @@ import { PageHeading } from "@/components/page-heading";
 export default async function GameStatsPage() {
   const access = await requireAccess();
   if (canImportPresentedAccess(access)) {
+    const trends=loadTeamGameTrends(access).catch(()=>({}));
     const stats = await loadGameStats(access);
     const ids = [...new Set(stats.map(row => row.athlete_id))];
     let names = new Map<string, string>();
@@ -20,7 +23,7 @@ export default async function GameStatsPage() {
       if (error) throw new Error("Game roster could not be loaded.");
       names = new Map((data ?? []).map(a => [a.id, `${a.first_name} ${a.last_name}`]));
     }
-    return <><PageHeading section="Team" title="Team Game Stats" description="Fall 2026 · Cumulative hitting and pitching."><Link href="/game-stats/review" className="btn btn-secondary">Data Review</Link></PageHeading><div className="mb-5"><ScaleLegend low="Poor" high="Elite" note="Bands compare the team with 2025 Northwest Conference teams. Red marks the top band, as on Baseball Savant."/></div><TeamGameStats stats={stats} names={names} trends={await loadTeamGameTrends(access)}/></>;
+    return <><PageHeading section="Team" title="Team Game Stats" description="Fall 2026 · Cumulative hitting and pitching."><Link href="/game-stats/review" className="btn btn-secondary">Data Review</Link></PageHeading><div className="mb-5"><ScaleLegend low="Poor" high="Elite" note="Bands compare the team with 2025 Northwest Conference teams. Red marks the top band, as on Baseball Savant."/></div><TeamGameStats stats={stats} names={names} streamedTrend={(source,metric,label)=><Suspense fallback={null}><HomeGameTrend trends={trends} source={source} metric={metric} label={label} width={150} height={28}/></Suspense>}/></>;
   }
 
   // Player View follows the presented athlete even when the real account is an Admin.

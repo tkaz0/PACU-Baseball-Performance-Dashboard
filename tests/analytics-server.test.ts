@@ -199,3 +199,27 @@ it("still rejects duplicate observation identities across smaller athlete batche
  const calls=teamQueries(roster,ids=>({data:[{...fictionalMeasurement(ids[0],0),observation_id:"fictional-duplicate"}],count:1,error:null}));
  await expect(loadAnalytics()).rejects.toThrow("invalid-reading");expect(calls).toHaveLength(2);
 });
+
+it("uses Fall-only Home reads with one shared three-query budget, preserving complete partitions",async()=>{
+ const roster=fictionalRoster(35),pending=new Map<number,()=>void>();let active=0,peak=0;
+ const calls=teamQueries(roster,async(ids,from,to)=>{
+  active++;peak=Math.max(peak,active);await new Promise<void>(resolve=>pending.set(Number(ids[0].slice(-3)),resolve));active--;
+  const rows=ids.map(id=>fictionalMeasurement(id,0));return {data:rows.slice(from,to+1),count:rows.length,error:null};
+ });
+ const result=loadStaffHomeSummary();
+ await vi.waitFor(()=>expect(active).toBe(3));expect(calls).toHaveLength(3);
+ pending.get(21)!();await vi.waitFor(()=>expect(calls).toHaveLength(4));
+ pending.get(31)!();pending.get(11)!();pending.get(1)!();
+ const summary=await result;
+ expect(peak).toBe(3);expect(summary.players).toBe(35);expect(summary.playersWithResults).toBe(35);
+ expect(summary.coverage.find(r=>r.key==="physicality")?.players).toBe(35);
+ expect(calls.flatMap(c=>c.ids)).toEqual(roster.map(r=>r.id));
+ for(const call of calls)expect(call.bounds).toEqual([["gte","measured_at","2026-09-01"],["lte","measured_at","2026-12-31"]]);
+});
+it("waits for outstanding Home partitions and preserves the last-good page on a failed partition",async()=>{
+ const roster=fictionalRoster(20);let release!:()=>void;
+ teamQueries(roster,async(ids)=>{if(ids[0]===roster[0].id)return {data:null,count:null,error:{code:"57014"}};await new Promise<void>(r=>{release=r;});return {data:[],count:0,error:null};});
+ const result=loadStaffHomeSummary();let settled=false;const checked=result.then(()=>{settled=true;},()=>{settled=true;});
+ await vi.waitFor(()=>expect(release).toBeDefined());expect(settled).toBe(false);
+ release();await checked;await expect(result).rejects.toThrow();
+});

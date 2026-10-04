@@ -2,7 +2,7 @@ import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, expect, it, vi } from "vitest";
 const mock = vi.hoisted(() => ({ access: vi.fn(), stats: vi.fn(), logs: vi.fn(), comparisons: vi.fn(), from: vi.fn(), select: vi.fn(), in: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ requireAccess: mock.access }));
+vi.mock("@/lib/render-access", () => ({ requireRenderAccess: mock.access }));
 vi.mock("@/lib/game-server", () => ({ loadGameStats: mock.stats }));
 vi.mock("@/lib/game-log-server", () => ({ loadGameLogs: mock.logs }));
 vi.mock("@/lib/game-comparison-server", () => ({ loadGameComparisons: mock.comparisons }));

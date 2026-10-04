@@ -1,3 +1,4 @@
+import { profileTab } from "@/lib/profile-tab";
 import { loadSwingVideos } from "@/lib/swing-videos-server";
 import { prepareSwingVideo, finishSwingVideo, playSwingVideo } from "./video-actions";
 import { loadTrendAnnotations } from "@/lib/trend-annotations-server";
@@ -36,12 +37,15 @@ import { PlayerPerformanceProfile } from "@/components/player-performance-profil
 import { loadAthleteHeadshot } from "@/lib/headshots-server";
 import { profileMeasurementVisible, profileShowsHitting, profileShowsPitching } from "@/lib/player-profile-layout";
 
-export default async function Profile({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ preview?: string; focus?: string; goal?: string }> }) {
+export default async function Profile({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ preview?: string; focus?: string; goal?: string; tab?: string | string[] }> }) {
   const access = await requireAccess();
   const { supabase, roles } = access;
   const { id } = await params;
   if (!UUID_PATTERN.test(id) || !canReadPresentedAthlete(access, id)) notFound();
   const query = await searchParams;
+  const selectedTab = profileTab(query?.tab);
+  const contactTab = selectedTab === "in-game" || selectedTab === "practice";
+  const annotatedTab = selectedTab !== "overview";
   const { data, error } = await supabase.from("athletes").select("*, athlete_seasons(*)").eq("id", id).maybeSingle();
   if (error) throw new Error("Unable to load this athlete profile.");
   if (!data) notFound();
@@ -55,13 +59,15 @@ export default async function Profile({ params, searchParams }: { params: Promis
   const videoActions = { prepare: prepareSwingVideo, finish: finishSwingVideo, play: playSwingVideo };
   // Independent readers start together after the exact player passes live authorization.
   const [gameLogs, gameStats, gameComparisons, shared, teamAverages, movement, contacts, videos, annotations, blockCounts, headshot] = await Promise.all([
-    staff ? loadGameLogs(access, athlete.id) : Promise.resolve([]),
-    loadGameStats(access, athlete.id), loadGameComparisons(access, athlete.id),
-    loadAthletePerformance(access,athlete), showHitting ? loadHittingTeamAverages(access) : Promise.resolve([]),
-    loadMovementScreening(access,athlete.id,athlete.athlete_code),
-    showHitting ? loadFullSwingContacts(access,athlete.id) : Promise.resolve([]),
-    showHitting ? loadSwingVideos(access,athlete.id).catch(()=>null) : Promise.resolve([]),
-    loadTrendAnnotations(access,athlete.id).catch(()=>null), loadTrainingBlockCounts(access,athlete.id).catch(()=>null),
+    staff && selectedTab === "in-game" ? loadGameLogs(access, athlete.id) : Promise.resolve([]),
+    selectedTab === "overview" || selectedTab === "in-game" ? loadGameStats(access, athlete.id) : Promise.resolve([]),
+    selectedTab === "overview" || selectedTab === "in-game" ? loadGameComparisons(access, athlete.id) : Promise.resolve([]),
+    loadAthletePerformance(access,athlete), showHitting && selectedTab !== "progress" ? loadHittingTeamAverages(access) : Promise.resolve([]),
+    selectedTab === "physicality" ? loadMovementScreening(access,athlete.id,athlete.athlete_code) : Promise.resolve(null),
+    showHitting && contactTab ? loadFullSwingContacts(access,athlete.id, selectedTab === "practice" ? "practice" : "in_game") : Promise.resolve([]),
+    showHitting && contactTab ? loadSwingVideos(access,athlete.id).catch(()=>null) : Promise.resolve([]),
+    annotatedTab ? loadTrendAnnotations(access,athlete.id).catch(()=>null) : Promise.resolve([]),
+    selectedTab === "progress" ? loadTrainingBlockCounts(access,athlete.id).catch(()=>null) : Promise.resolve([]),
     loadAthleteHeadshot(access,athlete.id),
   ]);
   const performance = getPlayerPerformance({ readings:shared.measurements, batches:shared.batches, athleteCode:athlete.athlete_code, cohortAthleteCodes:[], percentileOverrides:shared.percentileOverrides });
@@ -75,7 +81,7 @@ export default async function Profile({ params, searchParams }: { params: Promis
   return <>
     <AccessPreviewNotice status={query?.preview} isPreview={!!access.preview} />
     <div className="profile-toolbar">{staff ? <Link href="/roster" className="profile-back"><ArrowLeft size={15} />Team Roster</Link> : <span/>}<div className="flex flex-wrap items-center gap-2">{canImportPresentedAccess(access) && <Link href="/imports" className="btn btn-secondary">Import Results<ArrowRight size={15} aria-hidden="true"/></Link>}<Link prefetch={false} href={`/athletes/${athlete.id}/report`} className="btn btn-secondary"><FileText size={15} aria-hidden="true"/>Player Report</Link></div></div>
-    <PlayerPerformanceProfile
+    <PlayerPerformanceProfile selectedTab={selectedTab} navigationPath={`/athletes/${athlete.id}`}
       headshot={headshot}
       trainingBlocks={<>{blockCounts===null&&<p role="status" className="muted text-sm">Swing counts are temporarily unavailable. Some session averages cannot be compared yet.</p>}<TrainingBlockComparison series={buildTrainingBlockSeries(readings,{athleteCode:athlete.athlete_code,showHitting,showPitching:profileShowsPitching(season),today,readingCounts:blockCounts??[]})}/></>}
       trendAnnotations={annotations ?? []}
@@ -83,8 +89,8 @@ export default async function Profile({ params, searchParams }: { params: Promis
       pitchDesignHref={`/pitch-design?athlete=${athlete.id}`} swingDesignHref={`/swing-design?athlete=${athlete.id}`} teamAverages={teamAverages} blastReadings={shared.measurements} timelineReadings={readings} practicePitchResults={<ClassifiedPitchResults readings={shared.measurements} context="practice" />} pitchResults={<ClassifiedPitchResults readings={shared.measurements} />} contactResults={<HitterContactMap contacts={contacts} context="in_game" bats={season?.bats} athleteId={athlete.id} videoActions={videoActions} videos={videos??[]} canAttachVideo={videos!==null&&canImportPresentedAccess(access)} videosAvailable={videos!==null} />} practiceContactResults={<HitterContactMap contacts={contacts} context="practice" bats={season?.bats} athleteId={athlete.id} videoActions={videoActions} videos={videos??[]} canAttachVideo={videos!==null&&canImportPresentedAccess(access)} videosAvailable={videos!==null} />} simplified={!staff} overviewGameStats={gameStats} gameComparisons={gameComparisons} gameStats={<><AthleteGameStats stats={gameStats} comparisons={gameComparisons} showDetails={staff}/>{staff&&<PlayerGameLog logs={gameLogs}/>}</>} athlete={athlete} performance={performance} season={season}
       movementScreening={<MovementScreening report={movement} showReferences={staff}/>}
       muscleBalance={<RenphoMuscleBalance report={getRenphoReports(readings,shared.batches,athlete.athlete_code)[0]} />}
-      physicalityDetails={staff && getRenphoReports(readings,shared.batches,athlete.athlete_code).length > 0 ? <details className="group rounded-lg border border-[var(--line-subtle)] bg-[var(--surface-panel)]"><summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-sm font-semibold sm:px-6">RENPHO Reports<ChevronDown size={16} className="shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" /></summary><div className="border-t border-[var(--line-subtle)] px-5 py-5 sm:px-6"><RenphoCharts readings={readings} batches={shared.batches} athleteCode={athlete.athlete_code} /></div></details> : undefined}
-      history={staff && readings.length > 0 ? <details className="group rounded-lg border border-[var(--line-subtle)] bg-[var(--surface-panel)]"><summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-sm font-semibold sm:px-6">Measurement History · {readings.length} readings<ChevronDown size={16} className="shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" /></summary><div className="table-wrap border-t border-[var(--line-subtle)]"><table aria-label="Shared measurement history"><thead><tr><th>Test Date</th><th>Measurement</th><th>Value</th><th>Source</th></tr></thead><tbody>{readings.map(reading => <tr key={reading.id}><td className="whitespace-nowrap">{reading.measured_at}</td><td>{profileMetricLabel(normalizePlayerMetric(reading.metric,reading.unit)?.key??"",reading.metric,reading.source)}</td><td className="whitespace-nowrap tabular-nums">{formatSourceNumber(reading.value, reading.source)} {reading.unit}</td><td>{pitchSourceLabel(reading.source)}</td></tr>)}</tbody></table></div></details> : undefined} />
+      physicalityDetails={selectedTab === "physicality" && staff && getRenphoReports(readings,shared.batches,athlete.athlete_code).length > 0 ? <details className="group rounded-lg border border-[var(--line-subtle)] bg-[var(--surface-panel)]"><summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-sm font-semibold sm:px-6">RENPHO Reports<ChevronDown size={16} className="shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" /></summary><div className="border-t border-[var(--line-subtle)] px-5 py-5 sm:px-6"><RenphoCharts readings={readings} batches={shared.batches} athleteCode={athlete.athlete_code} /></div></details> : undefined}
+      history={selectedTab === "progress" && staff && readings.length > 0 ? <details className="group rounded-lg border border-[var(--line-subtle)] bg-[var(--surface-panel)]"><summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-sm font-semibold sm:px-6">Measurement History · {readings.length} readings<ChevronDown size={16} className="shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" /></summary><div className="table-wrap border-t border-[var(--line-subtle)]"><table aria-label="Shared measurement history"><thead><tr><th>Test Date</th><th>Measurement</th><th>Value</th><th>Source</th></tr></thead><tbody>{readings.map(reading => <tr key={reading.id}><td className="whitespace-nowrap">{reading.measured_at}</td><td>{profileMetricLabel(normalizePlayerMetric(reading.metric,reading.unit)?.key??"",reading.metric,reading.source)}</td><td className="whitespace-nowrap tabular-nums">{formatSourceNumber(reading.value, reading.source)} {reading.unit}</td><td>{pitchSourceLabel(reading.source)}</td></tr>)}</tbody></table></div></details> : undefined} />
     {admin && !access.preview && <p className="mt-6 text-sm"><Link className="text-link" href={`/admin/correct-weight?athlete=${id}`}>Correct Recorded Weight</Link><span className="mx-3 text-[var(--text-secondary)]">·</span><Link className="text-link" href={`/admin/csv-corrections?athlete=${id}`}>Correct CSV Assignments</Link></p>}
     {admin && <details className="group mt-6 rounded-lg border border-[var(--line-subtle)] bg-[var(--surface-panel)]"><summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-sm font-semibold sm:px-6">Roster Details<ChevronDown size={16} className="shrink-0 transition-transform group-open:rotate-180" aria-hidden="true" /></summary><dl className="field-grid m-0 border-t border-[var(--line-subtle)] px-5 py-5 sm:px-6"><div><dt>PAC ID</dt><dd>{athlete.athlete_code}</dd></div><div><dt>Roster email</dt><dd>{display(athlete.pacific_email)}</dd></div><div><dt>Roster status</dt><dd>{display(season?.roster_status)}</dd></div><div><dt>Academic class</dt><dd>{display(season?.academic_class)}</dd></div></dl></details>}
   </>;

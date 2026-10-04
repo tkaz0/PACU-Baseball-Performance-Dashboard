@@ -14,15 +14,20 @@ function pacificDay(timestamp: string): string {
   return `${part("year")}-${part("month")}-${part("day")}`;
 }
 
+/** Same deterministic daily selection for metadata fetches and rate rebuilding. */
+export function latestDailySnapshots<T extends Omit<GameSnapshotRow,"observations">>(snapshots: readonly T[]): T[] {
+  const ordered=[...snapshots].filter(s=>/^\d{4}-\d{2}-\d{2}/.test(s.fetched_at)&&Number.isFinite(Date.parse(s.fetched_at))).sort((a,b)=>Date.parse(a.fetched_at)-Date.parse(b.fetched_at)||a.id.localeCompare(b.id));
+  const latest=new Map<string,T>();
+  for(const snapshot of ordered)latest.set(`${snapshot.source}:${pacificDay(snapshot.fetched_at)}`,snapshot);
+  return [...latest.values()];
+}
+
 /** Rebuilds each saved sheet version as-of its sync and applies the same team calculations used today. */
 export function teamGameTrends(snapshots: readonly GameSnapshotRow[]): TeamGameTrends {
   const result: TeamGameTrends = {};
-  const ordered = [...snapshots].filter(s => /^\d{4}-\d{2}-\d{2}/.test(s.fetched_at) && Number.isFinite(Date.parse(s.fetched_at)) && Array.isArray(s.observations)).sort((a, b) => Date.parse(a.fetched_at) - Date.parse(b.fetched_at) || a.id.localeCompare(b.id));
-  // Select the day's authoritative source version before calculating rates. A later
-  // pending or empty version must not leave an obsolete earlier rate on the chart.
-  const latest = new Map<string, GameSnapshotRow>();
-  for (const snapshot of ordered) latest.set(`${snapshot.source}:${pacificDay(snapshot.fetched_at)}`, snapshot);
-  for (const snapshot of latest.values()) {
+  // A later pending/empty source version cannot resurrect an earlier result.
+  for (const snapshot of latestDailySnapshots(snapshots)) {
+    if(!Array.isArray(snapshot.observations))continue;
     const rows: SharedGameStat[] = (snapshot.observations as Observation[]).flatMap(o => typeof o?.athleteCode === "string" && typeof o.metric === "string" && typeof o.value === "number" && Number.isFinite(o.value) && (o.unit === "count" || o.unit === "%") && (o.scope === "cumulative_fall" || o.scope === "pitching_event") ? [{
       source: snapshot.source, athlete_id: o.athleteCode, metric: o.metric, value: o.value, unit: o.unit, scope: o.scope,
       event_id: typeof o.eventId === "string" ? o.eventId : "", played_on: typeof o.playedOn === "string" ? o.playedOn : null,
