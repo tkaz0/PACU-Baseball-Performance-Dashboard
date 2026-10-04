@@ -25,6 +25,7 @@ export type FullSwingReadingReview = {
   key: string; sourceRow: number; pitchNumber: string; identity: string; actor: "Pitcher" | "Batter"; field: Field;
   label: string; unit: string; raw: string; value: number | null;
   reason: string | null; blocking: boolean;
+  likelyFoulDirection?: number;
 };
 export const fullSwingValueKey = (sourceRow: number, field: Field) => `${sourceRow}:${field}`;
 
@@ -46,7 +47,7 @@ export function inspectFullSwingReadings(table: ImportTable): FullSwingReadingRe
       const rawDirection=cells[table.headers.indexOf("Direction")].trim();
       const likelyFoul=spec.field==="ExitSpeed"&&value!==null&&isLikelyFoul({exitVelocity:value,direction:numeric.test(rawDirection)?Number(rawDirection):null});
       const reason = blocking ? "Invalid or outside the supported measurement range" : likelyFoul ? "Likely Foul — below 70 mph and beyond a foul line; excluded from exit velocity results" : value < spec.low ? spec.field === "ExitSpeed" ? `Below ${LOW_EXIT_VELOCITY_REVIEW_MPH} mph — check contact or tracking` : "Unusually low — check the source" : value > spec.high ? "Unusually high — check the source" : null;
-      rows.push({ key: fullSwingValueKey(sourceRow, spec.field), sourceRow, pitchNumber: cells[0].trim(), identity: cells[spec.actorColumn].trim(), actor: spec.actor, field: spec.field, label: spec.label, unit: spec.unit, raw, value, reason, blocking });
+      rows.push({ key: fullSwingValueKey(sourceRow, spec.field), sourceRow, pitchNumber: cells[0].trim(), identity: cells[spec.actorColumn].trim(), actor: spec.actor, field: spec.field, label: spec.label, unit: spec.unit, raw, value, reason, blocking, ...(likelyFoul && !blocking ? { likelyFoulDirection: Number(rawDirection) } : {}) });
     }
   }
   const groups = new Map<string, FullSwingReadingReview[]>();

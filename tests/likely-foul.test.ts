@@ -4,12 +4,33 @@ import {FULL_SWING_SESSION_HEADERS} from "@/lib/imports/full-swing-session";
 import {inspectFullSwingReadings} from "@/lib/imports/full-swing-misreads";
 import {contactQuality} from "@/lib/contact-quality";
 import {contactConsistency} from "@/lib/contact-consistency";
+import {createElement} from "react";
+import {renderToStaticMarkup} from "react-dom/server";
+import {FullSwingMisreadReview} from "@/components/full-swing-misread-review";
+import {omitFullSwingReadings} from "@/lib/imports/full-swing-misreads";
 it.each([[-46,69.9,true],[46,69.9,true],[-45,69.9,false],[45,69.9,false],[60,70,false],[0,35,false],[null,35,false],[91,35,false],[NaN,35,false],[60,0,false]])("flags only valid low-speed contact beyond a foul line",(direction,exitVelocity,result)=>expect(isLikelyFoul({direction,exitVelocity})).toBe(result));
 it("marks a likely foul in import review without removing its original cells",()=>{
  const cells=FULL_SWING_SESSION_HEADERS.map(h=>({PitchNo:"1",Batter:"Fictional Hitter",ExitSpeed:"69.9",Direction:"46"} as Record<string,string>)[h]??"null");
  const table={headers:[...FULL_SWING_SESSION_HEADERS],rows:[cells],rowNumbers:[2]};
  const review=inspectFullSwingReadings(table).find(r=>r.field==="ExitSpeed")!;
- expect(review.reason).toContain("Likely Foul");expect(review.blocking).toBe(false);expect(cells[FULL_SWING_SESSION_HEADERS.indexOf("ExitSpeed")]).toBe("69.9");
+ expect(review.reason).toContain("Likely Foul");expect(review.blocking).toBe(false);expect(review.likelyFoulDirection).toBe(46);expect(cells[FULL_SWING_SESSION_HEADERS.indexOf("ExitSpeed")]).toBe("69.9");
+});
+it("puts paired likely-foul evidence first in importer review without automatically removing it",()=>{
+ const values:Record<string,string>={PitchNo:"1",Batter:"Fictional Hitter",ExitSpeed:"69.9",Direction:"-46"};
+ const table={headers:[...FULL_SWING_SESSION_HEADERS],rows:[FULL_SWING_SESSION_HEADERS.map(h=>values[h]??"null")],rowNumbers:[2]};
+ const readings=inspectFullSwingReadings(table);
+ const props={readings,excluded:new Set<string>(),toggle:()=>{},reviewed:false,setReviewed:()=>{}};
+ const html=renderToStaticMarkup(createElement(FullSwingMisreadReview,props));
+ expect(html).toContain('aria-label="Likely Fouls"');expect(html).toContain("Direction -46.0°");
+ expect(html).toContain("1 likely foul");expect(html).toContain("0 hitting flags");
+ expect(html.indexOf('aria-label="Likely Fouls"')).toBeLessThan(html.indexOf('aria-label="Hitting misreads"'));
+ expect(html).toContain('aria-label="Remove Exit velocity on CSV row 2"');
+ expect(html).not.toContain('checked=""');
+ expect(omitFullSwingReadings(table,readings,new Set()).rows).toEqual(table.rows);
+ const removed=new Set(["2:ExitSpeed"]);
+ expect(omitFullSwingReadings(table,readings,removed).rows[0][FULL_SWING_SESSION_HEADERS.indexOf("ExitSpeed")]).toBe("null");
+ const restored=renderToStaticMarkup(createElement(FullSwingMisreadReview,{...props,excluded:removed,locked:true}));
+ expect(restored).toContain('aria-label="Restore Exit velocity on CSV row 2"');expect(restored).toContain('disabled=""');
 });
 it("keeps soft fair-direction contact and restores flagged contact only in All Contact review",()=>{
  const contacts=[{exitVelocity:60,launchAngle:20,direction:55},{exitVelocity:55,launchAngle:0,direction:0},{exitVelocity:95,launchAngle:20,direction:-12}];

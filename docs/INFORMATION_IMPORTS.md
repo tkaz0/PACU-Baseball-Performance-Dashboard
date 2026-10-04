@@ -130,3 +130,5 @@ An Admin can now open **Correct CSV Assignments** on a player profile and archiv
 
 
 Full Swing low EV beyond a foul line is now labeled Likely Foul (<70 mph and |Direction| >45°). Saving preserves the original CSV summaries and paired contact for review; the dashboard EV display and denominators exclude flagged saved paired contact. Other outlier flags remain advisory. Missing directions stay unknown; All Contact lets staff/players inspect original contact and attached videos.
+
+Full Swing → Check Tracking Misreads now lists Likely Fouls first, separately from other hitting and pitching flags. Each flagged EV shows the same-row direction, the below-70 mph / beyond-±45° rule, and Remove value / Restore controls. No readings are removed automatically; saved paired contacts still use the existing read-only EV display rule. Staff must still approve the review before continuing.
