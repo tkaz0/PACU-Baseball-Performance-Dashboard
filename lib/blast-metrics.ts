@@ -1,5 +1,8 @@
 import type { Measurement } from "@/lib/imports/engine";
 
+export const BLAST_FALL_SOURCE = "Blast Motion · Fall Average";
+export const isBlastFallSource = (source: string) => source.trim().toLowerCase() === BLAST_FALL_SOURCE.toLowerCase();
+
 export type BlastSummaryKind = "average" | "p95";
 export type BlastMetric = { column: number; header: string; key: string; label: string; unit: string; signed?: boolean; description: string };
 /** Exact supplied Blast Performance export; positions are original CSV columns. */

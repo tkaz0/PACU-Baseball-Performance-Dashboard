@@ -1,3 +1,4 @@
+import { isBlastFallSource } from "@/lib/blast-metrics";
 import "server-only";
 import type { requireAccess } from "@/lib/auth";
 import { loadLeaderboard } from "@/lib/leaderboard-server";
@@ -35,7 +36,7 @@ export async function loadTeamFallSummaries(access: Access, readings: readonly {
   const selections = new Map<string, LeaderboardSelection>();
   for (const reading of readings) {
     const source = reading.source.trim().toLowerCase().replace(/\s+/g, " ");
-    if (!isFullSwingFallSummaryMetric(reading.metric) || !/^full swing · (game|intrasquad|practice)$/.test(source)) continue;
+    if (!(reading.metric === "avg_bat_speed" && isBlastFallSource(source)) && (!isFullSwingFallSummaryMetric(reading.metric) || !/^full swing · (game|intrasquad|practice)$/.test(source))) continue;
     selections.set(JSON.stringify([reading.metric, source, reading.unit]), { metricKey: reading.metric as LeaderboardSelection["metricKey"], source, unit: reading.unit, period: "fall_2026" });
   }
   const ids = new Map(players.map(player => [player.code, player.id]));

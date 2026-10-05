@@ -226,3 +226,5 @@ In-Game and Practice hitter contact maps offer Exit Speed / Angle, Spray Chart a
 ## Full Swing Fall summaries on cards (October 4)
 
 Max EV, Average EV, Max Bat Speed, Average Bat Speed and Max Distance cards use the leaderboard's Fall value for the same source/unit: Fall best across all saved sessions, or the swing-count-weighted Fall average. Cards list the basis, session count, saved swing count and the team mean of that board. Averages fall back to the labeled latest session when any session's swing count is missing. Last Tested, history and New Fall Best still use the newest session reading.
+
+October 5: Analytics, Correlation Map and staff comparison now use one weighted Fall Blast average per player/metric rather than separate week choices. Average bat-speed leaderboards and featured Home rankings use the same cumulative value and total swing sample. Existing saved weekly-average charts resolve to the matching Fall variable; P95 choices never remap. Physicality remains latest-tested and timed boards remain Fall best.

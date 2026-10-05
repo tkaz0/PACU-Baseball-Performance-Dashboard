@@ -63,3 +63,11 @@ describe("strict minimal leaderboard response adapter", () => {
     }
   });
 });
+
+it("accepts only the canonical verified Blast Fall average with total swing samples and own-only profile links",async()=>{
+ const blast={metricKey:"avg_bat_speed",source:"blast motion · fall average",unit:"mph",period:"fall_2026"} as const;
+ rpc.mockResolvedValue({data:[row({source:blast.source,value:75,derived:true,sampleCount:40,sampleUnit:"swings",profileId:peerId})],error:null});
+ expect((await loadLeaderboard(access,blast))[0]).toMatchObject({value:75,sampleCount:40,profileId:null});
+ rpc.mockResolvedValue({data:[row({source:"blast motion · average · 2026-09-13:2026-09-20",value:75,derived:true})],error:null});
+ await expect(loadLeaderboard(access,{...blast,source:"blast motion · average · 2026-09-13:2026-09-20"})).rejects.toThrow(/verified/);
+});

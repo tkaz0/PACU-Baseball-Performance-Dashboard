@@ -433,3 +433,5 @@ Likely Foul EV display (October 4): migration 202610040002 adds invoker/RLS view
 
 
 October 5 Analytics rollups reuse the existing ordinary-session `team_leaderboard` numerical projection, with exact metric/source/unit/Fall partitions. The in-memory Analytics reading may include a display-only `basis` (`fall-best`, `fall-average`, `latest-session`); no database columns, stored observations, hashes, credentials or policies change.
+
+Blast Fall display source `Blast Motion · Fall Average` is derived, never imported. Weekly averages are weighted by their exact swing counts. The private `blast_bat_speed_fall` helper supplies cumulative bat speed to existing team readers, preserving eligible cohorts and own-player raw RLS. All weekly provenance remains immutable; P95 is never averaged.

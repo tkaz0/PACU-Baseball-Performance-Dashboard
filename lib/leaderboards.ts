@@ -1,5 +1,5 @@
 import { pitchSourceLabel } from "@/lib/pitch-display";
-import { parseBlastSource } from "@/lib/blast-metrics";
+import { parseBlastSource, isBlastFallSource } from "@/lib/blast-metrics";
 import { PITCH_TYPES } from "@/lib/imports/pitch-assignments";
 import { TIMED_METRIC_KEYS, isVisibleProfileMetric, isTimedMetric, PLAYER_METRICS, type PlayerMetricDefinition, type PlayerMetricKey, type PlayerPerformancePeriod } from "@/lib/player-performance";
 
@@ -31,7 +31,7 @@ export const leaderboardMetrics = (group: LeaderboardGroup) => LEADERBOARD_METRI
   const order = ["body_score", "height", "weight", "muscle_mass", "skeletal_muscle_mass", "body_fat_pct", "grip_strength", "grip_dominant", "grip_non_dominant"];
   return (order.indexOf(a.key) < 0 ? 99 : order.indexOf(a.key)) - (order.indexOf(b.key) < 0 ? 99 : order.indexOf(b.key));
 });
-export const leaderboardSourceLabel = (source: string) => pitchSourceLabel(source.split(" · ").map(part => ({ renpho: "RENPHO", "full swing": "Full Swing", blast: "Blast", rapsodo: "Rapsodo", "player metrics": "Player Metrics", game: "Game", intrasquad: "Intrasquad", practice: "Practice", hitting: "Hitting", pitching: "Pitching" })[part] ?? part).join(" · "));
+export const leaderboardSourceLabel = (source: string) => isBlastFallSource(source) ? "Blast · Fall Practice Average" : pitchSourceLabel(source.split(" · ").map(part => ({ renpho: "RENPHO", "full swing": "Full Swing", blast: "Blast", rapsodo: "Rapsodo", "player metrics": "Player Metrics", game: "Game", intrasquad: "Intrasquad", practice: "Practice", hitting: "Hitting", pitching: "Pitching" })[part] ?? part).join(" · "));
 export const leaderboardMetricLabel = (metric: LeaderboardMetricDefinition) => isTimedMetric(metric.key) ? `${metric.label} · Best Time` : ({ max_exit_velocity: "Max Exit Velocity", avg_exit_velocity: "Average Exit Velocity", bat_speed: "Bat Speed (Unspecified)", k_pct: "Strikeout %", bb_pct: "Walk %" } as Partial<Record<LeaderboardMetricKey, string>>)[metric.key] ?? metric.label;
 
 /** Owner-selected numerical ordering; profile insight directions remain separate. */

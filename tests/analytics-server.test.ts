@@ -34,7 +34,7 @@ it("offers all current-season identities for comparison while keeping progress/c
 it("accepts validated signed Blast angles without allowing arbitrary negative readings",async()=>{
  const id="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
  const athlete={id,athlete_code:"SYN-001",first_name:"Fictional",last_name:"Player",preferred_name:null,athlete_seasons:[{season:"2026-27",academic_class:null,primary_position:"OF",player_type:"position",bats:null,throws:null,roster_status:"active"}]};
- const measurement={observation_id:"fictional-angle",athlete_id:id,metric_key:"blast_vertical_bat_angle",metric:"Vertical Bat Angle",unit:"deg",value:-30,measured_at:"2026-09-20",source:"Blast Motion · Average · 2026-09-13:2026-09-20",imported_at:"2026-09-20T12:00:00Z"};
+ const measurement={observation_id:"fictional-angle",athlete_id:id,metric_key:"blast_vertical_bat_angle",metric:"Vertical Bat Angle",unit:"deg",value:-30,measured_at:"2026-09-20",source:"Blast Motion · Average · 2026-09-13:2026-09-20",imported_at:"2026-09-20T12:00:00Z",file_hash:"a".repeat(64)};
  mocks.from.mockImplementation(table=>{const data=table==="athletes"?[athlete]:[measurement];const chain={select:vi.fn(),eq:vi.fn(),in:vi.fn(),gte:vi.fn(),lte:vi.fn(),order:vi.fn(),range:vi.fn().mockResolvedValue({data,count:data.length,error:null})};for(const k of ["select","eq","in","gte","lte","order"] as const)chain[k].mockReturnValue(chain);return chain;});mocks.access.mockResolvedValue({supabase:{from:mocks.from}});
  await expect(loadCoachingData()).resolves.toBeDefined();
  const visit={since:"2026-09-19T00:00:00Z",viewedAt:"2026-09-27T00:00:00Z",record:true};
@@ -78,7 +78,7 @@ it("projects the full staff comparison arsenal without exposing file identities 
  expect(pitches.find(p=>p.pitchType==="Curveball")).toMatchObject({averageVelocity:68,lastDate:"2026-09-11"});
  expect(pitches.find(p=>p.category==="Practice")).toMatchObject({averageVelocity:90});
  expect(comparison.readings).toEqual([]);expect(JSON.stringify(comparison)).not.toContain("file_hash");expect(JSON.stringify(comparison)).not.toContain("a".repeat(64));expect(selections[0]).toContain("file_hash");
- await loadAnalytics();expect(selections.at(-1)).not.toContain("file_hash");
+ await loadAnalytics();expect(selections.at(-1)).toContain("file_hash");
  rows[0].file_hash="invalid";await expect(loadComparisonData()).rejects.toThrow("could not be verified");
  rows[0].file_hash="a".repeat(64);Reflect.set(rows[0],"metric","Unsupported label");await expect(loadComparisonData()).rejects.toThrow("could not be verified");
 });
@@ -126,7 +126,7 @@ it("reads disjoint groups of ten sequentially with the unchanged exact-count pro
  const result=await loadAnalytics();
  expect(calls.map(c=>c.ids.length)).toEqual([10,10,3]);expect(calls.flatMap(c=>c.ids)).toEqual(roster.map(r=>r.id));expect(peak).toBe(1);
  expect(result.readings).toHaveLength(23);expect(new Set(result.readings.map(r=>r.id)).size).toBe(23);
- for(const call of calls){expect(call.count).toBe("exact");expect(call.bounds).toEqual([["gte","measured_at","2026-06-01"],["lte","measured_at","2026-12-31"]]);expect(call.fields).toBe("observation_id,athlete_id,metric_key,metric,unit,value,measured_at,source,imported_at");expect(call.to-call.from).toBe(499);}
+ for(const call of calls){expect(call.count).toBe("exact");expect(call.bounds).toEqual([["gte","measured_at","2026-06-01"],["lte","measured_at","2026-12-31"]]);expect(call.fields).toBe("observation_id,athlete_id,metric_key,metric,unit,value,measured_at,source,imported_at,file_hash");expect(call.to-call.from).toBe(499);}
 });
 
 it("drains timed-out parallel pages before splitting and discards all partial arsenal samples",async()=>{
@@ -234,4 +234,17 @@ it("waits for outstanding Home partitions and preserves the last-good page on a 
  const result=loadStaffHomeSummary();let settled=false;const checked=result.then(()=>{settled=true;},()=>{settled=true;});
  await vi.waitFor(()=>expect(release).toBeDefined());expect(settled).toBe(false);
  release();await checked;await expect(result).rejects.toThrow();
+});
+
+it("projects one cumulative Blast average per player without leaking files or double-counting peak reports",async()=>{
+ const roster=fictionalRoster(1),id=roster[0].id;
+ const make=(source:string,date:string,hash:string,count:number,speed:number)=>[{metric_key:"blast_swing_count",metric:"Blast Swing Count",unit:"count",value:count},{metric_key:"avg_bat_speed",metric:"Average Bat Speed",unit:"mph",value:speed}].map((metric,index)=>({...fictionalMeasurement(id,index),...metric,observation_id:`fictional-${hash}-${index}`,source,measured_at:date,imported_at:`${date}T12:00:00Z`,file_hash:hash.repeat(64)}));
+ const rows=[...make("Blast Motion · Average · 2026-09-13:2026-09-20","2026-09-20","a",10,60),...make("Blast Motion · Average · 2026-09-21:2026-09-27","2026-09-27","b",30,80)];
+ teamQueries(roster,()=>({data:rows,count:rows.length,error:null}));
+ const analytics=await loadAnalytics();expect(analytics.readings).toHaveLength(1);
+ expect(analytics.readings[0]).toMatchObject({metric:"avg_bat_speed",value:75,basis:"fall-average",source:"Blast Motion · Fall Average",date:"2026-09-27"});
+ const coaching=await loadCoachingData();expect(coaching.readings).toEqual(analytics.readings);
+ const comparison=await loadComparisonData();expect(comparison.readings).toEqual(analytics.readings);
+ expect(JSON.stringify([analytics,coaching,comparison])).not.toContain("file_hash");expect(JSON.stringify(analytics)).not.toContain("a".repeat(64));
+ rows[0].file_hash="invalid";await expect(loadAnalytics()).rejects.toThrow("could not be verified");
 });

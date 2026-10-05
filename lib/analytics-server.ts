@@ -1,3 +1,6 @@
+import { analyticsBlastFallReadings } from "@/lib/analytics-blast-fall";
+import { parseBlastSource } from "@/lib/blast-metrics";
+import type { Measurement } from "@/lib/imports/engine";
 import { createReadLimiter } from "@/lib/limited-reads";
 import { validBlastObservation } from "@/lib/blast-metrics";
 import { buildHomeSummary } from "@/lib/home-summary";
@@ -55,7 +58,7 @@ export async function analyticsPages<T>(request:(from:number,to:number)=>Promise
   }
   return rows;
 }
-async function loadTeamSource(includeFullRoster=false, includeGames=true, includeArsenal=false, includeReadings=true, homeRead=false){
+async function loadTeamSource(includeFullRoster=false, includeGames=true, includeArsenal=false, includeReadings=true, homeRead=false, includeBlast=false){
   // Fresh trusted account check also denies Admin-as-Player before any team query.
   const access=await requireImportAccess();
   const {supabase}=access;
@@ -67,10 +70,11 @@ async function loadTeamSource(includeFullRoster=false, includeGames=true, includ
   const eligible=players.filter(p=>includeFullRoster||p.status===null||p.status==="active"||p.status==="redshirt");
   if(new Set(players.map(p=>p.id)).size!==players.length)return fail();
   const readings:AnalyticsReading[]=[];
-  // File identity stays server-side and is selected only for the staff comparison.
+  // File identity stays server-side, used for staff arsenal and Blast completeness checks.
+  const blastReadings: Measurement[]=[];
   const arsenalReadings: (ArsenalReading & { athleteId:string })[]=[];
-  const fields="observation_id,athlete_id,metric_key,metric,unit,value,measured_at,source,imported_at"+(includeArsenal?",file_hash":"");
-  type TeamReading={reading:AnalyticsReading;arsenal?:ArsenalReading&{athleteId:string}};
+  const fields="observation_id,athlete_id,metric_key,metric,unit,value,measured_at,source,imported_at"+(includeArsenal||includeBlast?",file_hash":"");
+  type TeamReading={reading:AnalyticsReading;arsenal?:ArsenalReading&{athleteId:string};blast?:Measurement};
   const limited = createReadLimiter(3);
   async function readAttempt(ids:string[],maximum:number):Promise<TeamReading[]>{
     return analyticsPages((from,to)=>limited(()=>supabase.from("performance_display_measurements").select(fields,{count:"exact"}).in("athlete_id",ids).gte("measured_at",homeRead?"2026-09-01":"2026-06-01").lte("measured_at","2026-12-31").order("observation_id").range(from,to)),row=>{
@@ -80,7 +84,12 @@ async function loadTeamSource(includeFullRoster=false, includeGames=true, includ
       if(typeof row.file_hash!=="string"||!/^[a-f0-9]{64}$/.test(row.file_hash)||!CLASSIFIED_METRICS.some(m=>m.key===row.metric_key&&m.label===row.metric&&m.unit===row.unit))return fail();
       arsenal={athleteId:row.athlete_id,source:row.source,metric:row.metric,unit:row.unit,value:row.value,measured_at:row.measured_at,file_hash:row.file_hash};
     }
-    return {reading:{id:row.observation_id,athleteId:row.athlete_id,metric:row.metric_key,label:row.metric,unit:row.unit,value:row.value,date:row.measured_at,source:row.source,importedAt:row.imported_at},...(arsenal?{arsenal}:{})};
+    let blast:Measurement|undefined;
+    if(includeBlast && parseBlastSource(row.source)) {
+      if(typeof row.file_hash!=="string"||!/^[a-f0-9]{64}$/.test(row.file_hash)||!validBlastObservation(row.metric_key,row.value,row.unit,row.source,row.measured_at))return fail();
+      blast={id:row.observation_id,athlete_code:row.athlete_id,metric:row.metric,unit:row.unit,value:row.value,measured_at:row.measured_at,source:row.source,file_hash:row.file_hash,source_file:"",source_sheet:"",source_row:0};
+    }
+    return {reading:{id:row.observation_id,athleteId:row.athlete_id,metric:row.metric_key,label:row.metric,unit:row.unit,value:row.value,date:row.measured_at,source:row.source,importedAt:row.imported_at},...(arsenal?{arsenal}:{}),...(blast?{blast}:{})};
     },maximum);
   }
   // A small ID partition reduces work per exact count under the existing staff RLS.
@@ -96,7 +105,7 @@ async function loadTeamSource(includeFullRoster=false, includeGames=true, includ
     }
   }
   const append = (page: TeamReading[]) => {
-    for(const row of page){readings.push(row.reading);if(row.arsenal)arsenalReadings.push(row.arsenal);}
+    for(const row of page){readings.push(row.reading);if(row.arsenal)arsenalReadings.push(row.arsenal);if(row.blast)blastReadings.push(row.blast);}
     if(readings.length>20000)return fail("source-limit");
   };
   if(homeRead && includeReadings){
@@ -115,16 +124,17 @@ async function loadTeamSource(includeFullRoster=false, includeGames=true, includ
   // The whole roster is selectable, but team production uses the ranking-eligible cohort.
   const rankingIds=new Set(players.filter(p=>p.status===null||p.status==="active"||p.status==="redshirt").map(p=>p.id));
   const rankingGames=gameRows.filter(row=>rankingIds.has(row.athlete_id));
-  return {players:eligible.map(p=>({id:p.id,code:p.code,name:p.name,academicClass:p.academicClass,position:p.position,secondaryPosition:p.secondaryPosition,playerType:p.playerType,bats:p.bats,throws:p.throws})).sort((a,b)=>a.name.localeCompare(b.name)),readings,games,rankingGames,arsenalReadings};
+  return {players:eligible.map(p=>({id:p.id,code:p.code,name:p.name,academicClass:p.academicClass,position:p.position,secondaryPosition:p.secondaryPosition,playerType:p.playerType,bats:p.bats,throws:p.throws})).sort((a,b)=>a.name.localeCompare(b.name)),readings,games,rankingGames,arsenalReadings,blastReadings};
 }
 export async function loadAnalytics():Promise<AnalyticsDataset>{
-  const data=await loadTeamSource();
-  const readings=await loadAnalyticsFallReadings(await requireImportAccess(),data.players,data.readings.filter(analyticsReadingVisible));
+  const data=await loadTeamSource(false,true,false,true,false,true);
+  const blast=analyticsBlastFallReadings(data.readings,data.blastReadings,pacificTestingDate());
+  const readings=await loadAnalyticsFallReadings(await requireImportAccess(),data.players,blast.filter(analyticsReadingVisible));
   return {players:data.players.map(p=>({id:p.id,code:p.code,name:p.name,academicClass:p.academicClass,position:p.position,playerType:p.playerType,bats:p.bats,throws:p.throws})),readings:[...readings,...qpaAnalytics(data.games),...pitchingAnalytics(data.games)]};
 }
 export async function loadCoachingData(){
-  const data=await loadTeamSource();
-  return {players:data.players,readings:data.readings.filter(coachingReadingVisible),games:coachingGames(data.games)};
+  const data=await loadTeamSource(false,true,false,true,false,true);
+  return {players:data.players,readings:analyticsBlastFallReadings(data.readings,data.blastReadings,pacificTestingDate()).filter(coachingReadingVisible),games:coachingGames(data.games)};
 }
 
 /** Current eligible roster and cumulative game stats only; no testing or CSV queries. */
@@ -135,10 +145,10 @@ export async function loadTopPerformersData(){
 
 /** Staff comparison can select any current-season roster identity, even without results. */
 export async function loadComparisonData(){
-  const data=await loadTeamSource(true,true,true);
+  const data=await loadTeamSource(true,true,true,true,false,true);
   const today=pacificTestingDate();
   const arsenals=data.players.map(player=>({athleteId:player.id,pitches:fallArsenalPitches(data.arsenalReadings.filter(row=>row.athleteId===player.id),today)})).filter(row=>row.pitches.length>0);
-  const readings=data.readings.filter(coachingReadingVisible);
+  const readings=analyticsBlastFallReadings(data.readings,data.blastReadings,today).filter(coachingReadingVisible);
   // Same Fall best / weighted Fall average as the leaderboards; on failure the comparison keeps latest-session values.
   const fallSummaries=await loadTeamFallSummaries(await requireImportAccess(),readings,data.players).catch(()=>[]);
   return {players:data.players,readings,games:coachingGames(data.games,data.rankingGames),arsenals,fallSummaries};

@@ -1,3 +1,4 @@
+import { isBlastFallSource } from "@/lib/blast-metrics";
 import { PlayerAvatar } from "@/components/player-avatar";
 import { StatInfo } from "@/components/stat-info";
 import Link from "next/link";
@@ -28,7 +29,7 @@ function RankingTable({ rows, metric, unit, continued = false, tiedRanks, barMax
         <span className={styles.playerMeta}>{row.jerseyNumber !== null ? `#${row.jerseyNumber}` : row.athleteCode}{row.position ? ` · ${row.position}` : ""}<span className={styles.date}><time dateTime={row.measuredAt}>{leaderboardTestDate(row.measuredAt)}</time></span></span>
         {barMax !== undefined && <span aria-hidden="true" className={styles.barTrack}><span className={unit === "rpm" ? styles.spinBar : styles.valueBar} style={{ width: `${barMax > 0 ? Math.max(0, Math.min(100, row.value / barMax * 100)) : 0}%` }} /></span>}
       </div></div></th>
-      <td className={styles.result}><ResultValue row={row} metric={metric} unit={unit} />{fallAverageKeys.has(metric.key) && row.source.startsWith("full swing") ? <span className={row.derived ? styles.resultContext : styles.latestContext} title={row.derived ? "Average across Fall sessions, weighted by verified reading counts." : "A count could not be verified for every Fall session. This is the latest session’s average."}>{row.derived ? "Fall average" : "Latest session"}</span> : null}{row.sampleCount && row.sampleUnit ? <span className={styles.sample}>{row.sampleCount} {row.sampleCount === 1 ? { swings: "swing", pitches: "pitch", trials: "trial" }[row.sampleUnit] : row.sampleUnit}</span> : row.source.startsWith("full swing") ? <span className={styles.sample} title="The original reading count has not been verified.">Count pending</span> : null}</td>
+      <td className={styles.result}><ResultValue row={row} metric={metric} unit={unit} />{fallAverageKeys.has(metric.key) && (row.source.startsWith("full swing") || isBlastFallSource(row.source)) ? <span className={row.derived ? styles.resultContext : styles.latestContext} title={row.derived ? "Average across Fall sessions, weighted by verified reading counts." : "A count could not be verified for every Fall session. This is the latest session’s average."}>{row.derived ? "Fall average" : "Latest session"}</span> : null}{row.sampleCount && row.sampleUnit ? <span className={styles.sample}>{row.sampleCount} {row.sampleCount === 1 ? { swings: "swing", pitches: "pitch", trials: "trial" }[row.sampleUnit] : row.sampleUnit}</span> : row.source.startsWith("full swing") ? <span className={styles.sample} title="The original reading count has not been verified.">Count pending</span> : null}</td>
     </tr>)}</tbody>
   </table></div>;
 }

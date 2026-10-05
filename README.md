@@ -236,3 +236,5 @@ October 4 player scan update: profiles default to **Quick View**, with **Full De
 
 
 Full Swing EV now excludes low-speed Likely Foul contact (<70 mph, Direction beyond ±45°). Profiles offer Balls in Play / All Contact, retaining flagged readings for review without deleting source data.
+
+Fall Blast practice metrics combine nonoverlapping weekly average reports by swing count across profiles, Analytics, staff comparisons and bat-speed rankings. Peak (95th-percentile) results remain weekly; saved source observations are unchanged.

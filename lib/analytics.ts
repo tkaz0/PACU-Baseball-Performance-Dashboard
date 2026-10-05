@@ -1,5 +1,5 @@
 import { pitchTypeLabel } from "@/lib/imports/pitch-assignments";
-import { parseBlastSource } from "@/lib/blast-metrics";
+import { BLAST_FALL_SOURCE, parseBlastSource } from "@/lib/blast-metrics";
 import { classifiedPitchSource } from "@/lib/imports/classified-pitch-results";
 import { RENPHO_SEGMENTS } from "@/lib/renpho-segments";
 import { isTimedMetric, PLAYER_METRICS } from "@/lib/player-performance";
@@ -18,7 +18,7 @@ export const analyticsMetricVisible = (metric: string) => !body.has(metric) || A
 /** A P95 export is a separate summary, not another practice average. */
 export const analyticsReadingVisible = (row: Pick<AnalyticsReading,"metric"|"source"|"label">) =>
   analyticsMetricVisible(row.metric) &&
-  !["classified_pitch_count", "classified_velocity_count", "classified_spin_count", "pitches"].includes(row.metric) &&
+  !["classified_pitch_count", "classified_velocity_count", "classified_spin_count", "pitches", "blast_swing_count"].includes(row.metric) &&
   !(row.metric === "height" && row.source.trim().toLowerCase().startsWith("manual testing")) &&
   parseBlastSource(row.source)?.kind !== "p95" &&
   !/(?:^|_)p95(?:_|$)/i.test(row.metric) &&
@@ -58,10 +58,7 @@ export function latestAnalyticsReadings(readings: readonly AnalyticsReading[]): 
 export function analyticsVariables(readings: readonly AnalyticsReading[]): AnalyticsVariable[] {
   const variables=new Map<string,AnalyticsVariable>();
   const visible=latestAnalyticsReadings(readings.filter(row=>analyticsReadingVisible(row)));
-  // Each weekly Blast report is its own source; number the weeks so same-named stats stay distinguishable without showing report dates.
-  const blastWeeks=[...new Set(visible.map(row=>parseBlastSource(row.source)).filter(b=>b!==null).map(b=>`${b.start}:${b.end}`))].sort();
-  const label=(row:AnalyticsReading)=>{const blast=parseBlastSource(row.source);const base=analyticsDisplayLabel(row);return blast&&blastWeeks.length>1?base.replace(/ \(Practice\)$/," (Practice · Blast Week "+(blastWeeks.indexOf(`${blast.start}:${blast.end}`)+1)+")"):base;};
-  for(const row of visible){const key=variableKey(row),old=variables.get(key);if(old)old.count++;else variables.set(key,{key,metric:row.metric,label:label(row),unit:row.unit,source:row.source,count:1});}
+  for(const row of visible){const key=variableKey(row),old=variables.get(key);if(old)old.count++;else variables.set(key,{key,metric:row.metric,label:analyticsDisplayLabel(row),unit:row.unit,source:row.source,count:1});}
   return [...variables.values()].sort((a,b)=>a.label.localeCompare(b.label)||a.unit.localeCompare(b.unit)||a.source.localeCompare(b.source));
 }
 export function pairAnalytics(players: readonly AnalyticsPlayer[], readings: readonly AnalyticsReading[], xKey: string, yKey: string, maxGap: number) {
@@ -91,4 +88,17 @@ export function chartDomain(values: number[]): [number,number] {
   const magnitude=10**Math.floor(Math.log10(rawStep));
   const step=[1,2,2.5,5,10].map(n=>n*magnitude).find(n=>n>=rawStep)??rawStep;
   return [Math.floor(low/step)*step,Math.ceil(high/step)*step];
+}
+
+/** Existing saved weekly-average charts now open the same stat's Fall average. P95 never remaps. */
+export function resolveAnalyticsVariableKey(key: string, variables: readonly AnalyticsVariable[]): string {
+  if (variables.some(variable => variable.key === key)) return key;
+  try {
+    const parsed:unknown=JSON.parse(key);
+    if (!Array.isArray(parsed) || parsed.length!==3 || !parsed.every(value=>typeof value==="string")) return key;
+    const [metric,unit,source]=parsed;
+    const canonical=source.replace(/^blast motion · average · /,"Blast Motion · Average · ");
+    if(parseBlastSource(canonical)?.kind!=="average") return key;
+    return variables.find(variable=>variable.metric===metric&&variable.unit===unit&&variable.source===BLAST_FALL_SOURCE)?.key??key;
+  } catch {return key;}
 }

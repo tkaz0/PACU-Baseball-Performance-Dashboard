@@ -136,3 +136,24 @@ it("pins function scope, denies anonymous execution, and performs no application
   await asUser(player, () => percentile());
   expect((await db.query("select (select count(*) from public.performance_measurements) as readings,(select count(*) from public.audit_events) as audit")).rows).toEqual(before);
 });
+
+it("returns cumulative Fall practice boards with weighted values, re-ranked ties and total swing counts while preserving own raw RLS",async()=>{
+ await asUser(admin,()=>save([...report(0,50),...report(0,90,{start:"2026-09-08",end:"2026-09-14",count:30}),...report(1,85),...report(2,80),...report(0,150,{kind:"P95"})]));
+ await asUser(player,async()=>{
+  const result=(await db.query<{data:Record<string,unknown>[]}>("select public.team_leaderboard('avg_bat_speed','blast motion · fall average','mph','fall_2026') data")).rows[0].data;
+  expect(result.map(r=>[r.rank,r.value,r.sampleCount,r.profileId])).toEqual([[1,85,10,null],[2,80,40,athletes[0]],[2,80,10,null]]);
+  expect(result.every(r=>r.derived&&r.source==="blast motion · fall average"&&r.sampleUnit==="swings")).toBe(true);
+  const options=(await db.query<{data:{source:string}[]}>("select public.team_leaderboard_options() data")).rows[0].data;
+  expect(options.some(r=>r.source==="blast motion · fall average")).toBe(true);expect(options.some(r=>r.source.startsWith("blast motion · average ·"))).toBe(false);
+  expect((await db.query<{athlete_id:string}>("select athlete_id from public.performance_measurements")).rows.every(r=>r.athlete_id===athletes[0])).toBe(true);
+  await expect(db.query("select * from private.blast_bat_speed_fall()")).rejects.toThrow();
+ });
+});
+it("withholds incomplete or overlapping cumulative boards instead of ranking the latest weekly report",async()=>{
+ await asUser(admin,()=>save([...report(0),...report(0,80,{start:"2026-09-08",end:"2026-09-14"}),...report(1,70)]));
+ await db.query("update public.performance_measurements set source='Blast Motion · Average · 2026-09-07:2026-09-14' where athlete_id=$1 and measured_at='2026-09-14'",[athletes[0]]);
+ await asUser(player,async()=>{
+  const result=(await db.query<{data:{athleteCode:string}[]}>("select public.team_leaderboard('avg_bat_speed','blast motion · fall average','mph','fall_2026') data")).rows[0].data;
+  expect(result.map(r=>r.athleteCode)).toEqual([code(1)]);
+ });
+});
