@@ -12,6 +12,12 @@ describe("staff comparison Fall summaries", () => {
     expect(result.latest).toMatchObject({ value: 95.5, date: "2026-09-26" });
     expect(fallSummaryContext(result.fall!, "Sep 11")).toEqual({ context: "Fall best · Sep 11", sample: "7 swings" });
   });
+  it("resolves differing same-day sessions with the Fall value instead of a review flag", () => {
+    const key = JSON.stringify(["max_exit_velocity", "mph", "full swing · intrasquad"]);
+    const result = withFallSummary(data([fall]), { latest: null, previous: null, conflict: true }, "a", key, "2026-10-04");
+    expect(result).toMatchObject({ conflict: false, latest: { value: 95.5 } });
+    expect(withFallSummary(data([]), { latest: null, previous: null, conflict: true }, "a", key).conflict).toBe(true);
+  });
   it("keeps the session value without an exact summary", () => {
     expect(withFallSummary(data([{ ...fall, source: "full swing · practice" }]), { latest: reading, previous: null, conflict: false }).latest?.value).toBe(80);
     expect(fallSummaryContext({ ...fall, basis: "average", pooled: false, sampleCount: 1 }, "Sep 11")).toEqual({ context: "Latest session", sample: "1 swing" });

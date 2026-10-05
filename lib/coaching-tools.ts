@@ -60,11 +60,14 @@ export function coachingVariables(data:CoachingData,category:CoachingCategory,to
 }
 export type TestResult={latest:AnalyticsReading|null;previous:AnalyticsReading|null;conflict:boolean;fall?:CoachingFallSummary};
 /** Comparisons show the same Fall value as the leaderboard; Last Tested keeps the newest session date. */
-export function withFallSummary(data:CoachingData,result:TestResult):TestResult{
- const latest=result.latest;if(!latest||!data.fallSummaries?.length)return result;
+export function withFallSummary(data:CoachingData,result:TestResult,athleteId?:string,key?:string,today="2026-12-31"):TestResult{
+ if(!data.fallSummaries?.length)return result;
+ // Several sessions on the newest date may differ; the Fall value already combines them, so no review is needed.
+ const latest=result.latest??(result.conflict&&athleteId&&key?data.readings.filter(r=>r.athleteId===athleteId&&variableKey(r)===key&&r.date>="2026-09-01"&&r.date<=today).sort((a,b)=>b.date.localeCompare(a.date))[0]??null:null);
+ if(!latest)return result;
  const source=latest.source.trim().toLowerCase().replace(/\s+/g," ");
  const matches=data.fallSummaries.filter(s=>s.athleteId===latest.athleteId&&s.metric===latest.metric&&s.unit===latest.unit&&s.source===source);
- return matches.length===1?{...result,latest:{...latest,value:matches[0].value},fall:matches[0]}:result;
+ return matches.length===1?{...result,latest:{...latest,value:matches[0].value},conflict:false,fall:matches[0]}:result;
 }
 export function fallSummaryContext(fall:CoachingFallSummary,date:string):{context:string;sample:string}{
  const sample=fall.sampleCount!==null&&fall.sampleUnit?`${fall.sampleCount.toLocaleString("en-US")} ${fall.sampleCount===1?fall.sampleUnit.replace(/s$/,""):fall.sampleUnit}`:"";
@@ -108,8 +111,8 @@ export function compareTests(data:CoachingData,a:string,b:string,category:Coachi
  return coachingVariables(data,category,today).map(variable=>{
   const playerA=data.players.find(p=>p.id===a),playerB=data.players.find(p=>p.id===b);
   const eligibleA=!!playerA&&coachingEligible(playerA,variable.metric),eligibleB=!!playerB&&coachingEligible(playerB,variable.metric);
-  const first=eligibleA?withFallSummary(data,comparableTests(data,a,variable.key,today)):{latest:null,previous:null,conflict:false};
-  const second=eligibleB?withFallSummary(data,comparableTests(data,b,variable.key,today)):{latest:null,previous:null,conflict:false};
+  const first=eligibleA?withFallSummary(data,comparableTests(data,a,variable.key,today),a,variable.key,today):{latest:null,previous:null,conflict:false};
+  const second=eligibleB?withFallSummary(data,comparableTests(data,b,variable.key,today),b,variable.key,today):{latest:null,previous:null,conflict:false};
   const gap=first.latest&&second.latest?daysBetween(first.latest.date,second.latest.date):null;
   return {...variable,first:first.latest,second:second.latest,fallA:first.fall,fallB:second.fall,reviewA:first.conflict&&!first.latest,reviewB:second.conflict&&!second.latest,eligibleA,eligibleB,gap,comparable:a!==b&&gap!==null&&gap<=maxGap};
  }).filter(row=>(row.eligibleA||row.eligibleB)&&(row.first||row.second||row.reviewA||row.reviewB));
