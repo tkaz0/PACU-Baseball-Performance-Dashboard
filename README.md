@@ -20,7 +20,7 @@ Built with Next.js 16, React 19, TypeScript, Tailwind 4, Supabase Auth/PostgreSQ
 - **[Exit Meetings](docs/EXIT_MEETINGS.md):** choose a player, review a concise meeting summary (or choose the detailed report) and download a branded private PDF with stats, verified percentiles, strengths/development areas, and optional meeting talking points. Staff only; no email or persistent report storage.
 - **Visual workspace:** refreshed player/staff Home, role-specific profile comparison cards, source-backed rate/coverage/ranking graphics, compact team-average references, and a staff Correlation Map with exact paired-player counts and scatterplot drill-down. Existing data and metric policies remain intact.
 
-- **Coaching Analytics:** compare two saved testing measures with a scatterplot, best-fit line, Pearson r, class/position filters and color groups. Admin/Coach only; see [ANALYTICS](docs/ANALYTICS.md).
+- **Coaching Analytics:** compare saved testing and game measures with a scatterplot, best-fit line, Pearson r, class/position filters and color groups. Full Swing uses the same verified Fall maximums and reading-weighted averages as the leaderboards; count-incomplete averages are marked Latest Session. Admin/Coach only; see [ANALYTICS](docs/ANALYTICS.md).
 
 - **Admin:** roster and measurement imports, account configuration, coach preparation, and **View as Coach** with working performance imports and read-only **View as Player** with explicit athlete selection and **Exit preview**.
 - **Coach:** team roster, shared profiles and performance imports. **Player:** the explicitly linked profile plus the owner-authorized team leaderboard. Live account status and PostgreSQL RLS enforce access.

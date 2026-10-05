@@ -8,6 +8,7 @@ import { loadGameStats } from "@/lib/game-server";
 import { qpaAnalytics, pitchingAnalytics } from "@/lib/game-analytics";
 import "server-only";
 import { loadTeamFallSummaries } from "@/lib/player-fall-summaries-server";
+import { loadAnalyticsFallReadings } from "@/lib/analytics-fall-server";
 import { coachingReadingVisible, coachingGames } from "@/lib/coaching-tools";
 import { requireRenderImportAccess as requireImportAccess } from "@/lib/render-access";
 import { UUID_PATTERN, formatClassYear } from "@/lib/types";
@@ -118,7 +119,8 @@ async function loadTeamSource(includeFullRoster=false, includeGames=true, includ
 }
 export async function loadAnalytics():Promise<AnalyticsDataset>{
   const data=await loadTeamSource();
-  return {players:data.players.map(p=>({id:p.id,code:p.code,name:p.name,academicClass:p.academicClass,position:p.position,playerType:p.playerType,bats:p.bats,throws:p.throws})),readings:[...data.readings.filter(analyticsReadingVisible),...qpaAnalytics(data.games),...pitchingAnalytics(data.games)]};
+  const readings=await loadAnalyticsFallReadings(await requireImportAccess(),data.players,data.readings.filter(analyticsReadingVisible));
+  return {players:data.players.map(p=>({id:p.id,code:p.code,name:p.name,academicClass:p.academicClass,position:p.position,playerType:p.playerType,bats:p.bats,throws:p.throws})),readings:[...readings,...qpaAnalytics(data.games),...pitchingAnalytics(data.games)]};
 }
 export async function loadCoachingData(){
   const data=await loadTeamSource();

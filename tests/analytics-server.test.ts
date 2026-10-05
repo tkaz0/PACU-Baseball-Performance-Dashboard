@@ -1,10 +1,11 @@
 import { beforeEach, expect, it, vi } from "vitest";
-const mocks=vi.hoisted(()=>({access:vi.fn(),from:vi.fn(),games:vi.fn()}));
+const mocks=vi.hoisted(()=>({access:vi.fn(),from:vi.fn(),games:vi.fn(),board:vi.fn()}));
 vi.mock("server-only",()=>({}));vi.mock("@/lib/render-access",()=>({requireRenderImportAccess:mocks.access}));
 vi.mock("@/lib/game-server",()=>({loadGameStats:mocks.games}));
+vi.mock("@/lib/leaderboard-server",()=>({loadLeaderboard:mocks.board}));
 import { analyticsPages, loadTopPerformersData, loadAnalytics, loadCoachingData, loadComparisonData, loadDataCoverage, loadStaffHomeSummary } from "@/lib/analytics-server";
 import { CLASSIFIED_METRICS } from "@/lib/imports/classified-pitch-results";
-beforeEach(()=>{vi.resetAllMocks();mocks.games.mockResolvedValue([]);});
+beforeEach(()=>{vi.resetAllMocks();mocks.games.mockResolvedValue([]);mocks.board.mockResolvedValue([]);});
 it("denies unauthorized access before any team query",async()=>{mocks.access.mockRejectedValue(Error("DENIED"));await expect(loadTopPerformersData()).rejects.toThrow("DENIED");await expect(loadAnalytics()).rejects.toThrow("DENIED");await expect(loadCoachingData()).rejects.toThrow("DENIED");await expect(loadComparisonData()).rejects.toThrow("DENIED");await expect(loadDataCoverage()).rejects.toThrow("DENIED");expect(mocks.from).not.toHaveBeenCalled();expect(mocks.games).not.toHaveBeenCalled();});
 it("detects provider truncation and changing page counts instead of returning false missing data",async()=>{await expect(analyticsPages(async()=>({data:[1],count:2,error:null}),x=>x,1000)).rejects.toThrow("could not be verified");const req=vi.fn().mockResolvedValueOnce({data:Array(500).fill(1),count:501,error:null}).mockResolvedValueOnce({data:[1,2],count:502,error:null});await expect(analyticsPages(req,x=>x,1000)).rejects.toThrow("could not be verified");});
 it("reads the full final page and fails on provider errors",async()=>{const req=vi.fn().mockResolvedValueOnce({data:Array(500).fill(1),count:501,error:null}).mockResolvedValueOnce({data:[2],count:501,error:null});expect(await analyticsPages(req,x=>x,1000)).toHaveLength(501);await expect(analyticsPages(async()=>({data:null,count:0,error:"unavailable"}),x=>x,1000)).rejects.toThrow("could not be verified");});
@@ -107,6 +108,17 @@ function teamQueries(roster:ReturnType<typeof fictionalRoster>,respond:(ids:stri
  mocks.access.mockResolvedValue({supabase:{from:mocks.from}});return calls;
 }
 const timeoutPage=():PageResult=>({data:null,count:null,error:{code:"57014",message:"fictional private provider detail"}});
+
+it("loads verified Fall max and average values into Analytics instead of the latest single-swing session",async()=>{
+ const roster=fictionalRoster(1),id=roster[0].id;
+ const rows=["max_exit_velocity","avg_exit_velocity"].map((metric_key,index)=>({...fictionalMeasurement(id,index),metric_key,metric:metric_key==="max_exit_velocity"?"Max Exit Velocity":"Average Exit Velocity",unit:"mph",source:"Full Swing · Intrasquad",value:100,measured_at:"2026-09-26"}));
+ teamQueries(roster,()=>({data:rows,count:rows.length,error:null}));
+ mocks.board.mockImplementation(async(_access,selection)=>[{rank:1,athleteCode:roster[0].athlete_code,name:"Fictional Player",profileId:id,jerseyNumber:1,position:"P",value:selection.metricKey==="max_exit_velocity"?105:78,measuredAt:"2026-09-26",source:selection.source,derived:true,sampleCount:20,sampleUnit:"swings"}]);
+ const result=await loadAnalytics();
+ expect(result.readings.find(r=>r.metric==="max_exit_velocity")).toMatchObject({value:105,basis:"fall-best"});
+ expect(result.readings.find(r=>r.metric==="avg_exit_velocity")).toMatchObject({value:78,basis:"fall-average"});
+ expect(result.readings).toHaveLength(2);expect(rows.every(r=>r.value===100)).toBe(true);
+});
 
 it("reads disjoint groups of ten sequentially with the unchanged exact-count projection and date bounds",async()=>{
  const roster=fictionalRoster(23);let active=0,peak=0;

@@ -430,3 +430,6 @@ Consistency charts derive count/mean, fixed-band shares, full range and interpol
 
 
 Likely Foul EV display (October 4): migration 202610040002 adds invoker/RLS views over existing authorized readings with an exact authorized scalar-count helper. Original publication summaries, contacts and sample counts are never rewritten. Saved paired contact with EV <70 mph and |Direction| >45° is excluded from display EV. Average = (original average × original verified count − sum of flagged EV)/(original verified count − flagged count). Retained counts weight Fall leaderboards. A maximum >=70 cannot be a flagged reading; lower maxima require complete contact evidence. Affected missing/inconsistent counts or zero retained contacts withhold EV. Source/date/category/athlete/file partitions remain exact. Other metrics are unchanged. Missing paired direction is unknown, not a confirmed fair ball.
+
+
+October 5 Analytics rollups reuse the existing ordinary-session `team_leaderboard` numerical projection, with exact metric/source/unit/Fall partitions. The in-memory Analytics reading may include a display-only `basis` (`fall-best`, `fall-average`, `latest-session`); no database columns, stored observations, hashes, credentials or policies change.

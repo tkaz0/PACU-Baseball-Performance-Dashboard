@@ -5,7 +5,7 @@ import { RENPHO_SEGMENTS } from "@/lib/renpho-segments";
 import { isTimedMetric, PLAYER_METRICS } from "@/lib/player-performance";
 
 export type AnalyticsPlayer = { id: string; code: string; name: string; academicClass: string; position: string; playerType: string; bats: string; throws: string };
-export type AnalyticsReading = { id: string; athleteId: string; metric: string; label: string; unit: string; source: string; date: string; value: number; importedAt: string };
+export type AnalyticsReading = { id: string; athleteId: string; metric: string; label: string; unit: string; source: string; date: string; value: number; importedAt: string; basis?: "fall-best" | "fall-average" | "latest-session" };
 export type AnalyticsDataset = { players: AnalyticsPlayer[]; readings: AnalyticsReading[] };
 export type AnalyticsVariable = { key: string; metric: string; label: string; unit: string; source: string; count: number };
 export const ANALYTICS_GROUPS = ["Physicality", "Speed & Agility", "Hitting · In Game", "Hitting · Practice", "Pitching · In Game", "Pitching · Practice", "Throwing · In Game", "Throwing · Practice"] as const;
