@@ -102,6 +102,8 @@ function compactNumber(value: number): string {
   return value.toLocaleString("en-US", { maximumFractionDigits: 1 });
 }
 
+/** Single-swing maximums are noisy; their jumps show the raw change, not a percentage. */
+const SINGLE_SWING_MAXIMUMS = new Set(["max_exit_velocity", "max_bat_speed", "max_distance"]);
 export function PlayerOverview({ quick=false, cards, gameStats = [], gameComparisons = [], showMethods = true, twoWay = false, teamAverages=[], beforeMethods }: { quick?:boolean; beforeMethods?: React.ReactNode; teamAverages?:readonly HittingTeamAverage[]; twoWay?: boolean; cards: readonly PlayerMetricCard[]; gameStats?: readonly SharedGameStat[]; gameComparisons?: readonly GameComparison[]; showMethods?: boolean }) {
   const physicality = ["muscle_mass", "body_score", "body_fat_pct"].flatMap(key => cards.filter(card => card.metric.key === key));
   const testing = cards.filter(card => card.metric.group !== "body");
@@ -144,7 +146,9 @@ export function PlayerOverview({ quick=false, cards, gameStats = [], gameCompari
         <ul className={overview.highlightList}>{(quick?insights.biggestJumps.slice(0,1):insights.biggestJumps).map(item => <li key={item.metric.key}>
           {twoWay && <p className={overview.disciplineLabel}>{testingDiscipline(item.metric)}</p>}
           <h3 className="m-0 text-sm font-bold">{profileMetricLabel(item.metric.key,leaderboardMetricLabel(item.metric),item.latest.source)}<StatInfo metric={item.metric.key} label={leaderboardMetricLabel(item.metric)} value={item.latest.value} source={item.latest.source} unit={item.latest.unit} period={item.latest.period} /></h3>
-          <p className={overview.jumpValue} title={`Relative improvement: ${item.relativeImprovementPercent}%`}>{compactNumber(item.relativeImprovementPercent)}% <span className="text-xs font-semibold">improvement</span></p>
+          {SINGLE_SWING_MAXIMUMS.has(item.metric.key)
+            ? <p className={overview.jumpValue} title="Single-swing maximums vary from session to session, so the raw change is shown">+{formatMetricNumber(item.improvement,item.metric.key,item.latest.source)} <span className="text-xs font-semibold">{item.latest.unit} higher</span></p>
+            : <p className={overview.jumpValue} title={`Relative improvement: ${item.relativeImprovementPercent}%`}>{compactNumber(item.relativeImprovementPercent)}% <span className="text-xs font-semibold">improvement</span></p>}
           <p className={overview.jumpReadings} title={`Change: ${formatMetricNumber(item.change,item.metric.key)} ${item.changeUnit === "pp" ? "percentage points" : item.changeUnit}`}>{formatMetricNumber(item.previous.value,item.metric.key,item.previous.source)} → {formatMetricNumber(item.latest.value,item.metric.key,item.latest.source)} {item.latest.unit === "ratio" ? "" : item.latest.unit}</p>
           <p className="muted mb-0 text-xs"><time dateTime={item.previous.measuredAt}>{leaderboardTestDate(item.previous.measuredAt)}</time> → <time dateTime={item.latest.measuredAt}>{leaderboardTestDate(item.latest.measuredAt)}</time></p>
         </li>)}</ul>

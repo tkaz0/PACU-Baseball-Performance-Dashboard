@@ -102,7 +102,9 @@ describe("player Overview relative team insights", () => {
     const cards = keys.map(key => compared(key, key === "smash_factor" ? [1.5, 1, 1.1, 1.2, 1.3] : [90, 70, 75, 80, 85]));
     const expected = ["grip_strength", "max_exit_velocity", "smash_factor"];
     expect(metricKeys(getPlayerInsights([...cards, cards[0]]).strengths)).toEqual(expected);
-    expect(getPlayerInsights([...cards, cards[0]]).comparableMetricCount).toBe(5);
+    // Max Distance never labels a strength or weakness, so four of five cards are compared.
+    expect(getPlayerInsights([...cards, cards[0]]).comparableMetricCount).toBe(4);
+    expect(metricKeys(getPlayerInsights(keys.map(key => compared(key, [1, 2, 3, 4, 5]))).weaknesses)).not.toContain("max_distance");
     expect(metricKeys(getPlayerInsights([...cards].reverse()).strengths)).toEqual(expected);
     expect(getPlayerInsights(keys.map(key => compared(key, [1, 2, 3, 4, 5]))).weaknesses).toHaveLength(3);
   });

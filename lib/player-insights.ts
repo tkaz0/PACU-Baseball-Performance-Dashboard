@@ -93,11 +93,14 @@ export function getPlayerInsights(cards: readonly PlayerMetricCard[]): PlayerIns
     const latest = card.latest;
     if (!metric || metric.direction === "neutral" || seen.has(metric.key) || !latest || !validReading(latest, metric)) continue;
     seen.add(metric.key);
-    const relative = relativeInsight(card, metric, latest);
+    // Distance depends heavily on launch angle and contact, so it never labels a strength or weakness.
+    const relative = metric.key === "max_distance" ? null : relativeInsight(card, metric, latest);
     if (relative) comparableMetricCount += 1;
     if (relative && relative.percentile.value >= 75) strengths.push(relative);
     if (relative && relative.percentile.value <= 25) weaknesses.push(relative);
-    const jump = improvementInsight(card, metric, latest);
+    // Jumps compare actual sessions, not the Fall best or Fall average shown on the card.
+    const session = card.sessionLatest ?? latest;
+    const jump = validReading(session, metric) ? improvementInsight(card, metric, session) : null;
     if (jump) biggestJumps.push(jump);
   }
   return {

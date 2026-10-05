@@ -37,7 +37,7 @@ function GameSnapshot({ summary, kind, trends = {}, streamedTrend }: { summary: 
       })}</dl>
       {kind === "Hitting" ? <p className={styles.chartCaption}>Doubles and triples count as doubles · recorded results, not expected stats.</p> : contactComplete ? <div className={styles.contactSplit}><div><span>Contact Allowed</span><small>{weak.opportunities} classified contacts</small></div><div className={styles.contactTrack} role="img" aria-label={`Weak contact ${weak.value!.toFixed(1)} percent; hard contact ${hard.value!.toFixed(1)} percent`}><span style={{ width: `${weak.value}%` }}/><span style={{ width: `${hard.value}%` }}/></div><div className={styles.contactLegend}><span><i/>{weak.value!.toFixed(1)}% weak</span><span><i/>{hard.value!.toFixed(1)}% hard</span></div></div> : <p className={styles.chartCaption}>Recorded results; not adjusted for defense or luck.</p>}
     </>}
-    <div className={styles.cardFoot}><span>{summary.players ? `${summary.players} ${summary.players === 1 ? "player" : "players"} recorded` : "Awaiting results"}</span>{summary.updatedAt && <time dateTime={summary.updatedAt}>Updated {date(summary.updatedAt)}</time>}</div>
+    <div className={styles.cardFoot}><span>{summary.players ? `${summary.players} ${summary.players === 1 ? "player" : "players"} recorded` : "Awaiting results"}</span>{summary.updatedAt && <time dateTime={summary.updatedAt} title="The sheet is checked daily; this is when its numbers last changed.">Sheet changed {date(summary.updatedAt)}</time>}</div>
   </section>;
 }
 
