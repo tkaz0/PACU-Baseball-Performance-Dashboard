@@ -69,7 +69,9 @@ describe("reviewed Full Swing Live at Bat session", () => {
   });
 });
 
-it("shows BDL only for September 11 Full Swing files while preserving other dates", () => {
+it("shows BDL only for September 11 and 26 Full Swing files while preserving other dates", () => {
+  expect(fullSwingFileLabel("Session_2026-09-26_example.csv", "Full Swing · Intrasquad")).toBe("BDL (September 26th)");
+  expect(fullSwingFileLabel("another.csv", "Full Swing · Intrasquad", "2026-09-26")).toBe("BDL (September 26th)");
   expect(fullSwingFileLabel("Session_2026-09-11_example.csv", "Full Swing · Intrasquad")).toBe("BDL (September 11th)");
   expect(fullSwingFileLabel("another.csv", "Full Swing · Intrasquad", "2026-09-11")).toBe("BDL (September 11th)");
   expect(fullSwingFileLabel("Session_2026-09-23_example.csv", "Full Swing · Intrasquad", "2026-09-23")).toBe("Session_2026-09-23_example");
