@@ -1,4 +1,4 @@
-import { coachingEligible, coachingVariables, comparableTests, daysBetween, playerGameSources, type CoachingData, type CoachingPlayer, type CoachingCategory } from "@/lib/coaching-tools";
+import { coachingEligible, coachingVariables, comparableTests, daysBetween, fallSummaryContext, withFallSummary, playerGameSources, type CoachingData, type CoachingPlayer, type CoachingCategory } from "@/lib/coaching-tools";
 import { PLAYER_METRICS } from "@/lib/player-performance";
 import { arsenalComparisonFields, arsenalComparisonValue } from "@/lib/player-comparison-arsenal";
 import { classifiedPitchSource } from "@/lib/imports/classified-pitch-results";
@@ -59,9 +59,9 @@ export function buildGroupComparison(data:CoachingData,selectedIds:string[],cate
    let group=groups.find(g=>g.kind==="testing"&&g.source===variable.source);
    if(!group){group=makeGroup(`test:${variable.source}`,pitchSourceLabel(variable.source),variable.source,"testing",players);groups.push(group);}
    const dates:string[]=[];let hasValue=false,review=false;
-   for(const row of group.rows){const player=players.find(p=>p.id===row.playerId)!,eligible=coachingEligible(player,variable.metric),result=eligible?comparableTests(selectedData,player.id,variable.key,today):null;
+   for(const row of group.rows){const player=players.find(p=>p.id===row.playerId)!,eligible=coachingEligible(player,variable.metric),result=eligible?withFallSummary(selectedData,comparableTests(selectedData,player.id,variable.key,today)):null;
     const latest=result?.latest;const conflict=!!result?.conflict&&!latest;review ||= conflict;
-    row.cells[variable.key]=latest?{value:latest.value,eligible,review:false,context:`Tested ${leaderboardTestDate(latest.date)}`,sample:""}:empty(eligible,conflict);
+    row.cells[variable.key]=latest?{value:latest.value,eligible,review:false,...(result?.fall?fallSummaryContext(result.fall,leaderboardTestDate(result.fall.bestDate)):{context:`Tested ${leaderboardTestDate(latest.date)}`,sample:""})}:empty(eligible,conflict);
     if(latest){dates.push(latest.date);hasValue=true;}
    }
    if(hasValue||review)group.columns.push({...variable,direction:PLAYER_METRICS.find(m=>m.key===variable.metric)?.direction??"neutral",comparable:!review&&comparableDates(dates,maxGap)});

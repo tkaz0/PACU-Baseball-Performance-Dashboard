@@ -3,7 +3,7 @@ import { pitchTypeLabel } from "@/lib/imports/pitch-assignments";
 import type { Measurement } from "@/lib/imports/engine";
 import type { ImportBatch } from "@/lib/local-workspace";
 import { athleteName, type RosterAthlete, formatClassYear } from "@/lib/types";
-import { getPlayerPerformance, normalizePlayerMetric, type PlayerPercentileOverride } from "@/lib/player-performance";
+import { getPlayerPerformance, normalizePlayerMetric, type PlayerPercentileOverride, type PlayerFallSummary } from "@/lib/player-performance";
 import { getPlayerProfileLayout, getSessionPerformance, withoutWeeklyBlastCards } from "@/lib/player-profile-layout";
 import { getPlayerInsights } from "@/lib/player-insights";
 import { formatHeight, formatMetricNumber } from "@/lib/measurement-display";
@@ -65,11 +65,12 @@ export function buildExitMeetingReport(input: {
   athlete: RosterAthlete; measurements: readonly Measurement[]; batches: readonly ImportBatch[];
   percentileOverrides: readonly PlayerPercentileOverride[]; games: readonly SharedGameStat[];
   comparisons: readonly GameComparison[]; movement: MovementReport | null; contacts?: readonly SavedContact[]; generatedAt: string;
+  fallSummaries?: readonly PlayerFallSummary[];
 }, format: ExitMeetingFormat = "meeting"): ExitMeetingReport {
   const { athlete } = input;
   if (input.measurements.some(r => r.athlete_code !== athlete.athlete_code) || input.games.some(r => r.athlete_id !== athlete.id) || input.movement && input.movement.athleteCode !== athlete.athlete_code) throw new Error("Report player identity could not be verified.");
   const season = athlete.athlete_seasons.find(s => s.season === "2026-27");
-  const performance = getPlayerPerformance({ readings: input.measurements, batches: input.batches, athleteCode: athlete.athlete_code, cohortAthleteCodes: [], percentileOverrides: input.percentileOverrides });
+  const performance = getPlayerPerformance({ readings: input.measurements, batches: input.batches, athleteCode: athlete.athlete_code, cohortAthleteCodes: [], percentileOverrides: input.percentileOverrides, fallSummaries: input.fallSummaries });
   const clean = withoutWeeklyBlastCards(performance), layout = getPlayerProfileLayout(clean, season);
   const pitchingRole = season?.player_type?.trim().toLowerCase() === "pitcher" || season?.player_type?.trim().toLowerCase() === "two_way" || [season?.primary_position, season?.secondary_position].some(position => position?.trim().toUpperCase() === "P");
   const report: ExitMeetingReport = { format, name: athleteName(athlete), code: athlete.athlete_code, jersey: season?.jersey_number == null ? "" : `#${season.jersey_number}`, position: [season?.primary_position, season?.secondary_position].filter(Boolean).join(" / ") || "Position not recorded", academicClass: (formatClassYear(season?.academic_class) || "Class not recorded"), batsThrows: `Bats ${season?.bats ?? "-"} / Throws ${season?.throws ?? "-"}`, season: "Fall 2026", generatedAt: input.generatedAt, lastTested: null, lastGameUpdate: null, strengths: [], development: [], jumps: [], sections: [], missing: [], notes: [] };
@@ -85,10 +86,10 @@ export function buildExitMeetingReport(input: {
     const history = card.history.filter(r => r.period === latest.period && r.source.trim().toLowerCase() === latest.source.trim().toLowerCase() && r.unit === latest.unit).sort((a, b) => a.measuredAt.localeCompare(b.measuredAt));
     const distinct = new Map(history.map(r => [r.measuredAt, { date: r.measuredAt, value: r.value }]));
     return row(profileMetricLabel(card.metric.key, card.metric.label, latest.source), value, latest.source, card.timedTrials?.lastTested ?? latest.measuredAt,
-      card.timedTrials ? `Best time · Average ${displayReading(card.timedTrials.average, card.metric.key, latest.unit, latest.source)}` : latest.period === "summer_2026" ? "Last tested · Before Fall" : "Latest profile result", {
+      card.timedTrials ? `Best time · Average ${displayReading(card.timedTrials.average, card.metric.key, latest.unit, latest.source)}` : card.fallSummary ? (card.fallSummary.basis === "best" ? `Fall best · ${card.fallSummary.bestDate}` : card.fallSummary.pooled ? `Fall average · ${card.fallSummary.sessions} sessions` : "Latest session") : latest.period === "summer_2026" ? "Last tested · Before Fall" : "Latest profile result", {
         metricKey: card.metric.key,
         percentile: percentile?.value ?? null, peers: percentile?.sampleSize ?? (card.cohortSampleSize && card.cohortSampleSize > 0 ? card.cohortSampleSize : null),
-        sample: card.timedTrials ? `${card.timedTrials.count} trials` : /^full swing/i.test(latest.source) ? "Session sample not shown" : null,
+        sample: card.timedTrials ? `${card.timedTrials.count} trials` : card.fallSummary?.sampleCount && card.fallSummary.sampleUnit ? `${card.fallSummary.sampleCount} ${card.fallSummary.sampleCount === 1 ? card.fallSummary.sampleUnit.replace(/s$/, "") : card.fallSummary.sampleUnit}` : /^full swing/i.test(latest.source) ? "Session sample not shown" : null,
         trend: distinct.size >= 2 ? [...distinct.values()].slice(-8) : undefined,
       });
   }); }

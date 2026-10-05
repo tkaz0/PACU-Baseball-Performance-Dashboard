@@ -7,6 +7,7 @@ import { loadGameStats } from "@/lib/game-server";
 import { loadGameComparisons } from "@/lib/game-comparison-server";
 import { loadMovementScreening } from "@/lib/movement-server";
 import { loadFullSwingContacts } from "@/lib/full-swing-contacts-server";
+import { loadPlayerFallSummaries } from "@/lib/player-fall-summaries-server";
 import { buildExitMeetingReport, exitMeetingFormat, type ExitMeetingFormat } from "@/lib/exit-meeting";
 
 type Access = Awaited<ReturnType<typeof requireAccess>>;
@@ -29,5 +30,6 @@ export async function loadExitMeetingReport(access: Access, athleteId: string, f
     selectedFormat === "detailed" ? loadMovementScreening(access, athleteId, athlete.athlete_code) : Promise.resolve(null),
     selectedFormat === "detailed" ? loadFullSwingContacts(access, athleteId) : Promise.resolve([]),
   ]);
-  return buildExitMeetingReport({ athlete, ...performance, games, comparisons, movement, contacts, generatedAt: new Date().toISOString() }, selectedFormat);
+  const fallSummaries = await loadPlayerFallSummaries(access, athlete.athlete_code, performance.measurements).catch(() => []);
+  return buildExitMeetingReport({ athlete, ...performance, games, comparisons, movement, contacts, fallSummaries, generatedAt: new Date().toISOString() }, selectedFormat);
 }

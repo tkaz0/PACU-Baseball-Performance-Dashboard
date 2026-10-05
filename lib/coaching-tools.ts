@@ -8,7 +8,9 @@ import type { FallArsenalPitch } from "@/lib/pitch-arsenal";
 
 export type CoachingPlayer = AnalyticsPlayer & { secondaryPosition?: string };
 export type CoachingGame = Omit<GameOverviewMetric,"comparison"> & { athleteId:string; snapshotId:string };
-export type CoachingData = { players:CoachingPlayer[]; readings:AnalyticsReading[]; games:CoachingGame[]; arsenals?: { athleteId:string; pitches:FallArsenalPitch[] }[] };
+/** Leaderboard Fall best / weighted Fall average for one player's Full Swing metric (staff comparison only). */
+export type CoachingFallSummary = { athleteId:string; metric:string; source:string; unit:string; value:number; bestDate:string; basis:"best"|"average"; pooled:boolean; sampleCount:number|null; sampleUnit:string|null };
+export type CoachingData = { players:CoachingPlayer[]; readings:AnalyticsReading[]; games:CoachingGame[]; arsenals?: { athleteId:string; pitches:FallArsenalPitch[] }[]; fallSummaries?: CoachingFallSummary[] };
 export type CoachingCategory = "Physicality" | "Hitting" | "Throwing";
 export const COACHING_CATEGORIES:CoachingCategory[] = ["Physicality","Hitting","Throwing"];
 export const COACHING_METRICS = PLAYER_METRICS.filter(m=>!["skeletal_muscle_mass","muscle_mass_pct"].includes(m.key));
@@ -56,7 +58,18 @@ export function coachingVariables(data:CoachingData,category:CoachingCategory,to
  const rows=data.readings.filter(r=>coachingReadingVisible(r)&&coachingCategory(r.metric)===category&&r.date<="2026-12-31"&&r.date<=today&&r.date>=(category==="Physicality"?"2026-06-01":"2026-09-01"));
  return [...new Map(rows.map(r=>[variableKey(r),{key:variableKey(r),metric:r.metric,label:COACHING_METRICS.find(m=>m.key===r.metric)!.label,unit:r.unit,source:r.source}])).values()].sort((a,b)=>a.metric==="muscle_mass"&&b.metric!==a.metric?-1:b.metric==="muscle_mass"&&a.metric!==b.metric?1:a.label.localeCompare(b.label)||a.source.localeCompare(b.source)||a.unit.localeCompare(b.unit));
 }
-export type TestResult={latest:AnalyticsReading|null;previous:AnalyticsReading|null;conflict:boolean};
+export type TestResult={latest:AnalyticsReading|null;previous:AnalyticsReading|null;conflict:boolean;fall?:CoachingFallSummary};
+/** Comparisons show the same Fall value as the leaderboard; Last Tested keeps the newest session date. */
+export function withFallSummary(data:CoachingData,result:TestResult):TestResult{
+ const latest=result.latest;if(!latest||!data.fallSummaries?.length)return result;
+ const source=latest.source.trim().toLowerCase().replace(/\s+/g," ");
+ const matches=data.fallSummaries.filter(s=>s.athleteId===latest.athleteId&&s.metric===latest.metric&&s.unit===latest.unit&&s.source===source);
+ return matches.length===1?{...result,latest:{...latest,value:matches[0].value},fall:matches[0]}:result;
+}
+export function fallSummaryContext(fall:CoachingFallSummary,date:string):{context:string;sample:string}{
+ const sample=fall.sampleCount!==null&&fall.sampleUnit?`${fall.sampleCount.toLocaleString("en-US")} ${fall.sampleCount===1?fall.sampleUnit.replace(/s$/,""):fall.sampleUnit}`:"";
+ return {context:fall.basis==="best"?`Fall best · ${date}`:fall.pooled?"Fall average":"Latest session",sample};
+}
 export function comparableTests(data:CoachingData,athleteId:string,key:string,today:string):TestResult {
  const candidates=data.readings.filter(r=>r.athleteId===athleteId&&variableKey(r)===key&&coachingReadingVisible(r)&&r.date<=today&&r.date<="2026-12-31"&&r.date>=(coachingCategory(r.metric)==="Physicality"?"2026-06-01":"2026-09-01"));
  if(candidates.length && isTimedMetric(candidates[0].metric)) {
@@ -95,10 +108,10 @@ export function compareTests(data:CoachingData,a:string,b:string,category:Coachi
  return coachingVariables(data,category,today).map(variable=>{
   const playerA=data.players.find(p=>p.id===a),playerB=data.players.find(p=>p.id===b);
   const eligibleA=!!playerA&&coachingEligible(playerA,variable.metric),eligibleB=!!playerB&&coachingEligible(playerB,variable.metric);
-  const first=eligibleA?comparableTests(data,a,variable.key,today):{latest:null,previous:null,conflict:false};
-  const second=eligibleB?comparableTests(data,b,variable.key,today):{latest:null,previous:null,conflict:false};
+  const first=eligibleA?withFallSummary(data,comparableTests(data,a,variable.key,today)):{latest:null,previous:null,conflict:false};
+  const second=eligibleB?withFallSummary(data,comparableTests(data,b,variable.key,today)):{latest:null,previous:null,conflict:false};
   const gap=first.latest&&second.latest?daysBetween(first.latest.date,second.latest.date):null;
-  return {...variable,first:first.latest,second:second.latest,reviewA:first.conflict&&!first.latest,reviewB:second.conflict&&!second.latest,eligibleA,eligibleB,gap,comparable:a!==b&&gap!==null&&gap<=maxGap};
+  return {...variable,first:first.latest,second:second.latest,fallA:first.fall,fallB:second.fall,reviewA:first.conflict&&!first.latest,reviewB:second.conflict&&!second.latest,eligibleA,eligibleB,gap,comparable:a!==b&&gap!==null&&gap<=maxGap};
  }).filter(row=>(row.eligibleA||row.eligibleB)&&(row.first||row.second||row.reviewA||row.reviewB));
 }
 export function compareGames(data:CoachingData,a:string,b:string,event:string){

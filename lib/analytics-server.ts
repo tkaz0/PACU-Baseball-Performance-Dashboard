@@ -7,6 +7,7 @@ import { coachUpdateDigest } from "@/lib/coach-update-digest";
 import { loadGameStats } from "@/lib/game-server";
 import { qpaAnalytics, pitchingAnalytics } from "@/lib/game-analytics";
 import "server-only";
+import { loadTeamFallSummaries } from "@/lib/player-fall-summaries-server";
 import { coachingReadingVisible, coachingGames } from "@/lib/coaching-tools";
 import { requireRenderImportAccess as requireImportAccess } from "@/lib/render-access";
 import { UUID_PATTERN, formatClassYear } from "@/lib/types";
@@ -135,7 +136,10 @@ export async function loadComparisonData(){
   const data=await loadTeamSource(true,true,true);
   const today=pacificTestingDate();
   const arsenals=data.players.map(player=>({athleteId:player.id,pitches:fallArsenalPitches(data.arsenalReadings.filter(row=>row.athleteId===player.id),today)})).filter(row=>row.pitches.length>0);
-  return {players:data.players,readings:data.readings.filter(coachingReadingVisible),games:coachingGames(data.games,data.rankingGames),arsenals};
+  const readings=data.readings.filter(coachingReadingVisible);
+  // Same Fall best / weighted Fall average as the leaderboards; on failure the comparison keeps latest-session values.
+  const fallSummaries=await loadTeamFallSummaries(await requireImportAccess(),readings,data.players).catch(()=>[]);
+  return {players:data.players,readings,games:coachingGames(data.games,data.rankingGames),arsenals,fallSummaries};
 }
 
 /** Coverage projects only identities, metric availability and dates to the client. */
