@@ -5,7 +5,8 @@ import { UUID_PATTERN, athleteName, type RosterAthlete, formatClassYear } from "
 import { loadAthletePerformance, type AthletePerformanceData } from "@/lib/performance-server";
 import { loadGameStats, type SharedGameStat } from "@/lib/game-server";
 import { loadGameComparisons, loadGameLeaderboards } from "@/lib/game-comparison-server";
-import { getPlayerPerformance, isTimedMetric, type PlayerMetricCard } from "@/lib/player-performance";
+import { getPlayerPerformance, isTimedMetric, type PlayerFallSummary, type PlayerMetricCard } from "@/lib/player-performance";
+import { loadPlayerFallSummaries } from "@/lib/player-fall-summaries-server";
 import { getPlayerProfileLayout, profileShowsHitting, profileShowsPitching, withoutWeeklyBlastCards } from "@/lib/player-profile-layout";
 import { profileMetricLabel } from "@/lib/profile-metric-label";
 import { profileTrends } from "@/lib/profile-trends";
@@ -40,14 +41,14 @@ const gameDate = (date: string) => `Updated ${pacificTestingDate(new Date(date))
 
 /** Pure allowlist projection of one previously authorized athlete, with a Pacific-calendar cutoff. */
 export function buildGraphicsPlayerData(input: AthletePerformanceData & {
-  athlete: RosterAthlete; games: readonly SharedGameStat[]; comparisons: readonly GameComparison[];
+  athlete: RosterAthlete; games: readonly SharedGameStat[]; comparisons: readonly GameComparison[]; fallSummaries?: readonly PlayerFallSummary[];
 }, today = pacificTestingDate()): GraphicsPlayerData {
   const { athlete } = input;
   const season = athlete.athlete_seasons.find(s => s.season === "2026-27");
   if (!season || !validTestingDate(today)) throw new GraphicsError("This player is not on the current roster.", 404);
   if (input.measurements.some(row => row.athlete_code !== athlete.athlete_code) || input.games.some(row => row.athlete_id.toLowerCase() !== athlete.id.toLowerCase())) throw new GraphicsError("The player result scope could not be verified.", 503);
   const readings = input.measurements.filter(row => row.athlete_code === athlete.athlete_code && validTestingDate(row.measured_at) && row.measured_at <= today && (!parseBlastSource(row.source) || parseBlastSource(row.source)!.end <= today));
-  const performance = getPlayerPerformance({ readings, batches: input.batches, athleteCode: athlete.athlete_code, percentileOverrides: input.percentileOverrides });
+  const performance = getPlayerPerformance({ readings, batches: input.batches, athleteCode: athlete.athlete_code, percentileOverrides: input.percentileOverrides, fallSummaries: input.fallSummaries });
   const layout = getPlayerProfileLayout(withoutWeeklyBlastCards(performance), season);
   const selected = [...layout.physicality, ...layout.additionalBody, ...performance.body.filter(card => card.metric.key === "body_score"), ...layout.speedAgility,
     ...(layout.showHitting ? [...layout.hitting, ...layout.otherHitting] : []), ...layout.fieldThrowing, ...layout.pitching];
@@ -60,8 +61,8 @@ export function buildGraphicsPlayerData(input: AthletePerformanceData & {
       key: partition(card.metric.key, latest.source, latest.unit, latest.period), label: profileMetricLabel(card.metric.key, card.metric.label, latest.source),
       category: card.metric.group === "body" || timed ? "physicality" : card.metric.group === "hitting" ? "hitting" : "pitching",
       value: latest.value, formatted: coachingValue(latest.value, card.metric.key, latest.unit, latest.source), unit: latest.unit, source: latest.source,
-      context: `${period} · ${timed ? "Best time" : "Latest profile result"}`, date: latest.measuredAt,
-      sample: [card.timedTrials ? `${card.timedTrials.count} trials` : "Sample not recorded", ...(percentile ? [`${percentile.sampleSize} comparable players`] : [])].join(" · "),
+      context: `${period} · ${timed ? "Best time" : card.fallSummary ? (card.fallSummary.basis === "best" ? "Fall best" : card.fallSummary.pooled ? "Fall average" : "Latest session") : "Latest profile result"}`, date: card.fallSummary?.basis === "best" ? card.fallSummary.bestDate : latest.measuredAt,
+      sample: [card.timedTrials ? `${card.timedTrials.count} trials` : card.fallSummary?.sampleCount && card.fallSummary.sampleUnit ? countLabel(card.fallSummary.sampleCount, card.fallSummary.sampleUnit) : "Sample not recorded", ...(percentile ? [`${percentile.sampleSize} comparable players`] : [])].join(" · "),
       percentile: percentile?.value ?? null, direction: card.metric.direction,
     };
   });
@@ -124,7 +125,8 @@ export async function loadGraphicsPlayer(access: Access, athleteId: string): Pro
   if (!data || data.id.toLowerCase() !== athleteId.toLowerCase() || !data.athlete_seasons?.some((s: { season: string }) => s.season === "2026-27")) throw new GraphicsError("This player is not on the current roster.", 404);
   const athlete = data as RosterAthlete;
   const [performance, games, comparisons] = await Promise.all([loadAthletePerformance(access, athlete), loadGameStats(access, athlete.id), loadGameComparisons(access, athlete.id)]);
-  return buildGraphicsPlayerData({ athlete, ...performance, games, comparisons });
+  const fallSummaries = await loadPlayerFallSummaries(access, athlete.athlete_code, performance.measurements).catch(() => []);
+  return buildGraphicsPlayerData({ athlete, ...performance, games, comparisons, fallSummaries });
 }
 
 function gameBoards(rows: readonly GameLeaderboardRow[], today: string): GraphicsLeaderboard[] {
