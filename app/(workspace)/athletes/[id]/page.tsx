@@ -60,11 +60,12 @@ export default async function Profile({ params, searchParams }: { params: Promis
   const today = pacificTestingDate();
   const videoActions = { prepare: prepareSwingVideo, finish: finishSwingVideo, play: playSwingVideo };
   // Independent readers start together after the exact player passes live authorization.
+  const sharedPromise = loadAthletePerformance(access,athlete);
   const [gameLogs, gameStats, gameComparisons, shared, teamAverages, movement, contacts, videos, annotations, blockCounts, headshot, fallSummaries] = await Promise.all([
     staff && selectedTab === "in-game" ? loadGameLogs(access, athlete.id) : Promise.resolve([]),
     selectedTab === "overview" || selectedTab === "in-game" ? loadGameStats(access, athlete.id) : Promise.resolve([]),
     selectedTab === "overview" || selectedTab === "in-game" ? loadGameComparisons(access, athlete.id) : Promise.resolve([]),
-    loadAthletePerformance(access,athlete), showHitting && selectedTab !== "progress" ? loadHittingTeamAverages(access) : Promise.resolve([]),
+    sharedPromise, showHitting && selectedTab !== "progress" ? loadHittingTeamAverages(access) : Promise.resolve([]),
     selectedTab === "physicality" && detail === "full" ? loadMovementScreening(access,athlete.id,athlete.athlete_code) : Promise.resolve(null),
     showHitting && contactTab ? loadFullSwingContacts(access,athlete.id, selectedTab === "practice" ? "practice" : "in_game") : Promise.resolve([]),
     showHitting && contactTab ? loadSwingVideos(access,athlete.id).catch(()=>null) : Promise.resolve([]),
@@ -72,7 +73,7 @@ export default async function Profile({ params, searchParams }: { params: Promis
     selectedTab === "progress" ? loadTrainingBlockCounts(access,athlete.id).catch(()=>null) : Promise.resolve([]),
     loadAthleteHeadshot(access,athlete.id),
     // Fall best / reading-weighted Fall averages match the leaderboards; on failure cards keep latest-session values.
-    showHitting && selectedTab !== "progress" && selectedTab !== "physicality" ? loadPlayerFallSummaries(access,athlete.athlete_code).catch(()=>[]) : Promise.resolve([]),
+    showHitting && selectedTab !== "progress" && selectedTab !== "physicality" ? sharedPromise.then(data=>loadPlayerFallSummaries(access,athlete.athlete_code,data.measurements)).catch(()=>[]) : Promise.resolve([]),
   ]);
   const performance = getPlayerPerformance({ readings:shared.measurements, batches:shared.batches, athleteCode:athlete.athlete_code, cohortAthleteCodes:[], percentileOverrides:shared.percentileOverrides, fallSummaries });
   const readings = shared.measurements.filter(reading => {

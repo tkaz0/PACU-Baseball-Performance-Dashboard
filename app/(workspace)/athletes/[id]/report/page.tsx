@@ -62,10 +62,10 @@ const Pctl = ({ value, neutral }: { value: number | null; neutral: boolean }) =>
 export default async function PlayerReport({ params }: { params: Promise<{ id: string }> }) {
   const { access, athlete } = await loadReportAthlete((await params).id);
   const season = athlete.athlete_seasons.find(item => item.season === "2026-27") ?? [...athlete.athlete_seasons].sort((a, b) => b.season.localeCompare(a.season))[0];
-  const [shared, gameStats, gameComparisons, headshot, fallSummaries] = await Promise.all([
+  const [shared, gameStats, gameComparisons, headshot] = await Promise.all([
     loadAthletePerformance(access, athlete, { includePercentiles: true }), loadGameStats(access, athlete.id), loadGameComparisons(access, athlete.id), loadAthleteHeadshot(access, athlete.id),
-    loadPlayerFallSummaries(access, athlete.athlete_code).catch(() => []),
   ]);
+  const fallSummaries = await loadPlayerFallSummaries(access, athlete.athlete_code, shared.measurements).catch(() => []);
   const today = pacificTestingDate();
   const performance = getPlayerPerformance({ readings: shared.measurements, batches: shared.batches, athleteCode: athlete.athlete_code, cohortAthleteCodes: [], percentileOverrides: shared.percentileOverrides, fallSummaries });
   // Same filters as the profile so printed numbers match what the player sees there.
