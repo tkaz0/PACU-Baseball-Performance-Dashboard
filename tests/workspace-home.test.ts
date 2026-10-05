@@ -35,7 +35,7 @@ describe("role-aware dashboard landing", () => {
     const current=access([role],athleteId,role==="player");fake.access.mockResolvedValue(current);fake.home.mockResolvedValue(buildHomeSummary([],[],[],"2026-09-29"));
     expect(workspaceHome(current)).toBe("/overview");
     const html=renderToStaticMarkup(await Overview({searchParams:Promise.resolve({})}));
-    expect(fake.home).toHaveBeenCalledWith(current,expect.any(Function));expect(fake.leaderboards).toHaveBeenCalledWith(current);expect(html).toContain(role==="player"?"My Dashboard":"Team Dashboard");
+    expect(fake.home).toHaveBeenCalledWith(current);expect(fake.leaderboards).toHaveBeenCalledWith(current);expect(html).toContain(role==="player"?"My Dashboard":"Team Dashboard");
     expect(fake.navigation).toHaveBeenCalledWith(current);
     expect(fake.due).not.toHaveBeenCalled(); // Coach focus is hidden for now.
     expect(fake.status).toHaveBeenCalledTimes(role==="player"?0:1);
