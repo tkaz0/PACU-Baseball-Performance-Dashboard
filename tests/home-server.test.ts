@@ -46,9 +46,13 @@ it("checks own scope and suppresses pitcher-only speed coverage before computing
  mocks.rpc.mockResolvedValue({data:{version:1,athleteId:id,today:pacificTestingDate(),playerIds:[id],totalReadings:1,groups:[{athleteId:id,metric:"Home to First",unit:"s",source:"Fictional testing",date:"2026-09-01",importedAt:"2026-09-02T00:00:00Z",count:1}]},error:null});mocks.games.mockResolvedValue([]);
  const current=access(["player"],id,{role:"player"});const summary=await loadHomeSnapshot(current);expect(summary?.playersWithResults).toBe(0);expect(query.eq).toHaveBeenCalledWith("id",id);expect(mocks.rpc).toHaveBeenCalledWith("home_measurement_summary",{p_athlete_id:id});expect(mocks.games).toHaveBeenCalledWith(current,id);expect(mocks.performance).not.toHaveBeenCalled();
 });
-it("treats missing RPC or invalid compact scope as a failure rather than fabricated coverage",async()=>{
- mocks.games.mockResolvedValue([]);mocks.rpc.mockResolvedValue({data:null,error:{code:"PGRST202"}});await expect(loadHomeSnapshot(access(["coach"],null))).rejects.toThrow("could not be loaded");
- mocks.rpc.mockResolvedValue({data:{version:1,athleteId:id,today:pacificTestingDate(),playerIds:[id],totalReadings:0,groups:[]},error:null});await expect(loadHomeSnapshot(access(["coach"],null))).rejects.toThrow("could not be verified");
+it("falls back to the standard reader instead of fabricated coverage when the compact RPC fails",async()=>{
+ const standard={fictional:"standard summary"};mocks.staff.mockResolvedValue(standard);mocks.games.mockResolvedValue([]);
+ const reasons:string[]=[];
+ mocks.rpc.mockResolvedValue({data:null,error:{code:"PGRST202"}});expect(await loadHomeSnapshot(access(["coach"],null),r=>reasons.push(r))).toBe(standard);
+ mocks.rpc.mockResolvedValue({data:{version:1,athleteId:id,today:pacificTestingDate(),playerIds:[id],totalReadings:0,groups:[]},error:null});expect(await loadHomeSnapshot(access(["coach"],null),r=>reasons.push(r))).toBe(standard);
+ expect(reasons).toEqual([expect.stringContaining("could not be loaded (PGRST202)"),expect.stringContaining("could not be verified")]);
+ mocks.staff.mockRejectedValue(new Error("Fictional error"));mocks.rpc.mockResolvedValue({data:null,error:{code:"PGRST202"}});await expect(loadHomeSnapshot(access(["coach"],null))).rejects.toThrow("Fictional error");
 });
 it("does not query an unlinked player and reports streamed-history failure explicitly",async()=>{
  expect(await loadHomeSnapshot(access(["player"],null))).toBeNull();expect(mocks.rpc).not.toHaveBeenCalled();expect(mocks.games).not.toHaveBeenCalled();

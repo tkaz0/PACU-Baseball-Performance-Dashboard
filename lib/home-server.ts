@@ -15,7 +15,18 @@ import type { RosterAthlete } from "@/lib/types";
 import { validateHomeCoverage } from "@/lib/home-coverage";
 
 /** Initial Home needs coverage metadata, not numerical measurement history. */
-export async function loadHomeSnapshot(access:Awaited<ReturnType<typeof requireAccess>>) {
+export async function loadHomeSnapshot(access:Awaited<ReturnType<typeof requireAccess>>,onFallback?:(reason:string)=>void) {
+  try { return await loadCompactHomeSnapshot(access); }
+  catch(error) {
+    // The compact reader is an optimization; the original reader keeps Home available if it fails.
+    const reason=error instanceof Error?error.message.slice(0,160):"unknown error";
+    console.error("Home compact summary failed; using the original reader:",reason);
+    onFallback?.(reason);
+    return loadHomeSummary(access);
+  }
+}
+
+async function loadCompactHomeSnapshot(access:Awaited<ReturnType<typeof requireAccess>>) {
   const staff=canImportPresentedAccess(access), athleteId=staff?null:access.athleteId;
   if(!staff&&!athleteId)return null;
   let season: RosterAthlete["athlete_seasons"][number] | undefined;
