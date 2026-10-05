@@ -6,6 +6,7 @@ import { requireRenderAccess as requireAccess } from "@/lib/render-access";
 import { canReadPresentedAthlete } from "@/lib/access-preview";
 import { athleteName, display, formatClassYear, UUID_PATTERN, type RosterAthlete } from "@/lib/types";
 import { loadAthletePerformance } from "@/lib/performance-server";
+import { loadPlayerFallSummaries } from "@/lib/player-fall-summaries-server";
 import { getPlayerPerformance, type PlayerMetricCard } from "@/lib/player-performance";
 import { profileSessionContext, profileShowsHitting, profileShowsPitching, withoutUnclassifiedPitchVelocity, withoutWeeklyBlastCards } from "@/lib/player-profile-layout";
 import { reportTestingSelection, reportHasPercentile } from "@/lib/player-report";
@@ -61,11 +62,12 @@ const Pctl = ({ value, neutral }: { value: number | null; neutral: boolean }) =>
 export default async function PlayerReport({ params }: { params: Promise<{ id: string }> }) {
   const { access, athlete } = await loadReportAthlete((await params).id);
   const season = athlete.athlete_seasons.find(item => item.season === "2026-27") ?? [...athlete.athlete_seasons].sort((a, b) => b.season.localeCompare(a.season))[0];
-  const [shared, gameStats, gameComparisons, headshot] = await Promise.all([
+  const [shared, gameStats, gameComparisons, headshot, fallSummaries] = await Promise.all([
     loadAthletePerformance(access, athlete, { includePercentiles: true }), loadGameStats(access, athlete.id), loadGameComparisons(access, athlete.id), loadAthleteHeadshot(access, athlete.id),
+    loadPlayerFallSummaries(access, athlete.athlete_code).catch(() => []),
   ]);
   const today = pacificTestingDate();
-  const performance = getPlayerPerformance({ readings: shared.measurements, batches: shared.batches, athleteCode: athlete.athlete_code, cohortAthleteCodes: [], percentileOverrides: shared.percentileOverrides });
+  const performance = getPlayerPerformance({ readings: shared.measurements, batches: shared.batches, athleteCode: athlete.athlete_code, cohortAthleteCodes: [], percentileOverrides: shared.percentileOverrides, fallSummaries });
   // Same filters as the profile so printed numbers match what the player sees there.
   const fullArsenal = profileShowsPitching(season) ? fallArsenalPitches(shared.measurements, today) : [];
   const coverage = (["Game", "Intrasquad", "Practice"] as const).map(category => ({ category, average: fullArsenal.some(p => p.category === category && p.averageVelocity !== null), maximum: fullArsenal.some(p => p.category === category && p.maxVelocity !== null) }));

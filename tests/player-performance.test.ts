@@ -278,3 +278,22 @@ it("retains distinct source and unit cards with their own exact-cohort percentil
  expect(cards.find(c=>c.latest?.source==="Full Swing · Hitting")?.percentile?.value).toBe(100);
  expect(cards.every(c=>c.history.every(r=>r.source===c.latest!.source))).toBe(true);
 });
+
+describe("Full Swing Fall summaries on profile cards", () => {
+ const sessions=[reading({id:"s1",metric:"Max EV",value:101,source:"Full Swing · Intrasquad",measured_at:"2026-09-11",file_hash:hash("b")}),
+  reading({id:"s2",metric:"Max EV",value:92,source:"Full Swing · Intrasquad",measured_at:"2026-09-26",file_hash:hash("c")})];
+ const summary={metricKey:"max_exit_velocity" as const,source:"full swing · intrasquad",unit:"mph",value:101,bestDate:"2026-09-11",pooled:false,sampleCount:14,sampleUnit:"swings",teamValues:[101,99,95,90,88,85]};
+ it("shows the Fall best across sessions with its sample size, keeping the latest session for Last Tested and personal bests", () => {
+  const c=card(sessions,"max_exit_velocity",{fallSummaries:[summary]});
+  expect(c.latest?.value).toBe(101);expect(c.latest?.measuredAt).toBe("2026-09-26");expect(c.sessionLatest?.value).toBe(92);
+  expect(c.fallSummary).toMatchObject({basis:"best",sampleCount:14,sampleUnit:"swings",sessions:2,bestDate:"2026-09-11",teamCount:6});
+  expect(c.fallSummary!.teamMean).toBeCloseTo(93);expect(c.percentile?.value).toBe(100);expect(c.percentile?.sampleSize).toBe(6);
+ });
+ it("uses the pooled average for average metrics and keeps session values without a matching summary", () => {
+  const avg=sessions.map(r=>({...r,metric:"Average EV"}));
+  const c=card(avg,"avg_exit_velocity",{fallSummaries:[{...summary,metricKey:"avg_exit_velocity",value:95.5,pooled:true,teamValues:[95.5,90,85,80]}]});
+  expect(c.latest?.value).toBe(95.5);expect(c.fallSummary).toMatchObject({basis:"average",pooled:true});expect(c.percentile).toBeNull();expect(c.cohortSampleSize).toBe(4);
+  expect(card(sessions,"max_exit_velocity",{fallSummaries:[{...summary,source:"full swing · practice"}]}).fallSummary).toBeUndefined();
+  expect(card(sessions,"max_exit_velocity").latest?.value).toBe(92);
+ });
+});

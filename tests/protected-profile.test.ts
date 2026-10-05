@@ -4,8 +4,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Role, RosterAthlete } from "@/lib/types";
 import type { Measurement } from "@/lib/imports/engine";
 
-const fake = vi.hoisted(() => ({ access: vi.fn(), from: vi.fn(), select: vi.fn(), eq: vi.fn(), single: vi.fn(), rpc: vi.fn(), load: vi.fn(), contacts: vi.fn(), charts: vi.fn(), games: vi.fn(), comparisons: vi.fn(), logs: vi.fn(), team: vi.fn(), speed: vi.fn(), movement: vi.fn(), goals: vi.fn() }));
+const fake = vi.hoisted(() => ({ fall: vi.fn(async () => []), access: vi.fn(), from: vi.fn(), select: vi.fn(), eq: vi.fn(), single: vi.fn(), rpc: vi.fn(), load: vi.fn(), contacts: vi.fn(), charts: vi.fn(), games: vi.fn(), comparisons: vi.fn(), logs: vi.fn(), team: vi.fn(), speed: vi.fn(), movement: vi.fn(), goals: vi.fn() }));
 vi.mock("server-only", () => ({}));
+vi.mock("@/lib/player-fall-summaries-server", () => ({ loadPlayerFallSummaries: fake.fall }));
 vi.mock("@/lib/blast-speed-percentile-server", () => ({ loadBlastBatSpeedPercentile: fake.speed }));
 vi.mock("@/lib/player-goals-server", () => ({ loadPlayerGoals: fake.goals }));
 vi.mock("@/lib/movement-server", () => ({ loadMovementScreening: fake.movement }));

@@ -30,6 +30,7 @@ import { display, UUID_PATTERN, type RosterAthlete } from "@/lib/types";
 import { canImportPresentedAccess, canReadPresentedAthlete } from "@/lib/access-preview";
 import { loadAthletePerformance } from "@/lib/performance-server";
 import { AccessPreviewNotice } from "@/components/access-preview-notice";
+import { loadPlayerFallSummaries } from "@/lib/player-fall-summaries-server";
 import { getPlayerPerformance, normalizePlayerMetric, PLAYER_METRICS } from "@/lib/player-performance";
 import { getRenphoReports } from "@/lib/renpho-charts";
 import { RenphoCharts } from "@/components/renpho-charts";
@@ -59,7 +60,7 @@ export default async function Profile({ params, searchParams }: { params: Promis
   const today = pacificTestingDate();
   const videoActions = { prepare: prepareSwingVideo, finish: finishSwingVideo, play: playSwingVideo };
   // Independent readers start together after the exact player passes live authorization.
-  const [gameLogs, gameStats, gameComparisons, shared, teamAverages, movement, contacts, videos, annotations, blockCounts, headshot] = await Promise.all([
+  const [gameLogs, gameStats, gameComparisons, shared, teamAverages, movement, contacts, videos, annotations, blockCounts, headshot, fallSummaries] = await Promise.all([
     staff && selectedTab === "in-game" ? loadGameLogs(access, athlete.id) : Promise.resolve([]),
     selectedTab === "overview" || selectedTab === "in-game" ? loadGameStats(access, athlete.id) : Promise.resolve([]),
     selectedTab === "overview" || selectedTab === "in-game" ? loadGameComparisons(access, athlete.id) : Promise.resolve([]),
@@ -70,8 +71,10 @@ export default async function Profile({ params, searchParams }: { params: Promis
     annotatedTab ? loadTrendAnnotations(access,athlete.id).catch(()=>null) : Promise.resolve([]),
     selectedTab === "progress" ? loadTrainingBlockCounts(access,athlete.id).catch(()=>null) : Promise.resolve([]),
     loadAthleteHeadshot(access,athlete.id),
+    // Fall best / reading-weighted Fall averages match the leaderboards; on failure cards keep latest-session values.
+    showHitting && selectedTab !== "progress" && selectedTab !== "physicality" ? loadPlayerFallSummaries(access,athlete.athlete_code).catch(()=>[]) : Promise.resolve([]),
   ]);
-  const performance = getPlayerPerformance({ readings:shared.measurements, batches:shared.batches, athleteCode:athlete.athlete_code, cohortAthleteCodes:[], percentileOverrides:shared.percentileOverrides });
+  const performance = getPlayerPerformance({ readings:shared.measurements, batches:shared.batches, athleteCode:athlete.athlete_code, cohortAthleteCodes:[], percentileOverrides:shared.percentileOverrides, fallSummaries });
   const readings = shared.measurements.filter(reading => {
     if (!profileMeasurementVisible(reading, season)) return false;
     const metric = normalizePlayerMetric(reading.metric,reading.unit);

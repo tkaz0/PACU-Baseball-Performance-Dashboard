@@ -88,13 +88,30 @@ function MetricSparkline({card}:{card:PlayerMetricCard}) {
   </div>;
 }
 const ordinalSuffix = (n: number) => { const t = n % 100; return t >= 11 && t <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] ?? "th"; };
+const plural = (n: number, noun: string) => `${n.toLocaleString("en-US")} ${n === 1 ? noun.replace(/s$/, "") : noun}`;
+/** Fall basis, sample size and the matching team mean for a Full Swing Fall best / average card. */
+function FallSummaryLines({ card, summary }: { card: PlayerMetricCard; summary: NonNullable<PlayerMetricCard["fallSummary"]> }) {
+  const reading = card.latest!, sessions = plural(summary.sessions, "sessions");
+  const sample = summary.sampleCount !== null && summary.sampleUnit ? plural(summary.sampleCount, summary.sampleUnit) : null;
+  const basis = summary.basis === "best"
+    ? `Fall best${summary.sessions > 1 ? ` of ${sessions}` : ""} · ${measurementDate(summary.bestDate)}`
+    : summary.pooled ? `Fall average of ${sessions}` : summary.sessions > 1 ? "Latest session · swing counts missing for an earlier session" : "Fall average · 1 session";
+  return <>
+    <p className="mb-0 mt-2 text-xs text-[var(--text-secondary)]" data-testid="fall-summary-basis">{basis}{sample && <> · <strong className="tabular-nums text-[var(--text-primary)]">{sample}</strong></>}</p>
+    <div className="mt-3 border-t border-[var(--line-subtle)] pt-2" data-testid="hitting-team-average">
+      <p className="m-0 flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1 text-xs text-[var(--text-secondary)]"><span>Team Average</span><strong className="tabular-nums text-[var(--text-primary)]">{formatMetricNumber(summary.teamMean, card.metric.key, reading.source, summary.teamMean.toFixed(1))} {reading.unit}</strong></p>
+      <p className="mb-0 mt-1 text-xs text-[var(--text-secondary)]">{plural(summary.teamCount, "players")} · {summary.basis === "best" ? "each player’s Fall best" : "each player’s Fall average"}</p>
+    </div>
+  </>;
+}
 function MetricCard({ card, teamAverages=[] }: { card: PlayerMetricCard; teamAverages?: readonly HittingTeamAverage[] }) {
   const reading = card.latest;
   const best = recentPersonalBest(card, pacificTestingDate());
   return <li className={`performance-metric-card flex min-w-0 flex-col rounded-lg border border-[var(--line-subtle)] p-3 sm:p-4 ${reading ? "bg-[var(--surface-panel)]" : "border-dashed bg-[var(--surface-page)]"}`} data-testid="player-metric" data-metric-key={card.metric.key} data-value={reading?.value} data-unit={reading?.unit} data-date={reading?.measuredAt}>
     <h3 className={presentation.metricTitle}>{profileMetricLabel(card.metric.key,card.metric.key === "bat_speed" ? "Bat Speed (Unspecified)" : card.metric.label,reading?.source)}<StatInfo metric={card.metric.key} label={card.metric.label} value={reading?.value} source={reading?.source} unit={reading?.unit} period={reading?.period} percentile={card.percentile?.sampleSize && card.percentile.sampleSize >= 5 ? card.percentile.value : null} /></h3>
     <div className={presentation.metricValue}>{reading ? <><span className={presentation.readingValue}>{card.timedTrials && <span className={presentation.bestLabel}>Best</span>}<ReadingValue reading={reading} /></span><MeasurementChange change={playerRenphoChange(card)} metric={card.metric.key}/></> : <span className="font-medium text-[var(--text-secondary)]" aria-label="Not yet tested">—</span>}</div>
-    {reading && card.metric.group === "hitting" && /^Full Swing · (Game|Intrasquad|Practice|Hitting)$/.test(reading.source) && <HittingTeamAverageLine average={hittingTeamAverage(teamAverages,card.metric.key,reading.unit,reading.source)}/>}
+    {reading && card.fallSummary && <FallSummaryLines card={card} summary={card.fallSummary}/>}
+    {reading && !card.fallSummary && card.metric.group === "hitting" && /^Full Swing · (Game|Intrasquad|Practice|Hitting)$/.test(reading.source) && <HittingTeamAverageLine average={hittingTeamAverage(teamAverages,card.metric.key,reading.unit,reading.source)}/>}
     {!reading && <p className="mb-0 mt-3 text-xs text-[var(--text-secondary)]">Not Yet Tested</p>}
     {card.timedTrials && card.timedTrials.count > 1 && <p className="mb-0 mt-2 text-sm text-[var(--text-secondary)]">Average <strong className="tabular-nums text-[var(--text-primary)]">{card.timedTrials.average.toFixed(2)} s</strong><span className="ml-2 text-xs">{card.timedTrials.count} {card.timedTrials.count === 1 ? "trial" : "trials"} · Fall 2026</span></p>}
     {reading && <div className={presentation.metricMeta}>

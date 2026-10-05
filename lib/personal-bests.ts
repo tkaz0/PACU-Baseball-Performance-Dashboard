@@ -5,7 +5,7 @@ import type { PlayerMetricCard } from "@/lib/player-performance";
  * metric/source/unit/period. Neutral measurements (size, spin) never count; timed tests already show best times.
  */
 export function recentPersonalBest(card: PlayerMetricCard, today: string, windowDays = 21): { previous: number } | null {
-  const latest = card.latest, direction = card.metric.direction;
+  const latest = card.sessionLatest ?? card.latest, direction = card.metric.direction;
   if (!latest || !Number.isFinite(latest.value) || latest.derived || card.timedTrials || direction === "neutral" || latest.period !== "fall_2026") return null;
   const comparable = card.history.filter(r => r.athleteCode === latest.athleteCode && r.metricKey === latest.metricKey && r.source === latest.source && r.unit === latest.unit && r.period === latest.period && !r.derived && Number.isFinite(r.value));
   if (comparable.some(r => r.measuredAt === latest.measuredAt && (direction === "lower" ? r.value < latest.value : r.value > latest.value))) return null;

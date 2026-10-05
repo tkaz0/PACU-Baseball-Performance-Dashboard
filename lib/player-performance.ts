@@ -74,11 +74,26 @@ export type PlayerMetricCard = {
   sourceCards?: PlayerMetricCard[];
   history: PlayerMetricReading[]; percentile: PlayerPercentile | null; cohortSampleSize: number | null;
   percentileStatus: "available" | "missing" | "small_cohort" | "not_in_cohort" | "unavailable";
+  /** Full Swing Fall best / pooled average from the team leaderboard projection; `sessionLatest` keeps the newest session reading. */
+  fallSummary?: PlayerCardFallSummary; sessionLatest?: PlayerMetricReading;
 };
+/** One player's Fall result for a Full Swing metric, exactly as the signed-in leaderboard ranks it. */
+export type PlayerFallSummary = {
+  metricKey: PlayerMetricKey; source: string; unit: string; value: number; bestDate: string; pooled: boolean;
+  sampleCount: number | null; sampleUnit: string | null; teamValues: readonly number[];
+};
+export type PlayerCardFallSummary = {
+  basis: "best" | "average"; pooled: boolean; sampleCount: number | null; sampleUnit: string | null; sessions: number;
+  bestDate: string; teamMean: number; teamCount: number;
+};
+/** Profile cards for these metrics show the Fall best (max) or reading-weighted Fall average, not one session. */
+export const FULL_SWING_FALL_SUMMARY_KEYS = ["max_exit_velocity", "avg_exit_velocity", "max_bat_speed", "avg_bat_speed", "max_distance"] as const;
+export const isFullSwingFallSummaryMetric = (key: string) => (FULL_SWING_FALL_SUMMARY_KEYS as readonly string[]).includes(key);
 export type PlayerPerformance = Record<PlayerMetricGroup, PlayerMetricCard[]>;
 export type PlayerPerformanceInput = {
   readings: readonly Measurement[]; batches?: readonly ImportBatch[]; athleteCode: string;
   cohortAthleteCodes?: readonly string[]; percentileOverrides?: readonly PlayerPercentileOverride[];
+  fallSummaries?: readonly PlayerFallSummary[];
 };
 
 export const TIMED_METRIC_KEYS = ["home_to_first", "home_to_second", "steal_break", "boxer_t", "steal_start_12ft", "steal_reaction", "steal_12_42ft"] as const;
@@ -267,7 +282,29 @@ function applyOverride(target: PlayerMetricReading, overrides: readonly PlayerPe
 }
 
 /** Caller supplies the permitted cohort or server-only aggregates; this function never expands access. */
-export function getPlayerPerformance({ readings, batches = [], athleteCode, cohortAthleteCodes, percentileOverrides = [] }: PlayerPerformanceInput): PlayerPerformance {
+/** Midrank percentile of one value within the leaderboard's own values; n>=5 like every profile percentile. */
+function summaryComparison(summary: PlayerFallSummary, direction: PlayerMetricDirection): Comparison {
+  const values = summary.teamValues.filter(Number.isFinite), sampleSize = values.length;
+  if (!values.some(value => value === summary.value)) return unavailable();
+  if (sampleSize < 5) return { percentile: null, cohortSampleSize: sampleSize, percentileStatus: "small_cohort" };
+  const below = values.filter(value => value < summary.value).length, equal = values.filter(value => value === summary.value).length;
+  const ascending = 100 * (below + (equal - 1) / 2) / (sampleSize - 1);
+  return { percentile: { value: direction === "lower" ? 100 - ascending : ascending, sampleSize, period: "fall_2026", unit: summary.unit, direction }, cohortSampleSize: sampleSize, percentileStatus: "available" };
+}
+function withFallSummary(card: PlayerMetricCard, partition: readonly PlayerMetricReading[], summaries: readonly PlayerFallSummary[]): PlayerMetricCard {
+  const latest = card.latest;
+  if (!latest || latest.period !== "fall_2026" || !isFullSwingFallSummaryMetric(latest.metricKey) || !/^full swing · (game|intrasquad|practice)$/.test(sourceKey(latest.source))) return card;
+  const matches = summaries.filter(item => item.metricKey === latest.metricKey && item.unit === latest.unit && item.source === sourceKey(latest.source));
+  if (matches.length !== 1 || !Number.isFinite(matches[0].value) || !matches[0].teamValues.length) return card;
+  const summary = matches[0], sessions = partition.filter(r => r.period === "fall_2026" && r.unit === latest.unit && sourceKey(r.source) === summary.source);
+  const basis = latest.metricKey.startsWith("avg_") ? "average" : "best";
+  const teamMean = summary.teamValues.reduce((sum, value) => sum + value, 0) / summary.teamValues.length;
+  return { ...card, ...summaryComparison(summary, card.metric.direction), sessionLatest: latest,
+    latest: { ...latest, value: summary.value, derived: false },
+    fallSummary: { basis, pooled: summary.pooled, sampleCount: summary.sampleCount, sampleUnit: summary.sampleUnit, sessions: sessions.length, bestDate: summary.bestDate, teamMean, teamCount: summary.teamValues.length } };
+}
+
+export function getPlayerPerformance({ readings, batches = [], athleteCode, cohortAthleteCodes, percentileOverrides = [], fallSummaries = [] }: PlayerPerformanceInput): PlayerPerformance {
   const grouped = new Map<string, Measurement[]>();
   for (const reading of readings) {
     const group = grouped.get(reading.athlete_code) ?? [];
@@ -287,7 +324,7 @@ export function getPlayerPerformance({ readings, batches = [], athleteCode, coho
       const comparison = latest ? applyOverride(latest, percentileOverrides)
         ?? (cohortAthleteCodes === undefined ? unavailable() : getPlayerMetricPercentile(cohort, latest, cohortAthleteCodes))
         : { percentile: null, cohortSampleSize: null, percentileStatus: "missing" } as const;
-      return { metric, latest, summerBaseline, ...(timedTrials ? {timedTrials} : {}), history: [...matching].reverse(), ...comparison };
+      return withFallSummary({ metric, latest, summerBaseline, ...(timedTrials ? {timedTrials} : {}), history: [...matching].reverse(), ...comparison }, matching, fallSummaries);
     };
     const card = makeCard(matching);
     // Keep independently selected latest readings and exact cohort comparisons for every source/unit.
