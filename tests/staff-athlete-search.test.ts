@@ -77,10 +77,11 @@ describe("live staff header and roster search access", () => {
     expect(fake.search.mock.calls[0][0].athletes).toEqual([staffAthleteChoice(athlete)]);
     if (roles.includes("admin")) expect(fake.preview.mock.calls[0][0].athletes).toEqual([{ id: athlete.id, label: "Álex Northstar" }]);
   });
-  it("fails closed when the live search query fails", async () => {
+  it("fails closed when the live search query fails, without taking down the page", async () => {
     fake.limit.mockResolvedValue({ data: null, error: { message: "Fictional provider details" } });
-    await expect(WorkspaceLayout({ children: null })).rejects.toThrow("Unable to load player search choices");
-    expect(fake.search).not.toHaveBeenCalled();
+    const html = renderToStaticMarkup(await WorkspaceLayout({ children: null }));
+    expect(fake.search.mock.calls[0][0]).toMatchObject({ athletes: [] });
+    expect(html).not.toContain("Fictional provider details");
   });
   it("keeps season-scoped suggestions available after applying a search and omits unused private columns", async () => {
     const html = renderToStaticMarkup(await Roster({ searchParams: Promise.resolve({ q: "alex", season: "2026-27" }) }));
