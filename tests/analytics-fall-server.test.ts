@@ -1,7 +1,7 @@
 import { beforeEach, expect, it, vi } from "vitest";
 const mocks=vi.hoisted(()=>({board:vi.fn()}));
 vi.mock("server-only",()=>({}));
-vi.mock("@/lib/leaderboard-server",()=>({loadLeaderboard:mocks.board}));
+vi.mock("@/lib/leaderboard-server",()=>({loadLeaderboard:mocks.board,loadLeaderboards:(access:unknown,selections:unknown[])=>Promise.all(selections.map(selection=>Promise.resolve().then(()=>mocks.board(access,selection)).catch((error:unknown)=>error instanceof Error?error:new Error(String(error)))))}));
 vi.mock("@/lib/testing-checklist",()=>({pacificTestingDate:()=>"2026-10-05"}));
 import { loadAnalyticsFallReadings } from "@/lib/analytics-fall-server";
 import { analyticsVariables, pairAnalytics, variableKey, type AnalyticsPlayer, type AnalyticsReading } from "@/lib/analytics";

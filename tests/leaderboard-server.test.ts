@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
-import { loadLeaderboard, loadLeaderboardComparisons } from "@/lib/leaderboard-server";
+import { loadLeaderboard, loadLeaderboardComparisons, loadLeaderboards } from "@/lib/leaderboard-server";
 import type { LeaderboardRow, LeaderboardSelection } from "@/lib/leaderboards";
 const rpc = vi.fn();
 const id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", peerId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
@@ -70,4 +70,22 @@ it("accepts only the canonical verified Blast Fall average with total swing samp
  expect((await loadLeaderboard(access,blast))[0]).toMatchObject({value:75,sampleCount:40,profileId:null});
  rpc.mockResolvedValue({data:[row({source:"blast motion · average · 2026-09-13:2026-09-20",value:75,derived:true})],error:null});
  await expect(loadLeaderboard(access,{...blast,source:"blast motion · average · 2026-09-13:2026-09-20"})).rejects.toThrow(/verified/);
+});
+describe("batched leaderboard reader", () => {
+  const second: LeaderboardSelection = { ...selection, metricKey: "avg_exit_velocity", source: "full swing · intrasquad" };
+  it("loads boards in one call and verifies each with the single-board rules", async () => {
+    rpc.mockResolvedValue({ data: [{ ...selection, rows: [row(), row({ rank: 2, athleteCode: "SYN-002", profileId: peerId, value: 10 })] }, { ...second, rows: [row({ source: second.source, value: NaN })] }], error: null });
+    const [first, failed] = await loadLeaderboards(access, [selection, second]);
+    expect(rpc).toHaveBeenCalledExactlyOnceWith("team_leaderboards", { p_selections: [selection, second] });
+    expect((first as LeaderboardRow[]).map(r => r.profileId)).toEqual([id, null]);
+    expect(failed).toBeInstanceOf(Error);
+  });
+  it("rejects a response for a different board and falls back to single boards before deployment", async () => {
+    rpc.mockResolvedValue({ data: [{ ...selection, source: "another source", rows: [row()] }], error: null });
+    expect((await loadLeaderboards(access, [selection]))[0]).toBeInstanceOf(Error);
+    rpc.mockReset();
+    rpc.mockResolvedValueOnce({ data: null, error: { code: "PGRST202" } }).mockResolvedValueOnce({ data: [row()], error: null });
+    expect(await loadLeaderboards(access, [selection])).toEqual([[row()]]);
+    expect(rpc.mock.calls.map(call => call[0])).toEqual(["team_leaderboards", "team_leaderboard"]);
+  });
 });

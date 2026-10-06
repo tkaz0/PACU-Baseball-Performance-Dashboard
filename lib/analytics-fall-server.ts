@@ -1,8 +1,8 @@
 import "server-only";
 import type { requireAccess } from "@/lib/auth";
 import { variableKey, type AnalyticsPlayer, type AnalyticsReading } from "@/lib/analytics";
-import { loadLeaderboard } from "@/lib/leaderboard-server";
-import { LEADERBOARD_METRICS, loadLeaderboardPanels, type LeaderboardComparison } from "@/lib/leaderboards";
+import { loadLeaderboards } from "@/lib/leaderboard-server";
+import { LEADERBOARD_METRICS, type LeaderboardComparison, type LeaderboardRow } from "@/lib/leaderboards";
 import { pacificTestingDate } from "@/lib/testing-checklist";
 
 const fallMetrics = new Set([
@@ -37,7 +37,9 @@ export async function loadAnalyticsFallReadings(
   }
   // Four in flight, drained on failure. A failed board must not quietly resurrect
   // the old single-session values in an apparently successful Analytics page.
-  const panels = await loadLeaderboardPanels([...comparisons.values()], comparison => loadLeaderboard(access, comparison));
+  const selections = [...comparisons.values()], results = await loadLeaderboards(access, selections);
+  if (results.some(result => result instanceof Error)) throw new Error("Analytics Fall leaderboards could not be loaded.");
+  const panels = selections.map((comparison, index) => ({ comparison, rows: results[index] as LeaderboardRow[] }));
   const ids = new Map(players.map(player => [player.code, player.id]));
   const summaries: AnalyticsReading[] = [];
   for (const { comparison, rows } of panels) {

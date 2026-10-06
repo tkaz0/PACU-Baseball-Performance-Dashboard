@@ -1,7 +1,7 @@
 import { isBlastFallSource } from "@/lib/blast-metrics";
 import "server-only";
 import type { requireAccess } from "@/lib/auth";
-import { loadLeaderboard } from "@/lib/leaderboard-server";
+import { loadLeaderboards } from "@/lib/leaderboard-server";
 import { isFullSwingFallSummaryMetric, normalizePlayerMetric, type PlayerFallSummary, type PlayerMetricKey } from "@/lib/player-performance";
 import type { LeaderboardSelection } from "@/lib/leaderboards";
 import type { Measurement } from "@/lib/imports/engine";
@@ -22,7 +22,8 @@ export async function loadPlayerFallSummaries(access: Access, athleteCode: strin
     if (!metric || !isFullSwingFallSummaryMetric(metric.key) || !/^full swing · (game|intrasquad|practice)$/.test(source) || reading.measured_at < "2026-09-01" || reading.measured_at > "2026-12-31") continue;
     selections.set(JSON.stringify([metric.key, source, metric.unit]), { metricKey: metric.key as LeaderboardSelection["metricKey"], source, unit: metric.unit, period: "fall_2026" });
   }
-  const boards = await Promise.all([...selections.values()].map(async option => ({ option, rows: await loadLeaderboard(access, option).catch(() => []) })));
+  const options = [...selections.values()], results = await loadLeaderboards(access, options);
+  const boards = options.map((option, index) => { const result = results[index]; return { option, rows: result instanceof Error ? [] : result }; });
   return boards.flatMap(({ option, rows }) => {
     const own = rows.find(row => row.athleteCode === athleteCode);
     if (!own) return [];
@@ -40,7 +41,8 @@ export async function loadTeamFallSummaries(access: Access, readings: readonly {
     selections.set(JSON.stringify([reading.metric, source, reading.unit]), { metricKey: reading.metric as LeaderboardSelection["metricKey"], source, unit: reading.unit, period: "fall_2026" });
   }
   const ids = new Map(players.map(player => [player.code, player.id]));
-  const boards = await Promise.all([...selections.values()].map(async option => ({ option, rows: await loadLeaderboard(access, option).catch(() => []) })));
+  const options = [...selections.values()], results = await loadLeaderboards(access, options);
+  const boards = options.map((option, index) => { const result = results[index]; return { option, rows: result instanceof Error ? [] : result }; });
   return boards.flatMap(({ option, rows }) => rows.flatMap(row => {
     const athleteId = ids.get(row.athleteCode);
     return athleteId ? [{ athleteId, metric: option.metricKey, source: option.source, unit: option.unit, value: row.value, bestDate: row.measuredAt,

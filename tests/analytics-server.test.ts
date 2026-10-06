@@ -2,7 +2,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 const mocks=vi.hoisted(()=>({access:vi.fn(),from:vi.fn(),games:vi.fn(),board:vi.fn()}));
 vi.mock("server-only",()=>({}));vi.mock("@/lib/render-access",()=>({requireRenderImportAccess:mocks.access}));
 vi.mock("@/lib/game-server",()=>({loadGameStats:mocks.games}));
-vi.mock("@/lib/leaderboard-server",()=>({loadLeaderboard:mocks.board}));
+vi.mock("@/lib/leaderboard-server",()=>({loadLeaderboard:mocks.board,loadLeaderboards:(access:unknown,selections:unknown[])=>Promise.all(selections.map(selection=>Promise.resolve().then(()=>mocks.board(access,selection)).catch((error:unknown)=>error instanceof Error?error:new Error(String(error)))))}));
 import { analyticsPages, loadTopPerformersData, loadAnalytics, loadCoachingData, loadComparisonData, loadDataCoverage, loadStaffHomeSummary } from "@/lib/analytics-server";
 import { CLASSIFIED_METRICS } from "@/lib/imports/classified-pitch-results";
 beforeEach(()=>{vi.resetAllMocks();mocks.games.mockResolvedValue([]);mocks.board.mockResolvedValue([]);});

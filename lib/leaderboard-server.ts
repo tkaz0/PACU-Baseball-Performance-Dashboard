@@ -38,9 +38,43 @@ export async function loadLeaderboardComparisons(access: Access): Promise<Leader
   });
 }
 export async function loadLeaderboard(access: Access, selection: LeaderboardSelection): Promise<LeaderboardRow[]> {
-  permitted(access); const metric = definition(selection), period = PLAYER_PERFORMANCE_PERIODS[selection.period];
+  permitted(access); definition(selection);
   const { data, error } = await access.supabase.rpc("team_leaderboard", { p_metric_key: selection.metricKey, p_source: selection.source, p_unit: selection.unit, p_period: selection.period });
-  if (error || !Array.isArray(data) || data.length > 1000) throw new Error("The leaderboard could not be loaded.");
+  if (error) throw new Error("The leaderboard could not be loaded.");
+  return verifyLeaderboardRows(access, selection, data);
+}
+
+const BATCH_SIZE = 20;
+/**
+ * Many boards in few requests: the batched reader computes the team's latest readings once
+ * per request with the same reviewed board logic. Every board still passes the exact same
+ * verification. A failed board resolves to an Error so callers decide how to show it. If
+ * the batched reader is not deployed yet, boards load one at a time as before.
+ */
+export async function loadLeaderboards(access: Access, selections: readonly LeaderboardSelection[]): Promise<(LeaderboardRow[] | Error)[]> {
+  permitted(access);
+  const chunks: LeaderboardSelection[][] = [];
+  for (let i = 0; i < selections.length; i += BATCH_SIZE) chunks.push(selections.slice(i, i + BATCH_SIZE));
+  const results = await Promise.all(chunks.map(async chunk => {
+    for (const selection of chunk) definition(selection);
+    const { data, error } = await access.supabase.rpc("team_leaderboards", { p_selections: chunk.map(({ metricKey, source, unit, period }) => ({ metricKey, source, unit, period })) });
+    if (error && (error.code === "PGRST202" || error.code === "42883")) {
+      return Promise.all(chunk.map(selection => loadLeaderboard(access, selection).catch((failure: unknown) => failure instanceof Error ? failure : new Error("The leaderboard could not be loaded."))));
+    }
+    if (error || !Array.isArray(data) || data.length !== chunk.length) return chunk.map(() => new Error("The leaderboard could not be loaded."));
+    return chunk.map((selection, index) => {
+      const item = data[index];
+      if (!item || typeof item !== "object" || Array.isArray(item) || Object.keys(item).sort().join(",") !== "metricKey,period,rows,source,unit"
+        || item.metricKey !== selection.metricKey || item.source !== selection.source || item.unit !== selection.unit || item.period !== selection.period) return new Error("Leaderboard results could not be verified.");
+      try { return verifyLeaderboardRows(access, selection, item.rows); } catch (failure) { return failure instanceof Error ? failure : new Error("Leaderboard results could not be verified."); }
+    });
+  }));
+  return results.flat();
+}
+
+function verifyLeaderboardRows(access: Access, selection: LeaderboardSelection, data: unknown): LeaderboardRow[] {
+  const metric = definition(selection), period = PLAYER_PERFORMANCE_PERIODS[selection.period];
+  if (!Array.isArray(data) || data.length > 1000) throw new Error("The leaderboard could not be loaded.");
   const seen = new Set<string>(); let previous: LeaderboardRow | undefined;
   return data.map((item, index) => {
     const fail = () => { throw new Error("Leaderboard results could not be verified."); };

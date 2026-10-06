@@ -280,4 +280,26 @@ describe("skeletal mass and private segmental measurements", () => {
       expect(visible.rows).toEqual([{athlete_id:athlete(1)}]);
     });
   });
+  it("builds many boards in one batched call with exactly the same results and access rules", async () => {
+    await save([
+      row(1, {}, 0), row(2, { value: 25 }, 0), row(3, { value: 25 }, 0), row(4, { value: 40 }, 0), row(5, { value: 50 }, 0),
+      row(1, { metric_key: "body_score", source: "RENPHO", unit: "points", value: 80 }, 1), row(2, { metric_key: "body_score", source: "RENPHO", unit: "points", value: 85 }, 1),
+      row(1, { metric_key: "classified_avg_velocity", source: "Full Swing · Intrasquad · Four-Seam Fastball", value: 81.234 }, 2),
+      row(2, { metric_key: "classified_avg_velocity", source: "Full Swing · Intrasquad · Four-Seam Fastball", value: 82.456 }, 2),
+    ]);
+    for (const user of [users.admin, users.coach, users.player]) await asUser(user, async () => {
+      const selections = (await options()).map(({ metricKey, source, unit, period }) => ({ metricKey, source, unit, period }));
+      expect(selections.length).toBeGreaterThan(2);
+      const batch = (await db.query<{ result: (LeaderboardSelection & { rows: LeaderboardRow[] })[] }>("select public.team_leaderboards($1::jsonb) result", [JSON.stringify(selections)])).rows[0].result;
+      expect(batch.map(({ metricKey, source, unit, period }) => ({ metricKey, source, unit, period }))).toEqual(selections);
+      for (const [i, s] of selections.entries()) expect(batch[i].rows).toEqual(await board(s));
+    });
+    for (const user of [users.rolefree, users.disabled, null]) await asUser(user, async () => {
+      await expect(db.query("select public.team_leaderboards($1::jsonb)", [JSON.stringify([selection])])).rejects.toThrow();
+    });
+    await asUser(users.admin, async () => {
+      await expect(db.query("select private.team_leaderboard_from_snapshot($1,$2,$3,$4)", [selection.metricKey, selection.source, selection.unit, selection.period])).rejects.toThrow(/permission denied/);
+      await expect(db.query("select public.team_leaderboards($1::jsonb)", [JSON.stringify([{ ...selection, extra: 1 }])])).rejects.toThrow(/valid leaderboards/);
+    });
+  });
 });
