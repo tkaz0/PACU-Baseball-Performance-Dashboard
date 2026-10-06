@@ -48,4 +48,10 @@ describe("compact leaderboard average presentation", () => {
     expect(output).toContain("Mean of 3 player bests");
     expect(output).toContain("does not average individual pitches, swings or trials");
   });
+  it("weights Blast Fall averages by swing count so every swing counts once", () => {
+    const output = renderToStaticMarkup(createElement(LeaderboardAverage, { values: [60, 70], swingWeights: [10, 30], format: value => value.toFixed(2), label: "Average Bat Speed", basis: "average" }));
+    expect(output).toContain("67.50"); expect(output).toContain("40 swings");
+    const unweighted = renderToStaticMarkup(createElement(LeaderboardAverage, { values: [60, 70], swingWeights: [10, null], format: value => value.toFixed(2), label: "Average Bat Speed", basis: "average" }));
+    expect(unweighted).toContain("65.00"); expect(unweighted).not.toContain("swings across");
+  });
 });

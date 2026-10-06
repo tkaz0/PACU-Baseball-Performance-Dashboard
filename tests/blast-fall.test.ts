@@ -1,3 +1,4 @@
+import { createElement } from "react";
 import { it,expect } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { blastFallSummary,BLAST_MAIN_KEYS } from "@/lib/blast-fall";
@@ -32,4 +33,11 @@ it("compares weighted Blast practice bat speed with the latest Full Swing game s
  expect(html).toContain("Fall swing-weighted average");expect(html).toContain("75.0");expect(html).toContain("40 swings");expect(html).toContain("71.2");expect(html).not.toContain("91.0");
  const invalid=renderToStaticMarkup(PracticeGameBridge({performance,blastReadings:[...report(),...report("e","2026-09-20","2026-09-27",30,80)]}));
  expect(invalid).not.toContain("75.0");expect(invalid).toContain("71.2");
+});
+it("shows the verified team percentile on the Fall bat speed card only when the projection matches",()=>{
+ const rows=[...report(),...report("b","2026-09-21","2026-09-27",30,80)],summary=blastFallSummary(rows)!,bat=summary.metrics.find(m=>m.key==="avg_bat_speed")!.average!;
+ const verified={athleteId:"00000000-0000-4000-8000-000000000001",observedValue:bat,percentile:75,sampleSize:8,swingCount:40,reportCount:2,firstDate:summary.firstDate!,lastDate:summary.lastDate!};
+ expect(renderToStaticMarkup(createElement(BlastPracticeReports,{readings:rows,batSpeedPercentile:verified}))).toContain("blast-bat-percentile");
+ for(const mismatch of [{...verified,swingCount:39},{...verified,observedValue:bat+.1},{...verified,sampleSize:4},{...verified,percentile:null}])
+  expect(renderToStaticMarkup(createElement(BlastPracticeReports,{readings:rows,batSpeedPercentile:mismatch}))).not.toContain("blast-bat-percentile");
 });

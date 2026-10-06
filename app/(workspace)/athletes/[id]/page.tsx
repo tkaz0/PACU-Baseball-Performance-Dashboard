@@ -31,6 +31,7 @@ import { canImportPresentedAccess, canReadPresentedAthlete } from "@/lib/access-
 import { loadAthletePerformance } from "@/lib/performance-server";
 import { AccessPreviewNotice } from "@/components/access-preview-notice";
 import { loadPlayerFallSummaries } from "@/lib/player-fall-summaries-server";
+import { loadBlastBatSpeedPercentile } from "@/lib/blast-speed-percentile-server";
 import { getPlayerPerformance, normalizePlayerMetric, PLAYER_METRICS } from "@/lib/player-performance";
 import { getRenphoReports } from "@/lib/renpho-charts";
 import { RenphoCharts } from "@/components/renpho-charts";
@@ -61,7 +62,7 @@ export default async function Profile({ params, searchParams }: { params: Promis
   const videoActions = { prepare: prepareSwingVideo, finish: finishSwingVideo, play: playSwingVideo };
   // Independent readers start together after the exact player passes live authorization.
   const sharedPromise = loadAthletePerformance(access,athlete);
-  const [gameLogs, gameStats, gameComparisons, shared, teamAverages, movement, contacts, videos, annotations, blockCounts, headshot, fallSummaries] = await Promise.all([
+  const [gameLogs, gameStats, gameComparisons, shared, teamAverages, movement, contacts, videos, annotations, blockCounts, headshot, fallSummaries, blastBatSpeedPercentile] = await Promise.all([
     staff && selectedTab === "in-game" ? loadGameLogs(access, athlete.id) : Promise.resolve([]),
     selectedTab === "overview" || selectedTab === "in-game" ? loadGameStats(access, athlete.id) : Promise.resolve([]),
     selectedTab === "overview" || selectedTab === "in-game" ? loadGameComparisons(access, athlete.id) : Promise.resolve([]),
@@ -74,6 +75,8 @@ export default async function Profile({ params, searchParams }: { params: Promis
     loadAthleteHeadshot(access,athlete.id),
     // Fall best / reading-weighted Fall averages match the leaderboards; on failure cards keep latest-session values.
     showHitting && selectedTab !== "progress" && selectedTab !== "physicality" ? sharedPromise.then(data=>loadPlayerFallSummaries(access,athlete.athlete_code,data.measurements)).catch(()=>[]) : Promise.resolve([]),
+    // Verified Fall Blast percentile; the card shows it only when it matches the displayed average.
+    showHitting && selectedTab === "practice" ? loadBlastBatSpeedPercentile(access,athlete.id).catch(()=>null) : Promise.resolve(null),
   ]);
   const performance = getPlayerPerformance({ readings:shared.measurements, batches:shared.batches, athleteCode:athlete.athlete_code, cohortAthleteCodes:[], percentileOverrides:shared.percentileOverrides, fallSummaries });
   const readings = shared.measurements.filter(reading => {
@@ -86,7 +89,7 @@ export default async function Profile({ params, searchParams }: { params: Promis
   return <>
     <AccessPreviewNotice status={query?.preview} isPreview={!!access.preview} />
     <div className="profile-toolbar">{staff ? <Link href="/roster" className="profile-back"><ArrowLeft size={15} />Team Roster</Link> : <span/>}<div className="flex flex-wrap items-center gap-2">{canImportPresentedAccess(access) && <Link href="/imports" className="btn btn-secondary">Import Results<ArrowRight size={15} aria-hidden="true"/></Link>}<Link prefetch={false} href={`/athletes/${athlete.id}/report`} className="btn btn-secondary"><FileText size={15} aria-hidden="true"/>Player Report</Link></div></div>
-    <PlayerPerformanceProfile detail={detail} selectedTab={selectedTab} navigationPath={`/athletes/${athlete.id}`}
+    <PlayerPerformanceProfile blastBatSpeedPercentile={blastBatSpeedPercentile} detail={detail} selectedTab={selectedTab} navigationPath={`/athletes/${athlete.id}`}
       headshot={headshot}
       trainingBlocks={<>{blockCounts===null&&<p role="status" className="muted text-sm">Swing counts are temporarily unavailable. Some session averages cannot be compared yet.</p>}<TrainingBlockComparison series={buildTrainingBlockSeries(readings,{athleteCode:athlete.athlete_code,showHitting,showPitching:profileShowsPitching(season),today,readingCounts:blockCounts??[]})}/></>}
       trendAnnotations={annotations ?? []}

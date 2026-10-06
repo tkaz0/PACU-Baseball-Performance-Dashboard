@@ -5,9 +5,16 @@ import { blastFallSummary } from "@/lib/blast-fall";
 import type { Measurement } from "@/lib/imports/engine";
 import { StatInfo } from "@/components/stat-info";
 import styles from "./blast-reports.module.css";
-export function BlastPracticeReports({readings,compact=false,teamAverages=[]}:{readings:readonly Measurement[];compact?:boolean;teamAverages?:readonly HittingTeamAverage[]}) {
+import { PercentileBar } from "@/components/percentile-bar";
+import type { BlastBatSpeedPercentile } from "@/lib/blast-speed-percentile";
+export function BlastPracticeReports({readings,compact=false,teamAverages=[],batSpeedPercentile=null}:{readings:readonly Measurement[];compact?:boolean;teamAverages?:readonly HittingTeamAverage[];batSpeedPercentile?:BlastBatSpeedPercentile|null}) {
   const summary=blastFallSummary(readings);
   if(!summary)return null;
+  // Same check as the printable report: show the team percentile only when the verified
+  // Fall projection matches this card's weighted average, swings, reports and dates.
+  const bat=summary.metrics.find(m=>m.key==="avg_bat_speed")?.average;
+  const p=batSpeedPercentile;
+  const batPct=p&&bat!=null&&p.percentile!==null&&p.sampleSize>=5&&Math.abs(p.observedValue-bat)<1e-8&&p.swingCount===summary.totalSwings&&p.reportCount===summary.reportCount&&p.firstDate===summary.firstDate&&p.lastDate===summary.lastDate?p:null;
   const period=summary.firstDate&&summary.lastDate?blastPeriodLabel(summary.firstDate,summary.lastDate):null;
   return <section className="card mt-5" aria-label={compact?"Fall practice snapshot":"Cumulative Fall practice hitting"}>
     <div className={styles.reportHeader}><div><p className={styles.eyebrow}>Practice · Blast Motion</p><h3 className="text-lg font-bold">Fall 2026 · Cumulative</h3></div>{summary.totalSwings!==null&&<span className={styles.swingTotal}><strong>{summary.totalSwings.toLocaleString("en-US")}</strong> Swings</span>}</div>
@@ -21,6 +28,7 @@ export function BlastPracticeReports({readings,compact=false,teamAverages=[]}:{r
         <p className={styles.primaryValue}><strong>{m.average===null?"—":formatBlastValue(m.average,m.unit)}</strong><span>{blastUnit(m.unit)}</span></p>
         <p className={styles.averageLabel}>Fall Average</p>
         <HittingTeamAverageLine average={hittingTeamAverage(teamAverages,m.key,m.unit,"blast_fall")}/>
+        {m.key==="avg_bat_speed"&&batPct&&<div className="mt-3" data-testid="blast-bat-percentile"><PercentileBar value={batPct.percentile!} sampleSize={batPct.sampleSize} label={m.label}/></div>}
         {m.missingReports>0&&<p className={styles.coverage}>Missing from {m.missingReports} {m.missingReports===1?"average report":"average reports"}</p>}
         {!compact&&<div className={styles.peakValue}><span>Latest Week<span>Peak · 95th</span></span><strong>{m.peak===null?"—":`${formatBlastValue(m.peak,m.unit)} ${blastUnit(m.unit)}`}</strong></div>}
       </article>)}
