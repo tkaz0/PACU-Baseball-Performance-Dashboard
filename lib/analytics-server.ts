@@ -4,6 +4,7 @@ import type { Measurement } from "@/lib/imports/engine";
 import { createReadLimiter } from "@/lib/limited-reads";
 import { validBlastObservation } from "@/lib/blast-metrics";
 import { buildHomeSummary } from "@/lib/home-summary";
+import { seasonDesignNavigation } from "@/lib/design-navigation";
 import { buildDataCoverage } from "@/lib/data-coverage";
 import { pacificTestingDate } from "@/lib/testing-checklist";
 import { coachUpdateDigest } from "@/lib/coach-update-digest";
@@ -164,5 +165,6 @@ export async function loadDataCoverage(){
 export async function loadStaffHomeSummary(visit?:DashboardVisitWindow){
   const data=await loadTeamSource(false,true,false,true,true);
   const today=pacificTestingDate();
-  return {...buildHomeSummary(data.players.map(p=>p.id),data.readings,data.games,today),...(visit?{visitDigest:buildVisitDigest(data.players,data.readings,data.games,visit,today)}:{}),coachDigest:coachUpdateDigest({players:data.players,readings:data.readings.filter(coachingReadingVisible),games:coachingGames(data.games)},today)};
+  const positionIds=data.players.filter(p=>seasonDesignNavigation({season:"2026-27",player_type:p.playerType,primary_position:p.position,secondary_position:p.secondaryPosition}).swing).map(p=>p.id);
+  return {...buildHomeSummary(data.players.map(p=>p.id),data.readings,data.games,today,positionIds),...(visit?{visitDigest:buildVisitDigest(data.players,data.readings,data.games,visit,today)}:{}),coachDigest:coachUpdateDigest({players:data.players,readings:data.readings.filter(coachingReadingVisible),games:coachingGames(data.games)},today)};
 }

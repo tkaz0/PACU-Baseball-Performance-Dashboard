@@ -67,13 +67,14 @@ export function CoachThisWeek({ digest, reviewCount }: { digest: ReturnType<type
   </section>;
 }
 function ResultsCoverage({ summary, staff, profile }: { summary: HomeSummary; staff: boolean; profile: string | null }) {
-  const savedAreas = summary.coverage.filter(area => area.players > 0).length;
-  const numerator = staff ? summary.playersWithResults : savedAreas, denominator = staff ? summary.players : summary.coverage.length;
+  const coverage = summary.coverage.filter(area => staff || area.eligiblePlayers > 0);
+  const savedAreas = coverage.filter(area => area.players > 0).length;
+  const numerator = staff ? summary.playersWithResults : savedAreas, denominator = staff ? summary.players : coverage.length;
   const fraction = denominator > 0 ? Math.min(1, numerator / denominator) : 0;
   return <section className={styles.panel} aria-label={staff ? "Fall roster coverage" : "Your latest testing"}>
     <div className={styles.sectionTitle}><div><p className={styles.kicker}>{staff ? "Team Development" : "Your Development"}</p><h2>{staff ? "Saved Fall Results" : "Your Results"}</h2></div><Crosshair size={20} className={styles.subtleIcon}/></div>
     <div className={styles.coverageBody}><div className={styles.coverageRing} role="img" aria-label={`${numerator} of ${denominator} ${staff ? "players with results" : "areas with results"}`}><svg viewBox="0 0 100 100" aria-hidden="true"><circle className={styles.ringTrack} cx="50" cy="50" r="42"/><circle className={styles.ringValue} cx="50" cy="50" r="42" pathLength="100" strokeDasharray={`${fraction * 100} 100`}/></svg><span><strong>{numerator}<small>/{denominator}</small></strong><small>{staff ? "players" : "areas"}</small></span></div>
-      <div className={styles.coverageList}>{summary.coverage.map(area => <div className={styles.coverageRow} key={area.key}><div><strong>{area.label}</strong><span>{staff ? `${area.players} / ${summary.players}` : area.players > 0 ? <Check size={14} aria-label="Results available"/> : "Not yet"}</span></div>{staff ? <meter min={0} max={Math.max(1, summary.players)} value={area.players} aria-label={`${area.label}: ${area.players} of ${summary.players} players with results`}/> : <small>{area.lastTested ? `Last tested ${date(area.lastTested)}` : "Awaiting results"}</small>}</div>)}</div>
+      <div className={styles.coverageList}>{coverage.map(area => <div className={styles.coverageRow} key={area.key}><div><strong>{area.label}{staff && area.positionOnly && <small>Position Players · Includes Two-Way</small>}</strong><span>{staff ? `${area.players} / ${area.eligiblePlayers}` : area.players > 0 ? <Check size={14} aria-label="Results available"/> : "Not yet"}</span></div>{staff ? <meter min={0} max={Math.max(1, area.eligiblePlayers)} value={area.players} aria-label={`${area.label}: ${area.players} of ${area.eligiblePlayers} ${area.positionOnly ? "position players" : "players"} with results`}/> : <small>{area.lastTested ? `Last tested ${date(area.lastTested)}` : "Awaiting results"}</small>}</div>)}</div>
     </div><div className={styles.panelFoot}><span>{staff ? "Any saved test or game result · not checklist completion" : "Fall 2026 saved results"}</span><Link prefetch={false} href={staff ? "/testing/coverage" : profile ?? "/settings"}>{staff ? "Checklist Coverage" : "My Results"}<ArrowRight size={14}/></Link></div>
   </section>;
 }

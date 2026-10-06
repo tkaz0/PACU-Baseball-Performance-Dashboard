@@ -50,3 +50,7 @@ Profiles keep URL-selected Quick/Full Detail. Quick physicality avoids movement-
 
 
 October 4 EV presentation: numerical staff readers use the security-invoker performance_display_measurements projection; compact Home coverage remains original metadata. Fall EV rollups, aggregate means, own history and percentiles use one rule/retained denominator. Review and import receipts stay on immutable source tables. No browser-side team fetch, new private cache, extra source scraping or service-role access.
+
+## October 6 Home coverage cohorts
+
+Athletic Testing and Practice use current eligible position players and explicit two-way players for both distinct-player coverage and the denominator. The compact Home reader reuses the staff Swing Design choices and intersects them with its validated eligible roster; the history fallback uses the same season role rule. Physicality, In-Game and the overall saved-results ring keep the whole eligible roster. Pitcher-only Player Home omits those two non-applicable coverage rows. Reads remain ordinary-session and role-scoped; no measurements or database schema change.

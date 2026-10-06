@@ -1,10 +1,11 @@
 import {beforeEach,expect,it,vi} from "vitest";
-const mocks=vi.hoisted(()=>({staff:vi.fn(),performance:vi.fn(),games:vi.fn(),from:vi.fn(),rpc:vi.fn()}));
+const mocks=vi.hoisted(()=>({staff:vi.fn(),performance:vi.fn(),games:vi.fn(),from:vi.fn(),rpc:vi.fn(),designChoices:vi.fn()}));
 vi.mock("server-only",()=>({}));vi.mock("@/lib/analytics-server",()=>({loadStaffHomeSummary:mocks.staff}));vi.mock("@/lib/performance-server",()=>({loadAthletePerformance:mocks.performance}));vi.mock("@/lib/game-server",()=>({loadGameStats:mocks.games}));
+vi.mock("@/lib/staff-athlete-search-server",()=>({loadDesignAthleteChoices:mocks.designChoices}));
 import {pacificTestingDate} from "@/lib/testing-checklist";
 import {loadHomeSummary,loadHomeSnapshot,loadHomeActivity} from "@/lib/home-server";
 const id="aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
-beforeEach(()=>vi.resetAllMocks());
+beforeEach(()=>{vi.resetAllMocks();mocks.designChoices.mockResolvedValue([{id}]);});
 const access=(roles:string[],athleteId:string|null=id,preview:unknown=null)=>({roles,athleteId,preview,supabase:{from:mocks.from,rpc:mocks.rpc}}) as unknown as Parameters<typeof loadHomeSummary>[0];
 it("routes staff through the independently guarded staff loader",async()=>{mocks.staff.mockResolvedValue({players:2});expect(await loadHomeSummary(access(["coach"]))).toEqual({players:2});expect(mocks.from).not.toHaveBeenCalled();});
 it("an unlinked player performs no queries",async()=>{expect(await loadHomeSummary(access(["player"],null))).toBeNull();expect(mocks.staff).not.toHaveBeenCalled();expect(mocks.from).not.toHaveBeenCalled();});
@@ -40,11 +41,24 @@ it("passes the presented player's role and normalized core Blast readings into t
 it("loads staff coverage without requiring numerical history for the initial Home",async()=>{
  mocks.rpc.mockResolvedValue({data:{version:1,athleteId:null,today:pacificTestingDate(),playerIds:[id],totalReadings:0,groups:[]},error:null});mocks.games.mockResolvedValue([]);
  const current=access(["coach"],null),result=await loadHomeSnapshot(current);expect(result?.players).toBe(1);expect(mocks.rpc).toHaveBeenCalledWith("home_measurement_summary",{p_athlete_id:null});expect(mocks.staff).not.toHaveBeenCalled();expect(mocks.performance).not.toHaveBeenCalled();expect(mocks.from).not.toHaveBeenCalled();
+ expect(mocks.designChoices).toHaveBeenCalledWith(current,"swing");
+ expect(result?.coverage.filter(row=>row.positionOnly).map(row=>row.eligiblePlayers)).toEqual([1,1]);
 });
 it("checks own scope and suppresses pitcher-only speed coverage before computing totals",async()=>{
  const athlete={id,athlete_seasons:[{season:"2026-27",player_type:"pitcher",primary_position:"P"}]};const query={select:vi.fn(),eq:vi.fn(),maybeSingle:vi.fn().mockResolvedValue({data:athlete,error:null})};query.select.mockReturnValue(query);query.eq.mockReturnValue(query);mocks.from.mockReturnValue(query);
  mocks.rpc.mockResolvedValue({data:{version:1,athleteId:id,today:pacificTestingDate(),playerIds:[id],totalReadings:1,groups:[{athleteId:id,metric:"Home to First",unit:"s",source:"Fictional testing",date:"2026-09-01",importedAt:"2026-09-02T00:00:00Z",count:1}]},error:null});mocks.games.mockResolvedValue([]);
  const current=access(["player"],id,{role:"player"});const summary=await loadHomeSnapshot(current);expect(summary?.playersWithResults).toBe(0);expect(query.eq).toHaveBeenCalledWith("id",id);expect(mocks.rpc).toHaveBeenCalledWith("home_measurement_summary",{p_athlete_id:id});expect(mocks.games).toHaveBeenCalledWith(current,id);expect(mocks.performance).not.toHaveBeenCalled();
+ expect(summary?.coverage.filter(row=>row.positionOnly).map(row=>row.eligiblePlayers)).toEqual([0,0]);
+ expect(mocks.designChoices).not.toHaveBeenCalled();
+});
+it("intersects staff position choices with eligible coverage IDs without counting pitcher results",async()=>{
+ const position="bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",twoWay="cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+ mocks.designChoices.mockResolvedValue([{id:position},{id:twoWay},{id:"dddddddd-dddd-4ddd-8ddd-dddddddddddd"}]);
+ const groups=[id,position,twoWay].map(athleteId=>({athleteId,metric:"Bat Speed",unit:"mph",source:"Full Swing · Practice",date:"2026-09-01",importedAt:"2026-09-02T00:00:00Z",count:1}));
+ mocks.rpc.mockResolvedValue({data:{version:1,athleteId:null,today:pacificTestingDate(),playerIds:[id,position,twoWay],totalReadings:3,groups},error:null});mocks.games.mockResolvedValue([]);
+ const summary=await loadHomeSnapshot(access(["coach"],null));
+ expect(summary?.coverage.find(row=>row.key==="practice")).toMatchObject({players:2,eligiblePlayers:2});
+ expect(summary?.players).toBe(3);expect(summary?.playersWithResults).toBe(3);
 });
 it("falls back to the standard reader instead of fabricated coverage when the compact RPC fails",async()=>{
  const standard={fictional:"standard summary"};mocks.staff.mockResolvedValue(standard);mocks.games.mockResolvedValue([]);

@@ -13,6 +13,8 @@ import { buildVisitDigest, visitMetricKey } from "@/lib/dashboard-visit-digest";
 import type { DashboardVisitWindow } from "@/lib/personal-dashboard-server";
 import type { RosterAthlete } from "@/lib/types";
 import { validateHomeCoverage } from "@/lib/home-coverage";
+import { loadDesignAthleteChoices } from "@/lib/staff-athlete-search-server";
+import { seasonDesignNavigation } from "@/lib/design-navigation";
 
 /** Initial Home needs coverage metadata, not numerical measurement history. */
 export async function loadHomeSnapshot(access:Awaited<ReturnType<typeof requireAccess>>,onFallback?:(reason:string)=>void) {
@@ -36,9 +38,10 @@ async function loadCompactHomeSnapshot(access:Awaited<ReturnType<typeof requireA
     season=(data.athlete_seasons as RosterAthlete["athlete_seasons"]).find(s=>s.season==="2026-27");
   }
   const today=pacificTestingDate();
-  const [coverage,games]=await Promise.all([
+  const [coverage,games,positionPlayers]=await Promise.all([
     access.supabase.rpc("home_measurement_summary",{p_athlete_id:athleteId}),
     loadGameStats(access,athleteId??undefined),
+    staff?loadDesignAthleteChoices(access,"swing"):Promise.resolve([]),
   ]);
   if(coverage.error){
     // Log only the database status code; never source rows or private payloads.
@@ -47,7 +50,8 @@ async function loadCompactHomeSnapshot(access:Awaited<ReturnType<typeof requireA
   }
   const compact=validateHomeCoverage(coverage.data,athleteId,today);
   const groups=staff?compact.groups:compact.groups.filter(row=>profileMeasurementVisible(row,season));
-  return buildHomeSummary(compact.playerIds,groups,games,today);
+  const positionIds=staff?positionPlayers.map(player=>player.id):seasonDesignNavigation(season).swing?[athleteId!]:[];
+  return buildHomeSummary(compact.playerIds,groups,games,today,positionIds);
 }
 
 /** Detailed change detection streams separately and retains its original rules. */
@@ -70,7 +74,7 @@ export async function loadHomeSummary(access:Awaited<ReturnType<typeof requireAc
   const [performance,games]=await Promise.all([loadAthletePerformance(access,athlete,{includePercentiles:false}),loadGameStats(access,athlete.id)]);
   const batches=new Map(performance.batches.map(b=>[b.id,b.importedAt]));
   const readings=performance.measurements.filter(r=>profileMeasurementVisible(r,season)).map(r=>({athleteId:athlete.id,source:r.source,date:r.measured_at,importedAt:batches.get(r.batch_id)!}));
-  const summary=buildHomeSummary([athlete.id],readings,games,pacificTestingDate());
+  const summary=buildHomeSummary([athlete.id],readings,games,pacificTestingDate(),seasonDesignNavigation(season).swing?[athlete.id]:[]);
   if(!visit)return summary;
   const activity=performance.measurements.filter(r=>profileMeasurementVisible(r,season)).map(r=>({id:r.id,athleteId:athlete.id,metric:visitMetricKey(r.metric,r.unit),label:r.metric,unit:r.unit,value:r.value,source:r.source,date:r.measured_at,importedAt:batches.get(r.batch_id)!}));
   const player={id:athlete.id,playerType:season?.player_type,position:season?.primary_position,secondaryPosition:season?.secondary_position};

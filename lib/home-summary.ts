@@ -17,11 +17,16 @@ function area(source:string):HomeArea {
 }
 const latest=(dates:string[])=>dates.sort().at(-1)??null;
 /** Count distinct players, never measurement rows or repeated snapshots. Server supplies authorized scope. */
-export function buildHomeSummary(playerIds:readonly string[],readings:readonly HomeReading[],games:readonly SharedGameStat[],today:string){
+export function buildHomeSummary(playerIds:readonly string[],readings:readonly HomeReading[],games:readonly SharedGameStat[],today:string,positionPlayerIds:readonly string[]=playerIds){
   const ids=new Set(playerIds),lastDay=today<"2026-12-31"?today:"2026-12-31";
+  const positionIds=new Set(positionPlayerIds.filter(id=>ids.has(id)));
   const fall=readings.filter(r=>ids.has(r.athleteId)&&r.date>="2026-09-01"&&r.date<=lastDay);
   const scopedGames=games.filter(r=>ids.has(r.athlete_id));
-  const coverage=HOME_AREAS.map(a=>{const rows=fall.filter(r=>area(r.source)===a.key);return {...a,players:new Set(rows.map(r=>r.athleteId)).size,lastTested:latest(rows.map(r=>r.date)),updatedAt:latest(rows.map(r=>r.importedAt))};});
+  const coverage=HOME_AREAS.map(a=>{
+    const positionOnly=a.key==="testing"||a.key==="practice",eligible=positionOnly?positionIds:ids;
+    const rows=fall.filter(r=>eligible.has(r.athleteId)&&area(r.source)===a.key);
+    return {...a,positionOnly,eligiblePlayers:eligible.size,players:new Set(rows.map(r=>r.athleteId)).size,lastTested:latest(rows.map(r=>r.date)),updatedAt:latest(rows.map(r=>r.importedAt))};
+  });
   const batting=teamGameSummary(scopedGames,"qpa_fall_2026"),pitching=teamGameSummary(scopedGames,"pitching_fall_2026");
   const updates=[...coverage.filter(a=>a.updatedAt).map(a=>({key:a.key,label:a.label,date:a.updatedAt!,kind:"Saved" as const})),
     ...(batting.updatedAt?[{key:"qpa",label:"Hitting Game Stats",date:batting.updatedAt,kind:"Synced" as const}]:[]),
