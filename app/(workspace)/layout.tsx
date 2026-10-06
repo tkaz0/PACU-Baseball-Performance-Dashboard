@@ -12,7 +12,11 @@ export const dynamic = "force-dynamic";
 export default async function WorkspaceLayout({ children }: { children: React.ReactNode }) {
   const access = await requireAccess();
   const { roles, athleteId, actualRoles, preview, previewAthleteName } = access;
-  const [searchAthletes, designNavigation] = await Promise.all([loadStaffAthleteChoices(access), loadDesignNavigation(access)]);
+  // Player search is a convenience: a failed lookup must never take down every page.
+  const [searchAthletes, designNavigation] = await Promise.all([
+    loadStaffAthleteChoices(access).catch((error: unknown) => { console.error("Player search choices failed:", error instanceof Error ? error.message : "unknown error"); return []; }),
+    loadDesignNavigation(access),
+  ]);
   const athletes = actualRoles.includes("admin") && !preview ? searchAthletes.map(a => ({ id: a.id, label: a.name })) : [];
   return <div className="workspace-shell">
     <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:bg-white focus:p-4">Skip to content</a>
