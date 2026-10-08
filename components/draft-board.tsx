@@ -6,7 +6,7 @@ import { PacificLogo } from "@/components/pacific-brand";
 import { saveBoxerDraft } from "@/app/(workspace)/admin/draft-board/actions";
 import { DRAFT_GROUPS, draftable, draftExportRows, draftPlayersFromGroups, draftView, emptyDraft, validateDraftDocument, type DraftDocument, type DraftGroup, type DraftPlayer, type DraftSaveRequest, type DraftSnapshot } from "@/lib/draft-board";
 import { DraftDepthChart, DraftBigBoard } from "@/components/draft-planning";
-import { draftPlanning, draftOpenPositions, draftCovers, nextDraftSelection, withDraftPicks } from "@/lib/draft-board";
+import { draftPlanning, nextDraftSelection, withDraftPicks } from "@/lib/draft-board";
 import styles from "./draft-board.module.css";
 
 export function DraftBoard({ initial, athletes }: { initial: DraftSnapshot | null; athletes: { id: string; name: string }[] }) {
@@ -16,8 +16,6 @@ export function DraftBoard({ initial, athletes }: { initial: DraftSnapshot | nul
   const [message, setMessage] = useState(""), [error, setError] = useState(""), [undo, setUndo] = useState(false);
   const [boardDirty, setBoardDirty] = useState(false);
   const view = draftView(document), chosen = view.available.find(p => p.id === selected), blocked = pending || !!retry, draftBlocked = blocked || boardDirty;
-  const plan = draftPlanning(document), open = view.nextTeam === null ? [] : draftOpenPositions(document, view.nextTeam);
-  const fits = plan.bigBoard.flatMap(id => { const p = view.available.find(p => p.id === id); return p && open.some(pos => draftCovers(p, pos)) ? [p] : []; }).slice(0, 4);
   async function commit(next: DraftDocument, existing?: DraftSaveRequest) {
     let request: DraftSaveRequest;
     try { request = existing ?? { requestId: crypto.randomUUID(), expectedRevision: saved?.revision ?? 0, document: validateDraftDocument(next) }; }
@@ -53,7 +51,6 @@ export function DraftBoard({ initial, athletes }: { initial: DraftSnapshot | nul
         {chosen && <div className={styles.selection}><div><small>YOUR SELECTION · PICK {view.nextPick}</small><strong>{chosen.name}</strong><span>{document.teams[view.nextTeam ?? 0].name}</span></div><button className="btn btn-primary" disabled={draftBlocked || setup} onClick={() => commit(nextDraftSelection(document, chosen.id))}>{pending ? "Saving…" : "Confirm Pick"}<ChevronRight size={16}/></button></div>}
       </DraftBigBoard>
       <div className={styles.draftSide}>
-        {!setup && fits.length > 0 && <section className={styles.fitSuggestions} aria-label="Positional need suggestions"><strong>Fits for {document.teams[view.nextTeam ?? 0].name}</strong><p>Open spots: {open.join(" · ")}. Unassigned players may already cover these spots.</p>{fits.map(p=><button key={p.id} disabled={draftBlocked} onClick={()=>setSelected(p.id)}><strong>#{plan.bigBoard.indexOf(p.id)+1} {p.name}</strong><small>{open.filter(pos=>draftCovers(p,pos)).join(" / ")}</small></button>)}</section>}
       <div className={styles.teams} aria-label="Drafted team rosters">{document.teams.map((team, index) => <section className={styles.team} data-team={index} key={index} aria-label={`${team.name} roster`}>
         <header><span className={styles.teamNumber}>0{index + 1}</span><div><p className={styles.eyebrow}>{!view.complete && view.nextTeam === index && view.pool.length ? "ON THE CLOCK" : "BOXER WORLD SERIES"}</p><h3>{team.name}</h3></div><strong className={styles.teamCount}>{view.rosters[index].length + team.captains.length}<small>players</small></strong></header>
         <div className={styles.captains}><small>CAPTAINS</small><strong>{team.captains.join(" · ") || "Add captains in Draft Setup"}</strong></div>

@@ -4,14 +4,14 @@
 @media print{.toolbar,.setup,.pool,.retry,.undo,.refresh,.room>p,.board .sectionHead>button{display:none!important}.room{color:#111;--text-primary:#111;--text-secondary:#555;--surface-panel:#fff;--surface-raised:#f4f4f4;--line-subtle:#ddd;--accent-readable:#a21424;gap:12px}.main,.teams{display:grid;grid-template-columns:1fr}.teams{grid-template-columns:1fr 1fr}.team,.hero{break-inside:avoid}.hero{padding:12px}.hero h2{font-size:23px}.roster>li{padding:6px 0}.slot{min-height:40px;padding:6px}.boardGrid{padding:0}.round{break-inside:avoid}.onClock{min-width:0}.caption{display:none}}
 @media(prefers-reduced-motion:reduce){.progress>span{transition:none}}
 
-.fitSuggestions{margin:0 16px 15px;padding:12px;background:var(--surface-raised);border-radius:9px;font-size:12px}.fitSuggestions summary{cursor:pointer;font-weight:750}.fitSuggestions p{font-size:12px;color:var(--text-secondary);line-height:1.6}.fitSuggestions button{display:flex;justify-content:space-between;gap:8px;width:100%;text-align:left;padding:8px 0;border:0;background:transparent;color:var(--text-primary);font-size:12px;cursor:pointer}.fitSuggestions small{font-size:12px;color:var(--text-secondary)}.fullRoster>summary{font-size:12px;font-weight:700;padding:14px 16px;cursor:pointer}.fullRoster{border-top:1px solid var(--line-subtle)}
-@media print{.fitSuggestions{display:none}.fullRoster>summary{display:none}.fullRoster>.roster{display:block}}
+.fullRoster>summary{font-size:12px;font-weight:700;padding:14px 16px;cursor:pointer}.fullRoster{border-top:1px solid var(--line-subtle)}
+@media print{.fullRoster>summary{display:none}.fullRoster>.roster{display:block}}
 
 .room [hidden]{display:none!important}
 
 .main{grid-template-columns:minmax(340px,.95fr) minmax(0,1.3fr)}
 .draftSide{min-width:0;display:grid;gap:16px}.teams{grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr))}
-.fitSuggestions{margin:0;border:1px solid var(--line-subtle);padding:14px 16px}.fitSuggestions>strong{font-size:14px}.fitSuggestions p{margin:6px 0}.fitSuggestions button:disabled{opacity:.5;cursor:default}
+
 .selection{position:sticky;bottom:0;box-shadow:0 -8px 20px #00000012}.selection :global(.btn){font-size:12px}
 .aside{font-size:12px;color:var(--text-secondary);padding:14px 16px;border:1px solid var(--line-subtle);border-radius:10px}.aside summary{cursor:pointer}.aside p{line-height:1.7}
 @media(max-width:1100px){.main{grid-template-columns:minmax(330px,1fr) minmax(0,1fr)}}
