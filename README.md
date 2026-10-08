@@ -238,3 +238,7 @@ October 4 player scan update: profiles default to **Quick View**, with **Full De
 Full Swing EV now excludes low-speed Likely Foul contact (<70 mph, Direction beyond ±45°). Profiles offer Balls in Play / All Contact, retaining flagged readings for review without deleting source data.
 
 Fall Blast practice metrics combine nonoverlapping weekly average reports by swing count across profiles, Analytics, staff comparisons and bat-speed rankings. Peak (95th-percentile) results remain weekly; saved source observations are unchanged.
+
+## Private Boxer World Series Draft
+
+Administration → Draft Board opens an owner-scoped draft room for the actual administrator, outside View as. It supports a reviewed two-team pool, separate captains and injured/student-assistant entries, position search, the sheet’s 1–2–2–1 snake order, confirmed picks, undo, print and CSV export. Progress saves to the signed-in owner only; no draft action changes athletes, accounts or performance data. See [Setup](docs/SETUP.md#private-boxer-world-series-draft) and [Data model](docs/DATA_MODEL.md#private-boxer-world-series-draft).
