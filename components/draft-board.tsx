@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { Check, ChevronRight, Download, LockKeyhole, Printer, Search, Settings2, Trophy, Undo2, X } from "lucide-react";
+import { Check, ChevronRight, Download, LockKeyhole, Printer, Settings2, Trophy, Undo2, X } from "lucide-react";
 import { PacificLogo } from "@/components/pacific-brand";
 import { saveBoxerDraft } from "@/app/(workspace)/admin/draft-board/actions";
 import { DRAFT_GROUPS, draftable, draftExportRows, draftPlayersFromGroups, draftView, emptyDraft, validateDraftDocument, type DraftDocument, type DraftGroup, type DraftPlayer, type DraftSaveRequest, type DraftSnapshot } from "@/lib/draft-board";
@@ -12,15 +12,13 @@ import styles from "./draft-board.module.css";
 
 export function DraftBoard({ initial, athletes, performance }: { initial: DraftSnapshot | null; athletes: { id: string; name: string }[]; performance: DraftPerformance[] | null }) {
   const [saved, setSaved] = useState(initial), [document, setDocument] = useState<DraftDocument>(initial?.document ?? emptyDraft());
-  const [setup, setSetup] = useState(!initial), [search, setSearch] = useState(""), [group, setGroup] = useState<DraftGroup | "All">("All");
+  const [setup, setSetup] = useState(!initial);
   const [selected, setSelected] = useState<string | null>(null), [pending, setPending] = useState(false), [retry, setRetry] = useState<DraftSaveRequest | null>(null);
   const [message, setMessage] = useState(""), [error, setError] = useState(""), [undo, setUndo] = useState(false);
-  const [bigBoard, setBigBoard] = useState(false);
-  const view = draftView(document), chosen = view.available.find(p => p.id === selected), blocked = pending || !!retry;
-  const matches = (p: DraftPlayer) => `${p.name} ${p.positions}`.toLowerCase().includes(search.trim().toLowerCase());
+  const [boardDirty, setBoardDirty] = useState(false);
+  const view = draftView(document), chosen = view.available.find(p => p.id === selected), blocked = pending || !!retry, draftBlocked = blocked || boardDirty;
   const plan = draftPlanning(document), open = view.nextTeam === null ? [] : draftOpenPositions(document, view.nextTeam);
   const fits = plan.bigBoard.flatMap(id => { const p = view.available.find(p => p.id === id); return p && open.some(pos => draftCovers(p, pos)) ? [p] : []; }).slice(0, 4);
-  const visible = (group === "Injured / Student Assistants" ? document.players.filter(p => !draftable(p)) : view.available).filter(p => (group === "All" || p.group === group) && matches(p)).sort((a,b) => plan.bigBoard.indexOf(a.id)-plan.bigBoard.indexOf(b.id));
   async function commit(next: DraftDocument, existing?: DraftSaveRequest) {
     let request: DraftSaveRequest;
     try { request = existing ?? { requestId: crypto.randomUUID(), expectedRevision: saved?.revision ?? 0, document: validateDraftDocument(next) }; }
@@ -29,7 +27,7 @@ export function DraftBoard({ initial, athletes, performance }: { initial: DraftS
     try {
       const result = await saveBoxerDraft(request);
       if (!result.ok) { setError(result.message); return; }
-      setSaved(result.board); setDocument(result.board.document); setRetry(null); setSetup(false); setBigBoard(false); setSelected(null); setUndo(false); setMessage("Draft saved.");
+      setSaved(result.board); setDocument(result.board.document); setRetry(null); setSetup(false); setBoardDirty(false); setSelected(null); setUndo(false); setMessage("Draft saved.");
     } catch { setError("The save was not confirmed. Retry the same change or reload the saved board to check it."); }
     finally { setPending(false); }
   }
@@ -41,7 +39,7 @@ export function DraftBoard({ initial, athletes, performance }: { initial: DraftS
   }
   const playerName = (player: DraftPlayer) => player.athleteId ? <Link prefetch={false} href={`/athletes/${player.athleteId}`}>{player.name}</Link> : player.name;
   return <div className={styles.room} aria-busy={pending}>
-    <div className={styles.toolbar}><span className={styles.private}><LockKeyhole size={14}/>Only You · Fall 2026</span><div><button type="button" className="btn btn-secondary" disabled={blocked || setup} aria-pressed={bigBoard} onClick={() => setBigBoard(!bigBoard)}>{bigBoard ? "Draft Room" : "Big Board"}</button><button type="button" className="btn btn-secondary" disabled={blocked || bigBoard} onClick={() => { setSetup(!setup); setError(""); }}><Settings2 size={15}/>{setup ? "Close Setup" : "Draft Setup"}</button><button type="button" className="btn btn-secondary" onClick={download} disabled={!saved || blocked}><Download size={15}/>Export</button><button type="button" className="btn btn-secondary" onClick={() => window.print()} disabled={!saved || blocked}><Printer size={15}/>Print</button></div></div>
+    <div className={styles.toolbar}><span className={styles.private}><LockKeyhole size={14}/>Only You · Fall 2026</span><div><button type="button" className="btn btn-secondary" disabled={draftBlocked} onClick={() => { setSetup(!setup); setError(""); }}><Settings2 size={15}/>{setup ? "Close Setup" : "Draft Setup"}</button><button type="button" className="btn btn-secondary" onClick={download} disabled={!saved || draftBlocked}><Download size={15}/>Export</button><button type="button" className="btn btn-secondary" onClick={() => window.print()} disabled={!saved || draftBlocked}><Printer size={15}/>Print</button></div></div>
     {message && <p role="status" className="notice">{message}</p>}
     {error && <p role="alert" className="notice notice-error">{error}</p>}
     {retry && !pending && <div className={styles.retry}><p>This change is held for an identical retry. Reloading shows the last saved board.</p><button className="btn btn-primary" onClick={() => commit(retry.document, retry)}>Retry Same Change</button><button className="btn btn-secondary" onClick={() => { window.location.reload(); }}>Reload Saved Board</button></div>}
@@ -51,30 +49,27 @@ export function DraftBoard({ initial, athletes, performance }: { initial: DraftS
       <div className={styles.onClock}>{view.complete ? <><Trophy size={22}/><strong>Draft Complete</strong><span>Both teams are ready.</span></> : !view.pool.length ? <><strong>Set Up Your Draft</strong><span>Add the draft list to get started.</span></> : <><span>On the Clock · Pick {String(view.nextPick).padStart(2, "0")}</span><strong>{document.teams[view.nextTeam ?? 0].name}</strong><span>Snake order · 1, 2, 2, 1</span></>}</div>
     </section>
     <div className={styles.progress} role="img" aria-label={`${document.picks.length} of ${view.pool.length} picks made`}><span style={{ width: `${view.pool.length ? document.picks.length / view.pool.length * 100 : 0}%` }}/></div>
-    <div hidden={!bigBoard}><DraftBigBoard key={saved?.revision ?? 0} document={document} performance={performance} disabled={blocked} onSave={next => commit(next)} onError={setError}/></div>
-    <div className={styles.main} hidden={bigBoard}>
-      <section className={styles.pool} aria-label="Available players">
-        <header className={styles.sectionHead}><div><p className={styles.eyebrow}>DRAFT POOL</p><h3>Available Players <span>{view.available.length}</span></h3></div></header>
-        <div className={styles.filters}><label><Search size={16}/><span className="sr-only">Search draft players</span><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or position"/></label><label><span className="sr-only">Draft position group</span><select value={group} onChange={e => setGroup(e.target.value as DraftGroup | "All")}><option value="All">All Positions</option>{DRAFT_GROUPS.map(name => <option key={name} value={name}>{name} ({document.players.filter(p => p.group === name && (!draftable(p) || !document.picks.includes(p.id))).length})</option>)}</select></label></div>
-        {!setup && !bigBoard && fits.length > 0 && <details className={styles.fitSuggestions}><summary>Fits for {document.teams[view.nextTeam ?? 0].name}</summary><p>Open spots: {open.join(" · ")}. Ordered by your saved big board; unassigned players may already cover these spots.</p>{fits.map(p=><button key={p.id} disabled={blocked} onClick={()=>setSelected(p.id)}><strong>#{plan.bigBoard.indexOf(p.id)+1} {p.name}</strong><small>{open.filter(pos=>draftCovers(p,pos)).join(" / ")}</small></button>)}</details>}
-        <div className={styles.poolList}>{visible.map(player => <button type="button" className={styles.player} key={player.id} aria-pressed={selected === player.id} disabled={blocked || !draftable(player) || !saved || setup} onClick={() => setSelected(player.id)}><span className={styles.avatar}>{player.name.split(/\s+/).map(w => w[0]).slice(0, 2).join("")}</span><span><strong>{player.name}</strong><small>{player.group}{player.positions ? ` · ${player.positions}` : ""} · Board #{plan.bigBoard.indexOf(player.id) + 1 || "—"}</small></span>{selected === player.id ? <Check size={18}/> : <ChevronRight size={16}/>}</button>)}</div>
-        {!visible.length && <p className={styles.empty}>{view.complete ? "Everyone in the draft pool has been selected." : "No players match this search."}</p>}
-        {group === "Injured / Student Assistants" && <p className={styles.caption}>Kept separate from the active draft pool, as listed on your sheet.</p>}
-        {chosen && <div className={styles.selection}><div><small>YOUR SELECTION · PICK {view.nextPick}</small><strong>{chosen.name}</strong><span>{document.teams[view.nextTeam ?? 0].name}</span></div><button className="btn btn-primary" disabled={blocked || setup} onClick={() => commit(nextDraftSelection(document, chosen.id))}>{pending ? "Saving…" : "Confirm Pick"}<ChevronRight size={16}/></button></div>}
-      </section>
+    <div className={styles.main}>
+      <DraftBigBoard key={saved?.revision ?? 0} document={document} performance={performance} disabled={blocked||setup} onSave={next => commit(next)} onError={setError} onDirtyChange={setBoardDirty} selected={selected} canDraft={!!saved&&!setup} onSelect={setSelected}>
+        {chosen && <div className={styles.selection}><div><small>YOUR SELECTION · PICK {view.nextPick}</small><strong>{chosen.name}</strong><span>{document.teams[view.nextTeam ?? 0].name}</span></div><button className="btn btn-primary" disabled={draftBlocked || setup} onClick={() => commit(nextDraftSelection(document, chosen.id))}>{pending ? "Saving…" : "Confirm Pick"}<ChevronRight size={16}/></button></div>}
+      </DraftBigBoard>
+      <div className={styles.draftSide}>
+        {!setup && fits.length > 0 && <section className={styles.fitSuggestions} aria-label="Positional need suggestions"><strong>Fits for {document.teams[view.nextTeam ?? 0].name}</strong><p>Open spots: {open.join(" · ")}. Unassigned players may already cover these spots.</p>{fits.map(p=><button key={p.id} disabled={draftBlocked} onClick={()=>setSelected(p.id)}><strong>#{plan.bigBoard.indexOf(p.id)+1} {p.name}</strong><small>{open.filter(pos=>draftCovers(p,pos)).join(" / ")}</small></button>)}</section>}
       <div className={styles.teams} aria-label="Drafted team rosters">{document.teams.map((team, index) => <section className={styles.team} data-team={index} key={index} aria-label={`${team.name} roster`}>
         <header><span className={styles.teamNumber}>0{index + 1}</span><div><p className={styles.eyebrow}>{!view.complete && view.nextTeam === index && view.pool.length ? "ON THE CLOCK" : "BOXER WORLD SERIES"}</p><h3>{team.name}</h3></div><strong className={styles.teamCount}>{view.rosters[index].length + team.captains.length}<small>players</small></strong></header>
         <div className={styles.captains}><small>CAPTAINS</small><strong>{team.captains.join(" · ") || "Add captains in Draft Setup"}</strong></div>
-        <DraftDepthChart document={document} team={index as 0 | 1} disabled={blocked || setup} onSave={next => commit(next)}/>
+        <DraftDepthChart document={document} team={index as 0 | 1} disabled={draftBlocked || setup} onSave={next => commit(next)}/>
         <div className={styles.balance}>{DRAFT_GROUPS.filter(g => g !== "Injured / Student Assistants").map(g => <span key={g}><strong>{view.rosters[index].filter(r => r.player.group === g).length}</strong>{g === "First Base" ? "1B" : g === "Two-Ways" ? "2-Way" : g === "Pitchers" ? "P" : g === "Outfielders" ? "OF" : g === "Infielders" ? "IF" : "C"}</span>)}</div>
         <details className={styles.fullRoster}><summary>Full Roster · {view.rosters[index].length} drafted</summary><ol className={styles.roster}>{view.rosters[index].map(row => <li key={row.player.id}><span className={styles.pickNo}>#{String(row.pick).padStart(2, "0")}</span><div><strong>{playerName(row.player)}</strong><small>{row.player.positions || row.player.group}</small></div></li>)}</ol>
         {!view.rosters[index].length && <p className={styles.empty}>Your picks will fill in here.</p>}</details>
       </section>)}</div>
+      </div>
     </div>
-    <section className={styles.board} hidden={bigBoard} aria-label="Complete draft order"><div className={styles.sectionHead}><div><p className={styles.eyebrow}>EVERY PICK · IN ORDER</p><h3>Draft Board</h3></div>{document.picks.length > 0 && <button className="btn btn-secondary" disabled={blocked || setup} onClick={() => setUndo(!undo)}><Undo2 size={15}/>Undo Last Pick</button>}</div>
-      {undo && <div className={styles.undo}><span>Return {view.selections.at(-1)?.player.name} to the available pool?</span><button className="btn btn-primary" disabled={blocked} onClick={() => commit(withDraftPicks(document, document.picks.slice(0, -1)))}>Confirm Undo</button><button className="btn btn-secondary" disabled={blocked} onClick={() => setUndo(false)}><X size={14}/>Cancel</button></div>}
+    <section className={styles.board} aria-label="Complete draft order"><div className={styles.sectionHead}><div><p className={styles.eyebrow}>EVERY PICK · IN ORDER</p><h3>Draft Board</h3></div>{document.picks.length > 0 && <button className="btn btn-secondary" disabled={draftBlocked || setup} onClick={() => setUndo(!undo)}><Undo2 size={15}/>Undo Last Pick</button>}</div>
+      {undo && <div className={styles.undo}><span>Return {view.selections.at(-1)?.player.name} to the available pool?</span><button className="btn btn-primary" disabled={draftBlocked} onClick={() => commit(withDraftPicks(document, document.picks.slice(0, -1)))}>Confirm Undo</button><button className="btn btn-secondary" disabled={blocked} onClick={() => setUndo(false)}><X size={14}/>Cancel</button></div>}
       <div className={styles.boardGrid}><div className={styles.boardHeading}>Round</div>{document.teams.map((t, i) => <div className={styles.boardHeading} data-team={i} key={i}>{t.name}</div>)}{view.rounds.map((round, index) => <div className={styles.round} key={index}><span className={styles.roundNumber}>{String(index + 1).padStart(2, "0")}</span>{round.map((slot, team) => <div key={team} className={styles.slot} data-team={team} data-current={!view.complete && slot?.pick === view.nextPick}><span>{slot ? `#${String(slot.pick).padStart(2, "0")}` : "—"}</span><div><strong>{slot?.player ? playerName(slot.player) : slot?.pick === view.nextPick ? "On the Clock" : "—"}</strong>{slot?.player && <small>{slot.player.positions || slot.player.group}</small>}</div>{slot?.player && <Check size={15}/>}</div>)}</div>)}</div>
     </section>
+    {document.players.some(p=>!draftable(p))&&<details className={styles.aside}><summary>Injured / Student Assistants · Not in the draft pool</summary><p>{document.players.filter(p=>!draftable(p)).map(p=>p.name).join(" · ")}</p></details>}
     <p className={styles.caption}>Private to your account. Picks are saved after confirmation. Draft changes never alter player profiles or team access.</p>
     <button type="button" className={styles.refresh} disabled={blocked} onClick={() => window.location.reload()}>Reload Saved Board</button>
   </div>;

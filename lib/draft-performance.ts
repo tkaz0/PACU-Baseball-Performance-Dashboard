@@ -24,3 +24,19 @@ export function performanceDraftOrder(doc:DraftDocument,profiles:DraftPerformanc
     const sa=score(a),sb=score(b);return sa===null||sb===null?sa===sb?current.indexOf(a)-current.indexOf(b):sa===null?1:-1:sb-sa||current.indexOf(a)-current.indexOf(b);
   });
 }
+
+/** A draft starting order, not a new talent grade: use the best complete role score. */
+export function draftSuggestedScore(player:DraftDocument["players"][number],profile:DraftPerformance|undefined):{score:number;role:"Hitting"|"Pitching"}|null{
+  const choices:{score:number;role:"Hitting"|"Pitching"}[]=[];
+  for(const [key,role] of [["hitting","Hitting"],["pitching","Pitching"]] as const){
+    if(key==="hitting"&&player.group==="Pitchers"||key==="pitching"&&player.group!=="Pitchers"&&player.group!=="Two-Ways")continue;
+    const score=profile?.[key]?.score;
+    if(typeof score==="number"&&Number.isFinite(score)&&score>=0&&score<=100)choices.push({score,role});
+  }
+  return choices.sort((a,b)=>b.score-a.score)[0]??null;
+}
+export function suggestedDraftOrder(doc:DraftDocument,profiles:DraftPerformance[]):string[]{
+  const current=doc.planning?.bigBoard??doc.players.filter(p=>p.group!=="Injured / Student Assistants").map(p=>p.id);
+  const scores=new Map(current.map(id=>{const player=doc.players.find(p=>p.id===id)!;return [id,draftSuggestedScore(player,profiles.find(p=>p.id===player.athleteId))?.score??null];}));
+  return [...current].sort((a,b)=>{const sa=scores.get(a)??null,sb=scores.get(b)??null;return sa===null||sb===null?sa===sb?current.indexOf(a)-current.indexOf(b):sa===null?1:-1:sb-sa||current.indexOf(a)-current.indexOf(b);});
+}

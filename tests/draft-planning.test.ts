@@ -1,8 +1,8 @@
 import { expect,it } from "vitest";
 import { emptyDraft, draftPlanning, draftOpenPositions, nextDraftSelection, placeDraftPlayer, withDraftPicks, validateDraftDocument, printedDraftPosition, draftCovers } from "@/lib/draft-board";
-import { performanceDraftOrder, type DraftPerformance } from "@/lib/draft-performance";
+import { performanceDraftOrder, suggestedDraftOrder, draftSuggestedScore, type DraftPerformance } from "@/lib/draft-performance";
 const id=(n:number)=>`aaaaaaaa-aaaa-4aaa-8aaa-${String(n).padStart(12,"0")}`;
-function fixture(){const d=emptyDraft();d.teams[0].captains=["Fictional Captain"];d.players=[{id:id(1),name:"Fictional Pitcher",group:"Pitchers" as const,positions:"",athleteId:id(11)},{id:id(2),name:"Fictional Outfielder",group:"Outfielders" as const,positions:"OF",athleteId:id(12)},{id:id(3),name:"Fictional Infielder",group:"Infielders" as const,positions:"IF",athleteId:null}];return d;}
+function fixture():ReturnType<typeof emptyDraft>{const d=emptyDraft();d.teams[0].captains=["Fictional Captain"];d.players=[{id:id(1),name:"Fictional Pitcher",group:"Pitchers" as const,positions:"",athleteId:id(11)},{id:id(2),name:"Fictional Outfielder",group:"Outfielders" as const,positions:"OF",athleteId:id(12)},{id:id(3),name:"Fictional Infielder",group:"Infielders" as const,positions:"IF",athleteId:null}];return d;}
 it("loads old boards without changing identities, preserves ranks and prunes only undone field assignments",()=>{
   const old=fixture();expect(validateDraftDocument(old)).toEqual(old);expect(draftPlanning(old).bigBoard).toEqual(old.players.map(p=>p.id));
   let d=nextDraftSelection(old,id(1));expect(d.planning?.placements[0]).toEqual([{playerId:id(1),position:"P"}]);
@@ -24,3 +24,17 @@ it("keeps missing performance unranked, uses explicit links, preserves ties and 
 });
 
 it("allows two-way depth across positions and removes just the selected assignment",()=>{let d=nextDraftSelection(fixture(),id(1));d=placeDraftPlayer(d,0,id(1),"CF");expect(d.planning?.placements[0]).toHaveLength(2);d=placeDraftPlayer(d,0,id(1),null,"CF");expect(d.planning?.placements[0]).toEqual([{playerId:id(1),position:"P"}]);});
+
+it("seeds the combined board with the strongest valid role score, never sums two-way scores or infers unmatched profiles",()=>{
+ const d=fixture();d.players[1].group="Two-Ways" as typeof d.players[1]["group"];
+ const line=(score:number)=>({score,rank:1,cohort:8,stats:[],early:true,updatedAt:"2026-10-08T00:00:00Z"});
+ const profiles:DraftPerformance[]=[{id:id(11),name:"Fictional Pitcher",position:"P",hitting:line(100),pitching:line(80)},{id:id(12),name:"Fictional Two Way",position:"OF/P",hitting:line(50),pitching:line(60)},{id:id(13),name:"Fictional Infielder",position:"IF",hitting:line(100),pitching:null}];
+ expect(suggestedDraftOrder(d,profiles)).toEqual([id(1),id(2),id(3)]);
+ expect(draftSuggestedScore(d.players[0],profiles[0])).toEqual({score:80,role:"Pitching"});
+ expect(draftSuggestedScore(d.players[1],profiles[1])).toEqual({score:60,role:"Pitching"});
+ profiles[1].hitting=line(90);expect(suggestedDraftOrder(d,profiles)).toEqual([id(2),id(1),id(3)]);
+ profiles[1].hitting=line(80);profiles[1].pitching=line(NaN);expect(suggestedDraftOrder(d,profiles)).toEqual([id(1),id(2),id(3)]);
+ profiles[0].pitching=line(0);profiles[1].hitting=line(Infinity);expect(suggestedDraftOrder(d,profiles)).toEqual([id(1),id(2),id(3)]);
+ expect(draftSuggestedScore(d.players[1],profiles[1])).toBeNull();
+ expect(d.picks).toEqual([]);expect(d.planning).toBeUndefined();
+});

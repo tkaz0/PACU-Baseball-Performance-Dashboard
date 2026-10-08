@@ -8,3 +8,12 @@
 @media print{.fitSuggestions{display:none}.fullRoster>summary{display:none}.fullRoster>.roster{display:block}}
 
 .room [hidden]{display:none!important}
+
+.main{grid-template-columns:minmax(340px,.95fr) minmax(0,1.3fr)}
+.draftSide{min-width:0;display:grid;gap:16px}.teams{grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr))}
+.fitSuggestions{margin:0;border:1px solid var(--line-subtle);padding:14px 16px}.fitSuggestions>strong{font-size:14px}.fitSuggestions p{margin:6px 0}.fitSuggestions button:disabled{opacity:.5;cursor:default}
+.selection{position:sticky;bottom:0;box-shadow:0 -8px 20px #00000012}.selection :global(.btn){font-size:12px}
+.aside{font-size:12px;color:var(--text-secondary);padding:14px 16px;border:1px solid var(--line-subtle);border-radius:10px}.aside summary{cursor:pointer}.aside p{line-height:1.7}
+@media(max-width:1100px){.main{grid-template-columns:minmax(330px,1fr) minmax(0,1fr)}}
+@media(max-width:900px){.main{grid-template-columns:1fr}.teams{grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr))}}
+@media print{.main{display:block}.draftSide{display:block}.teams{grid-template-columns:1fr 1fr}.aside{display:none}.selection{display:none}}
