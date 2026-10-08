@@ -4,7 +4,7 @@ export const DRAFT_GROUPS = ["Pitchers", "Two-Ways", "Outfielders", "First Base"
 export type DraftGroup = typeof DRAFT_GROUPS[number];
 export type DraftPlayer = { id: string; name: string; group: DraftGroup; positions: string; athleteId: string | null };
 export type DraftTeam = { name: string; captains: string[] };
-export type DraftDocument = { version: 1; title: string; teams: [DraftTeam, DraftTeam]; players: DraftPlayer[]; picks: string[] };
+export type DraftDocument = { version: 1; title: string; teams: [DraftTeam, DraftTeam]; players: DraftPlayer[]; picks: string[]; planning?: DraftPlanning };
 export type DraftSnapshot = { revision: number; document: DraftDocument; updatedAt: string; lastRequestId: string };
 export type DraftSaveRequest = { requestId: string; expectedRevision: number; document: DraftDocument };
 const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
@@ -20,7 +20,7 @@ export function draftTeamForPick(pick: number): 0 | 1 {
 }
 export function validateDraftDocument(value: unknown): DraftDocument {
   const fail = (): never => { throw new Error("Check the draft title, two teams, player names, groups and picks."); };
-  if (!object(value) || !exact(value, ["version", "title", "teams", "players", "picks"]) || value.version !== 1 || !text(value.title, 100) ||
+  if (!object(value) || !exact(value, ["version", "title", "teams", "players", "picks", ...("planning" in value ? ["planning"] : [])]) || value.version !== 1 || !text(value.title, 100) ||
     !Array.isArray(value.teams) || value.teams.length !== 2 || !Array.isArray(value.players) || value.players.length > 100 || !Array.isArray(value.picks) || value.picks.length > 100) return fail();
   const teams: DraftTeam[] = [];
   for (const team of value.teams) {
@@ -38,7 +38,17 @@ export function validateDraftDocument(value: unknown): DraftDocument {
     players.some(p => teams.some(t => t.captains.some(name => name.toLowerCase() === p.name.toLowerCase())))) return fail();
   const pool = new Set(players.filter(draftable).map(p => p.id));
   if (value.picks.some(id => typeof id !== "string" || !pool.has(id)) || !unique(value.picks as string[])) return fail();
-  return { version: 1, title: value.title, teams: teams as [DraftTeam, DraftTeam], players, picks: value.picks as string[] };
+  const result: DraftDocument = { version: 1, title: value.title, teams: teams as [DraftTeam, DraftTeam], players, picks: value.picks as string[] };
+  if ("planning" in value) {
+    const plan = value.planning;
+    if (!object(plan) || !exact(plan, ["bigBoard", "placements"]) || !Array.isArray(plan.bigBoard) || plan.bigBoard.length !== pool.size || plan.bigBoard.some(id => typeof id !== "string" || !pool.has(id)) || !unique(plan.bigBoard as string[]) || !Array.isArray(plan.placements) || plan.placements.length !== 2) return fail();
+    for (const [team, placements] of plan.placements.entries()) {
+      const roster = new Set(draftRoster(result, team as 0 | 1).map(p => p.id));
+      if (!Array.isArray(placements) || placements.length > roster.size * FIELD_POSITIONS.length || placements.some(p => !object(p) || !exact(p,["playerId","position"]) || typeof p.playerId !== "string" || !roster.has(p.playerId) || !FIELD_POSITIONS.includes(p.position as FieldPosition)) || !unique(placements.map(p => `${p.playerId}|${p.position}`))) return fail();
+    }
+    result.planning = plan as DraftPlanning;
+  }
+  return result;
 }
 export function validateDraftSnapshot(value: unknown): DraftSnapshot {
   if (!object(value) || !exact(value, ["revision", "document", "updatedAt", "lastRequestId"]) || !Number.isSafeInteger(value.revision) || Number(value.revision) < 1 ||
@@ -71,8 +81,58 @@ export function draftPlayersFromGroups(groups: Record<DraftGroup, string>, previ
 }
 export function draftExportRows(document: DraftDocument): string[][] {
   const view = draftView(document);
-  return [["Team", "Pick", "Player", "Group", "Positions"], ...document.teams.flatMap(team => team.captains.map(name => [team.name, "Captain", name, "Captain", ""])),
-    ...view.selections.map(row => [document.teams[row.team].name, String(row.pick), row.player.name, row.player.group, row.player.positions]),
-    ...view.available.map(p => ["Available", "", p.name, p.group, p.positions]),
-    ...document.players.filter(p => !draftable(p)).map(p => ["Not in Draft Pool", "", p.name, p.group, p.positions])];
+  const plan=draftPlanning(document);
+  const rank=(id:string)=>String(plan.bigBoard.indexOf(id)+1);
+  const depth=(team:0|1,id:string)=>plan.placements[team].filter(p=>p.playerId===id).map(p=>{const at=plan.placements[team].filter(q=>q.position===p.position).findIndex(q=>q.playerId===id);return `${p.position} ${at===0?"Starter":`Backup ${at}`}`;}).join(" / ");
+  return [["Team", "Pick", "Player", "Group", "Positions", "Big Board Rank", "Field Depth"], ...document.teams.flatMap((team,t) => team.captains.map((name,i) => [team.name, "Captain", name, "Captain", "", "", depth(t as 0|1,`captain-${t}-${i}`)])),
+    ...view.selections.map(row => [document.teams[row.team].name, String(row.pick), row.player.name, row.player.group, row.player.positions,rank(row.player.id),depth(row.team,row.player.id)]),
+    ...[...view.available].sort((a,b)=>plan.bigBoard.indexOf(a.id)-plan.bigBoard.indexOf(b.id)).map(p => ["Available", "", p.name, p.group, p.positions,rank(p.id),""]),
+    ...document.players.filter(p => !draftable(p)).map(p => ["Not in Draft Pool", "", p.name, p.group, p.positions,"",""])];
+}
+
+export const FIELD_POSITIONS = ["P", "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DH"] as const;
+export type FieldPosition = typeof FIELD_POSITIONS[number];
+export type DraftPlacement = { playerId: string; position: FieldPosition };
+export type DraftPlanning = { bigBoard: string[]; placements: [DraftPlacement[], DraftPlacement[]] };
+export type DraftRosterPlayer = { id: string; name: string; group: DraftGroup | "Captain"; positions: string };
+export function draftRoster(doc: DraftDocument, team: 0 | 1): DraftRosterPlayer[] {
+  return [...doc.teams[team].captains.map((name,i)=>({id:`captain-${team}-${i}`,name,group:"Captain" as const,positions:""})), ...draftView(doc).rosters[team].map(r=>r.player)];
+}
+export function draftPlanning(doc: DraftDocument): DraftPlanning {
+  return doc.planning ?? { bigBoard: doc.players.filter(draftable).map(p=>p.id), placements:[[],[]] };
+}
+/** Keep board ranks and valid depth assignments when a pick is undone. */
+export function withDraftPicks(doc: DraftDocument, picks: string[]): DraftDocument {
+  const next={...doc,picks}; const plan=draftPlanning(doc);
+  return {...next,planning:{...plan,placements:([0,1] as const).map(team=>plan.placements[team].filter(p=>draftRoster(next,team).some(r=>r.id===p.playerId))) as DraftPlanning["placements"]}};
+}
+/** Only specific printed positions or unambiguous sheet groups propose a field spot. */
+export function printedDraftPosition(player: DraftRosterPlayer): FieldPosition | null {
+  const positions=player.positions.toUpperCase().split(/[ /,]+/).filter(p=>FIELD_POSITIONS.includes(p as FieldPosition));
+  if(positions.length===1)return positions[0] as FieldPosition;
+  return player.group==="Pitchers"?"P":player.group==="Catchers"?"C":player.group==="First Base"?"1B":null;
+}
+export function placeDraftPlayer(doc: DraftDocument, team:0|1, playerId:string, position:FieldPosition|null, from?:FieldPosition):DraftDocument {
+  const plan=draftPlanning(doc); const placements=[...plan.placements] as DraftPlanning["placements"];
+  placements[team]=[...placements[team].filter(p=>p.playerId!==playerId || (position ? p.position!==position : from ? p.position!==from : false)),...(position?[{playerId,position}]:[])];
+  return validateDraftDocument({...doc,planning:{...plan,placements}});
+}
+export function nextDraftSelection(doc:DraftDocument, playerId:string):DraftDocument {
+  const team=draftView(doc).nextTeam; let next=withDraftPicks(doc,[...doc.picks,playerId]);
+  const player=doc.players.find(p=>p.id===playerId), position=player&&printedDraftPosition(player);
+  if(team!==null && position)next=placeDraftPlayer(next,team,playerId,position);
+  return validateDraftDocument(next);
+}
+export function draftOpenPositions(doc:DraftDocument,team:0|1):FieldPosition[]{
+  return FIELD_POSITIONS.filter(pos=>pos!=="DH"&&!draftPlanning(doc).placements[team].some(p=>p.position===pos));
+}
+/** Broad group eligibility suggests coverage, never a specific field assignment. */
+export function draftCovers(player:DraftPlayer,position:FieldPosition):boolean {
+  const printed=player.positions.toUpperCase().split(/[ /,]+/);
+  if(printed.includes(position))return true;
+  if(position==="P")return player.group==="Pitchers"||player.group==="Two-Ways";
+  if(position==="C")return player.group==="Catchers";
+  if(position==="1B"&&player.group==="First Base")return true;
+  if(["2B","3B","SS"].includes(position))return player.group==="Infielders"||printed.some(p=>["IF","INF"].includes(p));
+  return ["LF","CF","RF"].includes(position)&&(player.group==="Outfielders"||printed.includes("OF"));
 }

@@ -242,3 +242,5 @@ Fall Blast practice metrics combine nonoverlapping weekly average reports by swi
 ## Private Boxer World Series Draft
 
 Administration → Draft Board opens an owner-scoped draft room for the actual administrator, outside View as. It supports a reviewed two-team pool, separate captains and injured/student-assistant entries, position search, the sheet’s 1–2–2–1 snake order, confirmed picks, undo, print and CSV export. Progress saves to the signed-in owner only; no draft action changes athletes, accounts or performance data. See [Setup](docs/SETUP.md#private-boxer-world-series-draft) and [Data model](docs/DATA_MODEL.md#private-boxer-world-series-draft).
+
+The private Draft Board now includes two clickable baseball-field depth charts and an editable Big Board. Captains and drafted players can fill starter/backup depth, including multiple spots for two-way players. Reviewed profile matches enable the existing cumulative Fall Top Performers evidence and optional hitter/pitcher ordering; open-position fits follow the owner’s saved ranking.

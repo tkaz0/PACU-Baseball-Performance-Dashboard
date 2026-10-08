@@ -14,6 +14,7 @@ beforeAll(async()=>{
   const directory=new URL("../supabase/migrations/",import.meta.url);
   for(const file of readdirSync(directory).filter(name=>name.endsWith('.sql')&&name<="202609060006_staff_performance_imports.sql").sort())await db.exec(readFileSync(new URL(file,directory),"utf8"));
   await db.exec(readFileSync(new URL("202610080001_private_boxer_draft.sql",directory),"utf8"));
+  await db.exec(readFileSync(new URL("202610080002_draft_planning.sql",directory),"utf8"));
   for(const [id,role] of [[admin,"admin"],[other,"admin"],[coach,"coach"],[player,"player"]]){
     await db.query("insert into auth.users(id) values($1)",[id]);await db.query("insert into public.app_accounts(user_id,is_active) values($1,true)",[id]);await db.query("insert into public.account_roles(user_id,role) values($1,$2)",[id,role]);
   }
@@ -48,4 +49,15 @@ it("rejects malformed JSON, duplicates, unavailable picks, captain overlap and i
 it("rechecks active status and roles at read and save time",async()=>{
   await asUser(admin,()=>save());await db.query("update public.app_accounts set is_active=false where user_id=$1",[admin]);
   await asUser(admin,async()=>{await expect(read()).rejects.toThrow("required");await expect(save()).rejects.toThrow("required");expect((await db.query("select * from public.boxer_draft_boards")).rows).toHaveLength(0);});
+});
+it("persists private rankings and captain depth while rejecting cross-team/undrafted placements and incomplete boards",async()=>{
+  const base=document();base.teams[0].captains=["Fictional Captain"];
+  const plan={bigBoard:[pid],placements:[[{playerId:"captain-0-0",position:"SS"}],[]]};
+  await asUser(admin,async()=>{
+    const saved=await save({...base,planning:plan});expect(validateDraftSnapshot(saved.board).document.planning).toEqual(plan);
+    for(const bad of [{...plan,bigBoard:[]},{...plan,bigBoard:[pid,pid]},{...plan,extra:1},{...plan,placements:[[{playerId:pid,position:"P"}],[]]},{...plan,placements:[[],[{playerId:"captain-0-0",position:"SS"}]]},{...plan,placements:[[{playerId:"captain-0-0",position:"Bad"}],[]]},{...plan,placements:[[{playerId:"captain-0-0",position:"SS"},{playerId:"captain-0-0",position:"SS"}],[]]}])await expect(save({...base,planning:bad},1,request2)).rejects.toThrow("Invalid draft details");
+    const drafted={...base,picks:[pid],planning:{...plan,placements:[[{playerId:pid,position:"P"},{playerId:pid,position:"CF"},{playerId:"captain-0-0",position:"SS"}],[]]}};
+    await save(drafted,1,request2);expect(validateDraftSnapshot(await read()).document.planning).toEqual(drafted.planning);
+  });
+  await asUser(other,async()=>expect(await read()).toBeNull());
 });
