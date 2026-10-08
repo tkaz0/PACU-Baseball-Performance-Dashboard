@@ -6,11 +6,10 @@ import { PacificLogo } from "@/components/pacific-brand";
 import { saveBoxerDraft } from "@/app/(workspace)/admin/draft-board/actions";
 import { DRAFT_GROUPS, draftable, draftExportRows, draftPlayersFromGroups, draftView, emptyDraft, validateDraftDocument, type DraftDocument, type DraftGroup, type DraftPlayer, type DraftSaveRequest, type DraftSnapshot } from "@/lib/draft-board";
 import { DraftDepthChart, DraftBigBoard } from "@/components/draft-planning";
-import type { DraftPerformance } from "@/lib/draft-performance";
 import { draftPlanning, draftOpenPositions, draftCovers, nextDraftSelection, withDraftPicks } from "@/lib/draft-board";
 import styles from "./draft-board.module.css";
 
-export function DraftBoard({ initial, athletes, performance }: { initial: DraftSnapshot | null; athletes: { id: string; name: string }[]; performance: DraftPerformance[] | null }) {
+export function DraftBoard({ initial, athletes }: { initial: DraftSnapshot | null; athletes: { id: string; name: string }[] }) {
   const [saved, setSaved] = useState(initial), [document, setDocument] = useState<DraftDocument>(initial?.document ?? emptyDraft());
   const [setup, setSetup] = useState(!initial);
   const [selected, setSelected] = useState<string | null>(null), [pending, setPending] = useState(false), [retry, setRetry] = useState<DraftSaveRequest | null>(null);
@@ -50,7 +49,7 @@ export function DraftBoard({ initial, athletes, performance }: { initial: DraftS
     </section>
     <div className={styles.progress} role="img" aria-label={`${document.picks.length} of ${view.pool.length} picks made`}><span style={{ width: `${view.pool.length ? document.picks.length / view.pool.length * 100 : 0}%` }}/></div>
     <div className={styles.main}>
-      <DraftBigBoard key={saved?.revision ?? 0} document={document} performance={performance} disabled={blocked||setup} onSave={next => commit(next)} onError={setError} onDirtyChange={setBoardDirty} selected={selected} canDraft={!!saved&&!setup} onSelect={setSelected}>
+      <DraftBigBoard key={saved?.revision ?? 0} document={document} athletes={athletes} disabled={blocked||setup} onSave={next => commit(next)} onError={setError} onDirtyChange={setBoardDirty} selected={selected} canDraft={!!saved&&!setup} onSelect={setSelected}>
         {chosen && <div className={styles.selection}><div><small>YOUR SELECTION · PICK {view.nextPick}</small><strong>{chosen.name}</strong><span>{document.teams[view.nextTeam ?? 0].name}</span></div><button className="btn btn-primary" disabled={draftBlocked || setup} onClick={() => commit(nextDraftSelection(document, chosen.id))}>{pending ? "Saving…" : "Confirm Pick"}<ChevronRight size={16}/></button></div>}
       </DraftBigBoard>
       <div className={styles.draftSide}>
