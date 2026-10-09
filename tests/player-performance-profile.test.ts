@@ -76,9 +76,9 @@ describe("player profile tabs and presentation",()=>{
   expect(html.includes("Speed &amp; Agility")).toBe(hitting);expect(html.includes('data-metric-key="home_to_first"')).toBe(hitting);expect(html.includes("Sep 4, 2026")).toBe(hitting);
   expect(overview).toContain("Strengths");expect(overview).toContain("Areas to Work On");expect(/Biggest Jumps|Biggest jumps appear after a repeat test/.test(overview)).toBe(true);
  });
- it("shows eligible percentile bars without transmitting another athlete's raw provenance",()=>{
+ it("keeps percentile bars off tab cards and never transmits another athlete's raw provenance",()=>{
   const readings=Array.from({length:5},(_,i)=>measurement("Weight",170+i,"lb","2026-09-03",`SYN-00${i+1}`));const performance=getPlayerPerformance({readings,athleteCode:"SYN-001",cohortAthleteCodes:readings.map(r=>r.athlete_code)}),html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete:fictionalAthlete("position"),performance}));
-  expect(html).toContain('role="meter"');expect(html).toContain('data-percentile="0"');expect(html).toContain("of 5 players");expect(html).toContain('data-direction="neutral"');expect(html).not.toContain("fictional-SYN-002.csv");
+  expect(html).not.toContain('data-testid="player-percentile"');expect(html).not.toContain('data-ranking-metric="weight"');expect(html).not.toContain("fictional-SYN-002.csv");
  });
 });
 
@@ -93,10 +93,10 @@ it("shows recorded total muscle in Body Composition and Overview instead of a pe
  const overview=html.split('role="tabpanel"')[1];expect(overview).toContain('120<span class="hero-unit"> lb</span>');expect(overview).not.toContain('data-ranking-metric="muscle_mass"');
  expect(getPlayerProfileLayout(model([measurement("Muscle Mass Percentage",75,"%")]),fictionalAthlete("position").athlete_seasons[0]).additionalBody.find(c=>c.metric.key==="muscle_mass")?.latest).toBeUndefined();
 });
-it("renders the same percentile bars across hitting and throwing for comparable data",()=>{
+it("ranks comparable hitting and pitching results in the Overview percentile list",()=>{
  const codes=Array.from({length:5},(_,i)=>`SYN-00${i+1}`),readings=codes.flatMap((code,i)=>[measurement("Max EV",90+i,"mph","2026-09-03",code),measurement("Max Velocity",80+i,"mph","2026-09-03",code),measurement("BB %",5+i,"%","2026-09-03",code)]);
  const performance=getPlayerPerformance({readings,athleteCode:codes[0],cohortAthleteCodes:codes}),html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete:fictionalAthlete("two_way","CF","P"),performance}));
- for(const label of ["Max EV","Max Velocity","BB %"])expect(html).toContain(`aria-label="${label} Pacific percentile"`);expect(html).toContain('data-direction="lower"');
+ for(const key of ["max_exit_velocity","max_pitch_velocity","bb_pct"])expect(html).toContain(`data-ranking-metric="${key}"`);expect(html).not.toContain('data-testid="player-percentile"');
 });
 
 it("keeps only available profile measurements and hides paused speed protocols without deleting them",()=>{

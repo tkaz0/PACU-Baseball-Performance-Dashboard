@@ -25,7 +25,6 @@ import { MeasurementChange } from "@/components/measurement-change";
 import { playerRenphoChange } from "@/lib/measurement-change";
 import { RenphoBodyScore } from "@/components/renpho-body-score";
 import { StatInfo } from "@/components/stat-info";
-import { PercentileBar } from "@/components/percentile-bar";
 import type { ProfileTabId, ProfileDetail } from "@/lib/profile-tab";
 import type { ReactNode } from "react";
 import { PacificLogo } from "@/components/pacific-brand";
@@ -61,15 +60,6 @@ function ReadingValue({ reading }: { reading: PlayerMetricReading }) {
   const value = parseBlastSource(reading.source) ? formatBlastValue(reading.value,reading.unit) : formatMetricNumber(reading.value, reading.metricKey, reading.source, reading.unit === "s" ? reading.value.toFixed(2) : reading.derived ? `≈${reading.value.toFixed(1)}` : String(reading.value));
   return <><span className="font-extrabold tabular-nums">{value}</span><span className="ml-1.5 text-sm font-medium tracking-normal text-[var(--text-secondary)]">{reading.unit}</span></>;
 }
-function Percentile({ card }: { card: PlayerMetricCard }) {
-  const percentile = card.percentile;
-  if (!card.latest || !percentile || !Number.isFinite(percentile.value) || percentile.value < 0 || percentile.value > 100 || percentile.sampleSize < 5) return null;
-  const rounded = Math.round(percentile.value), neutral = card.metric.direction === "neutral";
-  return <div className="mt-3 border-t border-[var(--line-subtle)] pt-2" data-testid="player-percentile" data-metric-key={card.metric.key} data-percentile={percentile.value} data-sample-size={percentile.sampleSize} data-direction={card.metric.direction}>
-    <div className="mb-2 flex flex-wrap items-baseline justify-between gap-1 text-xs text-[var(--text-secondary)]"><span>of {percentile.sampleSize} players</span><span><strong className="text-[var(--text-primary)]">{rounded}{ordinalSuffix(rounded)}</strong> percentile</span></div>
-    <PercentileBar value={percentile.value} sampleSize={percentile.sampleSize} label={card.metric.label} descriptive={neutral} testId="player-percentile-bar" />
-  </div>;
-}
 function MetricSparkline({card}:{card:PlayerMetricCard}) {
   const trend=profileTrends([card])[0];
   if(!trend)return null;
@@ -89,7 +79,6 @@ function MetricSparkline({card}:{card:PlayerMetricCard}) {
     </svg>
   </div>;
 }
-const ordinalSuffix = (n: number) => { const t = n % 100; return t >= 11 && t <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] ?? "th"; };
 const plural = (n: number, noun: string) => `${n.toLocaleString("en-US")} ${n === 1 ? noun.replace(/s$/, "") : noun}`;
 /** Fall basis, sample size and the matching team mean for a Full Swing Fall best / average card. */
 function FallSummaryLines({ card, summary }: { card: PlayerMetricCard; summary: NonNullable<PlayerMetricCard["fallSummary"]> }) {
@@ -110,7 +99,7 @@ function MetricCard({ card, teamAverages=[] }: { card: PlayerMetricCard; teamAve
   const reading = card.latest;
   const best = recentPersonalBest(card, pacificTestingDate());
   return <li className={`performance-metric-card flex min-w-0 flex-col rounded-lg border border-[var(--line-subtle)] p-3 sm:p-4 ${reading ? "bg-[var(--surface-panel)]" : "border-dashed bg-[var(--surface-page)]"}`} data-testid="player-metric" data-metric-key={card.metric.key} data-value={reading?.value} data-unit={reading?.unit} data-date={reading?.measuredAt}>
-    <h3 className={presentation.metricTitle}>{profileMetricLabel(card.metric.key,card.metric.key === "bat_speed" ? "Bat Speed (Unspecified)" : card.metric.label,reading?.source)}<StatInfo metric={card.metric.key} label={card.metric.label} value={reading?.value} source={reading?.source} unit={reading?.unit} period={reading?.period} percentile={card.percentile?.sampleSize && card.percentile.sampleSize >= 5 ? card.percentile.value : null} /></h3>
+    <h3 className={presentation.metricTitle}>{profileMetricLabel(card.metric.key,card.metric.key === "bat_speed" ? "Bat Speed (Unspecified)" : card.metric.label,reading?.source)}<StatInfo metric={card.metric.key} label={card.metric.label} value={reading?.value} source={reading?.source} unit={reading?.unit} period={reading?.period} /></h3>
     <div className={presentation.metricValue}>{reading ? <><span className={presentation.readingValue}>{card.timedTrials && <span className={presentation.bestLabel}>Best</span>}<ReadingValue reading={reading} /></span><MeasurementChange change={playerRenphoChange(card)} metric={card.metric.key}/></> : <span className="font-medium text-[var(--text-secondary)]" aria-label="Not yet tested">—</span>}</div>
     {reading && card.fallSummary && <FallSummaryLines card={card} summary={card.fallSummary}/>}
     {reading && !card.fallSummary && card.metric.group === "hitting" && /^Full Swing · (Game|Intrasquad|Practice|Hitting)$/.test(reading.source) && <HittingTeamAverageLine average={hittingTeamAverage(teamAverages,card.metric.key,reading.unit,reading.source)}/>}
@@ -121,7 +110,6 @@ function MetricCard({ card, teamAverages=[] }: { card: PlayerMetricCard; teamAve
       <p className={presentation.metricDate}>{parseBlastSource(reading.source) ? <>Reporting Week: {blastPeriodLabel(parseBlastSource(reading.source)!.start,parseBlastSource(reading.source)!.end)}</> : <>Last Tested: <time dateTime={card.timedTrials?.lastTested ?? reading.measuredAt}>{measurementDate(card.timedTrials?.lastTested ?? reading.measuredAt)}</time></>}{reading.derived ? " · Calculated" : ""}</p>
     </div>}
     {best && reading && <p className="pb-badge"><span>New Fall Best</span>Previous best {formatMetricNumber(best.previous, card.metric.key, reading.source)} {reading.unit === "ratio" ? "" : reading.unit}</p>}
-    <Percentile card={card} />
     <MetricSparkline card={card}/>
   </li>;
 }

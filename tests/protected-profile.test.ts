@@ -151,8 +151,8 @@ describe("protected profile route authorization and integration", () => {
       athleteCode: athlete.athlete_code, metricKey: "max_exit_velocity", measuredAt: "2026-09-12", observedValue: 10, value: 50, sampleSize: 5,
       period: "fall_2026", unit: "mph", source: "Fictional hitting test", direction: "higher",
     }] });
-    const html = renderToStaticMarkup(await Profile({ params: Promise.resolve({ id: ownId }), searchParams: Promise.resolve({tab:"practice"}) }));
-    expect(html).toContain("of 5 players"); expect(html).toContain('data-percentile="50"');
+    const html = renderToStaticMarkup(await Profile({ params: Promise.resolve({ id: ownId }) }));
+    expect(html).toContain("50th percentile of 5 players");
     expect(html).not.toContain("Summer-only metric"); expect(html).not.toContain("Old-only metric");
     expect(fake.load).toHaveBeenCalledTimes(1);
   });

@@ -5,9 +5,10 @@ import { formatMetricNumber } from "@/lib/measurement-display";
 import { gameValue } from "@/lib/game-metrics";
 import type { GameOverviewMetric } from "@/lib/game-overview";
 import { isTimedMetric, type PlayerMetricCard } from "@/lib/player-performance";
+import { StatInfo } from "@/components/stat-info";
 import styles from "./percentile-rankings.module.css";
 
-type Row = { key: string; label: string; value: string; percentile: number; sampleSize: number; metric: string; game: boolean };
+type Row = { key: string; label: string; value: string; percentile: number; sampleSize: number; metric: string; game: boolean; guide: { value: number; unit: string; source: string; eventId?: string } };
 
 /**
  * Savant-style list of every directional result that already has a verified team percentile
@@ -22,13 +23,13 @@ export function PercentileRankings({ cards: inputCards, games }: { cards: readon
     const reading = card.latest, p = card.percentile;
     if (!reading || !p || card.percentileStatus !== "available" || p.sampleSize < 5 || !Number.isFinite(p.value) || p.value < 0 || p.value > 100 || card.metric.direction === "neutral") return [];
     const value = isTimedMetric(card.metric.key) && reading.unit === "s" ? `${reading.value.toFixed(2)} s` : `${formatMetricNumber(reading.value, card.metric.key, reading.source)}${reading.unit === "ratio" ? "" : ` ${reading.unit}`}`;
-    return [{ key: `${card.metric.key}:${reading.source}:${reading.unit}`, label: profileMetricLabel(card.metric.key, leaderboardMetricLabel(card.metric), reading.source), value, percentile: p.value, sampleSize: p.sampleSize, metric: card.metric.key, game: false }];
+    return [{ key: `${card.metric.key}:${reading.source}:${reading.unit}`, label: profileMetricLabel(card.metric.key, leaderboardMetricLabel(card.metric), reading.source), value, percentile: p.value, sampleSize: p.sampleSize, metric: card.metric.key, game: false, guide: { value: reading.value, unit: reading.unit, source: reading.source } }];
   };
   const gameRow = (item: GameOverviewMetric): Row[] => {
     const c = item.comparison;
     // Counting stats depend on playing time, so only rates are ranked here.
     if (!c || c.percentile === null || !Number.isFinite(c.percentile) || c.sampleSize < 5 || item.direction === "neutral" || item.unit === "count") return [];
-    return [{ key: `game:${item.source}:${item.eventId}:${item.metric}`, label: item.label, value: gameValue(item.value, item.unit), percentile: c.percentile, sampleSize: c.sampleSize, metric: item.metric, game: true }];
+    return [{ key: `game:${item.source}:${item.eventId}:${item.metric}`, label: item.label, value: gameValue(item.value, item.unit), percentile: c.percentile, sampleSize: c.sampleSize, metric: item.metric, game: true, guide: { value: item.value, unit: item.unit, source: item.source, eventId: item.eventId } }];
   };
   const groups = [
     { id: "game-hitting", title: "Hitting · Game Stats", rows: games.filter(g => g.source === "qpa_fall_2026").flatMap(gameRow) },
@@ -49,7 +50,7 @@ export function PercentileRankings({ cards: inputCards, games }: { cards: readon
       {groups.map(group => <div key={group.id} className={styles.group} aria-label={group.title}>
         <h3>{group.title}</h3>
         <ul>{group.rows.map(row => <li key={row.key} className={styles.row} {...(row.game ? { "data-ranking-game-metric": row.metric } : { "data-ranking-metric": row.metric })}>
-          <span className={styles.label}>{row.label}</span>
+          <span className={styles.label}>{row.label}<StatInfo metric={row.metric} label={row.label} value={row.guide.value} unit={row.guide.unit} source={row.guide.source} period="fall_2026" eventId={row.guide.eventId} percentile={row.percentile}/></span>
           <span className={styles.track} role="img" aria-label={`${row.label}: ${ordinal(row.percentile)} percentile of ${row.sampleSize} players`}>
             <span className={styles.fill} style={{ width: `${row.percentile}%`, background: percentileColor(row.percentile).backgroundColor }} />
             <span className={styles.bubble} style={{ left: `${row.percentile}%`, ...percentileColor(row.percentile) }}>{Math.round(row.percentile)}</span>

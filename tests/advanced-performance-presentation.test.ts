@@ -32,7 +32,8 @@ it("keeps overview headlines compact and presents full advanced cards in the In-
     expect(detailed.split(`data-advanced-metric="${key}"`)).toHaveLength(2);
     expect(html).not.toContain(`data-overview-game-metric="${key}"`);
   }
-  expect(detailed).toContain('aria-valuenow="80"');
+  // Percentiles live only in the Overview rankings now.
+  expect(detailed).not.toContain('aria-valuenow="80"');
   expect(detailed).toContain("30 PA");
   expect(detailed).toContain("6.0 IP");
   expect(detailed).toContain("2 walks");
