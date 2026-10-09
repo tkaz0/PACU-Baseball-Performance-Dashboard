@@ -1,4 +1,7 @@
 import "server-only";
+import { loadGameWeeks } from "@/lib/game-weeks-server";
+import { playersOfTheWeek, type SpotlightCard } from "@/lib/home-spotlight";
+import type { GraphicsWeek, GraphicsWeekCard } from "@/lib/graphics-data";
 import type { requireAccess } from "@/lib/auth";
 import { canImportPresentedAccess, canReadPresentedAthlete } from "@/lib/access-preview";
 import { UUID_PATTERN, athleteName, type RosterAthlete, formatClassYear } from "@/lib/types";
@@ -167,4 +170,12 @@ export async function loadGraphicsLeaderboards(access: Access): Promise<Graphics
     }];
   });
   return [...boards, ...gameBoards(games, today)];
+}
+
+/** Every linked player and staff account: the same weekly leaders as Home, without codes or profile ids. */
+export async function loadGraphicsWeekly(access: Awaited<ReturnType<typeof requireAccess>>): Promise<GraphicsWeek[]> {
+  const weekly = await loadGameWeeks(access);
+  if (!weekly) throw new GraphicsError("Players of the Week needs a linked player or staff account.", 403);
+  const card = (item: SpotlightCard | null): GraphicsWeekCard | null => item && { name: item.name, headlineValue: item.headline.value, headlineLabel: item.headline.label, stats: item.stats, sample: item.sample ?? "", early: item.early, tied: item.tied };
+  return playersOfTheWeek(weekly.players, weekly.weeks).map(week => ({ week: week.week, label: week.label, date: week.date, hitting: card(week.hitting), pitching: card(week.pitching) }));
 }

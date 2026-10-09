@@ -1,5 +1,5 @@
 import { getAccess } from "@/lib/auth";
-import { GraphicsError, loadGraphicsLeaderboards, loadGraphicsPlayer } from "@/lib/graphics-server";
+import { GraphicsError, loadGraphicsLeaderboards, loadGraphicsPlayer, loadGraphicsWeekly } from "@/lib/graphics-server";
 import type { GraphicsDataResponse } from "@/lib/graphics-data";
 
 export const runtime = "nodejs";
@@ -33,6 +33,8 @@ export async function POST(request: Request) {
       result = { kind: "player", data: await loadGraphicsPlayer(access, input.athleteId) };
     } else if (input.kind === "leaderboards" && Object.keys(input).length === 1) {
       result = { kind: "leaderboards", boards: await loadGraphicsLeaderboards(access) };
+    } else if (input.kind === "weekly" && Object.keys(input).length === 1) {
+      result = { kind: "weekly", weeks: await loadGraphicsWeekly(access) };
     } else return errorResponse("Choose a player or team leaderboard.", 400);
     return Response.json(result, { headers: privateHeaders });
   } catch (error) {

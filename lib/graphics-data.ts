@@ -32,6 +32,10 @@ export type GraphicsLeaderboard = {
   context: string; period: string; date: string;
   rows: { name: string; rank: number; value: number; formatted: string; sample: string; date: string }[];
 };
+/** Weekly leaders without PAC codes or profile ids. */
+export type GraphicsWeekCard = { name: string; headlineValue: string; headlineLabel: string; stats: { label: string; value: string }[]; sample: string; early: boolean; tied: boolean };
+export type GraphicsWeek = { week: number; label: string; date: string | null; hitting: GraphicsWeekCard | null; pitching: GraphicsWeekCard | null };
 export type GraphicsDataResponse =
   | { kind: "player"; data: GraphicsPlayerData }
-  | { kind: "leaderboards"; boards: GraphicsLeaderboard[] };
+  | { kind: "leaderboards"; boards: GraphicsLeaderboard[] }
+  | { kind: "weekly"; weeks: GraphicsWeek[] };

@@ -4,7 +4,7 @@ import { percentileColor } from "@/lib/percentile-color";
 export type GraphicsFormat = "square" | "portrait" | "story" | "landscape";
 export type GraphicsTheme = "black" | "red" | "cream";
 export interface GraphicsCard {
-  kind: "player" | "spotlight" | "percentiles" | "arsenal" | "trend" | "leaderboard" | "comparison" | "dashboard";
+  kind: "player" | "spotlight" | "percentiles" | "arsenal" | "trend" | "leaderboard" | "comparison" | "dashboard" | "weekly";
   title: string;
   subtitle: string;
   kicker?: string;
@@ -214,6 +214,9 @@ export function renderGraphics(card: GraphicsCard, options: GraphicsOptions): st
       metricTile(metrics[0], { ...body, h: body.h - secondaryHeight - (secondaryHeight ? 18 : 0) }, true);
       if (secondaryHeight) grid(metrics.slice(1), { ...body, y: body.y + body.h - secondaryHeight, h: secondaryHeight }, columns);
     }
+  } else if (card.kind === "weekly") {
+    if (!metrics.length) empty(body, "No weekly leaders yet");
+    else grid(metrics, body, wide ? 2 : 1);
   } else if (card.kind === "dashboard") {
     grid(metrics, body, wide ? 3 : 2, true);
   } else if (card.kind === "percentiles") {

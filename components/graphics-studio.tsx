@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Download, Image as ImageIcon, LoaderCircle, UserRound, Copy, Check, SlidersHorizontal } from "lucide-react";
 import type { StaffAthleteChoice } from "@/lib/staff-athlete-search";
 import { GraphicsPlayerPicker } from "@/components/graphics-player-picker";
-import type { GraphicsPlayerData, GraphicsLeaderboard } from "@/lib/graphics-data";
+import type { GraphicsPlayerData, GraphicsLeaderboard, GraphicsWeek } from "@/lib/graphics-data";
 import { GRAPHICS_TEMPLATES, buildGraphicsCard, graphicsCaption, graphicsSocialCaption, graphicsMetricGroups, selectedGraphicsMetrics, graphicsContextLabel, comparableGraphicsMetrics, type GraphicsTemplate } from "@/lib/graphics-card";
 import { graphicsSize, renderGraphics, type GraphicsFormat, type GraphicsTheme } from "@/lib/graphics-renderer";
 import styles from "./graphics-studio.module.css";
@@ -41,7 +41,7 @@ function useGraphicsResource<T>(enabled:boolean,body:object,retry:number,fixture
 }
 function composePreview(card:ReturnType<typeof buildGraphicsCard>,options:Parameters<typeof renderGraphics>[1]){try{return {svg:card?renderGraphics(card,options):null,error:""};}catch(reason){return {svg:null,error:reason instanceof Error?reason.message:"Choose a taller format or fewer stats for this graphic."};}}
 
-type StudioFixture={player?:GraphicsPlayerData;second?:GraphicsPlayerData;boards?:GraphicsLeaderboard[]};
+type StudioFixture={player?:GraphicsPlayerData;second?:GraphicsPlayerData;boards?:GraphicsLeaderboard[];weeks?:GraphicsWeek[]};
 export function GraphicsStudio({staff,players,ownAthleteId,fixture}:{staff:boolean;players:StaffAthleteChoice[];ownAthleteId:string|null;fixture?:StudioFixture}){
  const [template,setTemplate]=useState<GraphicsTemplate>("player");
  const [format,setFormat]=useState<GraphicsFormat>("portrait");const [theme,setTheme]=useState<GraphicsTheme>("black");
@@ -51,6 +51,10 @@ export function GraphicsStudio({staff,players,ownAthleteId,fixture}:{staff:boole
  const playerResult=useGraphicsResource<{data:GraphicsPlayerData}>(!!selectedId,{kind:"player",athleteId:selectedId},retry,fixture?.player?{data:fixture.player}:undefined);
  const secondResult=useGraphicsResource<{data:GraphicsPlayerData}>(staff&&template==="comparison"&&!!secondId,{kind:"player",athleteId:secondId},retry,fixture?.second?{data:fixture.second}:undefined);
  const boardsResult=useGraphicsResource<{boards:GraphicsLeaderboard[]}>(staff&&template==="leaderboard",{kind:"leaderboards"},retry,fixture?.boards?{boards:fixture.boards}:undefined);
+ const weeklyResult=useGraphicsResource<{weeks:GraphicsWeek[]}>(template==="weekly",{kind:"weekly"},retry,fixture?.weeks?{weeks:fixture.weeks}:undefined);
+ const weeks=weeklyResult.data?.weeks??[];
+ const [weekNumber,setWeekNumber]=useState(0);
+ const selectedWeek=weeks.find(week=>week.week===weekNumber)??weeks[0]??null;
  const player=playerResult.data?.data??null,second=secondResult.data?.data??null,boards=boardsResult.data?.boards??[];
  const loading=playerResult.loading,loadingSecond=secondResult.loading,loadingBoards=boardsResult.loading;
  const error=playerResult.error,secondError=secondResult.error,boardError=boardsResult.error;
@@ -68,14 +72,14 @@ export function GraphicsStudio({staff,players,ownAthleteId,fixture}:{staff:boole
  const context=contexts.find(value=>value===arsenalContext)??contexts[0]??"";
  const selectedTrend=player?.trends.find(trend=>trend.key===trendKey)??player?.trends[0];
  const selectedBoard=boards.find(board=>board.key===boardKey)??boards[0]??null;
- const card=buildGraphicsCard({template,player:player?.player.id===selectedId?player:null,second:second?.player.id===secondId?second:null,metrics,board:selectedBoard,topCount,arsenalContext:context,trendKey:selectedTrend?.key??"",headline:headline.trim()});
+ const card=buildGraphicsCard({template,player:player?.player.id===selectedId?player:null,second:second?.player.id===secondId?second:null,metrics,board:selectedBoard,topCount,arsenalContext:context,trendKey:selectedTrend?.key??"",headline:headline.trim(),week:selectedWeek});
  const rendered=composePreview(card,{format,theme,logoDataUrl:logo?.theme===theme?logo.data:undefined});
  const svg=rendered.svg;
  const size=graphicsSize(format);
  const source=svg?`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`:undefined;
- const busy=logo?.theme!==theme|| (template==="leaderboard"?loadingBoards:template==="dashboard"?false:loading||(template==="comparison"&&loadingSecond));
- const currentError=template==="leaderboard"?boardError:template==="dashboard"?"":error||(template==="comparison"?secondError:"");
- const hasPlayer=!["dashboard","leaderboard"].includes(template);
+ const busy=logo?.theme!==theme|| (template==="leaderboard"?loadingBoards:template==="weekly"?weeklyResult.loading:template==="dashboard"?false:loading||(template==="comparison"&&loadingSecond));
+ const currentError=template==="leaderboard"?boardError:template==="weekly"?weeklyResult.error:template==="dashboard"?"":error||(template==="comparison"?secondError:"");
+ const hasPlayer=!["dashboard","leaderboard","weekly"].includes(template);
 
  const caption=card?graphicsCaption(card):"";
  const socialCaption=card?graphicsSocialCaption(card):"";
@@ -93,7 +97,7 @@ export function GraphicsStudio({staff,players,ownAthleteId,fixture}:{staff:boole
   }catch(reason){setStatus(reason instanceof Error?reason.message:"The download did not finish. Please try again.");}finally{setDownloading(false);}
  }
  async function copyCaption(){try{await navigator.clipboard.writeText(socialCaption);setCopiedCaption(socialCaption);setStatus("Caption copied.");}catch{setStatus("Open Caption & Stat Details to copy the short caption.");}}
- const emptyMessage=!selectedId&&hasPlayer?staff?"Choose a player to build this graphic.":"Your account needs a linked player profile.":template==="comparison"?!secondId?"Choose a second player to compare.":secondId===selectedId?"Choose two different players.":"These players need matching stats from the same source.":template==="percentiles"?"No verified team percentiles are available for this player yet.":template==="trend"?"A progress graphic needs at least two testing dates on the same test.":template==="arsenal"?"No classified pitch results have been saved for this player yet.":template==="leaderboard"?"No team rankings are available yet.":"No results are available for this selection yet.";
+ const emptyMessage=!selectedId&&hasPlayer?staff?"Choose a player to build this graphic.":"Your account needs a linked player profile.":template==="comparison"?!secondId?"Choose a second player to compare.":secondId===selectedId?"Choose two different players.":"These players need matching stats from the same source.":template==="percentiles"?"No verified team percentiles are available for this player yet.":template==="trend"?"A progress graphic needs at least two testing dates on the same test.":template==="arsenal"?"No classified pitch results have been saved for this player yet.":template==="leaderboard"?"No team rankings are available yet.":template==="weekly"?"Players of the Week appear once a week has five complete game lines.":"No results are available for this selection yet.";
 
  return <div className={styles.studio}>
   <div className={styles.workspace}>
@@ -107,6 +111,7 @@ export function GraphicsStudio({staff,players,ownAthleteId,fixture}:{staff:boole
     {template==="spotlight"&&metricChoices.length>0&&<label className={styles.field}>Featured Stat<select aria-label="Spotlight stat" value={metrics[0]?.key??""} onChange={event=>setMetricKeys([event.target.value])}>{metricChoices.map(metric=><option key={metric.key} value={metric.key}>{metric.label}</option>)}</select></label>}
     {template==="arsenal"&&contexts.length>0&&<label className={styles.field}>Session<select aria-label="Graphic pitching source" value={context} onChange={event=>setArsenalContext(event.target.value)}>{contexts.map(value=><option key={value} value={value}>{value==="Game"?"In-Game":value}</option>)}</select></label>}
     {template==="trend"&&!!player?.trends.length&&<label className={styles.field}>Stat<select aria-label="Graphic progress stat" value={selectedTrend?.key??""} onChange={event=>setTrendKey(event.target.value)}>{player.trends.map(trend=><option key={trend.key} value={trend.key}>{trend.label} · {trend.source}</option>)}</select></label>}
+    {template==="weekly"&&weeks.length>1&&<label className={styles.field}>Week<select aria-label="Graphic week" value={selectedWeek?.week??""} onChange={event=>setWeekNumber(Number(event.target.value))}>{weeks.map(week=><option key={week.week} value={week.week}>{week.label}{week.date?` · ${week.date}`:""}</option>)}</select></label>}
     {template==="leaderboard"&&boards.length>0&&<label className={styles.field}>Leaderboard<select aria-label="Graphic leaderboard" value={selectedBoard?.key??""} onChange={event=>setBoardKey(event.target.value)}>{Object.entries(categoryLabels).map(([category,label])=><optgroup key={category} label={label}>{boards.filter(board=>board.category===category).map(board=><option key={board.key} value={board.key}>{board.label} · {graphicsContextLabel(board)}</option>)}</optgroup>)}</select></label>}
     <div className={styles.presets}><span className={styles.controlLabel}>Post Size</span><div className={styles.formats}>{formats.map(item=><button type="button" key={item.key} aria-pressed={format===item.key} aria-label={`${item.label} ${item.detail}`} onClick={()=>{setFormat(item.key);setStatus("");}}><span className={`${styles.formatShape} ${styles[item.key]}`} aria-hidden="true"/><strong>{item.label}</strong><small>{item.detail}</small></button>)}</div></div>
     <details className={styles.customize}><summary><SlidersHorizontal size={15}/>Customize</summary><div className={styles.customFields}>

@@ -1,4 +1,4 @@
-import type { GraphicsMetric, GraphicsPlayerData, GraphicsLeaderboard, GraphicsArsenal } from "@/lib/graphics-data";
+import type { GraphicsMetric, GraphicsPlayerData, GraphicsLeaderboard, GraphicsArsenal, GraphicsWeek } from "@/lib/graphics-data";
 import type { GraphicsCard } from "@/lib/graphics-renderer";
 import { formatMetricNumber } from "@/lib/measurement-display";
 
@@ -10,6 +10,7 @@ export const GRAPHICS_TEMPLATES: { id: GraphicsTemplate; label: string; descript
   { id: "percentiles", label: "Team Percentiles", description: "Compare matching team results." },
   { id: "arsenal", label: "Pitch Arsenal", description: "Velocity and spin by pitch." },
   { id: "trend", label: "Progress", description: "Results across testing dates." },
+  { id: "weekly", label: "Players of the Week", description: "This week\u2019s top hitter and pitcher." },
   { id: "leaderboard", label: "Team Leaders", description: "Share a team ranking.", staffOnly: true },
   { id: "comparison", label: "Compare Players", description: "Two players. Matching stats.", staffOnly: true },
 ];
@@ -92,11 +93,20 @@ function pitchDetail(pitch: GraphicsArsenal): string {
   return `${pitch.label} · ${pitch.source}\nAverage velocity: ${pitchValue(pitch.averageVelocity, "mph")} · ${pitchBasis(pitch.velocityBasis)} · ${pitch.velocityCount ?? "Unknown"} velocity readings · ${windowLabel(pitch.velocityFirstDate, pitch.velocityLastDate)}\nAverage spin: ${pitchValue(pitch.averageSpin, "rpm")} · ${pitchBasis(pitch.spinBasis)} · ${pitch.spinCount ?? "Unknown"} spin readings · ${windowLabel(pitch.spinFirstDate, pitch.spinLastDate)}\nMaximum velocity: ${pitchValue(pitch.maxVelocity, "mph")} · ${pitch.maxVelocityDate ?? "Date unavailable"}\nMaximum spin: ${pitchValue(pitch.maxSpin, "rpm")} · ${pitch.maxSpinDate ?? "Date unavailable"}\n${pitch.basis} · Recorded ${windowLabel(pitch.firstDate, pitch.lastDate)}`;
 }
 
-export type GraphicsCardOptions = { template: GraphicsTemplate; player: GraphicsPlayerData | null; second: GraphicsPlayerData | null; metrics: GraphicsMetric[]; board: GraphicsLeaderboard | null; topCount: number; arsenalContext: string; trendKey: string; headline: string };
+export type GraphicsCardOptions = { template: GraphicsTemplate; player: GraphicsPlayerData | null; second: GraphicsPlayerData | null; metrics: GraphicsMetric[]; board: GraphicsLeaderboard | null; topCount: number; arsenalContext: string; trendKey: string; headline: string; week?: GraphicsWeek | null };
 /** The image is a compact view. Caption-only details preserve evidence without exposing stored identities. */
 export function buildGraphicsCard(options: GraphicsCardOptions): GraphicsCard | null {
   const { template, player, second, metrics, board, headline } = options;
   if (template === "dashboard") return { kind: "dashboard", title: headline || "PEOPLE LIE.\nNUMBERS DON’T.", subtitle: "Pacific Baseball Performance", kicker: "Built for baseball", metrics: [{ label: "Game Stats", value: "Track Production" }, { label: "Player Profiles", value: "Know Your Game" }, { label: "Pitch & Swing Design", value: "Build Your Approach" }, { label: "Team Comparisons", value: "See the Difference" }, { label: "Training Results", value: "Measure Progress" }, { label: "Coach Tools", value: "Turn Data Into Action" }], source: "Built for players and coaches", footerNotes: [] };
+  if (template === "weekly") {
+    const week = options.week;
+    const tiles = week ? ([["Hitter of the Week", week.hitting], ["Pitcher of the Week", week.pitching]] as const).flatMap(([label, item]) => item ? [{ label: `${label}${item.tied ? " (tied)" : ""}`, value: item.name,
+      sample: [`${item.headlineValue} ${item.headlineLabel}`, ...item.stats.map(stat => `${stat.label} ${stat.value}`), item.sample, item.early ? "Early sample" : ""].filter(Boolean).join(" · ") }] : []) : [];
+    if (!week || !tiles.length) return null;
+    return { kind: "weekly", title: headline || "PLAYERS OF\nTHE WEEK", subtitle: "", kicker: `Fall Ball · ${week.label}${week.date ? ` · ${week.date}` : ""}`, source: "Team game sheets", metrics: tiles,
+      captionDetails: tiles.map(tile => `${tile.label}: ${tile.value} — ${tile.sample}`),
+      footerNotes: ["#1 on the Top Performer blend for that week alone: hitters PAC Production+, QPA%, OBP and ISO; pitchers WHIP, K/BB and Runs/9. A small weekly sample can swing these quickly."] };
+  }
   if (template === "leaderboard") {
     if (!board?.rows.length) return null;
     const rows = board.rows.slice(0, options.topCount);

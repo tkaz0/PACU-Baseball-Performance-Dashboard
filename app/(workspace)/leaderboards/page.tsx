@@ -1,5 +1,6 @@
 import { GameLeaderboard } from "@/components/game-leaderboard";
 import { loadGameLeaderboards } from "@/lib/game-comparison-server";
+import { loadGameWeeks } from "@/lib/game-weeks-server";
 import { requireRenderAccess as requireAccess } from "@/lib/render-access";
 import { PageHeading } from "@/components/page-heading";
 import { LeaderboardBoard } from "@/components/leaderboard-board";
@@ -10,7 +11,12 @@ import { LEADERBOARD_GROUPS, selectPitchLeaderboards, visibleLeaderboardComparis
 export default async function LeaderboardsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const access = await requireAccess(["admin", "coach", "player"]);
   const query = await searchParams;
-  if(query.group === "games") return <><PageHeading section="Team" title="Leaderboards" description="Fall 2026 · Team game rankings."/><GameLeaderboard rows={await loadGameLeaderboards(access)} discipline={query.discipline==="pitching"?"pitching":"hitting"}/></>;
+  if(query.group === "games") {
+    // Weeks so far set the optional qualified minimum; a failed weekly read keeps one week.
+    const [rows, weekly] = await Promise.all([loadGameLeaderboards(access), loadGameWeeks(access).catch(() => null)]);
+    const weeks = Math.max(1, ...(weekly ? [...weekly.weeks.hitting, ...weekly.weeks.pitching].map(week => week.week) : []));
+    return <><PageHeading section="Team" title="Leaderboards" description="Fall 2026 · Team game rankings."/><GameLeaderboard rows={rows} discipline={query.discipline==="pitching"?"pitching":"hitting"} qualified={query.qualified==="1"} weeks={weeks}/></>;
+  }
   const group = LEADERBOARD_GROUPS.find(group => group === query.group) ?? "physicality";
   const session = query.session === "practice" || (group === "throwing" && query.session !== "in_game") ? "practice" : "in_game";
   const comparisons = visibleLeaderboardComparisons(group, await loadLeaderboardComparisons(access), session);
