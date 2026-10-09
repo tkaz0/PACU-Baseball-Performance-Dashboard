@@ -28,7 +28,6 @@
 .history li { display: grid; grid-template-columns: 70px repeat(2, minmax(0, 1fr)); gap: 12px; align-items: center; }
 .history li > strong { font-family: var(--font-display, inherit); font-size: 16px; text-transform: uppercase; }
 .history li > span { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.history li > span > span { display: flex; flex-direction: column; min-width: 0; }
 .history li small { color: var(--text-secondary); font-size: 12px; }
 .history li a { color: inherit; font-weight: 700; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .history li a:hover { text-decoration: underline; }
@@ -38,4 +37,5 @@
 .note a { display: inline-flex; align-items: center; gap: 3px; color: var(--accent-readable); font-weight: 700; text-decoration: none; }
 @media (max-width: 640px) { .history li { grid-template-columns: 1fr; gap: 6px; } }
 .history li .plainName { overflow: hidden; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
-.history li > span > span { flex: 1 1 auto; }
+.history li .who { display: flex; flex: 1 1 auto; flex-direction: column; min-width: 0; }
+.history li .historyAvatar { flex: 0 0 28px; }
