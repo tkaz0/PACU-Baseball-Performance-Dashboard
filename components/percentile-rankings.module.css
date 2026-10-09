@@ -1,0 +1,17 @@
+.panel { margin-top: 20px; padding: clamp(16px, 2.2vw, 24px); border: 1px solid var(--line-subtle); border-radius: var(--radius-card, 14px); background: var(--surface-panel); box-shadow: var(--shadow-card, none); }
+.header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.header h2 { margin: 2px 0 0; font-family: var(--font-display, inherit); font-size: 26px; font-weight: 800; text-transform: uppercase; letter-spacing: .01em; line-height: 1; }
+.eyebrow { margin: 0; color: var(--accent-readable); font-size: 12px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; }
+.scale { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+.scale i { display: block; width: 46px; height: 6px; border-radius: 3px; background: linear-gradient(90deg, rgb(23 100 174), rgb(166 171 180), rgb(195 33 50)); }
+.groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: 18px 28px; }
+.group h3 { margin: 0 0 6px; padding-bottom: 6px; border-bottom: 1px solid var(--line-subtle); color: var(--text-secondary); font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.group ul { margin: 0; padding: 0; list-style: none; }
+.row { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(90px, 1.6fr) auto; align-items: center; gap: 12px; min-height: 36px; }
+.label { overflow: hidden; color: var(--text-primary); font-size: 13px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.track { position: relative; height: 6px; margin-right: 13px; border-radius: 3px; background: var(--surface-raised); }
+.fill { position: absolute; inset: 0 auto 0 0; border-radius: 3px; opacity: .55; }
+.bubble { position: absolute; top: 50%; display: grid; place-items: center; width: 26px; height: 26px; transform: translate(-50%, -50%); border: 2px solid var(--surface-panel); border-radius: 50%; color: #fff; font-family: var(--font-display, inherit); font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.value { min-width: 64px; color: var(--text-primary); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.note { margin: 14px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+@media (max-width: 560px) { .row { grid-template-columns: minmax(0, 1fr) auto; row-gap: 6px; } .track { grid-column: 1 / -1; grid-row: 2; margin: 0 13px 6px; } .value { grid-row: 1; grid-column: 2; } }

@@ -18,6 +18,7 @@ import { MeasurementChange } from "@/components/measurement-change";
 import { playerRenphoChange } from "@/lib/measurement-change";
 import type { StatGuideContext } from "@/lib/stat-benchmarks";
 import { StatInfo } from "@/components/stat-info";
+import { PercentileRankings } from "@/components/percentile-rankings";
 import { PercentileBar, PercentileLegend } from "@/components/percentile-bar";
 import { GameOpportunity } from "@/components/game-opportunity";
 import { gameOverviewMetrics, type GameOverviewMetric } from "@/lib/game-overview";
@@ -155,7 +156,8 @@ export function PlayerOverview({ quick=false, cards, gameStats = [], gameCompari
       </section> : <p className={overview.quietNote}>{showMethods ? "Biggest jumps appear after a repeat test." : "Your biggest jumps appear after a repeat test."}</p>}
     </div>
     {!comparableCount && <p className="m-0 max-w-3xl text-xs leading-6 text-[var(--text-secondary)]">Team comparisons need at least five players with the same test or game stat. {showMethods ? "This player’s own results are available in the other tabs." : "Your own results are available in the other tabs."}</p>}
-    {(physicality.some(card=>card.latest) || games.length > 0 || testingGroups.length > 0) && <details open={quick?undefined:true} className={overview.comparisonBoard} aria-label="Detailed team comparisons">
+    <PercentileRankings cards={availableCards} games={games}/>
+    {(physicality.some(card=>card.latest) || games.length > 0 || testingGroups.length > 0) && <details className={overview.comparisonBoard} aria-label="Detailed team comparisons">
       <summary className={overview.boardHeader}><div><ChartNoAxesCombined size={20} aria-hidden="true"/><span>Detailed Team Comparisons</span></div><span>Percentiles, testing and game stats <ChevronDown size={16} aria-hidden="true"/></span></summary>
       <PercentileLegend/>
       {(physicality.some(card=>card.latest) || games.length > 0) && <div className={overview.primaryComparisons} data-has-body={physicality.some(card=>card.latest)} data-has-games={games.length>0}>
