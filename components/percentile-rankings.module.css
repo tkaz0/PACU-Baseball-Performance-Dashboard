@@ -7,8 +7,8 @@
 .groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: 18px 28px; }
 .group h3 { margin: 0 0 6px; padding-bottom: 6px; border-bottom: 1px solid var(--line-subtle); color: var(--text-secondary); font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .group ul { margin: 0; padding: 0; list-style: none; }
-.row { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(90px, 1.6fr) auto; align-items: center; gap: 12px; min-height: 36px; }
-.label { overflow: hidden; color: var(--text-primary); font-size: 13px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.row { display: grid; grid-template-columns: minmax(120px, 1.4fr) minmax(90px, 1.5fr) auto; align-items: center; gap: 12px; min-height: 36px; }
+.label { color: var(--text-primary); font-size: 13px; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
 .track { position: relative; height: 6px; margin-right: 13px; border-radius: 3px; background: var(--surface-raised); }
 .fill { position: absolute; inset: 0 auto 0 0; border-radius: 3px; opacity: .55; }
 .bubble { position: absolute; top: 50%; display: grid; place-items: center; width: 26px; height: 26px; transform: translate(-50%, -50%); border: 2px solid var(--surface-panel); border-radius: 50%; color: #fff; font-family: var(--font-display, inherit); font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; }

@@ -23,16 +23,18 @@ export function PercentileRankings({ cards, games }: { cards: readonly PlayerMet
   };
   const gameRow = (item: GameOverviewMetric): Row[] => {
     const c = item.comparison;
-    if (!c || c.percentile === null || !Number.isFinite(c.percentile) || c.sampleSize < 5 || item.direction === "neutral") return [];
+    // Counting stats depend on playing time, so only rates are ranked here.
+    if (!c || c.percentile === null || !Number.isFinite(c.percentile) || c.sampleSize < 5 || item.direction === "neutral" || item.unit === "count") return [];
     return [{ key: `game:${item.source}:${item.eventId}:${item.metric}`, label: item.label, value: gameValue(item.value, item.unit), percentile: c.percentile, sampleSize: c.sampleSize }];
   };
   const groups = [
     { id: "game-hitting", title: "Hitting · Game Stats", rows: games.filter(g => g.source === "qpa_fall_2026").flatMap(gameRow) },
     { id: "game-pitching", title: "Pitching · Game Stats", rows: games.filter(g => g.source !== "qpa_fall_2026").flatMap(gameRow) },
-    { id: "hitting", title: "Hitting · Testing", rows: cards.filter(c => c.metric.group === "hitting").flatMap(cardRow) },
-    { id: "pitching", title: "Pitching · Testing", rows: cards.filter(c => c.metric.group === "pitching").flatMap(cardRow) },
-    { id: "throwing", title: "Throwing & Speed", rows: cards.filter(c => c.metric.group === "throwing").flatMap(cardRow) },
-    { id: "body", title: "Strength", rows: cards.filter(c => c.metric.group === "body").flatMap(cardRow) },
+    { id: "hitting", title: "Hitting · Testing", rows: cards.filter(c => c.metric.group === "hitting" && !isTimedMetric(c.metric.key)).flatMap(cardRow) },
+    { id: "speed", title: "Speed & Agility", rows: cards.filter(c => isTimedMetric(c.metric.key)).flatMap(cardRow) },
+    { id: "pitching", title: "Pitching · Testing", rows: cards.filter(c => c.metric.group === "pitching" && !isTimedMetric(c.metric.key)).flatMap(cardRow) },
+    { id: "throwing", title: "Throwing", rows: cards.filter(c => c.metric.group === "throwing" && !isTimedMetric(c.metric.key)).flatMap(cardRow) },
+    { id: "body", title: "Strength", rows: cards.filter(c => c.metric.group === "body" && !isTimedMetric(c.metric.key)).flatMap(cardRow) },
   ].filter(group => group.rows.length > 0);
   if (!groups.length) return null;
   return <section className={styles.panel} aria-label="Percentile rankings" data-testid="percentile-rankings">
