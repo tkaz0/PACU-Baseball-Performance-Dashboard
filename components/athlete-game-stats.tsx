@@ -24,7 +24,7 @@ function Samples({rows,source,metric,eventId=null}:{rows:readonly SharedGameStat
   return label?<span className={styles.sample}>{label}{isEarlyGameSample(source,metric,count)?" · Early sample":""}</span>:null;
 }
 const productionKeys=["batting_production_plus","batting_avg","batting_obp","batting_est_slg","batting_est_iso","batting_est_wobacon"];
-const rateKeys=["qpa_pct","batting_hh_pct","batting_bb_pct","batting_k_pct","batting_hr_pct","batting_sb_per_pa"];
+const rateKeys=["qpa_pct","batting_hh_pct","batting_bb_pct","batting_k_pct","batting_8plus_pct","batting_hr_pct","batting_sb_per_pa"];
 const pitchingTotals=["innings_outs","pitches","strikes","k","bb_outcome","h","r","hbp"];
 export function AthleteGameStats({stats,comparisons=[],showDetails=true}:{stats:SharedGameStat[];comparisons?:GameComparison[];showDetails?:boolean}) {
   const qpa=stats.filter(row=>row.source==="qpa_fall_2026"),pitching=cumulativePitching(stats);

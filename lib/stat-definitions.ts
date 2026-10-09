@@ -91,6 +91,7 @@ export const STAT_DEFINITIONS: Readonly<Record<string, string>> = {
   "waist-to-hip ratio": "Waist circumference divided by hip circumference, as reported by the device.",
   game_log_slg: "Slugging percentage: (Hits + Doubles + 2 × Triples + 3 × Home Runs) / AB. Uses complete recorded hit types from dated game logs, separate from QPA totals.",
   game_log_iso: "Isolated power: (Doubles + 2 × Triples + 3 × Home Runs) / AB. Requires complete extra-base-hit counts in the selected dated games.",
+  batting_8plus_pct: "Patience rate: plate appearances that reached 8 or more pitches (the QPA sheet’s 8+ Pitch column) divided by plate appearances × 100. Long at-bats wear pitchers down and show patience; it is not a walk or on-base rate.",
   batting_hr_pct: "Home run rate: Pumps (home runs) divided by plate appearances × 100. For example, 2 HR in 40 PA is 5%. Measures home-run frequency; it does not include doubles or triples and is not ISO or slugging percentage.",
   batting_obp: "On-base percentage: (all hits + walks + hit-by-pitches) / (at-bats + walks + hit-by-pitches + sacrifice flies). Sacrifice bunts are excluded.",
   batting_hh_pct: "Share of eligible at-bats marked hard hit in the QPA sheet. The team counts HH Base Hit, 3–8 HH, HH Extra Base Hit, and Pumps; opportunities are AB minus strikeouts and sac bunts. This is the team’s scoring rule, not a Statcast exit-speed cutoff.",

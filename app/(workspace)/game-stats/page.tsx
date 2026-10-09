@@ -9,6 +9,9 @@ import { loadGameStats } from "@/lib/game-server";
 import { loadGameComparisons } from "@/lib/game-comparison-server";
 import { AthleteGameStats } from "@/components/athlete-game-stats";
 import { TeamGameStats } from "@/components/team-game-stats";
+import { TeamReportCard } from "@/components/team-report-card";
+import { teamReportCard } from "@/lib/team-report-card";
+import { teamGameSummary } from "@/lib/team-game-stats";
 import { PageHeading } from "@/components/page-heading";
 
 export default async function GameStatsPage() {
@@ -23,7 +26,7 @@ export default async function GameStatsPage() {
       if (error) throw new Error("Game roster could not be loaded.");
       names = new Map((data ?? []).map(a => [a.id, `${a.first_name} ${a.last_name}`]));
     }
-    return <><PageHeading section="Team" title="Team Game Stats" description="Fall 2026 · Cumulative hitting and pitching."><Link href="/game-stats/review" className="btn btn-secondary">Data Review</Link></PageHeading><div className="mb-5"><ScaleLegend low="Poor" high="Elite" note="Bands compare the team with 2025 Northwest Conference teams. Red marks the top band, as on Baseball Savant."/></div><TeamGameStats stats={stats} names={names} streamedTrend={(source,metric,label)=><Suspense fallback={null}><HomeGameTrend trends={trends} source={source} metric={metric} label={label} width={150} height={28}/></Suspense>}/></>;
+    return <><PageHeading section="Team" title="Team Game Stats" description="Fall 2026 · Cumulative hitting and pitching."><Link href="/game-stats/review" className="btn btn-secondary">Data Review</Link></PageHeading><div className="mb-5"><ScaleLegend low="Poor" high="Elite" note="Bands compare the team with 2025 Northwest Conference teams. Red marks the top band, as on Baseball Savant."/></div><TeamReportCard areas={teamReportCard(teamGameSummary(stats,"qpa_fall_2026"),teamGameSummary(stats,"pitching_fall_2026"))}/><TeamGameStats stats={stats} names={names} streamedTrend={(source,metric,label)=><Suspense fallback={null}><HomeGameTrend trends={trends} source={source} metric={metric} label={label} width={150} height={28}/></Suspense>}/></>;
   }
 
   // Player View follows the presented athlete even when the real account is an Admin.

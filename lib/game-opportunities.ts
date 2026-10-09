@@ -9,7 +9,7 @@ export function gameOpportunityLabel(source:string,metric:string):string|null {
  if(metric==="batting_est_wobacon")return "contacts";
  if(metric==="batting_obp")return "OBP opportunities";
  if(metric==="batting_hh_pct")return "HH opportunities";
- return ["batting_production_plus","batting_sb_per_pa","batting_bb_pct","batting_k_pct","batting_hr_pct","qpa_pct","pumps","sb","gdp","rbi","base_hit"].includes(metric)?"PA":null;
+ return ["batting_production_plus","batting_8plus_pct","batting_sb_per_pa","batting_bb_pct","batting_k_pct","batting_hr_pct","qpa_pct","pumps","sb","gdp","rbi","base_hit"].includes(metric)?"PA":null;
 }
 export function gameOpportunities(rows:readonly SharedGameStat[],source:string,metric:string,eventId:string|null=null):number|null {
  const relevant=rows.filter(r=>r.source===source&&(r.event_id??null)===eventId);

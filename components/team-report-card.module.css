@@ -1,0 +1,24 @@
+.panel { margin-bottom: 20px; padding: clamp(16px, 2.2vw, 24px); border: 1px solid var(--line-subtle); border-radius: var(--radius-card, 14px); background: var(--surface-panel); }
+.panel h2 { margin: 2px 0 0; font-family: var(--font-display, inherit); font-size: 26px; font-weight: 800; text-transform: uppercase; line-height: 1; }
+.eyebrow { margin: 0; color: var(--accent-readable); font-size: 12px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; }
+.layout { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; align-items: center; margin-top: 14px; }
+.compact { margin-top: 12px; }
+@media (max-width: 860px) { .layout { grid-template-columns: 1fr; } }
+.grades { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+.grades li { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--line-subtle); border-radius: 10px; background: var(--surface-raised); }
+.letter { display: grid; flex: 0 0 40px; height: 40px; place-items: center; border-radius: 8px; background: #8a8f98; color: #fff; font-family: var(--font-display, inherit); font-size: 24px; font-weight: 800; }
+li[data-grade="A"] .letter { background: #c8102e; }
+li[data-grade="B"] .letter { background: #e0706f; }
+li[data-grade="C"] .letter { background: #8a8f98; }
+li[data-grade="D"] .letter { background: #6f9fc4; }
+li[data-grade="F"] .letter { background: #367ea3; }
+.detail { display: flex; flex-direction: column; min-width: 0; }
+.detail strong { font-size: 14px; }
+.detail small { color: var(--text-secondary); font-size: 12px; }
+.radar { display: block; width: 100%; max-width: 340px; margin: 0 auto; overflow: visible; }
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 12px; margin-top: 14px; }
+.notes h3 { margin: 0 0 6px; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+.notes ul { margin: 0; padding-left: 18px; color: var(--text-primary); font-size: 13px; line-height: 1.5; }
+.note { margin: 12px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+.header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px; }
+.link { display: inline-flex; align-items: center; gap: 4px; color: var(--accent-readable); font-size: 13px; font-weight: 700; text-decoration: none; }

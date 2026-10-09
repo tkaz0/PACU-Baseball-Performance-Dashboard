@@ -60,3 +60,25 @@
   .heroes > div { font-size: 12px; }
   .table tr { break-inside: avoid; }
 }
+
+/* Customizer: layout only, saved per browser. */
+.customize { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 0 0 14px; padding: 10px 14px; border: 1px solid var(--line-subtle); border-radius: 12px; }
+.customize legend { padding: 0 4px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; }
+.customize label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; }
+.customize small { color: var(--text-secondary); font-size: 12px; }
+.customizer[data-hide~="percentiles"] [data-block="percentiles"],
+.customizer[data-hide~="testing"] [data-block="testing"],
+.customizer[data-hide~="blast"] [data-block="blast"],
+.customizer[data-hide~="games"] [data-block="games"],
+.customizer[data-hide~="arsenal"] [data-block="arsenal"],
+.customizer[data-hide~="note"] [data-block="note"] { display: none; }
+.note { margin-top: 14px; padding: 10px 12px; border: 1px solid var(--line-subtle); border-left: 4px solid #b51217; border-radius: 8px; }
+.note h2 { margin: 0 0 6px; }
+.note textarea { width: 100%; min-height: 64px; padding: 8px; border: 1px solid var(--line-subtle); border-radius: 6px; background: #fff; color: #141518; font: inherit; font-size: 13px; resize: vertical; }
+.notePrint { display: none; margin: 0; font-size: 13px; line-height: 1.5; white-space: pre-wrap; }
+.sheetBreak { break-after: page; page-break-after: always; margin-bottom: 24px; }
+@media print {
+  .note[data-empty] { display: none; }
+  .notePrint { display: block; }
+  .sheetBreak { margin-bottom: 0; }
+}

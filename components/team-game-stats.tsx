@@ -29,7 +29,7 @@ export function TeamGameStats({stats,names,trends={},streamedTrend}:{stats:Share
  const batting=teamGameSummary(stats,"qpa_fall_2026"),pitching=teamGameSummary(stats,"pitching_fall_2026");
  const ids=[...new Set(stats.map(r=>r.athlete_id))].sort((a,b)=>(names.get(a)??"").localeCompare(names.get(b)??""));
  const battingMain=["batting_avg","batting_obp","batting_est_slg","batting_est_iso","batting_est_wobacon"];
- const battingMore=["batting_bb_pct","batting_k_pct","batting_hr_pct"];
+ const battingMore=["batting_bb_pct","batting_k_pct","batting_8plus_pct","batting_hr_pct"];
  const pitchingMain=["pitching_whip","pitching_k_bb","pitching_r9","strike_pct"];
  const pitchingMore=["pitching_k9","pitching_bb9"];
  const all=[...batting.counts,...batting.rates,...pitching.counts,...pitching.rates],conflict=all.some(m=>m.pending&&m.pendingReason==="conflict");

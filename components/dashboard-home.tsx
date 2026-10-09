@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import { DetailSection } from "@/components/detail-section";
+import { TeamReportCard } from "@/components/team-report-card";
+import { teamReportCard } from "@/lib/team-report-card";
 import { Sparkline } from "@/components/charts/sparkline";
 import { gameDirection } from "@/lib/game-metrics";
 import type { TeamGameTrends, TrendPoint } from "@/lib/game-trends";
@@ -107,6 +109,7 @@ export function DashboardHome({ spotlight, staff, athleteId, summary, designNavi
     {summary && <div className={styles.freshness} aria-label="Dashboard update dates"><span><span className={styles.statusDot}/>{latestUpdate ? <>Latest Update <strong>{date(latestUpdate.date, true)}</strong></> : "Awaiting Fall results"}</span><span><Clock3 size={13} aria-hidden="true"/>Game Stats <strong>{latestGameUpdate ? date(latestGameUpdate, true) : "Awaiting results"}</strong></span></div>}
     {summary && staff && (coachingPulse ?? (summary.coachDigest && <CoachThisWeek digest={summary.coachDigest} reviewCount={[...summary.batting.rates, ...summary.pitching.rates].filter(rate => rate.pending && rate.pendingReason !== "missing").length}/>))}
     {spotlight}
+    {staff && summary && <TeamReportCard compact href="/game-stats" areas={teamReportCard(summary.batting, summary.pitching)}/>}
     {!summary ? staff ? <section className={styles.panel}><h2>Team summary unavailable</h2><p className={styles.empty}>Saved results are unaffected. Refresh to try again.</p></section> : <section className={styles.panel}><h2>Your profile is being connected</h2><p className={styles.empty}>Your administrator will link your account to the correct player profile. Your results will appear here once it is connected.</p></section> : <>
       <section aria-label="Fall game summary"><div className={styles.blockHeading}><div><p className={styles.kicker}>Competition</p><h2>{staff ? "Team Advanced Performance" : "My Advanced Performance"}</h2></div><Link prefetch={false} href="/game-stats" className={styles.panelLink}>All Game Stats<ArrowRight size={15}/></Link></div><div className={styles.gameGrid}>{(staff || summary.batting.entries > 0) && <GameSnapshot summary={summary.batting} kind="Hitting" trends={gameTrends.qpa_fall_2026} streamedTrend={streamedTrend ? (metric,label)=>streamedTrend("qpa_fall_2026",metric,label) : undefined}/>}{(staff || summary.pitching.entries > 0) && <GameSnapshot summary={summary.pitching} kind="Pitching" trends={gameTrends.pitching_fall_2026} streamedTrend={streamedTrend ? (metric,label)=>streamedTrend("pitching_fall_2026",metric,label) : undefined}/>}{!staff && !summary.batting.entries && !summary.pitching.entries && <p className={styles.empty}>Your game stats will appear after your first verified Fall update.</p>}</div></section>
       {!staff && <nav className={styles.quickLinks} aria-label="Home shortcuts">{actions.map(({ href, title, detail, icon: Icon }) => <Link prefetch={false} key={href} href={href}><span className={styles.actionIcon}><Icon size={18}/></span><span><strong>{title}</strong><small>{detail}</small></span><ArrowUpRight className={styles.actionArrow} size={14}/></Link>)}</nav>}

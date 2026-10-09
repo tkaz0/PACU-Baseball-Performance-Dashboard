@@ -70,6 +70,7 @@ export function teamGameSummary(stats: readonly SharedGameStat[], source: Shared
     }), "HH opportunities"),
     simple("batting_bb_pct", "BB %", "bb", "pa", "%", "PA"),
     simple("batting_k_pct", "K %", "punchies", "pa", "%", "PA"),
+    simple("batting_8plus_pct", "8+ Pitch PA %", "eight_plus_pitches", "pa", "%", "PA"),
     rate("batting_hr_pct", "HR %", "%", ["pumps", "pa"], v => v.has("base_hit") && v.get("pumps")! > v.get("base_hit")! ? null : { top: v.get("pumps")!, bottom: v.get("pa")! }, "PA"),
     rate("batting_sb_per_pa", "SB/PA", "ratio", ["sb", "pa"], v => ({top: v.get("sb")!, bottom: v.get("pa")!}), "PA", true),
     ...[["batting_est_slg","SLG"],["batting_est_iso","ISO"]].map(([metric,label])=>rate(metric,label,"avg",["base_hit","hh_extra_base_hit","pumps","ab"],v=>{const p=battingPowerParts(v,true);return p?{top:metric==="batting_est_slg"?p.bases:p.xbh+3*p.hr,bottom:p.ab}:null;},"AB",true)),

@@ -9,7 +9,7 @@ export function battingRates(rows: readonly SharedGameStat[]): BattingRate[] {
   for(const row of qpa){if(values.has(row.metric)||!Number.isFinite(row.value)||row.value<0)return [];values.set(row.metric,row.value);}
   values=qpaBattingCounts(values);
   const rates:BattingRate[]=[];
-  for(const [metric,label,topKey,bottomKey,unit] of [["batting_avg","AVG","base_hit","ab","avg"],["batting_bb_pct","BB %","bb","pa","%"],["batting_k_pct","K %","punchies","pa","%"]] as const){
+  for(const [metric,label,topKey,bottomKey,unit] of [["batting_avg","AVG","base_hit","ab","avg"],["batting_bb_pct","BB %","bb","pa","%"],["batting_k_pct","K %","punchies","pa","%"],["batting_8plus_pct","8+ Pitch PA %","eight_plus_pitches","pa","%"]] as const){
     const top=values.get(topKey),bottom=values.get(bottomKey);
     if(top!==undefined&&bottom!==undefined&&bottom>0&&top<=bottom)rates.push({metric,label,value:(unit==="%"?100:1)*(top/bottom),unit});
   }

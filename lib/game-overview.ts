@@ -11,8 +11,8 @@ export type GameOverviewMetric = {
   updatedAt: string; playedOn: string | null; opportunities: number | null;
   comparison: GameComparison | null; direction: "higher" | "lower" | "neutral"; insightEligible: boolean;
 };
-const battingOrder = ["batting_production_plus", "batting_est_slg", "batting_est_iso", "batting_est_wobacon","batting_avg", "batting_obp", "qpa_pct", "batting_hh_pct", "batting_hr_pct", "batting_bb_pct", "batting_k_pct", "pumps", "sb", "gdp", "batting_sb_per_pa"];
-const insightRates = new Set([...battingOrder.slice(0,4),"batting_avg","batting_obp","qpa_pct","batting_hh_pct","batting_hr_pct","batting_bb_pct","batting_k_pct"]);
+const battingOrder = ["batting_production_plus", "batting_est_slg", "batting_est_iso", "batting_est_wobacon","batting_avg", "batting_obp", "qpa_pct", "batting_hh_pct", "batting_hr_pct", "batting_bb_pct", "batting_k_pct", "batting_8plus_pct", "pumps", "sb", "gdp", "batting_sb_per_pa"];
+const insightRates = new Set([...battingOrder.slice(0,4),"batting_avg","batting_obp","qpa_pct","batting_hh_pct","batting_hr_pct","batting_bb_pct","batting_k_pct","batting_8plus_pct"]);
 /** Own-player rows only. Bind each comparison to the exact current snapshot/event/value. */
 export function gameOverviewMetrics(stats: readonly SharedGameStat[], comparisons: readonly GameComparison[]): GameOverviewMetric[] {
   if (new Set(stats.map(r => r.athlete_id)).size !== 1) return [];
