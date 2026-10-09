@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { DetailSection } from "@/components/detail-section";
 import { Sparkline } from "@/components/charts/sparkline";
 import { gameDirection } from "@/lib/game-metrics";
 import type { TeamGameTrends, TrendPoint } from "@/lib/game-trends";
@@ -37,7 +38,7 @@ function GameSnapshot({ summary, kind, trends = {}, streamedTrend }: { summary: 
       })}</dl>
       {kind === "Hitting" ? <p className={styles.chartCaption}>Doubles and triples count as doubles · recorded results, not expected stats.</p> : contactComplete ? <div className={styles.contactSplit}><div><span>Contact Allowed</span><small>{weak.opportunities} classified contacts</small></div><div className={styles.contactTrack} role="img" aria-label={`Weak contact ${weak.value!.toFixed(1)} percent; hard contact ${hard.value!.toFixed(1)} percent`}><span style={{ width: `${weak.value}%` }}/><span style={{ width: `${hard.value}%` }}/></div><div className={styles.contactLegend}><span><i/>{weak.value!.toFixed(1)}% weak</span><span><i/>{hard.value!.toFixed(1)}% hard</span></div></div> : <p className={styles.chartCaption}>Recorded results; not adjusted for defense or luck.</p>}
     </>}
-    <div className={styles.cardFoot}><span>{summary.players ? `${summary.players} ${summary.players === 1 ? "player" : "players"} recorded` : "Awaiting results"}</span>{summary.updatedAt && <time dateTime={summary.updatedAt} title="The sheet is checked daily; this is when its numbers last changed.">Sheet changed {date(summary.updatedAt)}</time>}</div>
+    <div className={styles.cardFoot}><span>{summary.players ? `${summary.players} ${summary.players === 1 ? "player" : "players"} recorded` : "Awaiting results"}</span>{summary.updatedAt && <time dateTime={summary.updatedAt} title="This is when the saved sheet numbers last changed.">Sheet changed {date(summary.updatedAt)}</time>}</div>
   </section>;
 }
 
@@ -79,7 +80,7 @@ function ResultsCoverage({ summary, staff, profile }: { summary: HomeSummary; st
   </section>;
 }
 
-export function DashboardHome({ staff, athleteId, summary, designNavigation, leaderboards = [], sourceStatus = [], visit, headshots = {}, gameTrends = {}, streamedTrend, coachingPulse, activity }: { coachingPulse?:ReactNode; activity?:ReactNode; streamedTrend?: (source: "qpa_fall_2026" | "pitching_fall_2026", metric: string, label: string) => ReactNode; gameTrends?: TeamGameTrends; headshots?: Readonly<Record<string, string>>; visit?:DashboardVisitWindow; staff: boolean; athleteId: string | null; designNavigation?: DesignNavigation; summary: (HomeSummary & { visitDigest?:VisitDigest; coachDigest?: ReturnType<typeof coachUpdateDigest> }) | null; leaderboards?: HomeLeaderboard[]; sourceStatus?:WeeklySourceStatusRow[] }) {
+export function DashboardHome({ spotlight, staff, athleteId, summary, designNavigation, leaderboards = [], sourceStatus = [], visit, headshots = {}, gameTrends = {}, streamedTrend, coachingPulse, activity }: { spotlight?:ReactNode; coachingPulse?:ReactNode; activity?:ReactNode; streamedTrend?: (source: "qpa_fall_2026" | "pitching_fall_2026", metric: string, label: string) => ReactNode; gameTrends?: TeamGameTrends; headshots?: Readonly<Record<string, string>>; visit?:DashboardVisitWindow; staff: boolean; athleteId: string | null; designNavigation?: DesignNavigation; summary: (HomeSummary & { visitDigest?:VisitDigest; coachDigest?: ReturnType<typeof coachUpdateDigest> }) | null; leaderboards?: HomeLeaderboard[]; sourceStatus?:WeeklySourceStatusRow[] }) {
   const profile = athleteId ? `/athletes/${athleteId}` : null;
   const actions = [...(staff ? [
     { href: "/roster", title: "Roster", detail: "Player profiles", icon: UsersRound },
@@ -104,20 +105,21 @@ export function DashboardHome({ staff, athleteId, summary, designNavigation, lea
     </header>
     {summary && <div className={styles.freshness} aria-label="Dashboard update dates"><span><span className={styles.statusDot}/>{latestUpdate ? <>Latest Update <strong>{date(latestUpdate.date, true)}</strong></> : "Awaiting Fall results"}</span><span><Clock3 size={13} aria-hidden="true"/>Game Stats <strong>{latestGameUpdate ? date(latestGameUpdate, true) : "Awaiting results"}</strong></span></div>}
     {summary && staff && (coachingPulse ?? (summary.coachDigest && <CoachThisWeek digest={summary.coachDigest} reviewCount={[...summary.batting.rates, ...summary.pitching.rates].filter(rate => rate.pending && rate.pendingReason !== "missing").length}/>))}
+    {staff && spotlight}
     {!summary ? staff ? <section className={styles.panel}><h2>Team summary unavailable</h2><p className={styles.empty}>Saved results are unaffected. Refresh to try again.</p></section> : <section className={styles.panel}><h2>Your profile is being connected</h2><p className={styles.empty}>Your administrator will link your account to the correct player profile. Your results will appear here once it is connected.</p></section> : <>
       <section aria-label="Fall game summary"><div className={styles.blockHeading}><div><p className={styles.kicker}>Competition</p><h2>{staff ? "Team Advanced Performance" : "My Advanced Performance"}</h2></div><Link prefetch={false} href="/game-stats" className={styles.panelLink}>All Game Stats<ArrowRight size={15}/></Link></div><div className={styles.gameGrid}>{(staff || summary.batting.entries > 0) && <GameSnapshot summary={summary.batting} kind="Hitting" trends={gameTrends.qpa_fall_2026} streamedTrend={streamedTrend ? (metric,label)=>streamedTrend("qpa_fall_2026",metric,label) : undefined}/>}{(staff || summary.pitching.entries > 0) && <GameSnapshot summary={summary.pitching} kind="Pitching" trends={gameTrends.pitching_fall_2026} streamedTrend={streamedTrend ? (metric,label)=>streamedTrend("pitching_fall_2026",metric,label) : undefined}/>}{!staff && !summary.batting.entries && !summary.pitching.entries && <p className={styles.empty}>Your game stats will appear after your first verified Fall update.</p>}</div></section>
       {!staff && <nav className={styles.quickLinks} aria-label="Home shortcuts">{actions.map(({ href, title, detail, icon: Icon }) => <Link prefetch={false} key={href} href={href}><span className={styles.actionIcon}><Icon size={18}/></span><span><strong>{title}</strong><small>{detail}</small></span><ArrowUpRight className={styles.actionArrow} size={14}/></Link>)}</nav>}
+        <div className={styles.leadersColumn}>
+      <section aria-label="Featured team leaderboards"><div className={styles.blockHeading}><div><p className={styles.kicker}>Around the Team</p><h2>Performance Leaders</h2></div><Link prefetch={false} href="/leaderboards" className={styles.panelLink}>All Leaderboards<ArrowRight size={15}/></Link></div>{leaderboards.length ? <div className={styles.rankGrid}>{leaderboards.map(board => <HomeRankCard board={board} key={board.key} headshots={headshots}/>)}</div> : <div className={styles.rankEmpty}><Trophy size={23} aria-hidden="true"/><p>Team rankings will appear when Fall results are saved.</p></div>}</section>
+        </div>
+      <DetailSection title={staff ? "Data & Testing" : "My Activity & Testing"} description={staff ? "Source checks, testing coverage and recent updates" : "Testing dates and recent updates"}>
       {activity ?? (summary.visitDigest && visit && <DashboardVisit visit={visit} digest={summary.visitDigest} staff={staff} athleteId={athleteId}/>)}
-      <div className={styles.homeColumns}>
         <div className={styles.attention} aria-label="Needs attention">
         {staff && <WeeklySourceStatus statuses={sourceStatus}/>}
         <ResultsCoverage summary={summary} staff={staff} profile={profile}/>
         <section className={styles.panel} aria-label="Recent data updates"><div className={styles.sectionTitle}><div><p className={styles.kicker}>Fresh from the Field</p><h2>Recent Updates</h2></div><Clock3 size={20} className={styles.subtleIcon}/></div>{summary.updates.length ? <ol className={styles.updates}>{summary.updates.slice(0, 3).map(update => <li key={update.key}><span className={styles.updateDot}/><div><strong>{update.label}</strong><span>{update.kind} to the dashboard</span></div><time dateTime={update.date}>{date(update.date)}</time></li>)}</ol> : <p className={styles.empty}>Updates appear when Fall measurements or game stats are saved.</p>}<div className={styles.panelFoot}><span>Most recent activity</span><Link prefetch={false} href={staff ? "/testing/changes" : profile ?? "/settings"}>{staff ? "See What Changed" : "Open My Profile"}<ArrowRight size={14}/></Link></div></section>
         </div>
-        <div className={styles.leadersColumn}>
-      <section aria-label="Featured team leaderboards"><div className={styles.blockHeading}><div><p className={styles.kicker}>Around the Team</p><h2>Performance Leaders</h2></div><Link prefetch={false} href="/leaderboards" className={styles.panelLink}>All Leaderboards<ArrowRight size={15}/></Link></div>{leaderboards.length ? <div className={styles.rankGrid}>{leaderboards.map(board => <HomeRankCard board={board} key={board.key} headshots={headshots}/>)}</div> : <div className={styles.rankEmpty}><Trophy size={23} aria-hidden="true"/><p>Team rankings will appear when Fall results are saved.</p></div>}</section>
-        </div>
-      </div>
+      </DetailSection>
     </>}
   </div>;
 }

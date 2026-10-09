@@ -8,24 +8,25 @@ import { isTimedMetric, type PlayerMetricCard } from "@/lib/player-performance";
 import { StatInfo } from "@/components/stat-info";
 import styles from "./percentile-rankings.module.css";
 
-type Row = { key: string; label: string; value: string; percentile: number; sampleSize: number; metric: string; game: boolean; guide: { value: number; unit: string; source: string; eventId?: string } };
+export type RankingRow = { key: string; label: string; value: string; percentile: number; sampleSize: number; metric: string; game: boolean; guide: { value: number; unit: string; source: string; eventId?: string } };
 
 /**
  * Savant-style list of every directional result that already has a verified team percentile
  * (at least five comparable players). Neutral body/spin positions are descriptive and stay out.
  * No new percentiles are calculated here.
  */
-export function PercentileRankings({ cards: inputCards, games }: { cards: readonly PlayerMetricCard[]; games: readonly GameOverviewMetric[] }) {
+/** Shared by the rankings list, skill radars and award badges: only verified, directional, n>=5 results. */
+export function percentileRankingGroups(inputCards: readonly PlayerMetricCard[], games: readonly GameOverviewMetric[]) {
   // Each source/unit keeps its own card and cohort (e.g. In-Game and Practice bat speed).
   const cards = [...new Map(inputCards.flatMap(card => card.sourceCards?.length ? card.sourceCards : [card])
     .map(card => [JSON.stringify([card.metric.key, card.latest?.source, card.latest?.unit, card.latest?.period]), card])).values()];
-  const cardRow = (card: PlayerMetricCard): Row[] => {
+  const cardRow = (card: PlayerMetricCard): RankingRow[] => {
     const reading = card.latest, p = card.percentile;
     if (!reading || !p || card.percentileStatus !== "available" || p.sampleSize < 5 || !Number.isFinite(p.value) || p.value < 0 || p.value > 100 || card.metric.direction === "neutral") return [];
     const value = isTimedMetric(card.metric.key) && reading.unit === "s" ? `${reading.value.toFixed(2)} s` : `${formatMetricNumber(reading.value, card.metric.key, reading.source)}${reading.unit === "ratio" ? "" : ` ${reading.unit}`}`;
     return [{ key: `${card.metric.key}:${reading.source}:${reading.unit}`, label: profileMetricLabel(card.metric.key, leaderboardMetricLabel(card.metric), reading.source), value, percentile: p.value, sampleSize: p.sampleSize, metric: card.metric.key, game: false, guide: { value: reading.value, unit: reading.unit, source: reading.source } }];
   };
-  const gameRow = (item: GameOverviewMetric): Row[] => {
+  const gameRow = (item: GameOverviewMetric): RankingRow[] => {
     const c = item.comparison;
     // Counting stats depend on playing time, so only rates are ranked here.
     if (!c || c.percentile === null || !Number.isFinite(c.percentile) || c.sampleSize < 5 || item.direction === "neutral" || item.unit === "count") return [];
@@ -40,6 +41,11 @@ export function PercentileRankings({ cards: inputCards, games }: { cards: readon
     { id: "throwing", title: "Throwing", rows: cards.filter(c => c.metric.group === "throwing" && !isTimedMetric(c.metric.key)).flatMap(cardRow) },
     { id: "body", title: "Strength", rows: cards.filter(c => c.metric.group === "body" && !isTimedMetric(c.metric.key)).flatMap(cardRow) },
   ].filter(group => group.rows.length > 0);
+  return groups;
+}
+
+export function PercentileRankings({ cards, games }: { cards: readonly PlayerMetricCard[]; games: readonly GameOverviewMetric[] }) {
+  const groups = percentileRankingGroups(cards, games);
   if (!groups.length) return null;
   return <section className={styles.panel} aria-label="Percentile rankings" data-testid="percentile-rankings">
     <header className={styles.header}>

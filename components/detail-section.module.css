@@ -1,0 +1,12 @@
+.section { min-width: 0; border: 1px solid var(--line-subtle); border-radius: 14px; background: var(--surface-panel); }
+.section > summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 20px; min-height: 64px; cursor: pointer; list-style: none; }
+.section > summary::-webkit-details-marker { display: none; }
+.section > summary strong { display: block; color: var(--text-primary); font-size: 16px; line-height: 1.4; font-weight: 750; }
+.section > summary small { display: block; margin-top: 3px; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+.section > summary svg { flex-shrink: 0; color: var(--accent-readable); transition: transform .15s; }
+.section[open] > summary svg { transform: rotate(180deg); }
+.section > summary:hover { background: var(--surface-raised); border-radius: 14px; }
+.section > summary:focus-visible { outline: 2px solid var(--accent-readable); outline-offset: -4px; border-radius: 14px; }
+.content { padding: 0 18px 18px; min-width: 0; }
+@media(max-width:600px) { .section > summary { padding: 15px; gap: 12px; } .content { padding: 0 10px 10px; } }
+@media(prefers-reduced-motion:reduce) { .section > summary svg { transition: none; } }

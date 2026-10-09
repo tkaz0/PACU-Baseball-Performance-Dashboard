@@ -1,3 +1,5 @@
+import { DetailSection } from "@/components/detail-section";
+import { isTimedMetric } from "@/lib/player-performance";
 import { pitchTypeLabel } from "@/lib/imports/pitch-assignments";
 import Link from "next/link";
 import { LeaderboardPitchSelector } from "@/components/leaderboard-pitch-selector";
@@ -23,6 +25,14 @@ export function LeaderboardBoard({ group, panels, session = "in_game", pitches =
   const populated = panels.filter(panel => panel.rows.length > 0 && (group !== "pitching" || Boolean(leaderboardPitchType(panel.comparison.source)) && (selectedPitch === ALL_PITCHES || leaderboardPitchType(panel.comparison.source) === selectedPitch)) && leaderboardMetrics(group).some(metric => metric.key === panel.comparison.metricKey));
 
   const general = populated.filter(panel => !isPitchLeaderboardMetric(panel.comparison.metricKey));
+  const generalGroups = group === "physicality" ? [
+    { title: "Body Composition", description: "Body score, muscle mass and body fat", panels: general.filter(p => ["body_score", "muscle_mass", "body_fat_pct"].includes(p.comparison.metricKey)) },
+    { title: "Size & Strength", description: "Height, weight and grip", panels: general.filter(p => !["body_score", "muscle_mass", "body_fat_pct"].includes(p.comparison.metricKey) && !isTimedMetric(p.comparison.metricKey)) },
+    { title: "Speed & Agility", description: "Best recorded Fall times", panels: general.filter(p => isTimedMetric(p.comparison.metricKey)) },
+  ].filter(section => section.panels.length) : [
+    { title: group === "throwing" ? "Position Throwing" : "Hitting Leaders", description: session === "practice" ? "Practice results" : "In-game results", panels: general.filter(p => !["p95_bat_speed", "max_distance", "smash_factor"].includes(p.comparison.metricKey)) },
+    { title: "More Hitting Results", description: "Distance, smash factor and peak results", panels: general.filter(p => ["p95_bat_speed", "max_distance", "smash_factor"].includes(p.comparison.metricKey)) },
+  ].filter(section => section.panels.length);
   const pitchPanels = new Map<string, LeaderboardPanel[]>();
   for (const panel of populated.filter(panel => isPitchLeaderboardMetric(panel.comparison.metricKey))) {
     const key = JSON.stringify([panel.comparison.source, panel.comparison.period]);
@@ -52,10 +62,10 @@ export function LeaderboardBoard({ group, panels, session = "in_game", pitches =
       <LeaderboardPitchSelector key={`${session}:${selectedPitch}`} pitches={pitches} selectedPitch={selectedPitch} session={session} />
     </header>}
     {populated.length > 0 ? <div className={styles.sections}>
-      {general.length > 0 && <section aria-label="Session measurements"><div className={styles.grid}>{general.map(results)}</div></section>}
-      {pitchGroups.map(([key, entries]) => <section key={key} aria-label={`${pitchTypeLabel(leaderboardPitchType(entries[0].comparison.source)!)} · ${groupContext(entries[0].comparison)} rankings`}>
-        <header className={`${styles.sectionHeading} ${styles.pitchHeading}`}><h3 className="m-0 text-lg font-bold">{pitchTypeLabel(leaderboardPitchType(entries[0].comparison.source)!)}</h3><p className="muted m-0 text-xs font-medium">{groupContext(entries[0].comparison)}</p></header>
-        <div className={`${styles.grid} ${styles.pitchGrid}`}>{[...entries].sort((a,b) => PITCH_LEADERBOARD_KEYS.indexOf(a.comparison.metricKey as typeof PITCH_LEADERBOARD_KEYS[number]) - PITCH_LEADERBOARD_KEYS.indexOf(b.comparison.metricKey as typeof PITCH_LEADERBOARD_KEYS[number])).map(results)}</div>
+      {generalGroups.map((section, index) => <DetailSection key={section.title} title={section.title} description={`${section.description} · ${section.panels.length} ${section.panels.length === 1 ? "ranking" : "rankings"}`} open={index === 0 || filtering}><div className={styles.grid}>{section.panels.map(results)}</div></DetailSection>)}
+      {pitchGroups.map(([key, entries], index) => <section key={key} aria-label={`${pitchTypeLabel(leaderboardPitchType(entries[0].comparison.source)!)} · ${groupContext(entries[0].comparison)} rankings`}>
+        <DetailSection title={pitchTypeLabel(leaderboardPitchType(entries[0].comparison.source)!)} description={`${groupContext(entries[0].comparison)} · Velocity & spin`} open={selectedPitch !== ALL_PITCHES || index === 0 || filtering}>
+        <div className={`${styles.grid} ${styles.pitchGrid}`}>{[...entries].sort((a,b) => PITCH_LEADERBOARD_KEYS.indexOf(a.comparison.metricKey as typeof PITCH_LEADERBOARD_KEYS[number]) - PITCH_LEADERBOARD_KEYS.indexOf(b.comparison.metricKey as typeof PITCH_LEADERBOARD_KEYS[number])).map(results)}</div></DetailSection>
       </section>)}
     </div> : <section className="panel px-6 py-10 text-center sm:py-14"><span className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--surface-raised)] text-xs font-bold text-[var(--accent-readable)]"><Trophy size={23} aria-hidden="true" /></span><h2 className="mb-2 text-xl font-bold">No {leaderboardGroupLabels[group]} Results Yet</h2><p className="muted mx-auto mb-0 max-w-md text-sm">{group === "throwing" ? "Infield and Outfield Velocity rankings will appear after throwing results are added." : group !== "physicality" ? `${session === "practice" ? "Practice" : "In-Game"} rankings will appear after reviewed sessions are added.` : "Rankings will appear here as testing results are added."}</p></section>}
 

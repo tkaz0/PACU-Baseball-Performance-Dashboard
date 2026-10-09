@@ -1,0 +1,22 @@
+.heading { margin-bottom: 12px; }
+.heading p { margin: 0; color: var(--accent-readable); font-size: 12px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; }
+.heading h2 { margin: 2px 0 0; font-family: var(--font-display, inherit); font-size: 26px; font-weight: 800; text-transform: uppercase; line-height: 1; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 14px; }
+.card { position: relative; display: flex; flex-direction: column; gap: 10px; padding: 16px; overflow: hidden; border: 1px solid var(--line-subtle); border-radius: var(--radius-card, 14px); background: var(--surface-panel); box-shadow: var(--shadow-card, none); }
+.card::before { content: ""; position: absolute; inset: 0 0 auto; height: 4px; background: var(--accent-readable); }
+.title { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; color: var(--text-secondary); font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+.title span { padding: 2px 8px; border: 1px solid var(--line-subtle); border-radius: 999px; font-size: 12px; letter-spacing: .02em; text-transform: none; }
+.player { display: flex; align-items: center; gap: 12px; }
+.player h3 { margin: 0; font-size: 18px; font-weight: 800; line-height: 1.2; }
+.player a { color: inherit; text-decoration: none; }
+.player a:hover { text-decoration: underline; }
+.headline { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.headline strong { font-family: var(--font-display, inherit); font-size: 40px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.headline span { color: var(--text-secondary); font-size: 13px; font-weight: 700; }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.stats div { padding: 6px 8px; border-radius: 8px; background: var(--surface-raised); }
+.stats dt { color: var(--text-secondary); font-size: 12px; font-weight: 700; }
+.stats dd { margin: 0; font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.basis { margin: 0; color: var(--text-secondary); font-size: 12px; line-height: 1.45; }
+.basis em { margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: color-mix(in srgb, #e0a526 18%, transparent); color: var(--text-primary); font-size: 12px; font-style: normal; font-weight: 700; }
+.link { display: inline-flex; align-items: center; gap: 4px; margin-top: auto; color: var(--accent-readable); font-size: 13px; font-weight: 700; text-decoration: none; }

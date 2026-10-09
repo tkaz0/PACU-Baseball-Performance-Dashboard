@@ -11,6 +11,9 @@ import { loadHomeSnapshot, loadHomeActivity } from "@/lib/home-server";
 import { loadHomeLeaderboards } from "@/lib/home-leaderboards-server";
 import { loadDashboardVisit } from "@/lib/personal-dashboard-server";
 import { loadWeeklySourceStatus } from "@/lib/weekly-source-checks";
+import { HomeSpotlight } from "@/components/home-spotlight";
+import { homeSpotlight } from "@/lib/home-spotlight";
+import { loadTopPerformersData } from "@/lib/analytics-server";
 import { loadDesignNavigation } from "@/lib/design-navigation-server";
 
 /** One failed Home section must not take down the whole page; the failure is logged by section name. */
@@ -26,15 +29,17 @@ export default async function Overview({searchParams}:{searchParams:Promise<{pre
   const activityPromise=visitPromise.then(visit=>loadHomeActivity(access,visit)).catch(()=>({ok:false as const}));
   const leaderboardsPromise=settle("leaderboards",failed,loadHomeLeaderboards(access),[]);
   const trendsPromise=staff?loadTeamGameTrends(access).catch(()=>({})):Promise.resolve({});
+  const performersPromise=staff?settle("spotlight",failed,loadTopPerformersData(),null):Promise.resolve(null);
   const canSeeBoards=staff || (access.roles.includes("player") && !!access.athleteId);
   const photosPromise=canSeeBoards?settle("headshots",failed,loadTeamHeadshots(access),new Map<string,string>()):Promise.resolve(new Map<string,string>());
-  const [params,summary,leaderboards,sourceStatus,designNavigation,visit,headshots]=await Promise.all([
+  const [params,summary,leaderboards,sourceStatus,designNavigation,visit,headshots,performers]=await Promise.all([
     searchParams,settle("results summary",failed,loadHomeSnapshot(access),null),leaderboardsPromise,
-    staff?settle("source status",failed,loadWeeklySourceStatus(access),[]):Promise.resolve([]),settle("design links",failed,loadDesignNavigation(access),undefined),visitPromise,photosPromise,
+    staff?settle("source status",failed,loadWeeklySourceStatus(access),[]):Promise.resolve([]),settle("design links",failed,loadDesignNavigation(access),undefined),visitPromise,photosPromise,performersPromise,
   ]);
   return <><AccessPreviewNotice status={params.preview} isPreview={!!access.preview}/>{failed.length>0&&<p role="status" className="muted mb-4 text-sm">Some Home sections are temporarily unavailable ({failed.join(", ")}). Refresh to try again.</p>}<DashboardHome
     coachingPulse={staff&&summary?<Suspense fallback={<HomeActivityPlaceholder coaching/>}><HomeCoachingPulse activity={activityPromise} reviewCount={[...summary.batting.rates,...summary.pitching.rates].filter(rate=>rate.pending&&rate.pendingReason!=="missing").length}/></Suspense>:undefined}
     activity={summary?<Suspense fallback={<HomeActivityPlaceholder/>}><HomeVisitActivity activity={activityPromise} visit={visit} staff={staff} athleteId={access.athleteId}/></Suspense>:undefined}
     streamedTrend={staff?(source,metric,label)=><Suspense fallback={null}><HomeGameTrend trends={trendsPromise} source={source} metric={metric} label={label}/></Suspense>:undefined}
+    spotlight={staff?<HomeSpotlight cards={homeSpotlight(performers,leaderboards)} headshots={Object.fromEntries(headshots)}/>:undefined}
     headshots={Object.fromEntries(headshots)} staff={staff} athleteId={access.athleteId} summary={summary} leaderboards={leaderboards} sourceStatus={sourceStatus} visit={visit} designNavigation={designNavigation}/></>;
 }

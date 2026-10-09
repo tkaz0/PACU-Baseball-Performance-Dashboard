@@ -1,0 +1,14 @@
+.panel { margin-top: 20px; padding: clamp(16px, 2.2vw, 24px); border: 1px solid var(--line-subtle); border-radius: var(--radius-card, 14px); background: var(--surface-panel); box-shadow: var(--shadow-card, none); }
+.panel h2 { margin: 2px 0 0; font-family: var(--font-display, inherit); font-size: 26px; font-weight: 800; text-transform: uppercase; letter-spacing: .01em; line-height: 1; }
+.eyebrow { margin: 0; color: var(--accent-readable); font-size: 12px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 16px; margin-top: 14px; align-items: start; }
+.radar { margin: 0; padding: 12px; border: 1px solid var(--line-subtle); border-radius: 12px; background: var(--surface-raised); }
+.radar figcaption h3 { margin: 0; font-family: var(--font-display, inherit); font-size: 18px; font-weight: 800; text-transform: uppercase; letter-spacing: .02em; }
+.radar figcaption p { margin: 2px 0 0; color: var(--text-secondary); font-size: 12px; }
+.radar svg { display: block; width: 100%; max-width: 340px; height: auto; margin: 4px auto 0; overflow: visible; }
+.note { margin: 12px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+.badges { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
+.badges li { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border: 1px solid color-mix(in srgb, var(--accent-readable) 35%, var(--line-subtle)); border-radius: 999px; background: color-mix(in srgb, var(--accent-readable) 10%, transparent); color: var(--text-primary); font-size: 12px; font-weight: 700; }
+.badges li[data-best] { border-color: #e0a526; background: color-mix(in srgb, #e0a526 16%, transparent); }
+.badges li span { color: var(--accent-readable); font-size: 12px; }
+.badges li[data-best] span { color: #e0a526; }

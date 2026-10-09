@@ -69,3 +69,17 @@
 @media(max-width:759px){.attention{grid-template-columns:1fr!important}}
 .rankTrack{overflow:visible!important}.rankTrack>span:first-child{border-radius:inherit}
 .referenceTick{width:2px!important;background:var(--text-primary)!important;box-shadow:0 0 0 1px var(--surface-panel)}
+
+/* Results first; operational detail opens on demand. */
+.leadersColumn .rankGrid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+@media(min-width:1700px) { .leadersColumn .rankGrid { grid-template-columns: repeat(4,minmax(0,1fr)); } }
+@media(max-width:600px) {
+  .home { gap: 18px; }
+  .blockHeading { align-items: flex-start; flex-wrap: wrap; }
+  .blockHeading .panelLink { min-height: 32px; }
+  .leadersColumn .rankGrid { grid-template-columns: minmax(0,1fr); }
+  .rankResult > div { display: flex; }
+  .rankList li { min-height: 62px; }
+  .coverageBody { flex-wrap: wrap; justify-content: center; }
+  .coverageList { flex-basis: 100%; }
+}

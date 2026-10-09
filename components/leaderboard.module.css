@@ -83,3 +83,19 @@
 }
 
 .playerCell { display: flex; align-items: center; gap: 12px; min-width: 0; }
+
+/* Compact without hiding sample sizes or compressing names. */
+.heading { min-height: 0; }
+.tableWrap tbody tr { height: 68px; }
+.sections { gap: 18px; }
+@media(max-width:600px) {
+  .tableWrap thead th:first-child { width: 34px; }
+  .tableWrap thead th:last-child { width: 94px; }
+  .tableWrap tbody td,.tableWrap tbody th { padding: 10px 7px; }
+  .tableWrap tbody .result { padding-right: 10px; font-size: 17px; }
+  .tableWrap thead th:last-child { padding-right: 10px; }
+  .playerCell { gap: 7px; align-items: flex-start; }
+  .playerCell > :first-child { width: 28px; height: 28px; flex: 0 0 28px; }
+  .filterBar label { max-width: none; flex-basis: 120px; }
+  .filterBar button { min-height: 44px; }
+}
