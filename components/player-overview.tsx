@@ -7,7 +7,6 @@ import { profileSessionContext } from "@/lib/player-profile-layout";
 import { profileMetricLabel } from "@/lib/profile-metric-label";
 import { formatMetricNumber } from "@/lib/measurement-display";
 import { ProfileTrendChart } from "@/components/profile-trend-chart";
-import { PhysicalityRadar, physicalityRadarPoints } from "@/components/physicality-radar";
 import { profileTrends, type ProfileTrend } from "@/lib/profile-trends";
 import type { StatGuideContext } from "@/lib/stat-benchmarks";
 import { StatInfo } from "@/components/stat-info";
@@ -76,7 +75,6 @@ export function PlayerOverview({ quick=false, cards, gameStats = [], gameCompari
   const lastTested = availableCards.map(card => card.timedTrials?.lastTested ?? card.latest!.measuredAt).sort().at(-1);
   const bodyResultsOnly = availableCards.length > 0 && availableCards.every(card => card.metric.group === "body");
   const rankingRows = percentileRankingGroups(availableCards, games).flatMap(group => group.rows);
-  const hasPhysicalityRadar = physicalityRadarPoints(physicality).length === 3;
   const trends = profileTrends([...physicality, ...testing]);
   // Featured stats are the Top Performer score components: hitters PAC Production+, QPA%, OBP, ISO;
   // pitchers WHIP, K/BB, Runs/9 (both for two-way players). Without game stats, testing highlights remain.
@@ -119,7 +117,6 @@ export function PlayerOverview({ quick=false, cards, gameStats = [], gameCompari
     {!comparableCount && <p className="m-0 max-w-3xl text-xs leading-6 text-[var(--text-secondary)]">Team comparisons need at least five players with the same test or game stat. {showMethods ? "This player’s own results are available in the other tabs." : "Your own results are available in the other tabs."}</p>}
     <SkillProfile rows={rankingRows}/>
     <PercentileRankings cards={availableCards} games={games}/>
-    {hasPhysicalityRadar && <section className={`${overview.panel} mt-5 p-4`} aria-label="Physicality team positions"><PhysicalityRadar cards={physicality}/></section>}
     {!quick && trends.length > 0 && <details className={overview.moreTesting}><summary>Testing Trends <ChevronDown size={16} aria-hidden="true"/></summary><ProfileTrendChart series={trends}/></details>}
     {beforeMethods}
     {!quick && showMethods && <details className="group border-t border-[var(--line-subtle)] pt-4 text-xs text-[var(--text-secondary)]"><summary className="flex min-h-8 w-fit cursor-pointer list-none items-center gap-2 font-semibold">How These Highlights Work<ChevronDown size={14} className="transition-transform group-open:rotate-180" aria-hidden="true" /></summary>

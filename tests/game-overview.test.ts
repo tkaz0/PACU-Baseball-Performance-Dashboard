@@ -36,17 +36,16 @@ it("populates strengths and weaknesses from verified game rates with sample-size
   expect(weaknesses).toContain('K %'); expect(weaknesses).toContain('10 PA');
   expect(html).toContain('aria-label="Percentile rankings"'); expect(html).toContain('90th percentile'); expect(html).not.toContain('data-ranking-game-metric="ab"'); expect(html).not.toContain('data-ranking-game-metric="pumps"');
 });
-it("shows only the requested physicality trio in Overview while keeping body ranks descriptive", () => {
+it("keeps physicality headline results on Overview without duplicating the Physicality tab radar", () => {
   const codes=Array.from({length:5},(_,i)=>`SYN-00${i+1}`);
   const readings=codes.flatMap((code,i)=>[['Weight',180+i,'lb'],['Height',70+i,'in'],['Muscle Mass',140+i,'lb'],['RENPHO Body Score',80+i,'points'],['Body Fat Percentage',18+i,'%']].map(([metric,value,unit])=>({id:`${code}-${metric}`,athlete_code:code,metric:String(metric),value:Number(value),unit:String(unit),measured_at:'2026-09-13',source:'RENPHO',source_file:'fictional.png',source_sheet:'RENPHO report · Page 1',source_row:2,file_hash:'a'.repeat(64)})));
   const performance=getPlayerPerformance({readings,athleteCode:codes[0],cohortAthleteCodes:codes});
   const html=renderToStaticMarkup(createElement(PlayerOverview,{cards:performance.body}));
-  for(const label of ['Muscle mass','Body score','Body fat %'])expect(html).toContain(label);
+  for(const label of ['Muscle Mass','RENPHO Body Score','Body Fat %'])expect(html).toContain(`About ${label}`);
   for(const key of ['weight','height'])expect(html).not.toContain(`data-overview-metric="${key}"`);
-  expect(html).toContain('aria-label="Physicality percentile radar"');
+  expect(html).not.toContain('aria-label="Physicality percentile radar"');
   expect(html).not.toContain('aria-label="Physicality percentiles"');
-  expect(html).toContain('Lower body fat ranks higher');
-  expect(html).toContain('ranks are descriptive');expect(html.split('aria-label="Strengths"')[1].split('aria-label="Areas to Work On"')[0]).not.toContain('role="meter"');
+  expect(html.split('aria-label="Strengths"')[1].split('aria-label="Areas to Work On"')[0]).not.toContain('role="meter"');
 });
 it("removes standalone batting Hits and AB cards but retains AVG denominator", () => {
   const html=renderToStaticMarkup(createElement(AthleteGameStats,{stats,comparisons:[c]}));

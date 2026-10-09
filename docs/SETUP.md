@@ -508,3 +508,5 @@ Click a field position on either team, choose a captain/drafted player, then Ass
 Rankings are entirely manual. **Reset to Draft List Order** previews the original eligible pool order; **Save Big Board** persists it. No performance-based ordering, scores or game-stat queries are part of this page. Positional-fit suggestions are removed; positions remain manually assigned on the field charts.
 
 October 9 layout refinement is app-only; no migration or configuration change. Home operational details, secondary ranking groups and supporting team totals open through native disclosures. A filtered leaderboard opens every matching group; a specific-pitch selection opens its arsenal. No results, cohorts or calculation rules change.
+
+The Physicality radar placement and compact cumulative profile stat sheets are presentation-only app changes; no migration or environment change is required.

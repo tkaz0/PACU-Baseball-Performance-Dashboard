@@ -172,3 +172,18 @@ it("Quick View keeps the main body results and balance notice, with all indicato
  expect(quick).not.toContain("Fictional movement details");expect(quick).not.toContain("Fictional report details");expect(full).toContain("Fictional movement details");expect(full).toContain("Fictional report details");expect(quick).toContain("Full Detail includes");
  expect(quick).toContain('aria-pressed="true">Quick View');expect(full).toContain('aria-pressed="true">Full Detail');
 });
+
+it("places the complete Fall physicality radar only in Physicality, including routed Quick View", () => {
+ const codes=Array.from({length:5},(_,i)=>`SYN-00${i+1}`);
+ const readings=codes.flatMap((code,i)=>[["Muscle Mass",140+i,"lb"],["RENPHO Body Score",80+i,"points"],["Body Fat Percentage",15+i,"%"]].map(([metric,value,unit])=>({...measurement(String(metric),Number(value),String(unit),"2026-09-16",code),source:"RENPHO"})));
+ const performance=getPlayerPerformance({readings,athleteCode:codes[0],cohortAthleteCodes:codes}),props={athlete:fictionalAthlete("two_way"),performance};
+ const html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,props)),panels=html.split('role="tabpanel"');
+ expect(panels[1]).not.toContain('aria-label="Physicality percentile radar"');
+ expect(panels[2]).toContain('aria-label="Physicality percentile radar"');
+ const quick=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{...props,selectedTab:"physicality",detail:"quick"}));
+ expect(quick).toContain('aria-label="Physicality percentile radar"');
+ const overview=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{...props,selectedTab:"overview"}));
+ expect(overview).not.toContain('aria-label="Physicality percentile radar"');
+ const incomplete=getPlayerPerformance({readings:readings.filter(row=>row.metric!=="RENPHO Body Score"),athleteCode:codes[0],cohortAthleteCodes:codes});
+ expect(renderToStaticMarkup(createElement(PlayerPerformanceProfile,{...props,performance:incomplete,selectedTab:"physicality"}))).not.toContain('aria-label="Physicality percentile radar"');
+});

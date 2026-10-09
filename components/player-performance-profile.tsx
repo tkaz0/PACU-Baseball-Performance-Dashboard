@@ -24,6 +24,7 @@ import type { GameComparison } from "@/lib/game-metrics";
 import { MeasurementChange } from "@/components/measurement-change";
 import { playerRenphoChange } from "@/lib/measurement-change";
 import { RenphoBodyScore } from "@/components/renpho-body-score";
+import { PhysicalityRadar } from "@/components/physicality-radar";
 import { StatInfo } from "@/components/stat-info";
 import type { ProfileTabId, ProfileDetail } from "@/lib/profile-tab";
 import type { ReactNode } from "react";
@@ -164,6 +165,7 @@ export function PlayerPerformanceProfile({ blastBatSpeedPercentile = null, detai
     { id: "overview", label: "Overview", content: selectedTab && selectedTab !== "overview" ? null : <><PlayerOverview quick={quick} beforeMethods={!quick && layout.showHitting ? <PracticeGameBridge performance={performance} blastReadings={blastReadings}/> : null} teamAverages={teamAverages} twoWay={selectedSeason?.player_type?.trim().toLowerCase() === "two_way"} showMethods={!simplified} cards={[...cards, ...(bodyScoreCard ? [bodyScoreCard] : [])]} gameStats={overviewGameStats} gameComparisons={gameComparisons} />{developmentPlan}{coachFocus}{goals}</> },
     { id: "physicality", label: "Physicality", content: selectedTab && selectedTab !== "physicality" ? null : <>
       {!layout.physicality.length && !layout.additionalBody.length && !bodyScore && <p className={presentation.emptyState}>No physicality measurements recorded yet.</p>}
+      <div className="mb-6 empty:hidden"><PhysicalityRadar cards={[...layout.physicality, ...layout.additionalBody, ...(bodyScoreCard ? [bodyScoreCard] : [])]}/></div>
       <MetricGroup id="body-measurements" title="Physicality" cards={layout.physicality} />
       <div className={bodyScore && layout.additionalBody.length ? presentation.composition : undefined}>
         {bodyScore && <RenphoBodyScore reading={bodyScore} change={bodyScoreCard ? playerRenphoChange(bodyScoreCard) : null}/>}
