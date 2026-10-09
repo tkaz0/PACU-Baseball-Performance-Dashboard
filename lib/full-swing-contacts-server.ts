@@ -5,7 +5,24 @@ import type { ReviewedContact } from "@/lib/imports/full-swing-contacts";
 import { UUID_PATTERN } from "@/lib/types";
 
 /** pitcherThrows is the linked roster pitcher's hand (R/L); null/absent when unknown or Machine BP. */
-export type SavedContact = Omit<ReviewedContact, "athleteCode"> & { pitcherThrows?: "R" | "L" | null };
+/** squaredUp is 0–1 and potentialExitVelocity is mph, both from the original CSV row; absent when not saved. */
+export type SavedContact = Omit<ReviewedContact, "athleteCode"> & { pitcherThrows?: "R" | "L" | null; squaredUp?: number | null; potentialExitVelocity?: number | null };
+
+/** Saved Squared Up / Potential EV for this athlete's readable contacts; failure leaves them absent. */
+async function withSquaredUp(access: Awaited<ReturnType<typeof requireAccess>>, athleteId: string, contacts: SavedContact[]): Promise<SavedContact[]> {
+  if (!contacts.length) return contacts;
+  let data: unknown;
+  try {
+    const result = await access.supabase.rpc("athlete_contact_quality", { p_athlete: athleteId });
+    if (result.error) return contacts;
+    data = result.data;
+  } catch { return contacts; }
+  if (!Array.isArray(data)) return contacts;
+  const quality = new Map<string, { squaredUp: number; potentialExitVelocity: number }>();
+  for (const row of data) if (row && typeof row.file_hash === "string" && Number.isSafeInteger(row.source_row) && typeof row.squared_up === "number" && row.squared_up > 0 && row.squared_up <= 1 && typeof row.potential_exit_velocity === "number" && row.potential_exit_velocity > 0 && row.potential_exit_velocity <= 200)
+    quality.set(`${row.file_hash}:${row.source_row}`, { squaredUp: row.squared_up, potentialExitVelocity: row.potential_exit_velocity });
+  return contacts.map(contact => { const q = quality.get(`${contact.fileHash}:${contact.sourceRow}`); return { ...contact, squaredUp: q?.squaredUp ?? null, potentialExitVelocity: q?.potentialExitVelocity ?? null }; });
+}
 
 /** Only R/L for this athlete's own readable contacts; the reader never returns pitcher identities. */
 async function withPitcherHands(access: Awaited<ReturnType<typeof requireAccess>>, athleteId: string, contacts: SavedContact[]): Promise<SavedContact[]> {
@@ -50,7 +67,8 @@ export async function loadFullSwingContacts(access: Awaited<ReturnType<typeof re
         sourceFile: row.source_file, playedOn: row.played_on, category: row.category,
         exitVelocity: row.exit_velocity, launchAngle: row.launch_angle, direction: row.direction, distance: row.distance });
     }
-    if (data.length < 1000) return withPitcherHands(access, athleteId, contacts);
+    if (data.length < 1000) { const [hands, squared] = await Promise.all([withPitcherHands(access, athleteId, contacts), withSquaredUp(access, athleteId, contacts)]);
+      return hands.map((contact, index) => ({ ...contact, squaredUp: squared[index].squaredUp ?? null, potentialExitVelocity: squared[index].potentialExitVelocity ?? null })); }
   }
   throw new Error("Contact-map history exceeds the supported size.");
 }

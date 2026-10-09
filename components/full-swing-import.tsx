@@ -1,6 +1,7 @@
 "use client";
 import { contactPitcherRows } from "@/lib/imports/contact-pitchers";
-import { saveContactPitchers } from "@/app/(workspace)/imports/actions";
+import { saveContactPitchers, saveContactSquaredUp } from "@/app/(workspace)/imports/actions";
+import { contactSquaredUpRows } from "@/lib/imports/contact-squared-up";
 
 import { pitchTypeLabel } from "@/lib/imports/pitch-assignments";
 import { formatMetricNumber, isBatSpeedMetric } from "@/lib/measurement-display";
@@ -189,6 +190,8 @@ export function FullSwingImport({ category, sourceCategory, roster, saveAction, 
         // Pitcher hands for RHP/LHP splits; the server verifies each link. Failure leaves batted balls unaffected.
         const pitcherLinks = sessionSource && file ? contactPitcherRows(sessionSource, session) : [];
         if (file && pitcherLinks.length) void saveContactPitchers(file.fileHash, pitcherLinks).catch(() => undefined);
+        const squaredUp = sessionSource && file ? contactSquaredUpRows(sessionSource, session) : [];
+        if (file && squaredUp.length) void saveContactSquaredUp(file.fileHash, squaredUp).catch(() => undefined);
         setReceipt(buildImportConfirmation(bundleReview.measurements, roster, result, skipped));
         setReviewed(null); setConfirmed(false);
         return;

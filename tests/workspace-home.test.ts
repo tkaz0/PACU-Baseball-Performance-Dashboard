@@ -19,6 +19,7 @@ vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw new Erro
 vi.mock("next/link", () => ({ default: ({ href, children, ...props }: { href: string; children: ReactNode }) => createElement("a", { href, ...props }, children) }));
 vi.mock("@/lib/headshots-server", () => ({ loadTeamHeadshots: async () => new Map(), loadAthleteHeadshot: async () => null }));
 vi.mock("@/lib/game-trends-server", () => ({ loadTeamGameTrends: async () => ({}) }));
+vi.mock("@/lib/game-weeks-server", () => ({ loadGameWeeks: async () => null }));
 import Overview from "@/app/(workspace)/overview/page";
 import { Sidebar } from "@/components/sidebar";
 import { AccessPreviewNotice } from "@/components/access-preview-notice";
