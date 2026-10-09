@@ -41,7 +41,7 @@ export default async function Roster({ searchParams }: { searchParams: Promise<{
       if (sort === "class") return CLASS_ORDER.indexOf(x?.academic_class?.toLowerCase() ?? "") - CLASS_ORDER.indexOf(y?.academic_class?.toLowerCase() ?? "") || a.last_name.localeCompare(b.last_name);
       return 0; });
   return <><AccessPreviewNotice status={params.preview} isPreview={!!preview} />
-    <RosterHeader season={season} count={seasonal.length}><Link prefetch={false} href={`/roster/reports?group=${pos === "pitchers" ? "pitchers" : "all"}`} className="btn btn-secondary">Print Player Reports</Link>{roles.includes("admin") && <Link href="/admin/import" className="btn btn-secondary">Import Roster</Link>}</RosterHeader>
+    <RosterHeader season={season} count={seasonal.length}>{roles.includes("admin") && <Link href="/admin/import" className="btn btn-secondary">Import Roster</Link>}</RosterHeader>
     <form className={`panel ${styles.toolbar}`} method="get">
       <StaffAthleteSearch athletes={seasonal.map(staffAthleteChoice)} defaultQuery={params.q} name="q" />
       <label className={styles.season}>Season<select name="season" defaultValue={season}>{!seasons.length && <option value="">No seasons yet</option>}{seasons.map(s => <option key={s}>{s}</option>)}</select></label>

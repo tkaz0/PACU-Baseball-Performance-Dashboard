@@ -5,7 +5,6 @@ import { battingRates } from "@/lib/batting-stats";
 import { teamGameSummary, type TeamGameSummary } from "@/lib/team-game-stats";
 import { teamReportCard } from "@/lib/team-report-card";
 import { TeamReportCard } from "@/components/team-report-card";
-import { ReportCustomizer, ScoutsTake } from "@/components/report-customizer";
 import type { SharedGameStat } from "@/lib/game-server";
 
 // Fictional fixtures only; no production data.
@@ -35,10 +34,3 @@ describe("team report card", () => {
   });
 });
 
-describe("custom player report", () => {
-  it("offers block toggles and an unsaved Scout's Take", () => {
-    const html = renderToStaticMarkup(createElement(ReportCustomizer, null, createElement("article", null, createElement(ScoutsTake))));
-    expect(html).toContain("Include on the report"); expect(html).toContain("Scout&#x27;s Take"); expect(html).toContain("not saved");
-    expect(html).toContain('data-block="note"');
-  });
-});

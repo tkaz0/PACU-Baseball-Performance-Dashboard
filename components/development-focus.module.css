@@ -1,0 +1,9 @@
+.sections { display: grid; gap: 22px; }
+.panel { padding: clamp(16px, 2.2vw, 24px); border: 1px solid var(--line-subtle); border-radius: var(--radius-card, 14px); background: var(--surface-panel); }
+.panel h2 { margin: 0; font-family: var(--font-display, inherit); font-size: 24px; font-weight: 800; text-transform: uppercase; }
+.panel header p { margin: 4px 0 12px; color: var(--text-secondary); font-size: 13px; }
+.panel th a { color: inherit; font-weight: 700; text-decoration: none; }
+.panel th a:hover { text-decoration: underline; }
+.flag { background: color-mix(in srgb, #367ea3 12%, transparent); }
+.sub { display: block; color: var(--text-secondary); font-size: 12px; font-weight: 500; }
+.note { margin: 10px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
