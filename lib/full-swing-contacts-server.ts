@@ -4,7 +4,23 @@ import { requireAccess, requireImportAccess } from "@/lib/auth";
 import type { ReviewedContact } from "@/lib/imports/full-swing-contacts";
 import { UUID_PATTERN } from "@/lib/types";
 
-export type SavedContact = Omit<ReviewedContact, "athleteCode">;
+/** pitcherThrows is the linked roster pitcher's hand (R/L); null/absent when unknown or Machine BP. */
+export type SavedContact = Omit<ReviewedContact, "athleteCode"> & { pitcherThrows?: "R" | "L" | null };
+
+/** Only R/L for this athlete's own readable contacts; the reader never returns pitcher identities. */
+async function withPitcherHands(access: Awaited<ReturnType<typeof requireAccess>>, athleteId: string, contacts: SavedContact[]): Promise<SavedContact[]> {
+  if (!contacts.length) return contacts;
+  let data: unknown;
+  try {
+    const result = await access.supabase.rpc("athlete_contact_pitcher_hands", { p_athlete: athleteId });
+    if (result.error) return contacts;
+    data = result.data;
+  } catch { return contacts; }
+  if (!Array.isArray(data)) return contacts;
+  const hands = new Map<string, "R" | "L">();
+  for (const row of data) if (row && typeof row.file_hash === "string" && Number.isSafeInteger(row.source_row) && (row.pitcher_throws === "R" || row.pitcher_throws === "L")) hands.set(`${row.file_hash}:${row.source_row}`, row.pitcher_throws);
+  return contacts.map(contact => ({ ...contact, pitcherThrows: hands.get(`${contact.fileHash}:${contact.sourceRow}`) ?? null }));
+}
 
 /** RLS and the effective View-as scope both limit detailed events to this athlete. */
 export async function loadFullSwingContacts(access: Awaited<ReturnType<typeof requireAccess>>, athleteId: string, context?: "in_game" | "practice"): Promise<SavedContact[]> {
@@ -34,7 +50,7 @@ export async function loadFullSwingContacts(access: Awaited<ReturnType<typeof re
         sourceFile: row.source_file, playedOn: row.played_on, category: row.category,
         exitVelocity: row.exit_velocity, launchAngle: row.launch_angle, direction: row.direction, distance: row.distance });
     }
-    if (data.length < 1000) return contacts;
+    if (data.length < 1000) return withPitcherHands(access, athleteId, contacts);
   }
   throw new Error("Contact-map history exceeds the supported size.");
 }

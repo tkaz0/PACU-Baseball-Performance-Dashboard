@@ -11,6 +11,7 @@ import { importFullSwingContacts } from "@/lib/full-swing-contacts-server";
 import type { ReviewedContact } from "@/lib/imports/full-swing-contacts";
 import { REVIEWED_CONTACT_FIELDS } from "@/lib/imports/full-swing-contacts";
 import type { ReviewedFullSwingSample } from "@/lib/imports/full-swing-samples";
+import type { ContactPitcherRow } from "@/lib/imports/contact-pitchers";
 
 export type SaveReviewedMeasurementsResult = PerformanceImportReceipt | { error: string };
 const measurementFields = new Set(["id", "athlete_code", "measured_at", "source", "metric", "value", "unit", "source_file", "source_sheet", "source_row", "file_hash"]);
@@ -106,6 +107,22 @@ export async function saveReviewedExistingFullSwingSamples(input: unknown): Prom
     if (totals.created) revalidatePath("/leaderboards");
     return { error: "Some sample counts could not be confirmed. Reopen the same original CSV before retrying; any verified counts remain saved." };
   }
+}
+
+/** Links saved batted balls to the pitcher staff already matched in the same file (server verifies). */
+export async function saveContactPitchers(fileHash: unknown, input: unknown): Promise<{ created: number; unchanged: number; skipped: number } | { error: string }> {
+  const { supabase } = await requireImportAccess();
+  if (typeof fileHash !== "string" || !/^[a-f0-9]{64}$/.test(fileHash) || !Array.isArray(input) || input.length < 1 || input.length > 2000)
+    return { error: "Review one session's batted balls." };
+  const rows = input as ContactPitcherRow[];
+  if (rows.some(row => !row || typeof row !== "object" || Array.isArray(row) || Object.keys(row).sort().join(",") !== "pitcherMaxVelocity,pitcherSummaryRow,sourceRow" ||
+    !Number.isSafeInteger(row.sourceRow) || row.sourceRow < 2 || !Number.isSafeInteger(row.pitcherSummaryRow) || row.pitcherSummaryRow < 2 ||
+    !Number.isFinite(row.pitcherMaxVelocity) || row.pitcherMaxVelocity <= 0 || row.pitcherMaxVelocity > 130)) return { error: "Pitcher links need original CSV rows." };
+  const { data, error } = await supabase.rpc("save_full_swing_contact_pitchers", { p_file_hash: fileHash, p_rows: rows });
+  if (error || !data || typeof data !== "object" || ["created", "unchanged", "skipped"].some(key => !Number.isSafeInteger((data as Record<string, unknown>)[key])))
+    return { error: "Pitcher hands could not be saved. Batted balls are unaffected." };
+  revalidatePath("/athletes", "layout");
+  return data as { created: number; unchanged: number; skipped: number };
 }
 
 export async function saveReviewedContacts(input: unknown, confirmed: boolean): Promise<{ created: number; unchanged: number } | { error: string }> {

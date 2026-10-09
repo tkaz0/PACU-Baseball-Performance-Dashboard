@@ -8,6 +8,7 @@ import type { SavedContact } from "@/lib/full-swing-contacts-server";
 import { contactQuality } from "@/lib/contact-quality";
 import { HitterSprayMap } from "@/components/hitter-spray-map";
 import { BattedBallProfile } from "@/components/batted-ball-profile";
+import { PitcherHandSplits } from "@/components/pitcher-hand-splits";
 import { StatInfo } from "@/components/stat-info";
 import { fullSwingFileLabel } from "@/lib/full-swing-file-label";
 import { isLikelyFoul } from "@/lib/likely-foul";
@@ -63,6 +64,7 @@ export function HitterContactMap({ contacts, context, bats, athleteId, videos = 
     </div>
     {quality.count<10&&<p className="muted mb-0 mt-2 text-xs">Early look: these percentages use just {quality.count} recorded {quality.count===1?"ball":"balls"}.</p>}
     <BattedBallProfile contacts={plotted} bats={bats}/>
+    <PitcherHandSplits contacts={plotted}/>
     <div className="mt-4 flex flex-wrap items-center gap-2"><div className="flex flex-wrap gap-2" role="group" aria-label="Batted-ball chart"><button type="button" onClick={()=>setChart("contact")} aria-pressed={chart==="contact"} className={`rounded-full border px-3 py-1.5 text-xs font-bold ${chart==="contact"?"border-[var(--accent-readable)] bg-[var(--accent-readable)] text-white":"border-[var(--line-subtle)]"}`}>Exit Speed / Angle</button><button type="button" onClick={()=>setChart("spray")} aria-pressed={chart==="spray"} className={`rounded-full border px-3 py-1.5 text-xs font-bold ${chart==="spray"?"border-[var(--accent-readable)] bg-[var(--accent-readable)] text-white":"border-[var(--line-subtle)]"}`}>Spray Chart</button><button type="button" onClick={()=>setChart("consistency")} aria-pressed={chart==="consistency"} className={`rounded-full border px-3 py-1.5 text-xs font-bold ${chart==="consistency"?"border-[var(--accent-readable)] bg-[var(--accent-readable)] text-white":"border-[var(--line-subtle)]"}`}>Consistency</button></div>{chart!=="consistency"&&<StatInfo metric={chart==="contact"?"ev_launch_chart":"spray_chart"} label={chart==="contact"?"Exit Speed / Angle chart":"Spray Chart"}/>}</div>
     {chart==="consistency"?<ContactConsistency contacts={plotted} includeLikelyFouls={!ballsInPlay}/>:chart==="spray"?<HitterSprayMap contacts={plotted} bats={bats} onSelect={athleteId&&!uploadLocked ? row=>selectSwing(swingContactKey(row.fileHash,row.sourceRow)) : undefined} videoKeys={videoKeys} selectedKey={selectedSwing}/>:<><div className="mt-4 overflow-x-auto"><svg viewBox="0 0 700 328" role="img" aria-label={`Scatter plot of ${plotted.length} batted ${plotted.length === 1 ? "ball" : "balls"} with exit velocity in miles per hour on the horizontal axis and launch angle in degrees on the vertical axis`} className="min-w-[540px] w-full">
       {ticks.map(fraction => { const ev=minX+(maxX-minX)*fraction, angle=minY+(maxY-minY)*fraction;
