@@ -34,7 +34,7 @@ it("populates strengths and weaknesses from verified game rates with sample-size
   const weaknesses=html.split('aria-label="Areas to Work On"')[1].split('aria-label="Biggest jumps"')[0];
   expect(strengths).toContain('AVG'); expect(strengths).toContain('8 AB'); expect(strengths).toContain('Early sample'); expect(strengths).not.toContain('>HR<');
   expect(weaknesses).toContain('K %'); expect(weaknesses).toContain('10 PA');
-  expect(html).toContain('aria-label="Game Stats percentiles"'); expect(html).toContain('aria-valuenow="90"'); expect(html).not.toContain('data-overview-game-metric="ab"');
+  expect(html).toContain('aria-label="Percentile rankings"'); expect(html).toContain('90th percentile'); expect(html).not.toContain('data-ranking-game-metric="ab"'); expect(html).not.toContain('data-ranking-game-metric="pumps"');
 });
 it("shows only the requested physicality trio in Overview while keeping body ranks descriptive", () => {
   const codes=Array.from({length:5},(_,i)=>`SYN-00${i+1}`);
@@ -58,12 +58,12 @@ it("separates two-way hitting and pitching panels and labels their highlights", 
   const mixed = [...stats, ...pitch];
   const comparisons = [c, {...c, source:"pitching_fall_2026", metric:"strike_pct", eventId:"fall-2026-cumulative", value:80, percentile:85}];
   const overview = renderToStaticMarkup(createElement(PlayerOverview, {cards:[],twoWay:true,gameStats:mixed,gameComparisons:comparisons}));
-  const hitting = overview.split('aria-label="Hitting game percentiles"')[1].split('aria-label="Pitching game percentiles"')[0];
-  const pitching = overview.split('aria-label="Pitching game percentiles"')[1];
-  expect(hitting).toContain('data-overview-game-metric="batting_avg"');
-  expect(hitting).not.toContain('data-overview-game-metric="strike_pct"');
-  expect(pitching).toContain('data-overview-game-metric="strike_pct"');
-  expect(pitching).not.toContain('data-overview-game-metric="batting_avg"');
+  const hitting = overview.split('aria-label="Hitting · Game Stats"')[1].split('aria-label="Pitching · Game Stats"')[0];
+  const pitching = overview.split('aria-label="Pitching · Game Stats"')[1];
+  expect(hitting).toContain('data-ranking-game-metric="batting_avg"');
+  expect(hitting).not.toContain('data-ranking-game-metric="strike_pct"');
+  expect(pitching).toContain('data-ranking-game-metric="strike_pct"');
+  expect(pitching).not.toContain('data-ranking-game-metric="batting_avg"');
   const strengths = overview.split('aria-label="Strengths"')[1].split('aria-label="Areas to Work On"')[0];
   expect(strengths).toContain('data-insight-discipline="Hitting"');
   expect(strengths).toContain('data-insight-discipline="Pitching"');

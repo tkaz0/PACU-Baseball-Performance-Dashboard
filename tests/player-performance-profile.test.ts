@@ -90,7 +90,7 @@ it("shows recorded total muscle in Body Composition and Overview instead of a pe
  const html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete:fictionalAthlete("position"),performance}));
  expect(html).toContain('data-metric-key="muscle_mass" data-value="120" data-unit="lb"');
  expect(html).not.toContain('data-metric-key="muscle_mass_pct"');expect(html).not.toContain("Muscle Mass %");
- const overview=html.split('role="tabpanel"')[1];expect(overview).toContain("120 lb");expect(overview).toContain('aria-label="Muscle Mass Pacific percentile"');expect(overview).toContain('aria-valuenow="0"');
+ const overview=html.split('role="tabpanel"')[1];expect(overview).toContain('120<span class="hero-unit"> lb</span>');expect(overview).not.toContain('data-ranking-metric="muscle_mass"');
  expect(getPlayerProfileLayout(model([measurement("Muscle Mass Percentage",75,"%")]),fictionalAthlete("position").athlete_seasons[0]).additionalBody.find(c=>c.metric.key==="muscle_mass")?.latest).toBeUndefined();
 });
 it("renders the same percentile bars across hitting and throwing for comparable data",()=>{

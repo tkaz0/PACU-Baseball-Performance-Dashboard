@@ -185,7 +185,7 @@ describe("protected profile route authorization and integration", () => {
 it("renders aggregate hitting comparisons on an own-player profile without peer queries",async()=>{
  fake.load.mockResolvedValueOnce({measurements:[reading({source:"Full Swing · Intrasquad"})],batches:[],percentileOverrides:[]});
  fake.team.mockResolvedValueOnce([{metricKey:"max_exit_velocity",unit:"mph",source:"full swing · intrasquad",method:"player_mean",value:75.25,athleteCount:8,swingCount:null,firstDate:"2026-09-11",lastDate:"2026-09-20"}]);
- const html=renderToStaticMarkup(await Profile({params:Promise.resolve({id:ownId})}));
+ const html=renderToStaticMarkup(await Profile({params:Promise.resolve({id:ownId}),searchParams:Promise.resolve({tab:"in-game"})}));
  expect(html).toContain("Team Average");expect(html).toContain("75.3");expect(fake.from).toHaveBeenCalledExactlyOnceWith("athletes");expect(fake.eq).toHaveBeenCalledExactlyOnceWith("id",ownId);
 });
 

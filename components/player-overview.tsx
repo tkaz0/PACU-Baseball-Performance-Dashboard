@@ -2,24 +2,16 @@ import { gameSampleText, isEarlyGameSample } from "@/lib/game-opportunities";
 import { ScaleLegend } from "@/components/charts/scale-legend";
 import { PercentileRing } from "@/components/charts/percentile-ring";
 import { Sparkline } from "@/components/charts/sparkline";
-import { isAdvancedGameMetric } from "@/lib/advanced-game-presentation";
-import { pitchSourceLabel } from "@/lib/pitch-display";
-import { HittingTeamAverageLine } from "@/components/hitting-team-average";
-import { hittingTeamAverage, type HittingTeamAverage } from "@/lib/hitting-team-averages";
+import type { HittingTeamAverage } from "@/lib/hitting-team-averages";
 import { profileSessionContext } from "@/lib/player-profile-layout";
-import { profileOverviewGroups } from "@/lib/profile-overview-groups";
 import { profileMetricLabel } from "@/lib/profile-metric-label";
 import { formatMetricNumber } from "@/lib/measurement-display";
-import { pitchingPeriodLabel } from "@/lib/game-source";
 import { ProfileTrendChart } from "@/components/profile-trend-chart";
 import { PhysicalityRadar, physicalityRadarPoints } from "@/components/physicality-radar";
 import { profileTrends, type ProfileTrend } from "@/lib/profile-trends";
-import { MeasurementChange } from "@/components/measurement-change";
-import { playerRenphoChange } from "@/lib/measurement-change";
 import type { StatGuideContext } from "@/lib/stat-benchmarks";
 import { StatInfo } from "@/components/stat-info";
 import { PercentileRankings } from "@/components/percentile-rankings";
-import { PercentileBar, PercentileLegend } from "@/components/percentile-bar";
 import { GameOpportunity } from "@/components/game-opportunity";
 import { gameOverviewMetrics, type GameOverviewMetric } from "@/lib/game-overview";
 import { gameValue, type GameComparison } from "@/lib/game-metrics";
@@ -27,8 +19,9 @@ import type { SharedGameStat } from "@/lib/game-server";
 import styles from "./percentile-bar.module.css";
 import overview from "./player-overview.module.css";
 import { percentileColor } from "@/lib/percentile-color";
-import { ArrowUpRight, Crosshair, TrendingUp, ChevronDown, ChartNoAxesCombined } from "lucide-react";
+import { ArrowUpRight, Crosshair, TrendingUp, ChevronDown } from "lucide-react";
 import { isTimedMetric, type PlayerMetricCard } from "@/lib/player-performance";
+import { TOP_PERFORMER_METRICS } from "@/lib/top-performers";
 import { getPlayerInsights, type PlayerRelativeInsight } from "@/lib/player-insights";
 import { leaderboardMetricLabel, leaderboardTestDate } from "@/lib/leaderboards";
 
@@ -61,43 +54,6 @@ function RelativeRows({items}:{items:OverviewInsight[]}) {
     {item.game && <GameOpportunity source={item.game.source} metric={item.game.metric} count={item.game.opportunities}/>}
   </li>)}</ul>;
 }
-function TestingComparisons({ title, cards, context, teamAverages=[] }: { title: string; cards: readonly PlayerMetricCard[]; context?: string; teamAverages?:readonly HittingTeamAverage[] }) {
-  if (!cards.length) return null;
-  const row = (card: PlayerMetricCard) => {
-    const reading = card.latest, p = card.percentile;
-    const average=reading&&card.metric.group==="hitting"?hittingTeamAverage(teamAverages,card.metric.key,reading.unit,reading.source):undefined;
-    const valid = reading && card.percentileStatus === "available" && p && p.sampleSize >= 5 && Number.isFinite(p.value) && p.value >= 0 && p.value <= 100 && p.unit === reading.unit && p.period === reading.period;
-    return <li className={styles.row} key={`${card.metric.key}:${reading?.source}:${reading?.unit}:${reading?.period}`} data-overview-metric={card.metric.key}>
-      <div><h3>{profileMetricLabel(card.metric.key,leaderboardMetricLabel(card.metric),reading?.source)}<StatInfo metric={card.metric.key} label={leaderboardMetricLabel(card.metric)} value={reading?.value} unit={reading?.unit} source={reading?.source} period={reading?.period} percentile={card.percentile?.sampleSize && card.percentile.sampleSize>=5?card.percentile.value:null}/></h3><span className="mr-2 font-bold tabular-nums">{reading ? `${formatMetricNumber(reading.value,card.metric.key,reading.source,reading.unit === "s" ? reading.value.toFixed(2) : String(reading.value))} ${reading.unit === "ratio" ? "" : reading.unit}` : "—"}</span><MeasurementChange change={playerRenphoChange(card)} metric={card.metric.key}/>{reading && <p className={styles.meta}>{pitchSourceLabel(reading.source)} · <time dateTime={reading.measuredAt}>{leaderboardTestDate(reading.measuredAt)}</time></p>}{average&&<HittingTeamAverageLine average={average}/>}</div>
-      <div>{valid ? <><PercentileBar value={p.value} sampleSize={p.sampleSize} label={card.metric.label} descriptive={card.metric.direction === "neutral"}/><p className={styles.meta}>{p.sampleSize} teammates{card.metric.direction === "neutral" ? " · Descriptive rank" : ""}</p></> : <p className={styles.meta}>{reading ? "Team rank appears after five players record the same test." : "Not Yet Tested"}</p>}</div>
-    </li>;
-  };
-  return <section aria-label={`${title}${context ? ` · ${context}` : ""} percentiles`} className={`${overview.panel} ${overview.comparisonCard}`}>
-    <header className={overview.comparisonHeader}><div><p>{context || "Team Comparison"}</p><h3>{title}</h3></div><span>{cards.length} {cards.length === 1 ? "stat" : "stats"}</span></header>
-    <ul className={`${styles.rows} ${styles.overviewRows}`}>{cards.slice(0,4).map(row)}</ul>
-    {cards.length > 4 && <details className={overview.additionalRows}><summary>All {title.toLowerCase()} results <span>+{cards.length-4}</span><ChevronDown size={14} aria-hidden="true"/></summary><ul className={`${styles.rows} ${styles.overviewRows}`}>{cards.slice(4).map(row)}</ul></details>}
-  </section>;
-}
-function GameComparisonRows({metrics}:{metrics:GameOverviewMetric[]}) {
-  return <ul className={`${styles.rows} ${styles.compactGameRows}`}>{metrics.map(item=><li className={styles.row} key={item.metric} data-overview-game-metric={item.metric}>
-    <div><h3>{item.label}<StatInfo metric={item.metric} label={item.label} value={item.value} unit={item.unit} source={item.source} period="fall_2026" eventId={item.eventId}/><span className={styles.inlineValue}>{item.metric==="batting_sb_per_pa"?item.value.toFixed(3):gameValue(item.value,item.unit)}</span></h3><GameOpportunity source={item.source} metric={item.metric} count={item.opportunities}/></div>
-    <div>{item.comparison?<><PercentileBar value={item.comparison.percentile!} sampleSize={item.comparison.sampleSize} label={item.label} descriptive={item.direction==="neutral"}/><p className={styles.meta}>{item.comparison.sampleSize} teammates</p></>:<p className={styles.meta}>{item.metric==="batting_sb_per_pa"?"Recorded rate · team rank not available":"Team rank not available for this result."}</p>}</div>
-  </li>)}</ul>;
-}
-function GameComparisons({ metrics }: { metrics: GameOverviewMetric[] }) {
-  if (!metrics.length) return null;
-  const groups=[...new Set(metrics.map(m=>`${m.source}:${m.eventId}`))].map(key=>metrics.filter(m=>`${m.source}:${m.eventId}`===key));
-  return <section aria-label="Game Stats percentiles" className={overview.gameCards}>{groups.map(group=>{
-    const hitting = group[0].source === "qpa_fall_2026";
-    return <section className={`${overview.panel} ${overview.comparisonCard}`} aria-label={hitting ? "Hitting game percentiles" : "Pitching game percentiles"} key={`${group[0].source}:${group[0].eventId}`}>
-      <header className={overview.comparisonHeader}><div><p>In-Game · Fall 2026</p><h3>{hitting ? "Hitting" : "Pitching"}</h3></div><span>Game Stats</span></header>
-      <p className={overview.comparisonCaption}>{hitting ? "Cumulative hitting" : pitchingPeriodLabel(group[0].eventId,group[0].playedOn)} · Updated {leaderboardTestDate(gameDate(group.map(m=>m.updatedAt).sort().at(-1)!))}</p>
-      <GameComparisonRows metrics={group.slice(0,4)}/>
-      {group.length > 4 && <details className={overview.additionalRows}><summary>All {hitting ? "hitting" : "pitching"} game stats <span>+{group.length-4}</span><ChevronDown size={14} aria-hidden="true"/></summary><GameComparisonRows metrics={group.slice(4)}/></details>}
-    </section>;
-  })}</section>;
-}
-
 function compactNumber(value: number): string {
   if (value > 0 && value < 0.1) return "<0.1";
   return value.toLocaleString("en-US", { maximumFractionDigits: 1 });
@@ -105,7 +61,7 @@ function compactNumber(value: number): string {
 
 /** Single-swing maximums are noisy; their jumps show the raw change, not a percentage. */
 const SINGLE_SWING_MAXIMUMS = new Set(["max_exit_velocity", "max_bat_speed", "max_distance"]);
-export function PlayerOverview({ quick=false, cards, gameStats = [], gameComparisons = [], showMethods = true, twoWay = false, teamAverages=[], beforeMethods }: { quick?:boolean; beforeMethods?: React.ReactNode; teamAverages?:readonly HittingTeamAverage[]; twoWay?: boolean; cards: readonly PlayerMetricCard[]; gameStats?: readonly SharedGameStat[]; gameComparisons?: readonly GameComparison[]; showMethods?: boolean }) {
+export function PlayerOverview({ quick=false, cards, gameStats = [], gameComparisons = [], showMethods = true, twoWay = false, beforeMethods }: { quick?:boolean; beforeMethods?: React.ReactNode; teamAverages?:readonly HittingTeamAverage[]; twoWay?: boolean; cards: readonly PlayerMetricCard[]; gameStats?: readonly SharedGameStat[]; gameComparisons?: readonly GameComparison[]; showMethods?: boolean }) {
   const physicality = ["muscle_mass", "body_score", "body_fat_pct"].flatMap(key => cards.filter(card => card.metric.key === key));
   const testing = cards.filter(card => card.metric.group !== "body");
   const insights = getPlayerInsights(testing);
@@ -119,9 +75,11 @@ export function PlayerOverview({ quick=false, cards, gameStats = [], gameCompari
   const lastTested = availableCards.map(card => card.timedTrials?.lastTested ?? card.latest!.measuredAt).sort().at(-1);
   const bodyResultsOnly = availableCards.length > 0 && availableCards.every(card => card.metric.group === "body");
   const hasPhysicalityRadar = physicalityRadarPoints(physicality).length === 3;
-  const testingGroups = profileOverviewGroups(testing);
   const trends = profileTrends([...physicality, ...testing]);
-  const headlineKeys = ["batting_production_plus", "pitching_k_bb", "body_score", "muscle_mass", "max_exit_velocity", "max_pitch_velocity", "body_fat_pct"];
+  // Featured stats are the Top Performer score components: hitters PAC Production+, QPA%, OBP, ISO;
+  // pitchers WHIP, K/BB, Runs/9 (both for two-way players). Without game stats, testing highlights remain.
+  const featuredGameKeys: string[] = [TOP_PERFORMER_METRICS.hitting, TOP_PERFORMER_METRICS.pitching].flatMap(group => group.some(metric => games.some(item => item.metric === metric.key)) ? group.map(metric => metric.key) : []);
+  const headlineKeys = featuredGameKeys.length ? featuredGameKeys : ["body_score", "muscle_mass", "max_exit_velocity", "max_pitch_velocity", "body_fat_pct"];
   type Headline = { key: string; guide: StatGuideContext; label: string; value: string; detail: string; percentile: number | null; neutral: boolean; trend: ProfileTrend | null; lowerIsBetter: boolean };
   const headline = headlineKeys.flatMap((key): Headline[] => {
     const game = games.find(item => item.metric === key);
@@ -129,7 +87,7 @@ export function PlayerOverview({ quick=false, cards, gameStats = [], gameCompari
     const card = availableCards.find(item => item.metric.key === key);
     if (!card?.latest) return [];
     return [{key,guide:{source:card.latest.source,unit:card.latest.unit,period:card.latest.period,value:card.latest.value} as StatGuideContext,label:profileMetricLabel(key,leaderboardMetricLabel(card.metric),card.latest.source),value:`${formatMetricNumber(card.latest.value,key,card.latest.source)} ${card.latest.unit === "ratio" ? "" : card.latest.unit}`.trim(),detail:card.fallSummary?(card.fallSummary.basis==="best"?`Fall best · ${leaderboardTestDate(card.fallSummary.bestDate)}`:`Fall average · ${card.fallSummary.sessions} ${card.fallSummary.sessions===1?"session":"sessions"}`)+(card.fallSummary.sampleCount&&card.fallSummary.sampleUnit?` · ${card.fallSummary.sampleCount} ${card.fallSummary.sampleCount===1?card.fallSummary.sampleUnit.replace(/s$/,""):card.fallSummary.sampleUnit}`:""):`Tested ${leaderboardTestDate(card.latest.measuredAt)}`, percentile: card.percentile && card.percentile.sampleSize >= 5 && Number.isFinite(card.percentile.value) ? card.percentile.value : null, neutral: card.metric.direction === "neutral", trend: trends.find(trend => trend.key === key) ?? null, lowerIsBetter: card.metric.direction === "lower"}];
-  }).slice(0,4);
+  }).slice(0, featuredGameKeys.length ? 7 : 4);
   return <section aria-label="Player overview" className={styles.overview} data-testid="player-overview">
     <div className={overview.snapshotHeader}><div className={overview.snapshotIntro}><h2 className="m-0 text-xl font-bold tracking-tight">Performance Snapshot</h2><p className="mb-0 mt-1.5 text-sm leading-6 text-[var(--text-secondary)]">{games.length ? (showMethods ? "This player’s latest tests and Fall game stats, alongside the Pacific team." : "Your latest tests and Fall game stats, alongside the Pacific team.") : bodyResultsOnly ? comparisonCards.length ? (showMethods ? "This player’s latest body results compared with the team. More highlights will appear as testing continues." : "Your latest body results compared with the team. More highlights will appear as testing continues.") : (showMethods ? "Body results are in Physicality. More highlights will appear as testing continues." : "Your body results are in Physicality. More highlights will appear as testing continues.") : (showMethods ? "Where this player stands now and how they have changed since earlier tests." : "Where you stand now and how you have changed since earlier tests.")}</p></div>{(lastTested || games.length > 0) && <dl className={overview.snapshotFacts}><div><dt className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Stats Available</dt><dd className="m-0 mt-1 font-bold tabular-nums">{availableCards.length + games.length}</dd></div>{lastTested && <div><dt className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Last Tested</dt><dd className="m-0 mt-1 font-semibold"><time dateTime={lastTested}>{leaderboardTestDate(lastTested)}</time></dd></div>}{games.length > 0 && <div><dt className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Game Stats Updated</dt><dd className="m-0 mt-1 font-semibold">{leaderboardTestDate(gameDate(games.map(g=>g.updatedAt).sort().at(-1)!))}</dd></div>}</dl>}</div>
     {!!headline.length && <dl className={overview.headlineStats} data-count={headline.length} aria-label="Key performance results">{headline.map(item=><div key={item.key} className={overview.heroTile} style={{ "--hero-accent": item.percentile === null || item.neutral ? "var(--line-subtle)" : percentileColor(item.percentile).backgroundColor } as React.CSSProperties}><div className={overview.heroTop}><div className="min-w-0"><dt>{item.label}<StatInfo metric={item.key} label={item.label} {...item.guide}/></dt><dd>{(([number, ...unit]) => <>{number}{unit.length > 0 && <span className="hero-unit"> {unit.join(" ")}</span>}</>)(item.value.split(" "))}</dd></div>{item.percentile !== null && <PercentileRing value={item.percentile} neutral={item.neutral} label={item.label} size={54}/>}</div>{item.trend && <Sparkline points={item.trend.points} width={160} height={30} label={`${item.label} trend`} direction={item.neutral ? "neutral" : item.lowerIsBetter ? "lower" : "higher"}/>}<p>{item.detail}{item.percentile !== null ? ` · ${item.neutral ? "Team position" : "Team percentile"}` : ""}</p></div>)}</dl>}
@@ -157,15 +115,7 @@ export function PlayerOverview({ quick=false, cards, gameStats = [], gameCompari
     </div>
     {!comparableCount && <p className="m-0 max-w-3xl text-xs leading-6 text-[var(--text-secondary)]">Team comparisons need at least five players with the same test or game stat. {showMethods ? "This player’s own results are available in the other tabs." : "Your own results are available in the other tabs."}</p>}
     <PercentileRankings cards={availableCards} games={games}/>
-    {(physicality.some(card=>card.latest) || games.length > 0 || testingGroups.length > 0) && <details className={overview.comparisonBoard} aria-label="Detailed team comparisons">
-      <summary className={overview.boardHeader}><div><ChartNoAxesCombined size={20} aria-hidden="true"/><span>Detailed Team Comparisons</span></div><span>Percentiles, testing and game stats <ChevronDown size={16} aria-hidden="true"/></span></summary>
-      <PercentileLegend/>
-      {(physicality.some(card=>card.latest) || games.length > 0) && <div className={overview.primaryComparisons} data-has-body={physicality.some(card=>card.latest)} data-has-games={games.length>0}>
-        {physicality.some(card=>card.latest) && <div className={overview.physicalityComparison}>{hasPhysicalityRadar ? <PhysicalityRadar cards={physicality}/> : <TestingComparisons teamAverages={teamAverages} title="Physicality" cards={physicality.filter(card => card.latest)}/>}</div>}
-        <GameComparisons metrics={games.filter(item => !isAdvancedGameMetric(item.metric))}/>
-      </div>}
-      {testingGroups.length > 0 && <div className={overview.testingCards} aria-label="Testing percentiles">{testingGroups.map(group=><TestingComparisons key={group.id} teamAverages={teamAverages} title={group.title} context={group.context} cards={group.cards}/>)}</div>}
-    </details>}
+    {hasPhysicalityRadar && <section className={`${overview.panel} mt-5 p-4`} aria-label="Physicality team positions"><PhysicalityRadar cards={physicality}/></section>}
     {!quick && trends.length > 0 && <details className={overview.moreTesting}><summary>Testing Trends <ChevronDown size={16} aria-hidden="true"/></summary><ProfileTrendChart series={trends}/></details>}
     {beforeMethods}
     {!quick && showMethods && <details className="group border-t border-[var(--line-subtle)] pt-4 text-xs text-[var(--text-secondary)]"><summary className="flex min-h-8 w-fit cursor-pointer list-none items-center gap-2 font-semibold">How These Highlights Work<ChevronDown size={14} className="transition-transform group-open:rotate-180" aria-hidden="true" /></summary>

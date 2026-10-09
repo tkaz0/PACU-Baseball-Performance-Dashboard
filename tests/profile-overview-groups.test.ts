@@ -16,10 +16,8 @@ describe("source-separated profile comparison board", () => {
     expect(groups.map(g=>`${g.title}:${g.context}`)).toEqual(["Hitting:In-Game","Hitting:Practice"]);
     expect(groups.map(g=>g.cards[0].latest?.value)).toEqual([64.123,71.987]);
     const html=renderToStaticMarkup(createElement(PlayerOverview,{cards:performance.hitting}));
-    expect(html).toContain('aria-label="Detailed team comparisons"');
-    expect(html).toContain('aria-label="Hitting · In-Game percentiles"');
-    expect(html).toContain('aria-label="Hitting · Practice percentiles"');
-    expect(html).toContain("64.1 mph");expect(html).toContain("72.0 mph");
+    expect(html).not.toContain('aria-label="Detailed team comparisons"');
+    expect(html).not.toContain("68.1");
     expect(html).not.toContain('role="meter"');
   });
 
@@ -31,10 +29,8 @@ describe("source-separated profile comparison board", () => {
     expect(groups).toHaveLength(2);expect(groups.every(group=>group.cards.length===1)).toBe(true);
     expect(groups.map(group=>group.cards[0].percentile?.value)).toEqual([0,100]);
     const html=renderToStaticMarkup(createElement(PlayerOverview,{cards:performance.hitting}));
-    const game=html.split('aria-label="Hitting · In-Game percentiles"')[1].split('aria-label="Hitting · Practice percentiles"')[0];
-    const practice=html.split('aria-label="Hitting · Practice percentiles"')[1];
-    expect(game).toContain('aria-valuenow="0"');expect(game).not.toContain('aria-valuenow="100"');
-    expect(practice).toContain('aria-valuenow="100"');
+    expect(html.split('data-ranking-metric="avg_bat_speed"')).toHaveLength(3);
+    expect(html).toContain('Average Bat Speed (In-Game): 0th percentile');expect(html).toContain('Average Bat Speed (Practice): 100th percentile');
     expect(html).not.toContain("SYN-002");expect(html).not.toContain("fictional.csv");
   });
 
@@ -54,8 +50,7 @@ it("does not label summer-only or mixed-period body percentiles as a Fall physic
   expect(physicalityRadarPoints(summer.body)).toEqual([]);
   const html=renderToStaticMarkup(createElement(PlayerOverview,{cards:summer.body}));
   expect(html).not.toContain('aria-label="Physicality percentile radar"');
-  expect(html).toContain('aria-label="Physicality percentiles"');
-  expect(html).toContain('dateTime="2026-08-09"');
+  expect(html).not.toContain('data-ranking-metric="body_fat_pct"');
   const mixed=getPlayerPerformance({readings:data.map(r=>r.metric==="Muscle Mass"?{...r,measured_at:"2026-09-16"}:r),athleteCode:codes[0],cohortAthleteCodes:codes});
   expect(physicalityRadarPoints(mixed.body)).toHaveLength(1);
 });

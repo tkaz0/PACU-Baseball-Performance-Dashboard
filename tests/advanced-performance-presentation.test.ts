@@ -22,7 +22,8 @@ const production: GameComparison = { source: "qpa_fall_2026", metric: "batting_p
 it("keeps overview headlines compact and presents full advanced cards in the In-Game detail", () => {
   const html = renderToStaticMarkup(createElement(PlayerOverview, { cards: [], gameStats: [...batting, ...pitching], gameComparisons: [production], twoWay: true }));
   expect(html.indexOf('aria-label="Key performance results"')).toBeLessThan(html.indexOf('aria-label="Strengths"'));
-  expect(html).toContain('aria-label="Detailed team comparisons"');
+  expect(html).not.toContain('aria-label="Detailed team comparisons"');
+  expect(html).toContain('data-testid="percentile-rankings"');
   expect(html).not.toContain('aria-label="Advanced performance"');
   const detailed = renderToStaticMarkup(createElement(AdvancedGameCards, { metrics: gameOverviewMetrics([...batting, ...pitching], [production]) }));
   expect(detailed).toContain('aria-label="Advanced hitting performance"');
