@@ -1,7 +1,6 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it } from "vitest";
-import { AdvancedGameCards } from "@/components/advanced-game-cards";
 import { PlayerOverview } from "@/components/player-overview";
 import { GameLeaderboard } from "@/components/game-leaderboard";
 import { TeamGameStats } from "@/components/team-game-stats";
@@ -25,33 +24,20 @@ it("keeps overview headlines compact and presents full advanced cards in the In-
   expect(html).not.toContain('aria-label="Detailed team comparisons"');
   expect(html).toContain('data-testid="percentile-rankings"');
   expect(html).not.toContain('aria-label="Advanced performance"');
-  const detailed = renderToStaticMarkup(createElement(AdvancedGameCards, { metrics: gameOverviewMetrics([...batting, ...pitching], [production]) }));
-  expect(detailed).toContain('aria-label="Advanced hitting performance"');
-  expect(detailed).toContain('aria-label="Advanced pitching performance"');
+  const metrics = gameOverviewMetrics([...batting, ...pitching], [production]);
   for (const key of ["batting_production_plus", "batting_est_slg", "batting_est_iso", "batting_est_wobacon", "pitching_k_bb", "pitching_k9", "pitching_bb9", "pitching_whip"]) {
-    expect(detailed.split(`data-advanced-metric="${key}"`)).toHaveLength(2);
+    expect(metrics.filter(m => m.metric === key)).toHaveLength(1);
     expect(html).not.toContain(`data-overview-game-metric="${key}"`);
   }
-  // Percentiles live only in the Overview rankings now.
-  expect(detailed).not.toContain('aria-valuenow="80"');
-  expect(detailed).toContain("30 PA");
-  expect(detailed).toContain("6.0 IP");
-  expect(detailed).toContain("2 walks");
-  expect(detailed).toContain("not wRC+");
-  expect(detailed).toContain("do not remove luck");
 });
 
-it("does not invent an advanced card, finite K/BB or percentile when its basis is unavailable", () => {
-  expect(renderToStaticMarkup(createElement(AdvancedGameCards, { metrics: [] }))).toBe("");
+it("does not invent a finite K/BB or a stale Production+ when its basis is unavailable", () => {
   const zeroWalks = pitching.map(row => row.metric === "bb_outcome" ? { ...row, value: 0 } : row);
-  const html = renderToStaticMarkup(createElement(AdvancedGameCards, { metrics: gameOverviewMetrics(zeroWalks, []) }));
-  expect(html).not.toContain('data-advanced-metric="pitching_k_bb"');
-  expect(html).toContain('data-advanced-metric="pitching_whip"');
-  expect(html).not.toContain('role="meter"');
-  expect(html).not.toContain("Infinity");
-  const stale = renderToStaticMarkup(createElement(AdvancedGameCards, { metrics: gameOverviewMetrics(batting, [{ ...production, snapshotId: "stale" }]) }));
-  expect(stale).not.toContain('data-advanced-metric="batting_production_plus"');
-  expect(stale).not.toContain('role="meter"');
+  const metrics = gameOverviewMetrics(zeroWalks, []);
+  expect(metrics.some(m => m.metric === "pitching_k_bb")).toBe(false);
+  expect(metrics.some(m => m.metric === "pitching_whip")).toBe(true);
+  expect(metrics.every(m => Number.isFinite(m.value))).toBe(true);
+  expect(gameOverviewMetrics(batting, [{ ...production, snapshotId: "stale" }]).some(m => m.metric === "batting_production_plus")).toBe(false);
 });
 
 it("places advanced rankings before classic stats and preserves samples and player-safe links", () => {

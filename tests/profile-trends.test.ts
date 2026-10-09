@@ -1,9 +1,8 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it } from "vitest";
-import { profileTrends, gameRateWidth } from "@/lib/profile-trends";
+import { profileTrends } from "@/lib/profile-trends";
 import { ProfileTrendChart } from "@/components/profile-trend-chart";
-import { GameRateBar } from "@/components/game-rate-bar";
 import type { PlayerMetricCard, PlayerMetricReading } from "@/lib/player-performance";
 const latest: PlayerMetricReading = { id: "fictional-new", athleteCode: "SYN-001", metricKey: "muscle_mass", value: 155, unit: "lb", measuredAt: "2026-09-13", period: "fall_2026", source: "RENPHO", importedAt: "2026-09-13T20:00:00Z", provenance: [], derived: false };
 const old = { ...latest, id: "fictional-old", value: 150, measuredAt: "2026-09-01" };
@@ -30,10 +29,4 @@ it("renders flat and zero series with finite coordinates and accessible exact ch
     expect(html).toContain("Chart Data"); expect(html).toContain("Zoomed vertical scale"); expect(html).toContain(old.measuredAt);
   }
   expect(renderToStaticMarkup(createElement(ProfileTrendChart, {series: []}))).toBe("");
-});
-it("uses true rate scales and excludes counts, missing, invalid and unbounded SB/PA values", () => {
-  expect(gameRateWidth(.375, "avg")).toBe(37.5); expect(gameRateWidth(64, "%")).toBe(64); expect(gameRateWidth(0, "%")).toBe(0);
-  for (const [value, unit] of [[null, "%"], [NaN, "%"], [-1, "%"], [101, "%"], [2, "avg"], [12, "count"], [1.2, "ratio"]] as const) expect(gameRateWidth(value, unit)).toBeNull();
-  const html = renderToStaticMarkup(createElement(GameRateBar, {value: .375, unit: "avg", label: "AVG"}));
-  expect(html).toContain("width:37.5%"); expect(html).toContain("not a percentile");
 });

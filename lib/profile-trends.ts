@@ -18,9 +18,3 @@ export function profileTrends(cards: readonly PlayerMetricCard[]): ProfileTrend[
     return [{ key: card.metric.key, label: profileMetricLabel(card.metric.key,card.metric.label,latest.source), unit: latest.unit, source: latest.source, period: latest.period === "fall_2026" ? "Fall 2026" : "June–August 2026", points: [...dates].sort(([a], [b]) => a.localeCompare(b)).map(([date, value]) => ({ date, value })) }];
   });
 }
-/** Preserve original scale; invalid and unbounded ratios never become progress bars. */
-export function gameRateWidth(value: number | null, unit: string): number | null {
-  if (value === null || !Number.isFinite(value) || !["%", "avg"].includes(unit)) return null;
-  const width = unit === "avg" ? value * 100 : value;
-  return width >= 0 && width <= 100 ? width : null;
-}

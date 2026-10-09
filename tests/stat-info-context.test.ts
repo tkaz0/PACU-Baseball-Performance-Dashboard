@@ -13,7 +13,6 @@ import { AnalyticsExplorer } from "@/components/analytics-explorer";
 import { TeamProgress } from "@/components/team-progress";
 import { PlayerComparison } from "@/components/player-comparison";
 import { AthleteGameStats } from "@/components/athlete-game-stats";
-import { PitchingRates } from "@/components/pitching-rates";
 import { PlayerOverview } from "@/components/player-overview";
 import { RenphoCharts } from "@/components/renpho-charts";
 import { RenphoBodyScore } from "@/components/renpho-body-score";
@@ -41,10 +40,7 @@ it("requests the full approved team comparison for progress and two-player compa
 });
 it("uses the actual pitching rate units and exact cumulative event for totals and contact splits",()=>{
  const rows=pitch({pitches:20,strikes:12,strike_pct:60,k:2,bb_outcome:1,h:2,innings_outs:6,r:1,weak_contact:6,hard_contact:2});
- renderToStaticMarkup(createElement(PitchingRates,{rows}));
- expect(seen.find(r=>r.metric==="pitching_whip")).toMatchObject({unit:"decimal",eventId:"fall-2026-week-1"});
- expect(seen.find(r=>r.metric==="pitching_k_bb")).toMatchObject({unit:"decimal",eventId:"fall-2026-week-1"});
- seen.splice(0);renderToStaticMarkup(createElement(AthleteGameStats,{stats:rows}));
+renderToStaticMarkup(createElement(AthleteGameStats,{stats:rows}));
  for(const key of ["strike_pct","weak_contact_pct","hard_contact_pct"])
   expect(seen.find(r=>r.metric===key)).toMatchObject({source:"pitching_fall_2026",unit:"%",period:"fall_2026",eventId:"fall-2026-cumulative"});
 });

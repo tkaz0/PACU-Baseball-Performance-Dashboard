@@ -11,7 +11,7 @@ export default async function SourceStatusPage({searchParams}:{searchParams:Prom
   const access=await requireRenderImportAccess();
   const [statuses,params]=await Promise.all([loadWeeklySourceStatus(access),searchParams]);
   return <>
-    <PageHeading section="Coaching" title="Weekly Source Checks" description="Record the result only after checking the approved Fall tabs or Player Metrics workbook."><Link href="/imports" className="btn btn-secondary">Import Center</Link></PageHeading>
+    <PageHeading section="Data & Testing" title="Weekly Source Checks" description="Record the result only after checking the approved Fall tabs or Player Metrics workbook."><Link href="/imports" className="btn btn-secondary">Import Center</Link></PageHeading>
     {params.recorded==="1"&&<p role="status" className="notice mb-4">The source check was recorded. Saved dashboard results have not changed.</p>}
     {params.error&&<p role="alert" className="notice notice-error mb-4">{params.error==="input"?"Choose an approved source and check result.":"The check could not be confirmed. Refresh and inspect the latest status before retrying."}</p>}
     <div className="grid gap-4">{WEEKLY_SOURCES.map(source=>{

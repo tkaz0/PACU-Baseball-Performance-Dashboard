@@ -56,7 +56,7 @@ html[data-theme="dark"] body { background: radial-gradient(1100px 520px at 78% -
   [class*="__gameValue"], [class*="__weekCardTitle"] > strong, [class*="__coverageRing"] strong,
   [class*="__headlineStats"] dd, [class*="__resultValue"], [class*="__jumpValue"],
   [class*="__metricValue"], [class*="__readingValue"], [class*="__primaryValue"] strong,
-  [class*="advanced-game-cards-module__"][class*="__value"], [class*="practice-game-bridge-module__"][class*="__value"],
+  [class*="practice-game-bridge-module__"][class*="__value"],
   [class*="team-game-stats-module__"][class*="__card"] dd, [class*="__visitNumbers"] strong, [class*="__swingTotal"] strong,
   [class*="__summary"] > strong, [class*="__totals"] strong, [class*="__angleValue"] strong, [class*="leaderboard-module__"][class*="__result"] strong
 ) { font-family: var(--font-display); font-weight: 700; letter-spacing: .005em; line-height: 1; }

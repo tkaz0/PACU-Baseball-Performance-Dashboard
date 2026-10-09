@@ -11,7 +11,7 @@ export function WorkspaceNavigation({ links }: { links: WorkspaceNavLink[] }) {
   const path = usePathname(), id = useId(), toggle = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const exact = links.find(link => link.current ?? path === link.href);
-  const current = exact ?? links.filter(link => link.current ?? (path === link.href || path.startsWith(`${link.href}/`) || (link.href === "/testing/coverage" && path.startsWith("/testing")) || (link.href === "/roster" && path.startsWith("/athletes/")))).sort((a, b) => b.href.length - a.href.length)[0];
+  const current = exact ?? links.filter(link => link.current ?? (path === link.href || path.startsWith(`${link.href}/`) || (link.href === "/testing/coverage" && path.startsWith("/testing")) || (link.href === "/leaderboards" && path.startsWith("/records")) || (link.href === "/roster" && path.startsWith("/athletes/")))).sort((a, b) => b.href.length - a.href.length)[0];
   const groups = links.reduce<{ name: string; items: WorkspaceNavLink[] }[]>((result, link) => {
     const name = link.group ?? "";
     if (result.at(-1)?.name === name) result.at(-1)!.items.push(link);

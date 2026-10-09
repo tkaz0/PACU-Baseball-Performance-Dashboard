@@ -6,7 +6,6 @@ import { teamGameSummary } from "@/lib/team-game-stats";
 import { coachingGames,coachingValue } from "@/lib/coaching-tools";
 import { cumulativePitching } from "@/lib/pitching-cumulative";
 import { gameOpportunities } from "@/lib/game-opportunities";
-import { PitchingRates } from "@/components/pitching-rates";
 import { AthleteGameStats } from "@/components/athlete-game-stats";
 import type { SharedGameStat } from "@/lib/game-server";
 const rows=(v:Record<string,number>,id="fictional-a",pitch=false):SharedGameStat[]=>Object.entries(v).map(([metric,value])=>({source:pitch?"pitching_fall_2026":"qpa_fall_2026",athlete_id:id,metric,value,unit:"count",scope:pitch?"pitching_event":"cumulative_fall",event_id:pitch?"fall-2026-week-1":null,played_on:null,source_row:2,source_column:2,derived_from:[],snapshot_id:"fictional-snapshot",fetched_at:"2026-09-28T01:00:00Z",content_hash:"a".repeat(64)}));
@@ -46,7 +45,6 @@ it("uses true outs and outcome walks for WHIP and K/BB, never HBP or pitch-famil
  expect(pitchingExtraRates(source).map(r=>r.value)).toEqual([1.8,3]);
  expect(pitchingExtraRates(rows({innings_outs:5,h:2,bb_outcome:0,k:3},"fictional-a",true)).map(r=>r.metric)).toEqual(["pitching_whip"]);
  expect(pitchingExtraRates(rows({innings_outs:0,h:2,bb_outcome:1,k:3},"fictional-a",true)).map(r=>r.metric)).toEqual(["pitching_k_bb"]);
- const ratioCard=renderToStaticMarkup(createElement(PitchingRates,{rows:rows({k:3,bb_outcome:1},"fictional-a",true)}));expect(ratioCard).toContain("3 K · 1 BB");
  expect(pitchingExtraRates(source.filter(r=>r.metric!=="bb_outcome"))).toEqual([]);
  const second=rows({innings_outs:4,h:1,bb_outcome:2,k:1},"fictional-a",true).map(r=>({...r,event_id:"fall-2026-week-2"}));
  const cumulative=cumulativePitching([...source,...second]);expect(pitchingExtraRates(cumulative).map(r=>r.value)).toEqual([2,4/3]);

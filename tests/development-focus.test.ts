@@ -38,3 +38,11 @@ describe("power development", () => {
     expect(html).toContain("Command Focus"); expect(html).toContain("Power Development"); expect(html).toContain("<strong>3.00</strong>");
   });
 });
+
+describe("command focus qualified view", () => {
+  it("hides pitchers below 1 IP per week but keeps the team rate", () => {
+    const html = renderToStaticMarkup(createElement(DevelopmentFocus, { players: [player(1, "pitcher"), player(2, "pitcher")], stats: [...pitchLine("fictional-1", 9, 1, 3), ...pitchLine("fictional-2", 1, 2, 0)], contacts: [], squaredAvailable: true, weeks: 2, qualified: true }));
+    expect(html).toContain("Qualified (2 IP+)"); expect(html).toContain('data-command="SYN-1"'); expect(html).not.toContain('data-command="SYN-2"');
+    expect(html).toContain("1 pitcher below 2 IP is hidden");
+  });
+});
