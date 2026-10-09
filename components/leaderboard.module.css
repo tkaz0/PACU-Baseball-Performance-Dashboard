@@ -89,7 +89,7 @@
 .tableWrap tbody tr { height: 68px; }
 .sections { gap: 18px; }
 @media(max-width:600px) {
-  .tableWrap thead th:first-child { width: 34px; }
+  .tableWrap thead th:first-child { width: 44px; }
   .tableWrap thead th:last-child { width: 94px; }
   .tableWrap tbody td,.tableWrap tbody th { padding: 10px 7px; }
   .tableWrap tbody .result { padding-right: 10px; font-size: 17px; }

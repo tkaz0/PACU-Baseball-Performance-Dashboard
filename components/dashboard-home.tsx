@@ -19,7 +19,7 @@ import styles from "./dashboard-home.module.css";
 import { DashboardVisit } from "@/components/dashboard-visit";
 import type { DashboardVisitWindow } from "@/lib/personal-dashboard-server";
 import type { VisitDigest } from "@/lib/dashboard-visit-digest";
-import type { WeeklySourceStatus as WeeklySourceStatusRow } from "@/lib/weekly-source-contract";
+import { WEEKLY_SOURCES, type WeeklySourceStatus as WeeklySourceStatusRow } from "@/lib/weekly-source-contract";
 import { WeeklySourceStatus } from "@/components/weekly-source-status";
 
 const date = (value: string, withYear = false) => new Date(value.length === 10 ? `${value}T12:00:00Z` : value).toLocaleDateString("en-US", { month: "short", day: "numeric", ...(withYear ? { year: "numeric" as const } : {}), timeZone: value.length === 10 ? "UTC" : "America/Los_Angeles" });
@@ -81,6 +81,7 @@ function ResultsCoverage({ summary, staff, profile }: { summary: HomeSummary; st
 }
 
 export function DashboardHome({ spotlight, staff, athleteId, summary, designNavigation, leaderboards = [], sourceStatus = [], visit, headshots = {}, gameTrends = {}, streamedTrend, coachingPulse, activity }: { spotlight?:ReactNode; coachingPulse?:ReactNode; activity?:ReactNode; streamedTrend?: (source: "qpa_fall_2026" | "pitching_fall_2026", metric: string, label: string) => ReactNode; gameTrends?: TeamGameTrends; headshots?: Readonly<Record<string, string>>; visit?:DashboardVisitWindow; staff: boolean; athleteId: string | null; designNavigation?: DesignNavigation; summary: (HomeSummary & { visitDigest?:VisitDigest; coachDigest?: ReturnType<typeof coachUpdateDigest> }) | null; leaderboards?: HomeLeaderboard[]; sourceStatus?:WeeklySourceStatusRow[] }) {
+  const sourceAttention = WEEKLY_SOURCES.filter(source => sourceStatus.find(status => status.source === source.key)?.outcome !== "completed").length;
   const profile = athleteId ? `/athletes/${athleteId}` : null;
   const actions = [...(staff ? [
     { href: "/roster", title: "Roster", detail: "Player profiles", icon: UsersRound },
@@ -112,7 +113,7 @@ export function DashboardHome({ spotlight, staff, athleteId, summary, designNavi
         <div className={styles.leadersColumn}>
       <section aria-label="Featured team leaderboards"><div className={styles.blockHeading}><div><p className={styles.kicker}>Around the Team</p><h2>Performance Leaders</h2></div><Link prefetch={false} href="/leaderboards" className={styles.panelLink}>All Leaderboards<ArrowRight size={15}/></Link></div>{leaderboards.length ? <div className={styles.rankGrid}>{leaderboards.map(board => <HomeRankCard board={board} key={board.key} headshots={headshots}/>)}</div> : <div className={styles.rankEmpty}><Trophy size={23} aria-hidden="true"/><p>Team rankings will appear when Fall results are saved.</p></div>}</section>
         </div>
-      <DetailSection title={staff ? "Data & Testing" : "My Activity & Testing"} description={staff ? "Source checks, testing coverage and recent updates" : "Testing dates and recent updates"}>
+      <DetailSection title={staff ? "Data & Testing" : "My Activity & Testing"} description={staff ? `${sourceAttention ? `${sourceAttention} sources need attention · ` : ""}Source checks, testing coverage and recent updates` : "Testing dates and recent updates"}>
       {activity ?? (summary.visitDigest && visit && <DashboardVisit visit={visit} digest={summary.visitDigest} staff={staff} athleteId={athleteId}/>)}
         <div className={styles.attention} aria-label="Needs attention">
         {staff && <WeeklySourceStatus statuses={sourceStatus}/>}

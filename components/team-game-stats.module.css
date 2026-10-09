@@ -25,3 +25,35 @@
 
 /* Phones: less nesting so the stat tiles have room. */
 @media (max-width: 600px) { .card { padding: 11px !important; } .reference { font-size: 12px; } }
+
+/* Five headline batting numbers; four pitching numbers. Detail stays one click away. */
+.jumpNav { display: flex; gap: 8px; flex-wrap: wrap; }
+.jumpNav a { display: inline-flex; align-items: center; min-height: 44px; padding: 10px 17px; border: 1px solid var(--line-subtle); border-radius: 10px; color: var(--text-primary); background: var(--surface-panel); font-size: 13px; font-weight: 700; text-decoration: none; }
+.jumpNav a:hover { border-color: var(--accent-readable); color: var(--accent-readable); }
+.jumpNav a:focus-visible { outline: 2px solid var(--accent-readable); outline-offset: 3px; }
+.page > section { scroll-margin-top: 90px; }
+.page > details { scroll-margin-top: 90px; }
+.grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+.pitchingGrid { grid-template-columns: repeat(4,minmax(0,1fr)); }
+.supportingGrid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; margin: 0; }
+.visuals { margin: 18px 0; }
+.card dt { gap: 4px; line-height: 1.5; }
+.updated,.coverage,.reference,.rowSample { font-size: 12px; }
+@media(max-width:1100px) { .pitchingGrid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media(max-width:600px) {
+  .page { gap: 18px; }
+  .grid,.supportingGrid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .header { gap: 8px; margin-bottom: 16px; }
+  .card dt { align-items: flex-start; flex-wrap: wrap; }
+  .reference { line-height: 1.5; }
+  .grade { margin-top: 10px; }
+  .visuals { gap: 12px; }
+  .legend { display: grid; gap: 10px; }
+  .legend span { flex-wrap: wrap; }
+  .legend strong { margin-left: auto; }
+  .rateRow { grid-template-columns: minmax(0,1fr) 58px; }
+  .rateTrack { grid-column: 1/-1; grid-row: 2; }
+  .rateRow strong { grid-column: 2; grid-row: 1; }
+  .totals { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+  .totals div { justify-content: space-between; min-width: 0; }
+}

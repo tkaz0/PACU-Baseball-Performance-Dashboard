@@ -83,3 +83,5 @@
   .coverageBody { flex-wrap: wrap; justify-content: center; }
   .coverageList { flex-basis: 100%; }
 }
+
+.home > .leadersColumn { order: 0; }
