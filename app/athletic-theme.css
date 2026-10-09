@@ -1,0 +1,133 @@
+/*
+ * Modern Athletic design system (October 9 owner request). Presentation only: loaded last,
+ * it restyles tokens, type and shared components. No data, access or behavior changes.
+ * Fonts are self-hosted by next/font (no browser requests to Google).
+ */
+:root {
+  --font-ui: var(--font-inter, "Inter"), system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --font-display: var(--font-barlow, "Barlow Condensed"), "Arial Narrow", Impact, sans-serif;
+  --athletic-font: var(--font-display);
+  --brand-red: #c8102e;
+  --brand-red-strong: #a50d24;
+  --radius-card: 14px;
+  --radius-control: 10px;
+  --surface-page: #f3f3f1;
+  --surface-panel: #ffffff;
+  --surface-raised: #f1f2f4;
+  --surface-input: #ffffff;
+  --text-primary: #111317;
+  --text-secondary: #565d69;
+  --line-subtle: #e2e3e7;
+  --accent-readable: #b0102a;
+  --shadow-card: 0 1px 2px rgb(16 18 24 / 4%), 0 10px 28px -16px rgb(16 18 24 / 18%);
+}
+html[data-theme="dark"] {
+  --surface-page: #0a0c10;
+  --surface-panel: #12151b;
+  --surface-raised: #1a1e26;
+  --surface-input: #0e1116;
+  --text-primary: #f2f4f8;
+  --text-secondary: #a8b0be;
+  --line-subtle: #252a34;
+  --accent-readable: #ff7a87;
+  --shadow-card: inset 0 1px 0 rgb(255 255 255 / 3%), 0 14px 34px -20px rgb(0 0 0 / 80%);
+}
+
+/* Base type */
+body { font-family: var(--font-ui); background: var(--surface-page); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+html[data-theme="dark"] body { background: radial-gradient(1100px 520px at 78% -12%, rgb(200 16 46 / 11%), transparent 62%), var(--surface-page) fixed; }
+.workspace-main, .workspace-main :is(td, th, dd) { font-variant-numeric: tabular-nums; }
+
+/* Page headings: condensed, uppercase, sporty */
+.workspace-shell .page-title, .page-title {
+  font-family: var(--font-display); font-weight: 800; text-transform: uppercase;
+  font-size: clamp(36px, 3.8vw, 50px); line-height: .92; letter-spacing: .005em;
+}
+.page-head .eyebrow, .workspace-main .eyebrow { font-family: var(--font-ui); font-size: 12px; font-weight: 800; letter-spacing: .2em; }
+.page-description { color: var(--text-secondary); }
+.workspace-main :is(section, article, header) > h2,
+.workspace-main [class*="__blockHeading"] h2, .workspace-main [class*="__sessionHeading"] h2, .workspace-main [class*="__groupHeading"] h2,
+.leaderboard-card h2 {
+  font-family: var(--font-display); font-weight: 700; letter-spacing: .01em;
+}
+
+/* Big numbers everywhere: one display face */
+.workspace-main :is(
+  [class*="__gameValue"], [class*="__weekCardTitle"] > strong, [class*="__coverageRing"] strong,
+  [class*="__headlineStats"] dd, [class*="__resultValue"], [class*="__jumpValue"],
+  [class*="__metricValue"], [class*="__readingValue"], [class*="__primaryValue"] strong,
+  [class*="advanced-game-cards-module__"][class*="__value"], [class*="practice-game-bridge-module__"][class*="__value"],
+  [class*="team-game-stats-module__"][class*="__card"] dd, [class*="__visitNumbers"] strong, [class*="__swingTotal"] strong,
+  [class*="__summary"] > strong, [class*="__totals"] strong, [class*="__angleValue"] strong, [class*="leaderboard-module__"][class*="__result"] strong
+) { font-family: var(--font-display); font-weight: 700; letter-spacing: .005em; line-height: 1; }
+.athlete-jersey strong, .score-value { font-family: var(--font-display); font-weight: 800; }
+.workspace-main h1 { font-family: var(--font-display); font-weight: 800; letter-spacing: .005em; }
+.player-identity-card h1 { text-transform: uppercase; font-size: clamp(40px, 4.4vw, 60px); line-height: .9; }
+.player-identity-card dd.text-5xl { font-family: var(--font-display); font-weight: 800; font-size: clamp(56px, 5vw, 72px); letter-spacing: 0; }
+
+/* Cards */
+.panel, .card, .leaderboard-card {
+  border: 1px solid var(--line-subtle); border-radius: var(--radius-card);
+  background: var(--surface-panel); box-shadow: var(--shadow-card);
+}
+html[data-theme="dark"] :is(.panel, .card, .leaderboard-card, .workspace-shell .panel) {
+  border-color: var(--line-subtle);
+  background: linear-gradient(180deg, rgb(255 255 255 / 2.5%), rgb(255 255 255 / 0%) 42%), var(--surface-panel);
+}
+
+/* Buttons */
+.btn { border-radius: var(--radius-control); font-weight: 700; letter-spacing: .01em; transition: background-color .15s, border-color .15s, box-shadow .15s, transform .08s; }
+.btn:active { transform: translateY(1px); }
+.btn-primary, html[data-theme="dark"] .btn-primary {
+  border-color: transparent; color: #fff;
+  background: linear-gradient(180deg, #d7173b, var(--brand-red-strong));
+  box-shadow: 0 8px 20px -10px rgb(200 16 46 / 70%);
+}
+.btn-primary:hover, html[data-theme="dark"] .btn-primary:hover { background: linear-gradient(180deg, #e32047, #b20f2a); }
+.btn-secondary, html[data-theme="dark"] .btn-secondary { background: var(--surface-panel); border-color: var(--line-subtle); color: var(--text-primary); }
+.btn-secondary:hover, html[data-theme="dark"] .btn-secondary:hover { background: var(--surface-raised); border-color: color-mix(in srgb, var(--text-primary) 22%, var(--line-subtle)); }
+:is(.btn, a, button, summary, input, select, textarea):focus-visible { outline: 2px solid var(--accent-readable); outline-offset: 2px; }
+
+/* Form controls */
+.workspace-main :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea) { border-radius: var(--radius-control); }
+
+/* Top bar: frosted, sticky on desktop */
+.workspace-topbar { border-bottom: 1px solid var(--line-subtle); background: color-mix(in srgb, var(--surface-page) 84%, transparent); }
+@media (min-width: 1024px) {
+  .workspace-topbar { position: sticky; top: 0; z-index: 9; backdrop-filter: saturate(150%) blur(14px); -webkit-backdrop-filter: saturate(150%) blur(14px); }
+}
+
+/* Sidebar */
+html[data-theme="dark"] .baseball-sidebar { background: linear-gradient(180deg, #0f1218 0%, #0a0c10 100%); border-right: 1px solid #1c2029; }
+.baseball-sidebar .nav-link { font-family: var(--font-ui); font-size: 13px; font-weight: 600; border-radius: var(--radius-control); }
+.baseball-sidebar .nav-link[aria-current="page"] {
+  background: linear-gradient(90deg, rgb(200 16 46 / 28%), rgb(200 16 46 / 6%));
+  border-color: rgb(242 104 115 / 24%); color: #fff; box-shadow: inset 3px 0 #ff4d5e;
+}
+.workspace-nav-group { font-family: var(--font-display); font-size: 13px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; }
+
+/* Tables */
+.workspace-main th, :where(html[data-theme="dark"]) .workspace-main th {
+  background: transparent; color: var(--text-secondary); font-size: 12px; font-weight: 700; letter-spacing: .1em;
+  border-bottom: 1px solid var(--line-subtle);
+}
+.workspace-main td { border-bottom-color: var(--line-subtle); }
+.workspace-main tbody tr { transition: background-color .12s; }
+.workspace-main tbody tr:hover > td { background: color-mix(in srgb, var(--surface-raised) 65%, transparent); }
+
+/* Notices keep their meaning colors but match the new radius */
+.notice { border-radius: var(--radius-control); }
+
+/* Footer */
+.workspace-footer { color: var(--text-secondary); }
+
+@media (prefers-reduced-motion: reduce) { .btn, .workspace-main tbody tr { transition: none; } .btn:active { transform: none; } }
+
+/* Hero tile units read smaller than the number */
+.hero-unit { font-family: var(--font-ui); font-size: max(12px, .42em); font-weight: 700; letter-spacing: .02em; color: var(--text-secondary); white-space: nowrap; }
+
+/* Uppercase condensed titles and section headings, like a broadcast graphic */
+.workspace-main h1 { text-transform: uppercase; line-height: .95; }
+.workspace-main :is([class*="__blockHeading"], [class*="__sessionHeading"]) h2 { text-transform: uppercase; letter-spacing: .02em; }
+/* Leaderboard results */
+.workspace-main [class*="leaderboard-module__"][class*="__result"] > span.break-all { font-family: var(--font-display); font-weight: 700; font-size: 1.3em; letter-spacing: .005em; }
