@@ -37,3 +37,5 @@
 .note { margin: 10px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
 .note a { display: inline-flex; align-items: center; gap: 3px; color: var(--accent-readable); font-weight: 700; text-decoration: none; }
 @media (max-width: 640px) { .history li { grid-template-columns: 1fr; gap: 6px; } }
+.history li .plainName { overflow: hidden; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.history li > span > span { flex: 1 1 auto; }

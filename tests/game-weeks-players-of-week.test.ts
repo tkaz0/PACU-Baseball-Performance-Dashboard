@@ -6,10 +6,10 @@ import { playersOfTheWeek } from "@/lib/home-spotlight";
 import { HomeSpotlight } from "@/components/home-spotlight";
 import { WeeklyGameTrend } from "@/components/weekly-game-trend";
 import type { GameSnapshotRow } from "@/lib/game-trends";
-import type { CoachingPlayer } from "@/lib/coaching-tools";
+import type { WeekPlayer } from "@/lib/home-spotlight";
 
 // Fictional fixtures only; no production data.
-const players: CoachingPlayer[] = Array.from({ length: 6 }, (_, i) => ({ id: `fictional-${i}`, code: `SYN-${i}`, name: `Fictional Player ${i + 1}`, position: "SS", secondaryPosition: "P", playerType: "two_way", academicClass: "Junior", bats: "R", throws: "R" }));
+const players: WeekPlayer[] = Array.from({ length: 6 }, (_, i) => ({ id: `SYN-${i}`, profileId: i === 3 ? `fictional-${i}` : null, code: `SYN-${i}`, name: `Fictional Player ${i + 1}`, position: "SS", secondaryPosition: "P", playerType: "two_way", academicClass: "Junior", bats: "R", throws: "R" }));
 const hitting = (pa: number, h: number, bb: number, qpa: number, xbh = 0) => ({ pa, ab: pa - bb, base_hit: h, hh_extra_base_hit: xbh, pumps: 0, bb, hbp: 0, sac_fly: 0, sac_bunt: 0, punchies: 1, qpa, sb: 0, gdp: 0 });
 const qpa = (id: string, at: string, lines: Record<string, Record<string, number>>): GameSnapshotRow => ({ id, source: "qpa_fall_2026", fetched_at: at,
   observations: Object.entries(lines).flatMap(([code, line]) => Object.entries(line).map(([metric, value]) => ({ athleteCode: code, metric, value, unit: "count", scope: "cumulative_fall" }))) });
@@ -33,7 +33,7 @@ describe("game weeks", () => {
   it("uses weekly pitching blocks and differences consecutive QPA update batches", () => {
     const weeks = gameWeeks(snapshots);
     expect(weeks.pitching.map(week => week.week)).toEqual([1, 2]);
-    expect(weeks.hitting.map(week => [week.week, week.detail])).toEqual([[1, "Sheet changes saved Sep 12"], [2, "Sheet changes saved Oct 4–Oct 5"]]);
+    expect(weeks.hitting.map(week => [week.week, week.detail])).toEqual([[1, "September 12th"], [2, "September 26th"]]);
     const pa = weeks.hitting[1].rows.filter(row => row.metric === "pa").map(row => row.value);
     expect(new Set(pa)).toEqual(new Set([10]));
     const qpaPct = weeks.hitting[1].rows.find(row => row.athlete_id === "SYN-3" && row.metric === "qpa_pct")!.value;
@@ -59,6 +59,10 @@ describe("players of the week", () => {
     expect(html).toContain("Pitcher of the Week");
     expect(html).toContain("Earlier Weeks");
     expect(html).not.toContain("Practice Standout");
+    expect(html).toContain("Week 2 · September 26th");
+    // Only the viewer's own profile is linked; peers render as plain names.
+    expect(html).not.toMatch(/href="\/athletes\/(?!fictional-3)/);
+    expect(html).not.toContain('href="/top-performers"');
   });
   it("shows nothing without five complete weekly lines", () => {
     const few = players.slice(0, 4);

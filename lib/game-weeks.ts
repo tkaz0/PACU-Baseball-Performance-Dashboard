@@ -13,6 +13,15 @@ function pacificDay(timestamp: string): string {
   const part = (type: string) => parts.find(p => p.type === type)!.value;
   return `${part("year")}-${part("month")}-${part("day")}`;
 }
+/** Owner-confirmed Fall Ball week dates; sheet updates for a week may be saved days later. */
+export const FALL_BALL_WEEK_DATES: Readonly<Record<number, string>> = { 1: "2026-09-12", 2: "2026-09-26" };
+const ordinalDay = (day: number) => `${day}${day % 100 >= 11 && day % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][day % 10] ?? "th"}`;
+export function fallBallWeekDate(week: number): string | null {
+  const date = FALL_BALL_WEEK_DATES[week];
+  if (!date) return null;
+  const [, month, day] = date.split("-").map(Number);
+  return `${new Date(Date.UTC(2026, month - 1, 1)).toLocaleDateString("en-US", { month: "long", timeZone: "UTC" })} ${ordinalDay(day)}`;
+}
 const shortDate = (day: string) => new Date(`${day}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 const dayGap = (a: string, b: string) => (Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000;
 
@@ -54,7 +63,7 @@ export function gameWeeks(snapshots: readonly GameSnapshotRow[]): { hitting: Gam
       if (invalid) continue;
       const week = Number(eventId.at(-1));
       const rows = [...players].flatMap(([code, metrics]) => [...metrics].map(([metric, item], i) => row("pitching_fall_2026", pitchingLatest, code, metric, item.value, item.unit, "pitching_event", eventId, i)));
-      pitching.push({ week, source: "pitching_fall_2026", label: `Week ${week}`, detail: `Fall Ball Week ${week} pitching totals`, rows, withheld: 0 });
+      pitching.push({ week, source: "pitching_fall_2026", label: `Week ${week}`, detail: fallBallWeekDate(week) ?? `Fall Ball Week ${week} pitching totals`, rows, withheld: 0 });
     }
   }
   const batches: { first: string; last: string; snapshot: GameSnapshotRow }[] = [];
@@ -88,7 +97,7 @@ export function gameWeeks(snapshots: readonly GameSnapshotRow[]): { hitting: Gam
     }
     // Without a valid earlier version, a later batch would count the whole Fall as one week.
     if (index === 0 || previous) hitting.push({ week: index + 1, source: "qpa_fall_2026", label: `Week ${index + 1}`,
-      detail: `Sheet changes saved ${batch.first === batch.last ? shortDate(batch.first) : `${shortDate(batch.first)}–${shortDate(batch.last)}`}`, rows, withheld });
+      detail: fallBallWeekDate(index + 1) ?? `Sheet changes saved ${batch.first === batch.last ? shortDate(batch.first) : `${shortDate(batch.first)}–${shortDate(batch.last)}`}`, rows, withheld });
     previous = players;
   }
   return { hitting, pitching };

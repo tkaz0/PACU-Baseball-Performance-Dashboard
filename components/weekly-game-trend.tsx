@@ -38,7 +38,7 @@ export function WeeklyGameTrend({ weeks, athleteId }: { weeks: { hitting: GameWe
   if (!hitting.length && !pitching.length) return null;
   return <section className="mt-5 rounded-xl border border-[var(--line-subtle)] bg-[var(--surface-panel)] p-4 sm:p-5" aria-label="Week by week game stats" data-testid="weekly-game-trend">
     <h2 className="m-0 text-xl font-bold">Week by Week</h2>
-    <p className="muted mb-0 mt-1 text-xs">Each column uses only that week&apos;s games. Pitching weeks are the sheet&apos;s weekly blocks; hitting weeks are the change between saved QPA sheet versions ({weeks.hitting.map(week => `${week.label}: ${week.detail.replace("Sheet changes saved ", "")}`).join(" · ")}).</p>
+    <p className="muted mb-0 mt-1 text-xs">Each column uses only that week&apos;s games. Pitching weeks are the sheet&apos;s weekly blocks; hitting weeks are the QPA totals added for that week ({weeks.hitting.map(week => `${week.label}: ${week.detail}`).join(" · ")}).</p>
     <Table title="Hitting" metrics={HITTING} data={hitting}/>
     <Table title="Pitching" metrics={PITCHING} data={pitching}/>
     <p className="muted mb-0 mt-2 text-xs">One week is a small sample; a single game can swing these rates.</p>
