@@ -510,3 +510,5 @@ Rankings are entirely manual. **Reset to Draft List Order** previews the origina
 October 9 layout refinement is app-only; no migration or configuration change. Home operational details, secondary ranking groups and supporting team totals open through native disclosures. A filtered leaderboard opens every matching group; a specific-pitch selection opens its arsenal. No results, cohorts or calculation rules change.
 
 The Physicality radar placement and compact cumulative profile stat sheets are presentation-only app changes; no migration or environment change is required.
+
+Contact-by-pitch views require `202610090007_contact_pitch_details.sql` before deploying the consuming app. It adds only authorized read projections; existing contact, quality, pitcher-link and assignment tables are preserved. Staff can complete older sessions from original CSVs at `/imports/contact-details`. See [Contact Details](CONTACT_DETAILS.md).

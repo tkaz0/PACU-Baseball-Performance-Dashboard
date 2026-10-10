@@ -4,7 +4,7 @@ export type SquaredUpSummary = { count: number; total: number; avgSquaredUp: num
 const mean = (values: number[]) => values.length ? values.reduce((a, b) => a + b, 0) / values.length : null;
 
 /** Only contacts with a saved Squared Up and Potential EV from the same CSV row; others are counted, never estimated. */
-export function squaredUpSummary(contacts: readonly SavedContact[]): SquaredUpSummary {
+export function squaredUpSummary(contacts: readonly Pick<SavedContact, "squaredUp" | "potentialExitVelocity" | "exitVelocity">[]): SquaredUpSummary {
   const rows = contacts.filter(row => typeof row.squaredUp === "number" && typeof row.potentialExitVelocity === "number");
   return {
     count: rows.length, total: contacts.length,

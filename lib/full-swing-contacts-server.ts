@@ -1,42 +1,36 @@
 import "server-only";
 import { canReadPresentedAthlete } from "@/lib/access-preview";
 import { requireAccess, requireImportAccess } from "@/lib/auth";
+import { PITCH_TYPES, type PitchType } from "@/lib/imports/pitch-assignments";
 import type { ReviewedContact } from "@/lib/imports/full-swing-contacts";
 import { UUID_PATTERN } from "@/lib/types";
 
 /** pitcherThrows is the linked roster pitcher's hand (R/L); null/absent when unknown or Machine BP. */
 /** squaredUp is 0–1 and potentialExitVelocity is mph, both from the original CSV row; absent when not saved. */
-export type SavedContact = Omit<ReviewedContact, "athleteCode"> & { pitcherThrows?: "R" | "L" | null; squaredUp?: number | null; potentialExitVelocity?: number | null };
+export type SavedContact = Omit<ReviewedContact, "athleteCode"> & { pitchType?: PitchType | null; pitcherThrows?: "R" | "L" | null; squaredUp?: number | null; potentialExitVelocity?: number | null };
 
-/** Saved Squared Up / Potential EV for this athlete's readable contacts; failure leaves them absent. */
-async function withSquaredUp(access: Awaited<ReturnType<typeof requireAccess>>, athleteId: string, contacts: SavedContact[]): Promise<SavedContact[]> {
+/** One authorized read joins the current staff labels, hand and quality on exact file + row. */
+async function withContactDetails(access: Awaited<ReturnType<typeof requireAccess>>, athleteId: string, contacts: SavedContact[]): Promise<SavedContact[]> {
   if (!contacts.length) return contacts;
-  let data: unknown;
-  try {
-    const result = await access.supabase.rpc("athlete_contact_quality", { p_athlete: athleteId });
-    if (result.error) return contacts;
-    data = result.data;
-  } catch { return contacts; }
-  if (!Array.isArray(data)) return contacts;
-  const quality = new Map<string, { squaredUp: number; potentialExitVelocity: number }>();
-  for (const row of data) if (row && typeof row.file_hash === "string" && Number.isSafeInteger(row.source_row) && typeof row.squared_up === "number" && row.squared_up > 0 && row.squared_up <= 1 && typeof row.potential_exit_velocity === "number" && row.potential_exit_velocity > 0 && row.potential_exit_velocity <= 200)
-    quality.set(`${row.file_hash}:${row.source_row}`, { squaredUp: row.squared_up, potentialExitVelocity: row.potential_exit_velocity });
-  return contacts.map(contact => { const q = quality.get(`${contact.fileHash}:${contact.sourceRow}`); return { ...contact, squaredUp: q?.squaredUp ?? null, potentialExitVelocity: q?.potentialExitVelocity ?? null }; });
-}
-
-/** Only R/L for this athlete's own readable contacts; the reader never returns pitcher identities. */
-async function withPitcherHands(access: Awaited<ReturnType<typeof requireAccess>>, athleteId: string, contacts: SavedContact[]): Promise<SavedContact[]> {
-  if (!contacts.length) return contacts;
-  let data: unknown;
-  try {
-    const result = await access.supabase.rpc("athlete_contact_pitcher_hands", { p_athlete: athleteId });
-    if (result.error) return contacts;
-    data = result.data;
-  } catch { return contacts; }
-  if (!Array.isArray(data)) return contacts;
-  const hands = new Map<string, "R" | "L">();
-  for (const row of data) if (row && typeof row.file_hash === "string" && Number.isSafeInteger(row.source_row) && (row.pitcher_throws === "R" || row.pitcher_throws === "L")) hands.set(`${row.file_hash}:${row.source_row}`, row.pitcher_throws);
-  return contacts.map(contact => ({ ...contact, pitcherThrows: hands.get(`${contact.fileHash}:${contact.sourceRow}`) ?? null }));
+  const { data, error } = await access.supabase.rpc("athlete_contact_details", { p_athlete: athleteId });
+  if (error || !Array.isArray(data)) throw new Error("Contact details could not be loaded. Refresh to try again.");
+  const details = new Map<string, Pick<SavedContact, "pitchType" | "pitcherThrows" | "squaredUp" | "potentialExitVelocity">>();
+  for (const row of data) {
+    if (!row || !/^[a-f0-9]{64}$/.test(row.file_hash) || !Number.isSafeInteger(row.source_row) || row.source_row < 2 ||
+      (row.pitch_type !== null && (!PITCH_TYPES.includes(row.pitch_type) || row.pitch_type === "Fastball")) ||
+      (row.pitcher_throws !== null && row.pitcher_throws !== "R" && row.pitcher_throws !== "L") ||
+      (row.squared_up !== null && (typeof row.squared_up !== "number" || !Number.isFinite(row.squared_up) || row.squared_up <= 0 || row.squared_up > 1)) ||
+      (row.potential_exit_velocity !== null && (typeof row.potential_exit_velocity !== "number" || !Number.isFinite(row.potential_exit_velocity) || row.potential_exit_velocity <= 0 || row.potential_exit_velocity > 200)) ||
+      (row.squared_up === null) !== (row.potential_exit_velocity === null)) throw new Error("Contact details could not be verified.");
+    const key = `${row.file_hash}:${row.source_row}`;
+    if (details.has(key)) throw new Error("Contact details contain duplicate coordinates.");
+    details.set(key, { pitchType: row.pitch_type, pitcherThrows: row.pitcher_throws, squaredUp: row.squared_up, potentialExitVelocity: row.potential_exit_velocity });
+  }
+  return contacts.map(contact => {
+    const detail = details.get(`${contact.fileHash}:${contact.sourceRow}`);
+    if (!detail) throw new Error("Contact detail coverage could not be verified.");
+    return { ...contact, ...detail };
+  });
 }
 
 /** RLS and the effective View-as scope both limit detailed events to this athlete. */
@@ -67,8 +61,7 @@ export async function loadFullSwingContacts(access: Awaited<ReturnType<typeof re
         sourceFile: row.source_file, playedOn: row.played_on, category: row.category,
         exitVelocity: row.exit_velocity, launchAngle: row.launch_angle, direction: row.direction, distance: row.distance });
     }
-    if (data.length < 1000) { const [hands, squared] = await Promise.all([withPitcherHands(access, athleteId, contacts), withSquaredUp(access, athleteId, contacts)]);
-      return hands.map((contact, index) => ({ ...contact, squaredUp: squared[index].squaredUp ?? null, potentialExitVelocity: squared[index].potentialExitVelocity ?? null })); }
+    if (data.length < 1000) return withContactDetails(access, athleteId, contacts);
   }
   throw new Error("Contact-map history exceeds the supported size.");
 }

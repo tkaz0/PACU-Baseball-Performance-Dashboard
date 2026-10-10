@@ -1,3 +1,5 @@
+import { ContactPitchSplits } from "@/components/contact-pitch-splits";
+import { isLikelyFoul } from "@/lib/likely-foul";
 import { StatInfo } from "@/components/stat-info";
 import { contactAllowedSummary, type AllowedContact } from "@/lib/contacts-allowed";
 
@@ -22,6 +24,7 @@ export function PitcherContactAllowed({ contacts }: { contacts: readonly Allowed
       </div>
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--text-secondary)]"><span>Ground {one(s.groundPct, "%")}</span><span>Line Drive {one(s.linePct, "%")}</span><span>Fly Ball {one(s.flyPct, "%")}</span><span>Pop-Up {one(s.popupPct, "%")}</span></div>
     </div>
+    <ContactPitchSplits contacts={contacts.filter(row=>!isLikelyFoul(row))} against/>
     <p className="muted mb-0 mt-3 text-xs">Batted balls the Full Swing file linked to this pitcher. Likely fouls{s.fouls ? ` (${s.fouls})` : ""} are left out. Ground &lt;10°, line drive 10–25°, fly ball 25–50°, pop-up &gt;50°. Full Swing does not record whether a ball became a hit, and machine BP and unlinked contact are not included.</p>
   </section>;
 }

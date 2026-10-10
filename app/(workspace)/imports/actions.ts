@@ -120,7 +120,8 @@ export async function saveContactPitchers(fileHash: unknown, input: unknown): Pr
     !Number.isSafeInteger(row.sourceRow) || row.sourceRow < 2 || !Number.isSafeInteger(row.pitcherSummaryRow) || row.pitcherSummaryRow < 2 ||
     !Number.isFinite(row.pitcherMaxVelocity) || row.pitcherMaxVelocity <= 0 || row.pitcherMaxVelocity > 130)) return { error: "Pitcher links need original CSV rows." };
   const { data, error } = await supabase.rpc("save_full_swing_contact_pitchers", { p_file_hash: fileHash, p_rows: rows });
-  if (error || !data || typeof data !== "object" || ["created", "unchanged", "skipped"].some(key => !Number.isSafeInteger((data as Record<string, unknown>)[key])))
+  if (error || !data || typeof data !== "object" || ["created", "unchanged", "skipped"].some(key => !Number.isSafeInteger((data as Record<string, unknown>)[key]) || (data as Record<string, number>)[key] < 0) ||
+    data.created + data.unchanged + data.skipped !== rows.length)
     return { error: "Pitcher hands could not be saved. Batted balls are unaffected." };
   revalidatePath("/athletes", "layout");
   return data as { created: number; unchanged: number; skipped: number };
@@ -136,7 +137,8 @@ export async function saveContactSquaredUp(fileHash: unknown, input: unknown): P
     !Number.isSafeInteger(row.sourceRow) || row.sourceRow < 2 || !Number.isFinite(row.exitVelocity) || row.exitVelocity <= 0 || row.exitVelocity > 200 ||
     !Number.isFinite(row.squaredUp) || row.squaredUp <= 0 || row.squaredUp > 1 || !Number.isFinite(row.potentialExitVelocity) || row.potentialExitVelocity <= 0 || row.potentialExitVelocity > 200)) return { error: "Squared-up values need original CSV rows." };
   const { data, error } = await supabase.rpc("save_full_swing_contact_quality", { p_file_hash: fileHash, p_rows: rows });
-  if (error || !data || typeof data !== "object" || ["created", "unchanged", "skipped"].some(key => !Number.isSafeInteger((data as Record<string, unknown>)[key])))
+  if (error || !data || typeof data !== "object" || ["created", "unchanged", "skipped"].some(key => !Number.isSafeInteger((data as Record<string, unknown>)[key]) || (data as Record<string, number>)[key] < 0) ||
+    data.created + data.unchanged + data.skipped !== rows.length)
     return { error: "Squared-up values could not be saved. Batted balls are unaffected." };
   revalidatePath("/athletes", "layout");
   return data as { created: number; unchanged: number; skipped: number };

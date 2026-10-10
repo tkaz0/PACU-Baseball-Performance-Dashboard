@@ -64,6 +64,7 @@ export function FullSwingImport({ category, sourceCategory, roster, saveAction, 
   const [error, setError] = useState("");
   const [receipt, setReceipt] = useState<ImportConfirmationData | null>(null);
   const [sampleReceipt, setSampleReceipt] = useState("");
+  const [contactDetailsWarning,setContactDetailsWarning] = useState(false);
   const [pitchReview, setPitchReview] = useState<FullSwingPitchReview | null>(null);
   const [existingSession, setExistingSession] = useState<FullSwingSessionState | null>(null);
   const [replaceSaved, setReplaceSaved] = useState(false);
@@ -96,7 +97,7 @@ export function FullSwingImport({ category, sourceCategory, roster, saveAction, 
     try { selection = selectRosterSummaries(table, { identityKind, identityColumn, identityOverrides: overrides }, roster, excluded, session?.players.map(player => player.identity)); }
     catch (error) { selectionError = errorText(error); }
   }
-  const invalidate = () => { setBundleReview(null); setReviewed(null); setConfirmed(false); setError(""); setReceipt(null); setSampleReceipt(""); };
+  const invalidate = () => { setBundleReview(null); setReviewed(null); setConfirmed(false); setError(""); setReceipt(null); setSampleReceipt(""); setContactDetailsWarning(false); };
   async function chooseFile(next?: File) {
     const version = ++request.current;
     invalidate(); setPitchReview(null); setExistingSession(null); setReplaceSaved(false); setSessionReceipt(null); setPublishLocked(false); attemptedBundle.current = null; setFile(null); setSessionSource(null); setRemovedValues([]); setMisreadsApproved(false); setMisreadsLocked(false); setHeaderRow(0); setIdentityColumn(-1); setOverrides({}); setExcluded([]); setDateColumn(-1); setSummaryConfirmed(false);
@@ -189,9 +190,14 @@ export function FullSwingImport({ category, sourceCategory, roster, saveAction, 
         setSessionReceipt(result);
         // Pitcher hands for RHP/LHP splits; the server verifies each link. Failure leaves batted balls unaffected.
         const pitcherLinks = sessionSource && file ? contactPitcherRows(sessionSource, session) : [];
-        if (file && pitcherLinks.length) void saveContactPitchers(file.fileHash, pitcherLinks).catch(() => undefined);
         const squaredUp = sessionSource && file ? contactSquaredUpRows(sessionSource, session) : [];
-        if (file && squaredUp.length) void saveContactSquaredUp(file.fileHash, squaredUp).catch(() => undefined);
+        try {
+          const results = await Promise.all([
+            file && pitcherLinks.length ? saveContactPitchers(file.fileHash,pitcherLinks) : null,
+            file && squaredUp.length ? saveContactSquaredUp(file.fileHash,squaredUp) : null,
+          ]);
+          setContactDetailsWarning(results.some(result=>result && ("error" in result || result.skipped>0)));
+        } catch { setContactDetailsWarning(true); }
         setReceipt(buildImportConfirmation(bundleReview.measurements, roster, result, skipped));
         setReviewed(null); setConfirmed(false);
         return;
@@ -302,5 +308,6 @@ export function FullSwingImport({ category, sourceCategory, roster, saveAction, 
     {error && <p role="alert" className="notice notice-error">{error}</p>}
     {sampleReceipt && <p role="status" className="notice">{sampleReceipt}</p>}
     {receipt && <ImportConfirmation receipt={receipt} />}
+    {contactDetailsWarning && <p role="status" className="notice">Your session is saved. Some contact details need another check. Use Complete Contact Details under Import History &amp; Other Tools with the same original CSV.</p>}
   </div>;
 }

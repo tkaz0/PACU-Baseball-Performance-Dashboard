@@ -1,7 +1,8 @@
+import type { PitchType } from "@/lib/imports/pitch-assignments";
 import { battedBallType } from "@/lib/batted-ball-profile";
 import { isLikelyFoul } from "@/lib/likely-foul";
 
-export type AllowedContact = { playedOn: string; category: "game" | "intrasquad" | "practice"; exitVelocity: number; launchAngle: number; direction: number | null; distance: number | null; squaredUp: number | null };
+export type AllowedContact = { playedOn: string; category: "game" | "intrasquad" | "practice"; exitVelocity: number; launchAngle: number; direction: number | null; distance: number | null; squaredUp: number | null; potentialExitVelocity?: number | null; pitchType?: PitchType | null };
 
 const mean = (values: number[]) => values.length ? values.reduce((a, b) => a + b, 0) / values.length : null;
 /** Descriptive summary of batted balls against one pitcher; Likely Foul contact is left out. No hit outcomes are inferred. */

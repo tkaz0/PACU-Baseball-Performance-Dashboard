@@ -248,3 +248,5 @@ The private Draft Board includes two clickable baseball-field depth charts and a
 October 9 layout refinement: Home prioritizes game summaries and featured leaders; Data & Testing opens on demand. Leaderboards group physicality and supporting hitting results into expandable sections, and All Pitches opens the first arsenal with the rest available individually. Team Game Stats keeps headline rates and charts visible, with supporting rates/totals expandable and section jump links. All players, ranks, samples, sources and access boundaries are unchanged.
 
 Player profiles keep percentile visuals on Overview and the physicality radar in Physicality. Cumulative game results use compact stat sheets with sample sizes, stat explanations and pitch-family splits.
+
+Full Swing contact maps now include contact quality by staff-classified pitch; pitchers see the contact allowed against each pitch. Staff can complete older saved contact details from original exports without republishing sessions. See [Contact Details](docs/CONTACT_DETAILS.md).

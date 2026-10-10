@@ -1,0 +1,11 @@
+# Full Swing contact details
+
+Contact by Pitch Type follows the hitter contact map's session and Balls in Play / All Contact selection. Contact Allowed by Pitch uses the pitcher's linked in-game contacts, with likely fouls excluded. Both keep Game, Intrasquad and Practice separate. Each row includes batted-ball sample, average/max EV, 90+ mph hard-hit rate, 8–32° launch-window rate, average launch and paired Squared Up coverage. These are contact descriptions, not hit outcomes or pitch-effectiveness grades.
+
+`202610090007_contact_pitch_details.sql` joins current staff assignments to contacts on **file_hash + source_row**. Pitch number alone never joins events. No pitch is inferred from speed/spin; unknown and legacy unspecified labels remain Unclassified. A later saved label correction is reflected on the next read without rewriting contact records. The hitter reader checks own-athlete/staff access and returns only that athlete's event details; the pitcher reader returns no batter identities, file hashes or coordinates. One contact-details request replaces separate hand and quality requests.
+
+Staff can complete older sessions at `/imports/contact-details` using up to 20 original CSVs. Parsing and identity labels remain browser-local. Only bounded numeric rows and file fingerprints reach existing authorized additive RPCs. Quality requires the exact saved contact EV; pitcher links require an exact same-file saved Max Velocity summary. Existing differing details reject, missing/edited files skip, and verified created/unchanged/skipped counts must reconcile to submitted rows. The reviewed batch locks after a save attempt for identical retries. This workflow never republishes sessions, changes player matches or overwrites summary metrics.
+
+New bundled publishes await the quality/link receipts and display a completion warning when details need another check. A published session remains saved if optional details fail. Missing original exports or summary matches are coverage gaps; do not guess around them.
+
+Validation uses fictional rows in contact-pitch split, own-player reader and PGlite authorization tests. PGlite does not replace live Supabase Auth/API verification.
