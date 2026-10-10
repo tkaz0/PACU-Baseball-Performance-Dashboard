@@ -23,6 +23,14 @@
 .rowHeading > div > strong { font-size:13px; }
 .result { text-align:right; flex-shrink:0; max-width:50%; }
 .result > strong { display:block; font-size:16px!important; font-variant-numeric:tabular-nums; }
+.result small { font-size:11px; font-weight:400; color:var(--text-secondary); }
+.best { display:block; margin-top:3px; font-size:12px; font-variant-numeric:tabular-nums; }
+.best small { display:block; margin-top:2px; }
+.referenceLabel { display:block; margin-bottom:3px; }
+.pitchColor { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:7px; }
+.bestRange { position:absolute; top:9px; height:2px; opacity:.6; }
+.maxMark { position:absolute; top:5px; width:10px; height:10px; border:2px solid; background:var(--surface-panel); transform:translateX(-50%) rotate(45deg); }
+.diamond { display:inline-block; width:8px; height:8px; border:2px solid var(--text-secondary); transform:rotate(45deg); margin-left:12px; }
 .gap,.unavailable { display:block; margin-top:3px; font-size:12px; line-height:1.5; }
 .gap { color:var(--text-primary); font-weight:650; font-variant-numeric:tabular-nums; }
 .unavailable { color:var(--text-secondary); }

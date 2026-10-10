@@ -70,6 +70,15 @@ describe("pitch speed separation", () => {
     expect(pitchSeparationGap(-0.01)).toBe("0.0 mph gap");
     expect(model([fastball, { ...slider, averageVelocity: fastball.averageVelocity }]).domain).toEqual([80, 90]);
   });
+  it("plots Fall maximums independently, with a shared speed scale but no fabricated gap", () => {
+    const result = model([fastball, { ...slider, maxVelocity: 94.25, velocityAverageLastDate: "2026-09-11" }]);
+    expect(result.rows[0]).toMatchObject({ maximum: 94.25, maximumDate: "2026-09-11", gap: null, issue: "different-dates" });
+    expect(result.velocityDomain).toEqual([70, 100]);
+    for (const patch of [{ maxVelocity: NaN }, { maxVelocity: 0 }, { maxVelocity: 60 }, { maxVelocityDate: "2026-10-01" }, { maxVelocityDate: null }]) {
+      expect(model([fastball, { ...slider, ...patch }]).rows[0].maximum).toBeNull();
+    }
+    expect(model([slider]).velocityDomain).not.toBeNull();
+  });
 });
 
 describe("pitch separation display", () => {
@@ -78,6 +87,8 @@ describe("pitch separation display", () => {
     for (const label of ["Pitch Separation", "Intrasquad", "85.3 mph", "72.2 mph", "13.2 mph slower", "40 speed readings", "15 speed readings", "Sep 11, 2026", "Sep 23, 2026", "Average speed (mph)", "70.0", "90.0"]) expect(html).toContain(label);
     expect(html).toContain('aria-label="About Pitch Separation"');
     expect(html).toContain("data-pitch-gap=");
+    expect(html).toContain("86.4 mph Fall best");
+    expect(html).toContain("Fall best shown as a diamond");
     expect(html).not.toContain("file_hash");expect(html).not.toContain("Ideal");expect(html).not.toContain("Good gap");
   });
   it("provides a labeled reference selector without silently selecting one fastball", () => {

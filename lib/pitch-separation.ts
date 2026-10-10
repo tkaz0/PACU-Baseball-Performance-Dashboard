@@ -9,6 +9,8 @@ export type PitchSeparationVelocity = {
   source: string;
   pitchType: string;
   average: number | null;
+  maximum: number | null;
+  maximumDate: string | null;
   count: number | null;
   basis: "fall" | "latest" | null;
   firstDate: string | null;
@@ -22,6 +24,7 @@ export type PitchSeparation = {
   reference: PitchSeparationVelocity | null;
   rows: PitchSeparationRow[];
   domain: [number, number] | null;
+  velocityDomain: [number, number] | null;
 };
 
 export const pitchSeparationDay = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
@@ -30,7 +33,7 @@ const validDate = (date: string | null, today: string): date is string => calend
 
 function velocity(source: string, matches: readonly FallArsenalPitch[], today: string): PitchSeparationVelocity {
   const pitchType = classifiedPitchSource(source)!.pitchType;
-  const empty: PitchSeparationVelocity = { source, pitchType, average: null, count: null, basis: null, firstDate: null, lastDate: null, issue: "duplicate" };
+  const empty: PitchSeparationVelocity = { source, pitchType, average: null, maximum: null, maximumDate: null, count: null, basis: null, firstDate: null, lastDate: null, issue: "duplicate" };
   if (matches.length !== 1) return empty;
   const pitch = matches[0];
   const average = pitch.averageVelocity !== null && Number.isFinite(pitch.averageVelocity) && pitch.averageVelocity > 0 ? pitch.averageVelocity : null;
@@ -39,7 +42,9 @@ function velocity(source: string, matches: readonly FallArsenalPitch[], today: s
   const firstDate = validDate(pitch.velocityAverageFirstDate, today) ? pitch.velocityAverageFirstDate : null;
   const lastDate = validDate(pitch.velocityAverageLastDate, today) ? pitch.velocityAverageLastDate : null;
   const datesValid = firstDate !== null && lastDate !== null && firstDate <= lastDate && (basis !== "latest" || firstDate === lastDate);
-  return { source, pitchType, average: datesValid ? average : null, count, basis, firstDate, lastDate,
+  const maximumDate = validDate(pitch.maxVelocityDate, today) ? pitch.maxVelocityDate : null;
+  const maximum = maximumDate && pitch.maxVelocity !== null && Number.isFinite(pitch.maxVelocity) && pitch.maxVelocity > 0 && (average === null || pitch.maxVelocity >= average) ? pitch.maxVelocity : null;
+  return { source, pitchType, average: datesValid ? average : null, maximum, maximumDate: maximum === null ? null : maximumDate, count, basis, firstDate, lastDate,
     issue: average === null ? "average" : !datesValid ? "dates" : !basis ? "basis" : !count ? "count" : null };
 }
 
@@ -48,7 +53,7 @@ function velocity(source: string, matches: readonly FallArsenalPitch[], today: s
  * Matching bounds do not claim that each pitch came from identical sessions.
  */
 export function buildPitchSeparation(pitches: readonly FallArsenalPitch[], category: Category, requestedSource?: string, today = pitchSeparationDay()): PitchSeparation {
-  const empty: PitchSeparation = { category, references: [], reference: null, rows: [], domain: null };
+  const empty: PitchSeparation = { category, references: [], reference: null, rows: [], domain: null, velocityDomain: null };
   if (!calendarDate(today)) return empty;
   const eligible = pitches.filter(pitch => {
     const parsed = classifiedPitchSource(pitch.source);
@@ -67,7 +72,9 @@ export function buildPitchSeparation(pitches: readonly FallArsenalPitch[], categ
   const comparable = rows.filter(row => row.gap !== null);
   const values = reference && comparable.length ? [reference.average!, ...comparable.map(row => row.average!)] : [];
   const domain: [number, number] | null = values.length ? [Math.max(0, Math.floor((Math.min(...values) - 2) / 5) * 5), Math.ceil((Math.max(...values) + 2) / 5) * 5] : null;
-  return { category, references, reference, rows, domain };
+  const speeds = groups.flatMap(pitch => [pitch.average, pitch.maximum].filter((value): value is number => value !== null));
+  const velocityDomain: [number, number] | null = speeds.length ? [Math.max(0, Math.floor((Math.min(...speeds) - 2) / 5) * 5), Math.ceil((Math.max(...speeds) + 2) / 5) * 5] : null;
+  return { category, references, reference, rows, domain, velocityDomain };
 }
 
 export function pitchSeparationReason(issue: PitchSeparationIssue | null): string {
