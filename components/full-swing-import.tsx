@@ -189,8 +189,10 @@ export function FullSwingImport({ category, sourceCategory, roster, saveAction, 
         if ("error" in result) throw new Error(result.error);
         setSessionReceipt(result);
         // Pitcher hands for RHP/LHP splits; the server verifies each link. Failure leaves batted balls unaffected.
-        const pitcherLinks = sessionSource && file ? contactPitcherRows(sessionSource, session) : [];
-        const squaredUp = sessionSource && file ? contactSquaredUpRows(sessionSource, session) : [];
+        const savedContactRows = new Set(payload.contacts.map(contact=>contact.sourceRow));
+        const savedPitcherRows = new Set(payload.measurements.filter(row=>row.source_sheet === "CSV · Full Swing session summaries v1" && row.metric === "Max Velocity").map(row=>row.source_row));
+        const pitcherLinks = sessionSource && file ? contactPitcherRows(sessionSource, session).filter(row=>savedContactRows.has(row.sourceRow) && savedPitcherRows.has(row.pitcherSummaryRow)) : [];
+        const squaredUp = sessionSource && file ? contactSquaredUpRows(sessionSource, session).filter(row=>savedContactRows.has(row.sourceRow)) : [];
         try {
           const results = await Promise.all([
             file && pitcherLinks.length ? saveContactPitchers(file.fileHash,pitcherLinks) : null,
