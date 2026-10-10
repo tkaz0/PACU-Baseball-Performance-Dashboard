@@ -1,4 +1,4 @@
-import { profileDetail, profileTab } from "@/lib/profile-tab";
+import { profileDetail, profileTab, profileTabForRole } from "@/lib/profile-tab";
 import { loadSwingVideos } from "@/lib/swing-videos-server";
 import { prepareSwingVideo, finishSwingVideo, playSwingVideo } from "./video-actions";
 import { loadTrendAnnotations } from "@/lib/trend-annotations-server";
@@ -49,10 +49,8 @@ export default async function Profile({ params, searchParams }: { params: Promis
   const { id } = await params;
   if (!UUID_PATTERN.test(id) || !canReadPresentedAthlete(access, id)) notFound();
   const query = await searchParams;
-  const selectedTab = profileTab(query?.tab);
+  const requestedTab = profileTab(query?.tab);
   const detail = profileDetail(query?.detail);
-  const contactTab = selectedTab === "in-game" || selectedTab === "practice";
-  const annotatedTab = selectedTab !== "overview";
   const { data, error } = await supabase.from("athletes").select("*, athlete_seasons(*)").eq("id", id).maybeSingle();
   if (error) throw new Error("Unable to load this athlete profile.");
   if (!data) notFound();
@@ -62,16 +60,19 @@ export default async function Profile({ params, searchParams }: { params: Promis
   const staff = roles.includes("admin") || roles.includes("coach");
   const admin = roles.includes("admin");
   const showHitting = profileShowsHitting(season);
+  const selectedTab = profileTabForRole(requestedTab, { hitting: showHitting, pitching: profileShowsPitching(season) });
+  const contactTab = selectedTab === "hitting" || selectedTab === "practice";
+  const annotatedTab = selectedTab !== "overview";
   const today = pacificTestingDate();
   const videoActions = { prepare: prepareSwingVideo, finish: finishSwingVideo, play: playSwingVideo };
   // Independent readers start together after the exact player passes live authorization.
   const sharedPromise = loadAthletePerformance(access,athlete);
-  const allowedPromise = selectedTab === "in-game" && profileShowsPitching(season) ? loadContactsAllowed(access, athlete.id).catch(() => null) : Promise.resolve(null);
-  const weeksPromise = selectedTab === "in-game" ? loadAthleteGameWeeks(access, athlete.id).catch(() => null) : Promise.resolve(null);
+  const allowedPromise = selectedTab === "pitching" && profileShowsPitching(season) ? loadContactsAllowed(access, athlete.id).catch(() => null) : Promise.resolve(null);
+  const weeksPromise = selectedTab === "game-stats" ? loadAthleteGameWeeks(access, athlete.id).catch(() => null) : Promise.resolve(null);
   const [gameLogs, gameStats, gameComparisons, shared, teamAverages, movement, contacts, videos, annotations, blockCounts, headshot, fallSummaries, blastBatSpeedPercentile] = await Promise.all([
-    staff && selectedTab === "in-game" ? loadGameLogs(access, athlete.id) : Promise.resolve([]),
-    selectedTab === "overview" || selectedTab === "in-game" ? loadGameStats(access, athlete.id) : Promise.resolve([]),
-    selectedTab === "overview" || selectedTab === "in-game" ? loadGameComparisons(access, athlete.id) : Promise.resolve([]),
+    staff && selectedTab === "game-stats" ? loadGameLogs(access, athlete.id) : Promise.resolve([]),
+    selectedTab === "overview" || selectedTab === "game-stats" ? loadGameStats(access, athlete.id) : Promise.resolve([]),
+    selectedTab === "overview" || selectedTab === "game-stats" ? loadGameComparisons(access, athlete.id) : Promise.resolve([]),
     sharedPromise, showHitting && selectedTab !== "progress" ? loadHittingTeamAverages(access) : Promise.resolve([]),
     selectedTab === "physicality" && detail === "full" ? loadMovementScreening(access,athlete.id,athlete.athlete_code) : Promise.resolve(null),
     showHitting && contactTab ? loadFullSwingContacts(access,athlete.id, selectedTab === "practice" ? "practice" : "in_game") : Promise.resolve([]),

@@ -1,6 +1,6 @@
 "use client";
 import { useId, useRef, useState, useTransition, type KeyboardEvent, type ReactNode } from "react";
-import { Activity, ChartNoAxesCombined, Dumbbell, History, Target } from "lucide-react";
+import { Activity, BarChart3, ChartNoAxesCombined, CircleDot, Dumbbell, History, Target } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { profileTabHref, type ProfileDetail } from "@/lib/profile-tab";
 import styles from "./profile-tabs.module.css";
@@ -30,7 +30,7 @@ function ProfileTabView({ tabs, action, selectedTab, navigationPath, detail, pen
     else return;
     event.preventDefault(); select(tabs[next].id); buttons.current[next]?.focus();
   }
-  const icons = { overview: ChartNoAxesCombined, physicality: Activity, "in-game": Target, practice: Dumbbell, progress: History };
+  const icons = { overview: ChartNoAxesCombined, "game-stats": BarChart3, hitting: Target, pitching: CircleDot, practice: Dumbbell, physicality: Activity, progress: History };
   return <div className="min-w-0">
     <div className={styles.toolbar}>
       <div role="tablist" aria-label="Player performance" className={`profile-tab-navigation ${styles.navigation}`}>

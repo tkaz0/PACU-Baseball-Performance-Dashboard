@@ -141,7 +141,7 @@ describe("protected profile route authorization and integration", () => {
   });
   it("isolates optional video, weekly-plan, note and sample-reader failures without losing the profile",async()=>{
     fake.contacts.mockResolvedValue([contact]);fake.rpc.mockImplementation(async(name:string)=>name==="athlete_focus_items"?{data:[],error:null}:{data:null,error:{code:"FICTITIOUS_ERROR"}});
-    const html=(await Promise.all(["in-game","practice","progress"].map(tab=>Profile({params:Promise.resolve({id:ownId}),searchParams:Promise.resolve({tab,detail:"full"})})))).map(view=>renderToStaticMarkup(view)).join("");
+    const html=(await Promise.all(["hitting","game-stats","practice","progress"].map(tab=>Profile({params:Promise.resolve({id:ownId}),searchParams:Promise.resolve({tab,detail:"full"})})))).map(view=>renderToStaticMarkup(view)).join("");
     expect(html).toContain("Fictional Profile");expect(html).toContain('data-value="10"');expect(html).toContain("Game Stats");
     for(const message of ["Coaching notes are temporarily unavailable","Swing videos are temporarily unavailable","Swing counts are temporarily unavailable"])expect(html).toContain(message);
     expect(html).not.toContain("Attach Video");expect(html).not.toContain("FICTITIOUS_ERROR");
@@ -185,7 +185,7 @@ describe("protected profile route authorization and integration", () => {
 it("renders aggregate hitting comparisons on an own-player profile without peer queries",async()=>{
  fake.load.mockResolvedValueOnce({measurements:[reading({source:"Full Swing · Intrasquad"})],batches:[],percentileOverrides:[]});
  fake.team.mockResolvedValueOnce([{metricKey:"max_exit_velocity",unit:"mph",source:"full swing · intrasquad",method:"player_mean",value:75.25,athleteCount:8,swingCount:null,firstDate:"2026-09-11",lastDate:"2026-09-20"}]);
- const html=renderToStaticMarkup(await Profile({params:Promise.resolve({id:ownId}),searchParams:Promise.resolve({tab:"in-game"})}));
+ const html=renderToStaticMarkup(await Profile({params:Promise.resolve({id:ownId}),searchParams:Promise.resolve({tab:"hitting"})}));
  expect(html).toContain("Team Average");expect(html).toContain("75.3");expect(fake.from).toHaveBeenCalledExactlyOnceWith("athletes");expect(fake.eq).toHaveBeenCalledExactlyOnceWith("id",ownId);
 });
 
@@ -198,19 +198,19 @@ it("starts independent profile readers while game stats are still loading",async
 });
 
 
-it.each(["physicality","in-game","practice","progress"])("loads only the readers needed for %s and preserves own-player scope",async tab=>{
+it.each(["physicality","game-stats","hitting","pitching","practice","progress"])("loads only the readers needed for %s and preserves own-player scope",async tab=>{
  const trusted=access();fake.access.mockResolvedValue(trusted);
  const html=renderToStaticMarkup(await Profile({params:Promise.resolve({id:ownId}),searchParams:Promise.resolve({tab,detail:"full"})}));
  expect(html).toContain(`aria-selected="true"`);
  expect(html).toContain(`panel-${tab}`);
  expect(fake.load).toHaveBeenCalledExactlyOnceWith(trusted,athlete);
- expect(fake.contacts).toHaveBeenCalledTimes(tab==="in-game"||tab==="practice"?1:0);
- if(tab==="in-game"||tab==="practice")expect(fake.contacts).toHaveBeenCalledWith(trusted,athlete.id,tab==="practice"?"practice":"in_game");
+ expect(fake.contacts).toHaveBeenCalledTimes(tab==="hitting"||tab==="practice"?1:0);
+ if(tab==="hitting"||tab==="practice")expect(fake.contacts).toHaveBeenCalledWith(trusted,athlete.id,tab==="practice"?"practice":"in_game");
  expect(fake.movement).toHaveBeenCalledTimes(tab==="physicality"?1:0);
- expect(fake.games).toHaveBeenCalledTimes(tab==="in-game"?1:0);
+ expect(fake.games).toHaveBeenCalledTimes(tab==="game-stats"?1:0);
  expect(fake.logs).not.toHaveBeenCalled();
  const calls=fake.rpc.mock.calls.map(([name])=>name);
- expect(calls.includes("athlete_swing_videos")).toBe(tab==="in-game"||tab==="practice");
+ expect(calls.includes("athlete_swing_videos")).toBe(tab==="hitting"||tab==="practice");
  expect(calls.includes("athlete_training_block_samples")).toBe(tab==="progress");
  for(const [,args] of fake.rpc.mock.calls)expect(args.p_athlete_id).toBe(ownId);
  expect(html).not.toContain("private-roster@example.com");
@@ -219,8 +219,11 @@ it("keeps detailed staff controls in their tabs and never includes hidden-tab co
  fake.access.mockResolvedValue(access(["coach"],null));fake.contacts.mockResolvedValue([contact]);
  const overview=renderToStaticMarkup(await Profile({params:Promise.resolve({id:ownId})}));
  expect(overview).not.toContain("Attach Video");expect(overview).not.toContain("Add Coaching Note");expect(overview).not.toContain("Testing Timeline");
+ const hitting=renderToStaticMarkup(await Profile({params:Promise.resolve({id:ownId}),searchParams:Promise.resolve({tab:"hitting"})}));
+ expect(hitting).toContain("Attach Video");expect(hitting).not.toContain("Cumulative Game Stats");expect(fake.logs).not.toHaveBeenCalled();
+ // Old In-Game links open Game Stats.
  const game=renderToStaticMarkup(await Profile({params:Promise.resolve({id:ownId}),searchParams:Promise.resolve({tab:"in-game"})}));
- expect(game).toContain("Attach Video");expect(game).toContain("Cumulative Game Stats");expect(fake.logs).toHaveBeenCalledExactlyOnceWith(expect.anything(),ownId);
+ expect(game).toContain("panel-game-stats");expect(game).toContain("Cumulative Game Stats");expect(game).not.toContain("Attach Video");expect(fake.logs).toHaveBeenCalledExactlyOnceWith(expect.anything(),ownId);
  const progress=renderToStaticMarkup(await Profile({params:Promise.resolve({id:ownId}),searchParams:Promise.resolve({tab:"progress"})}));
  expect(progress).toContain("Add Coaching Note");expect(progress).toContain("Testing Timeline");expect(progress).not.toContain("Attach Video");
 });

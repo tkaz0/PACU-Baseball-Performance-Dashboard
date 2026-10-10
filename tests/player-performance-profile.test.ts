@@ -12,12 +12,13 @@ function fictionalAthlete(playerType: string | null,primary: string|null="CF",se
   athlete_seasons:[{athlete_id:"SYN-001",season:"2026-27",jersey_number:0,primary_position:primary,secondary_position:secondary,player_type:playerType,bats:"L",throws:"R",academic_class:"freshman",eligibility_year:1,graduation_year:2030,roster_status:"active"}]};
 }
 const measurement=(metric:string,value:number,unit:string,date="2026-09-03",code="SYN-001"):Measurement=>({id:`fictional-${code}-${metric}-${date}`,athlete_code:code,measured_at:date,source:"Fictional testing",metric,value,unit,source_file:`fictional-${code}.csv`,source_sheet:"CSV",source_row:2,file_hash:"a".repeat(64)});
+const panelOf=(html:string,id:string)=>html.split('role="tabpanel"').find(part=>new RegExp(`^ id="[^"]*-panel-${id}"`).test(part))??"";
 const model=(readings:Measurement[]=[])=>getPlayerPerformance({readings,athleteCode:"SYN-001"});
 describe("player profile tabs and presentation",()=>{
- it("renders five accessible tabs with Overview selected and separate session contexts",()=>{
+ it("renders role-matched accessible tabs with Overview selected and separate session contexts",()=>{
   const athlete=fictionalAthlete("position"),html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete,performance:model()}));
-  expect((html.match(/role="tab"/g)??[])).toHaveLength(5);expect((html.match(/role="tabpanel"/g)??[])).toHaveLength(5);expect((html.match(/aria-selected="true"/g)??[])).toHaveLength(1);expect((html.match(/hidden=""/g)??[])).toHaveLength(4);
-  for(const label of ["Overview","Physicality","In-Game","Practice","Progress"])expect(html).toContain(label);
+  expect((html.match(/role="tab"/g)??[])).toHaveLength(6);expect((html.match(/role="tabpanel"/g)??[])).toHaveLength(6);expect((html.match(/aria-selected="true"/g)??[])).toHaveLength(1);expect((html.match(/hidden=""/g)??[])).toHaveLength(5);
+  for(const label of ["Overview","Game Stats","Hitting","Practice","Physicality","Progress"])expect(html).toContain(`>${label}</button>`);expect(html).not.toContain(">Pitching</button>");expect(html).not.toContain(">In-Game</button>");
   expect(html).not.toContain(athlete.pacific_email);expect(html).not.toContain(athlete.renpho_id);expect(html).not.toContain("Eligibility year");expect(html).toContain("Avery Northstar");expect(html).toContain("PAC ID");expect(html).toMatch(/Jersey Number<\/dt><dd[^>]*>0<\/dd>/);
  expect(html).not.toContain('role="meter"');expect(html).not.toContain('data-value="0"');expect(html).not.toContain("Pacific n=0");expect(html).not.toContain("Need 5 comparable players");expect(html).not.toContain("Team comparison not available");expect(html).not.toMatch(/<details[^>]*\sopen(?:[ =>])/);
   expect(html).not.toContain("Stats Available");
@@ -61,17 +62,17 @@ describe("player profile tabs and presentation",()=>{
  it("puts RENPHO content in Physicality and keeps game stats out of the profile",()=>{
   const html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete:fictionalAthlete("position"),performance:model(),physicalityDetails:createElement("p",null,"Fictional RENPHO slot"),history:createElement("details",null,createElement("summary",null,"Fictional history"))}));
   const panels=html.split('role="tabpanel"');
-  expect((html.match(/role="tab"/g)??[])).toHaveLength(5);expect(panels[1]).toContain('data-testid="player-overview"');expect(panels[1]).not.toContain("Fictional RENPHO slot");expect(panels[2]).toContain("Fictional RENPHO slot");expect(html).not.toContain('>Games</button>');
+  expect((html.match(/role="tab"/g)??[])).toHaveLength(6);expect(panels[1]).toContain('data-testid="player-overview"');expect(panels[1]).not.toContain("Fictional RENPHO slot");expect(panelOf(html,"physicality")).toContain("Fictional RENPHO slot");expect(html).not.toContain('>Games</button>');
  });
  it.each([
-  {type:"pitcher",primary:"P",hitting:false},
-  {type:null,primary:"P",hitting:false},
-  {type:"two_way",primary:"P",hitting:true},
-  {type:"position",primary:"CF",hitting:true},
- ])("shows role-relevant tabs and insights for $type/$primary",({type,primary,hitting})=>{
+  {type:"pitcher",primary:"P",hitting:false,pitching:true},
+  {type:null,primary:"P",hitting:false,pitching:true},
+  {type:"two_way",primary:"P",hitting:true,pitching:true},
+  {type:"position",primary:"CF",hitting:true,pitching:false},
+ ])("shows role-relevant tabs and insights for $type/$primary",({type,primary,hitting,pitching})=>{
   const athlete=fictionalAthlete(type,primary),performance=model([measurement("Max Exit Velocity",80,"mph","2026-09-01"),measurement("Max Exit Velocity",90,"mph","2026-09-03"),measurement("Home to First",4.5,"s","2026-09-01"),measurement("Home to First",4.2,"s","2026-09-04")]);
   const html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete,performance}));
-  expect(html).toContain('>In-Game</button>');expect(html).toContain('>Practice</button>');expect((html.match(/role="tab"/g)??[])).toHaveLength(5);
+  expect(html).toContain('>Game Stats</button>');expect(html).toContain('>Practice</button>');expect(html.includes('>Hitting</button>')).toBe(hitting);expect(html.includes('>Pitching</button>')).toBe(pitching);expect((html.match(/role="tab"/g)??[])).toHaveLength(5+Number(hitting)+Number(pitching));
   const overview=html.split('role="tabpanel"')[1];expect(overview.includes("Max Exit Velocity")).toBe(hitting);expect(overview.includes("Home to 1st")).toBe(hitting);
   expect(html.includes("Speed &amp; Agility")).toBe(hitting);expect(html.includes('data-metric-key="home_to_first"')).toBe(hitting);expect(html.includes("Sep 4, 2026")).toBe(hitting);
   expect(overview).toContain("Strengths");expect(overview).toContain("Areas to Work On");expect(/Biggest Jumps|Biggest jumps appear after a repeat test/.test(overview)).toBe(true);
@@ -107,16 +108,17 @@ it("keeps only available profile measurements and hides paused speed protocols w
  expect(performance.hitting.find(c=>c.metric.key==="steal_reaction")?.history).toHaveLength(1);
 });
 
-it("shows earlier in-game readings separately from newer practice readings and cumulative stats", () => {
+it("shows in-game readings on Hitting, cumulative stats on Game Stats and newer practice readings on Practice", () => {
  const live={...measurement("Max Exit Velocity",85,"mph","2026-09-03"),source:"Full Swing · Intrasquad"};
  const practice={...measurement("Max Exit Velocity",95,"mph","2026-09-12"),source:"Full Swing · Hitting"};
  const html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete:fictionalAthlete("position"),performance:model([live,practice]),gameStats:createElement("p",null,"Fictional cumulative stats")}));
  const panels=html.split('role="tabpanel"');
- expect(panels[3]).toContain('data-value="85"');expect(panels[3]).not.toContain('data-value="95"');expect(panels[3]).toContain("Fictional cumulative stats");
- expect(panels[4]).toContain('data-value="95"');expect(panels[4]).not.toContain('data-value="85"');expect(panels[4]).not.toContain("Fictional cumulative stats");
+ const hittingPanel=panelOf(html,"hitting"),practicePanel=panelOf(html,"practice"),gamePanel=panelOf(html,"game-stats");void panels;
+ expect(hittingPanel).toContain('data-value="85"');expect(hittingPanel).not.toContain('data-value="95"');expect(hittingPanel).not.toContain("Fictional cumulative stats");expect(gamePanel).toContain("Fictional cumulative stats");
+ expect(practicePanel).toContain('data-value="95"');expect(practicePanel).not.toContain('data-value="85"');expect(practicePanel).not.toContain("Fictional cumulative stats");
 });
 
-it("keeps the full Fall arsenal in the In-Game tab and hides only broad Full Swing velocity in the matching context", () => {
+it("keeps the full Fall arsenal in the Pitching tab and hides only broad Full Swing velocity in the matching context", () => {
  const classified = [
   ["Pitch Type Average Velocity",81.123,"mph"], ["Pitch Type Max Velocity",84.456,"mph"], ["Pitch Type Velocity Readings",5,"count"],
   ["Pitch Type Average Spin",2001.234,"rpm"], ["Pitch Type Max Spin",2100.123,"rpm"], ["Pitch Type Spin Readings",3,"count"], ["Pitch Type Count",6,"count"],
@@ -129,10 +131,11 @@ it("keeps the full Fall arsenal in the In-Game tab and hides only broad Full Swi
  const html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete:fictionalAthlete("pitcher","P"),performance,blastReadings:readings}));
  const panels=html.split('role="tabpanel"');
  expect(panels[1]).not.toContain("Full Pitch Arsenal");
- expect(panels[3]).toContain("Full Pitch Arsenal");expect(panels[3]).toContain("Unspecified Pitch");expect(panels[3]).toContain("81.1");expect(panels[3]).toContain("2,100");
- expect(panels[1]).not.toContain('data-value="85"');expect(panels[3]).not.toContain('data-value="85"');
- expect(panels[3]).toContain("Pitch Mix");expect(panels[3]).not.toContain("No in-game results");
- expect(panels[4]).toContain('data-value="86"');expect(panels[4]).toContain('data-value="87"');
+ const pitchingPanel=panelOf(html,"pitching"),practicePanel=panelOf(html,"practice");
+ expect(pitchingPanel).toContain("Full Pitch Arsenal");expect(pitchingPanel).toContain("Unspecified Pitch");expect(pitchingPanel).toContain("81.1");expect(pitchingPanel).toContain("2,100");
+ expect(panels[1]).not.toContain('data-value="85"');expect(pitchingPanel).not.toContain('data-value="85"');
+ expect(pitchingPanel).toContain("Pitch Mix");expect(pitchingPanel).not.toContain("No in-game results");
+ expect(practicePanel).toContain('data-value="86"');expect(practicePanel).toContain('data-value="87"');
  expect(performance).toEqual(original);
 });
 
@@ -179,7 +182,7 @@ it("places the complete Fall physicality radar only in Physicality, including ro
  const performance=getPlayerPerformance({readings,athleteCode:codes[0],cohortAthleteCodes:codes}),props={athlete:fictionalAthlete("two_way"),performance};
  const html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,props)),panels=html.split('role="tabpanel"');
  expect(panels[1]).not.toContain('aria-label="Physicality percentile radar"');
- expect(panels[2]).toContain('aria-label="Physicality percentile radar"');
+ expect(panelOf(html,"physicality")).toContain('aria-label="Physicality percentile radar"');
  const quick=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{...props,selectedTab:"physicality",detail:"quick"}));
  expect(quick).toContain('aria-label="Physicality percentile radar"');
  const overview=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{...props,selectedTab:"overview"}));

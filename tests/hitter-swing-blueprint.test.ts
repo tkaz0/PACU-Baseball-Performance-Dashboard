@@ -1,3 +1,4 @@
+import { profileShowsHitting, profileShowsPitching } from "@/lib/player-profile-layout";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -231,7 +232,9 @@ describe("profile integration and hitter role boundaries", () => {
     const readings = report();
     const html = renderToStaticMarkup(createElement(PlayerPerformanceProfile, { athlete: athlete(playerType, primaryPosition), performance: performance(readings), blastReadings: readings, pitchDesignHref: "/pitch-design?athlete=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", swingDesignHref: "/swing-design?athlete=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" }));
     const panels = html.split('role="tabpanel"').slice(1);
-    expect(panels).toHaveLength(5);
+    // Overview, Game Stats, Practice, Physicality and Progress always; Hitting and Pitching follow the role rules.
+    const season = athlete(playerType, primaryPosition).athlete_seasons[0];
+    expect(panels).toHaveLength(5 + Number(profileShowsHitting(season)) + Number(profileShowsPitching(season)));
     for (const panel of panels) {
       const isPractice = /id="[^"]*-panel-practice"/.test(panel);
       expect(panel.includes('href="/swing-design?athlete=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"')).toBe(visible && isPractice);
