@@ -13,6 +13,12 @@ Only these user-selected tabs are supported:
 
 Source IDs, exact sheet IDs and full bounded capture ranges are in `lib/game-source-config.ts`. Daily capture first verifies metadata, then reads only the authorized tab: QPA `A1:AQ968`, pitching `A1:AE1025`. Full known-grid coverage catches newly entered statistics outside the existing blocks. Changes to the tab, headers, grid dimensions, raw inputs outside reviewed rows or previously unused columns stop automatic saving for review. This is bounded selected-tab access, never a whole-workbook export.
 
+## Weekly trend badges
+
+Staff Team Game Stats shows relative percentage change on team rate cards and supporting rates when the saved history supports it. Compare the displayed Fall-to-date pooled rate against the final saved source snapshot in the previous Monday–Sunday week, in America/Los_Angeles, relative to that source’s current update date. This is a change in cumulative performance, not a reconstruction of last week’s games. Tap the badge for both dates and values. Percent change is `(current − previous) / previous × 100`, not a percentage-point difference. Positive movement uses an up arrow, negative a down arrow; green follows the metric’s improvement direction. Zero-to-positive is labeled New and unchanged results remain neutral.
+
+The existing bounded staff history reader is reused; current results do not wait for history. Pending/empty snapshot dates remain authoritative, so a missing final rate cannot fall back to an earlier valid rate. Missing previous-week snapshots, partial rates and mismatches between current stats and history suppress the comparison. No athlete-level history is exposed to players, and no stored observations or schedules change.
+
 ## Metric boundaries
 
 QPA accepts explicitly entered counts from columns B, C, E, I–T, W, AA (SB), AB (GDP) and AC (Sac Fly). Its QPA percentage is derived only from entered QPAs / PAs, with a positive denominator. These cumulative observations replace the previous current snapshot; daily differences are never invented as games.

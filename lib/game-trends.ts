@@ -3,12 +3,15 @@ import type { SharedGameStat } from "@/lib/game-server";
 
 export type TrendPoint = { date: string; value: number };
 /** source → team rate metric → one point per sync date. */
-export type TeamGameTrends = Partial<Record<SharedGameStat["source"], Record<string, TrendPoint[]>>>;
+export type TeamGameTrends = Partial<Record<SharedGameStat["source"], Record<string, TrendPoint[]>>> & {
+  /** Includes empty/pending versions so an older valid rate cannot replace them. */
+  snapshotDates?: Partial<Record<SharedGameStat["source"], string[]>>;
+};
 export type GameSnapshotRow = { id: string; source: SharedGameStat["source"]; fetched_at: string; observations: unknown };
 
 type Observation = { athleteCode?: unknown; metric?: unknown; value?: unknown; unit?: unknown; scope?: unknown; eventId?: unknown; playedOn?: unknown; sourceRow?: unknown; sourceColumn?: unknown; derivedFrom?: unknown };
 
-function pacificDay(timestamp: string): string {
+export function pacificDay(timestamp: string): string {
   const parts = new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date(timestamp));
   const part = (type: string) => parts.find(p => p.type === type)!.value;
   return `${part("year")}-${part("month")}-${part("day")}`;
@@ -27,6 +30,8 @@ export function teamGameTrends(snapshots: readonly GameSnapshotRow[]): TeamGameT
   const result: TeamGameTrends = {};
   // A later pending/empty source version cannot resurrect an earlier result.
   for (const snapshot of latestDailySnapshots(snapshots)) {
+    const date = pacificDay(snapshot.fetched_at);
+    ((result.snapshotDates ??= {})[snapshot.source] ??= []).push(date);
     if(!Array.isArray(snapshot.observations))continue;
     const rows: SharedGameStat[] = (snapshot.observations as Observation[]).flatMap(o => typeof o?.athleteCode === "string" && typeof o.metric === "string" && typeof o.value === "number" && Number.isFinite(o.value) && (o.unit === "count" || o.unit === "%") && (o.scope === "cumulative_fall" || o.scope === "pitching_event") ? [{
       source: snapshot.source, athlete_id: o.athleteCode, metric: o.metric, value: o.value, unit: o.unit, scope: o.scope,
@@ -36,7 +41,7 @@ export function teamGameTrends(snapshots: readonly GameSnapshotRow[]): TeamGameT
       snapshot_id: snapshot.id, fetched_at: snapshot.fetched_at, content_hash: snapshot.id,
     }] : []);
     if (!rows.length) continue;
-    const summary = teamGameSummary(rows, snapshot.source), date = pacificDay(snapshot.fetched_at);
+    const summary = teamGameSummary(rows, snapshot.source);
     const bySource = result[snapshot.source] ??= {};
     for (const rate of summary.rates) {
       if (rate.pending || rate.value === null || !Number.isFinite(rate.value)) continue;

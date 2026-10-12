@@ -1,0 +1,15 @@
+.wrap { display:grid; gap:6px; margin-top:9px; min-width:0; }
+.wrap[data-compact="true"] { margin:0 0 12px; }
+.details { min-width:0; }
+.badge { display:inline-flex; align-items:center; flex-wrap:wrap; gap:5px; padding:4px 7px; border-radius:6px; font-size:11px; line-height:1.5; color:var(--text-secondary); background:var(--surface-panel); cursor:pointer; list-style:none; font-variant-numeric:tabular-nums; }
+.badge::-webkit-details-marker { display:none; }
+.badge strong { font-weight:800; }
+.badge[data-tone="good"] { color:#166534; background:#dcfce7; }
+.badge[data-tone="bad"] { color:#991b1b; background:#fee2e2; }
+:global(html[data-theme="dark"]) .badge[data-tone="good"] { color:#86efac; background:#153727; }
+:global(html[data-theme="dark"]) .badge[data-tone="bad"] { color:#fca5a5; background:#431f25; }
+.badge:focus-visible { outline:2px solid var(--accent-readable); outline-offset:3px; }
+.explanation { color:var(--text-secondary); font-size:12px; line-height:1.6; margin:8px 0; overflow-wrap:anywhere; }
+.spark { width:150px; max-width:100%; overflow:hidden; }
+
+.spark svg { width:100%; height:auto; }
