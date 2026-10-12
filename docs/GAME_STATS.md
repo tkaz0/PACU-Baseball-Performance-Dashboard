@@ -15,6 +15,8 @@ Source IDs, exact sheet IDs and full bounded capture ranges are in `lib/game-sou
 
 October 12 owner-reviewed pitching summary layout: the top summary's Z3:AC33 contains rankings and notes. With the exact `K% RK` header at Z2, these cells are ignored by the weekly importer, including Z values that must not be mistaken for weekly earned runs. This exception does not permit new raw count rows, weekly extra columns, wider grids or content beyond that exact summary rectangle. Weekly blocks still require separately reviewed periods and identities; source captures and hashes retain every cell unchanged.
 
+The owner also confirmed Week 3 is separate October 10 totals and X/Y still mean weak/hard contact. Both headers are blank at X112:Y112; only this exact reviewed Week 3 block accepts that blank pair. Changed text, formulas/errors/effective-only header content, other weeks and incomplete coverage still require review. Original source cells remain unchanged.
+
 ## Weekly trend badges
 
 Staff Team Game Stats shows relative percentage change on team rate cards and supporting rates when the saved history supports it. Compare the displayed Fall-to-date pooled rate against the final saved source snapshot in the previous Monday–Sunday week, in America/Los_Angeles, relative to that source’s current update date. This is a change in cumulative performance, not a reconstruction of last week’s games. Tap the badge for both dates and values. Percent change is `(current − previous) / previous × 100`, not a percentage-point difference. Positive movement uses an up arrow, negative a down arrow; green follows the metric’s improvement direction. Zero-to-positive is labeled New and unchanged results remain neutral.

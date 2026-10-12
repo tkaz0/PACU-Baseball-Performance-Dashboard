@@ -14,6 +14,19 @@ function fixture(){
  return {snapshot,events,run};
 }
 describe("reviewed weekly pitching",()=>{
+ it("accepts only the owner-confirmed blank Week 3 contact headers without changing capture cells",()=>{
+  const f=fixture();f.snapshot.detailRows[0]=113;
+  for(const c of f.snapshot.cells){if(c.row===40)c.row=113;else if(c.row===39){c.row=112;if(c.column>=24)delete c.entered;}else if(c.row===38){c.row=111;c.entered="FALL BALL WEEK 3 PITCHING STATS";}}
+  Object.assign(f.events[0],{headerRow:112,firstRow:113,lastRow:113,eventId:"fall-2026-week-3"});
+  const original=JSON.stringify(f.snapshot),p=f.run();expect(p.canImport).toBe(true);expect(JSON.stringify(f.snapshot)).toBe(original);
+  expect(p.observations.find(r=>r.metric==="weak_contact")).toMatchObject({sourceRow:113,sourceColumn:24,value:2});
+  f.snapshot.cells.find(c=>c.row===112&&c.column===24)!.entered="Different metric";
+  expect(f.run().issues.some(i=>i.code==="header")).toBe(true);
+ });
+ it("still rejects blank contact headers in an unreviewed week",()=>{
+  const f=fixture();for(const c of f.snapshot.cells)if(c.row===39&&c.column>=24)delete c.entered;
+  expect(f.run().issues.some(i=>i.code==="header")).toBe(true);
+ });
  it("imports weekly counts with no fabricated date and retains contact provenance",()=>{const f=fixture(),p=f.run();expect(p.canImport).toBe(true);expect(p.observations).toHaveLength(5);expect(p.observations.find(r=>r.metric==="weak_contact")).toMatchObject({value:2,sourceColumn:24,derivedFrom:[],playedOn:null,eventId:"fall-2026-week-1"});expect(validateGameImport(p,Date.parse(stamp)).observations).toHaveLength(5);expect(p.observations.some(r=>["k_pct","weak_contact_pct","innings"].includes(r.metric))).toBe(false);});
  it("rejects a mismatched week title, contact header, missing coverage and extra column",()=>{for(const kind of ["week","header","coverage","extra"]){const f=fixture();if(kind==="week")f.events[0].eventId="fall-2026-week-2";if(kind==="header")f.snapshot.cells.find(c=>c.row===39&&c.column===24)!.entered="Unknown";if(kind==="coverage")f.snapshot.cells=f.snapshot.cells.filter(c=>!(c.row===40&&c.column===25));if(kind==="extra")f.snapshot.cells.push({row:40,column:26,entered:1});expect(f.run().canImport).toBe(false);}});
  it("requires null dates only for reserved reviewed weeks",()=>{expect(validPitchingPeriod("fall-2026-week-1",null)).toBe(true);for(const [id,date]of [["fictional-game",null],["fall-2026-week-0",null],["fall-2026-week-1","2026-09-14"],["fictional-game","2026-09-31"]])expect(validPitchingPeriod(id,date)).toBe(false);expect(pitchingPeriodLabel("fall-2026-week-1",null)).toBe("Fall Ball · Week 1");});

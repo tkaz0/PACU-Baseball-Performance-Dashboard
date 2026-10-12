@@ -115,8 +115,13 @@ export function parseGameSource(snapshot: GameSourceSnapshot, contract: Reviewed
     const week = pitchingWeek(event.eventId);
     if (week !== null && normalize(text(event.headerRow-1,1)) !== `fall ball week ${week} pitching stats`) problem("week_label", "The reviewed week does not match the source block title.",event.headerRow-1,1);
     const contactPresent = [...cells.values()].some(c=>c.row>=event.headerRow&&c.row<=event.lastRow&&c.column>=24&&c.column<=25&&(c.entered!==undefined||c.formula||c.error));
+    // October 12 owner confirmation: Week 3 X/Y retain Wk/Hrd meanings despite blank headers.
+    const reviewedBlankContactHeaders = event.eventId==="fall-2026-week-3" && event.headerRow===112 && [24,25].every(column=>{
+      const cell=cells.get(key(event.headerRow,column));
+      return !!cell && (cell.entered===undefined||cell.entered==="") && (cell.effective===undefined||cell.effective==="") && !cell.formula && !cell.error;
+    });
     if (contactPresent) for (const [column,header] of [[24,"Wk"],[25,"Hrd"]] as const) {
-      if (normalize(text(event.headerRow,column))!==normalize(header)) problem("header", "Review the weak/hard-contact column headers.",event.headerRow,column);
+      if (!reviewedBlankContactHeaders && normalize(text(event.headerRow,column))!==normalize(header)) problem("header", "Review the weak/hard-contact column headers.",event.headerRow,column);
       for(let row=event.firstRow;row<=event.lastRow;row++) if(!cells.has(key(row,column))) problem("coverage", "Read the complete contact-count columns.",row,column);
     }
     const earnedPresent=[...cells.values()].some(c=>c.row>=event.headerRow&&c.row<=event.lastRow&&c.column===26&&(c.entered!==undefined||c.formula||c.error));
