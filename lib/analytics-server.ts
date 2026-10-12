@@ -144,6 +144,13 @@ export async function loadTopPerformersData(){
   return {players:data.players,games:coachingGames(data.games,data.rankingGames)};
 }
 
+/** Staff Pitch+ inputs: eligible roster, raw game counts and in-game classified arsenals. */
+export async function loadPitchGradeSource(){
+  const data=await loadTeamSource(false,true,true,true);
+  const today=pacificTestingDate();
+  return {players:data.players,games:data.games,arsenals:data.players.map(player=>({athleteId:player.id,pitches:fallArsenalPitches(data.arsenalReadings.filter(row=>row.athleteId===player.id),today)})).filter(row=>row.pitches.length>0)};
+}
+
 /** Staff comparison can select any current-season roster identity, even without results. */
 export async function loadComparisonData(){
   const data=await loadTeamSource(true,true,true,true,false,true);

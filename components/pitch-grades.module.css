@@ -1,0 +1,12 @@
+.panel { padding: clamp(16px, 2.2vw, 24px); border: 1px solid var(--line-subtle); border-radius: var(--radius-card, 14px); background: var(--surface-panel); }
+.panel h2 { margin: 0; font-family: var(--font-display, inherit); font-size: 22px; font-weight: 800; text-transform: uppercase; }
+.panel header p { margin: 4px 0 12px; color: var(--text-secondary); font-size: 13px; }
+.panel header a, .table th a { color: var(--accent-readable); font-weight: 700; text-decoration: none; }
+.table th a { color: inherit; }
+.table th a:hover { text-decoration: underline; }
+.score { display: inline-block; min-width: 36px; padding: 2px 6px; border-radius: 6px; font-variant-numeric: tabular-nums; font-weight: 800; text-align: center; background: var(--surface-raised); }
+.score[data-band="high"] { background: color-mix(in srgb, #c8102e 22%, transparent); }
+.score[data-band="low"] { background: color-mix(in srgb, #367ea3 22%, transparent); }
+.na { color: var(--text-secondary); font-size: 12px; }
+.sub { display: block; color: var(--text-secondary); font-size: 12px; }
+.note { margin: 10px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
