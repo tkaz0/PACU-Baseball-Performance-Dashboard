@@ -31,7 +31,7 @@ import { WeeklyGameTrend } from "@/components/weekly-game-trend";
 import { RenphoMuscleBalance } from "@/components/renpho-muscle-balance";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ArrowRight, ChevronDown, FileText } from "lucide-react";
+import { ArrowLeft, ChevronDown, FileText, Upload } from "lucide-react";
 import { requireRenderAccess as requireAccess } from "@/lib/render-access";
 import { display, UUID_PATTERN, type RosterAthlete } from "@/lib/types";
 import { canImportPresentedAccess, canReadPresentedAthlete } from "@/lib/access-preview";
@@ -98,7 +98,7 @@ export default async function Profile({ params, searchParams }: { params: Promis
   }).sort((a,b) => b.measured_at.localeCompare(a.measured_at) || a.metric.localeCompare(b.metric));
   return <>
     <AccessPreviewNotice status={query?.preview} isPreview={!!access.preview} />
-    <div className="profile-toolbar">{staff ? <Link href="/roster" className="profile-back"><ArrowLeft size={15} />Team Roster</Link> : <span/>}<div className="flex flex-wrap items-center gap-2">{canImportPresentedAccess(access) && <Link href="/imports" className="btn btn-secondary">Import Results<ArrowRight size={15} aria-hidden="true"/></Link>}<Link prefetch={false} href={`/athletes/${athlete.id}/report`} className="btn btn-secondary"><FileText size={15} aria-hidden="true"/>Player Report</Link></div></div>
+    <div className="profile-toolbar">{staff ? <Link href="/roster" className="profile-back"><ArrowLeft size={15} />Team Roster</Link> : <span/>}<div className="profile-toolbar-actions">{canImportPresentedAccess(access) && <Link href="/imports" className="btn btn-secondary" title="Import Results"><Upload size={15} aria-hidden="true"/><span className="profile-toolbar-label">Import Results</span></Link>}<Link prefetch={false} href={`/athletes/${athlete.id}/report`} className="btn btn-secondary" title="Player Report"><FileText size={15} aria-hidden="true"/><span className="profile-toolbar-label">Player Report</span></Link></div></div>
     <PlayerPerformanceProfile blastBatSpeedPercentile={blastBatSpeedPercentile} detail={detail} selectedTab={selectedTab} navigationPath={`/athletes/${athlete.id}`}
       headshot={headshot}
       trainingBlocks={<>{blockCounts===null&&<p role="status" className="muted text-sm">Swing counts are temporarily unavailable. Some session averages cannot be compared yet.</p>}<TrainingBlockComparison series={buildTrainingBlockSeries(readings,{athleteCode:athlete.athlete_code,showHitting,showPitching:profileShowsPitching(season),today,readingCounts:blockCounts??[]})}/></>}

@@ -14,7 +14,7 @@ function pacificDay(timestamp: string): string {
   return `${part("year")}-${part("month")}-${part("day")}`;
 }
 /** Owner-confirmed Fall Ball week dates; sheet updates for a week may be saved days later. */
-export const FALL_BALL_WEEK_DATES: Readonly<Record<number, string>> = { 1: "2026-09-12", 2: "2026-09-26" };
+export const FALL_BALL_WEEK_DATES: Readonly<Record<number, string>> = { 1: "2026-09-12", 2: "2026-09-26", 3: "2026-10-10" };
 const ordinalDay = (day: number) => `${day}${day % 100 >= 11 && day % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][day % 10] ?? "th"}`;
 export function fallBallWeekDate(week: number): string | null {
   const date = FALL_BALL_WEEK_DATES[week];

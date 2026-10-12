@@ -8,7 +8,9 @@ export function PlayerAvatar({ name, path, size = 40, className = "", eager = fa
   const src = failed ? null : headshotSrc(path, Math.min(480, Math.round(size * 2.5)));
   return <span className={`player-avatar ${className}`} style={{ width: size, height: size, fontSize: Math.max(11, Math.round(size * 0.32)) }} aria-hidden="true">
     {/* External roster photos are already resized by the athletics image service. */}
+    {/* Initials sit underneath, so a slow or missing photo never leaves an empty circle. */}
+    <span className="player-avatar-initials">{initialsOf(name)}</span>
     {/* eslint-disable-next-line @next/next/no-img-element */}
-    {src ? <img src={src} alt="" width={size} height={size} loading={eager ? "eager" : "lazy"} decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} /> : initialsOf(name)}
+    {src && <img src={src} alt="" width={size} height={size} loading={eager ? "eager" : "lazy"} decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} />}
   </span>;
 }
