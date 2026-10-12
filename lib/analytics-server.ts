@@ -30,7 +30,9 @@ const fail=(reason="invalid-reading"):never=>{throw new AnalyticsReadError(reaso
 const queryTimedOut=(error:unknown)=>error instanceof AnalyticsReadError&&error.reason==="source-query:57014";
 const text=(v:unknown,n=120):v is string=>typeof v==="string"&&v.length>0&&v.length<=n&&!/[\u0000-\u001f\u007f]/.test(v);
 const object=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==="object"&&!Array.isArray(v);
-export async function analyticsPages<T>(request:(from:number,to:number)=>PromiseLike<{data:unknown;error:unknown;count:number|null}>,parse:(row:unknown)=>T,maximum:number):Promise<T[]>{
+/** `reserve` claims the exact count against a shared cap; `stopped` ends follow-up pages once another partition exceeded it. */
+type PageBudget={reserve:(count:number)=>void;stopped:()=>boolean};
+export async function analyticsPages<T>(request:(from:number,to:number)=>PromiseLike<{data:unknown;error:unknown;count:number|null}>,parse:(row:unknown)=>T,maximum:number,budget?:PageBudget):Promise<T[]>{
   const rows:T[]=[];let count:number|undefined;
   async function page(offset:number){
     const result=await request(offset,offset+499);
@@ -47,10 +49,12 @@ export async function analyticsPages<T>(request:(from:number,to:number)=>Promise
     return result.data.map(parse);
   }
   rows.push(...await page(0));
+  budget?.reserve(count!);
   // Establish the complete bounded shape first, then read at most three pages at once.
   // Drain every request before propagating an error so a timeout retry cannot overlap it.
   // Every page still verifies the exact same count; invalid data never becomes retryable.
   for(let offset=500;offset<count!;offset+=1500){
+    if(budget?.stopped())return fail("source-limit");
     const offsets=[offset,offset+500,offset+1000].filter(start=>start<count!);
     const pages=await Promise.allSettled(offsets.map(page));
     const failure=pages.find(result=>result.status==="rejected"&&!queryTimedOut(result.reason))??pages.find(result=>result.status==="rejected");
@@ -77,7 +81,15 @@ async function loadTeamSource(includeFullRoster=false, includeGames=true, includ
   const fields="observation_id,athlete_id,metric_key,metric,unit,value,measured_at,source,imported_at"+(includeArsenal||includeBlast?",file_hash":"");
   type TeamReading={reading:AnalyticsReading;arsenal?:ArsenalReading&{athleteId:string};blast?:Measurement};
   const limited = createReadLimiter(3);
+  // Partitions read concurrently, so the 20,000-row cap is claimed from each partition's exact
+  // count before its follow-up pages; once exceeded, every partition stops before reading more.
+  let reserved=0,overLimit=false;
   async function readAttempt(ids:string[],maximum:number):Promise<TeamReading[]>{
+    let mine=0;
+    const budget={reserve:(count:number)=>{mine=count;reserved+=count;if(reserved>20000){overLimit=true;fail("source-limit");}},stopped:()=>overLimit};
+    try{return await readPages(ids,maximum,budget);}catch(error){reserved-=mine;throw error;}
+  }
+  function readPages(ids:string[],maximum:number,budget:PageBudget):Promise<TeamReading[]>{
     return analyticsPages((from,to)=>limited(()=>supabase.from("performance_display_measurements").select(fields,{count:"exact"}).in("athlete_id",ids).gte("measured_at",homeRead?"2026-09-01":"2026-06-01").lte("measured_at","2026-12-31").order("observation_id").range(from,to)),row=>{
     if(!object(row)||!text(row.observation_id,2000)||!text(row.athlete_id)||!ids.includes(row.athlete_id)||!text(row.metric_key)||!text(row.metric,300)||!text(row.unit,80)||!text(row.source,100)||typeof row.value!=="number"||!Number.isFinite(row.value)||(row.value<0&&!validBlastObservation(row.metric_key,row.value,row.unit,row.source,row.measured_at as string))||!text(row.measured_at)||!/^2026-\d{2}-\d{2}$/.test(row.measured_at)||!Number.isFinite(Date.parse(row.measured_at))||new Date(row.measured_at).toISOString().slice(0,10)!==row.measured_at||!text(row.imported_at)||!Number.isFinite(Date.parse(row.imported_at)))return fail();
     let arsenal:TeamReading["arsenal"];
@@ -91,7 +103,7 @@ async function loadTeamSource(includeFullRoster=false, includeGames=true, includ
       blast={id:row.observation_id,athlete_code:row.athlete_id,metric:row.metric,unit:row.unit,value:row.value,measured_at:row.measured_at,source:row.source,file_hash:row.file_hash,source_file:"",source_sheet:"",source_row:0};
     }
     return {reading:{id:row.observation_id,athleteId:row.athlete_id,metric:row.metric_key,label:row.metric,unit:row.unit,value:row.value,date:row.measured_at,source:row.source,importedAt:row.imported_at},...(arsenal?{arsenal}:{}),...(blast?{blast}:{})};
-    },maximum);
+    },maximum,budget);
   }
   // A small ID partition reduces work per exact count under the existing staff RLS.
   // Only one failed partition may split per load; neither half retries recursively.
@@ -109,16 +121,15 @@ async function loadTeamSource(includeFullRoster=false, includeGames=true, includ
     for(const row of page){readings.push(row.reading);if(row.arsenal)arsenalReadings.push(row.arsenal);if(row.blast)blastReadings.push(row.blast);}
     if(readings.length>20000)return fail("source-limit");
   };
-  if(homeRead && includeReadings){
+  if(includeReadings){
     // Start disjoint partitions together, but share one three-query budget across
     // every partition and every paginated follow-up. Drain failures before returning.
+    // The combined 20,000-row cap is still enforced by append().
     const partitions=Array.from({length:Math.ceil(eligible.length/10)},(_,i)=>eligible.slice(i*10,i*10+10).map(p=>p.id));
     const results=await Promise.allSettled(partitions.map(ids=>readBatch(ids,20000)));
     const failed=results.find(r=>r.status==="rejected");
     if(failed?.status==="rejected")throw failed.reason;
     for(const result of results)if(result.status==="fulfilled")append(result.value);
-  }else for(let start=0;includeReadings && start<eligible.length;start+=10){
-    append(await readBatch(eligible.slice(start,start+10).map(p=>p.id),20000-readings.length));
   }
   if(new Set(readings.map(r=>r.id)).size!==readings.length)return fail();
   const games=gameRows.filter(row=>eligible.some(player=>player.id===row.athlete_id));

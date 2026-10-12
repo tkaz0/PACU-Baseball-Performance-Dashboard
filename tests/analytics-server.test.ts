@@ -120,11 +120,11 @@ it("loads verified Fall max and average values into Analytics instead of the lat
  expect(result.readings).toHaveLength(2);expect(rows.every(r=>r.value===100)).toBe(true);
 });
 
-it("reads disjoint groups of ten sequentially with the unchanged exact-count projection and date bounds",async()=>{
+it("reads disjoint groups of ten concurrently (at most three queries) with the unchanged exact-count projection and date bounds",async()=>{
  const roster=fictionalRoster(23);let active=0,peak=0;
  const calls=teamQueries(roster,async(ids,from,to)=>{active++;peak=Math.max(peak,active);await Promise.resolve();active--;const rows=ids.map(id=>fictionalMeasurement(id,0));return {data:rows.slice(from,to+1),count:rows.length,error:null};});
  const result=await loadAnalytics();
- expect(calls.map(c=>c.ids.length)).toEqual([10,10,3]);expect(calls.flatMap(c=>c.ids)).toEqual(roster.map(r=>r.id));expect(peak).toBe(1);
+ expect(calls.map(c=>c.ids.length).sort((a,b)=>b-a)).toEqual([10,10,3]);expect(calls.flatMap(c=>c.ids).sort()).toEqual(roster.map(r=>r.id).sort());expect(peak).toBeLessThanOrEqual(3);
  expect(result.readings).toHaveLength(23);expect(new Set(result.readings.map(r=>r.id)).size).toBe(23);
  for(const call of calls){expect(call.count).toBe("exact");expect(call.bounds).toEqual([["gte","measured_at","2026-06-01"],["lte","measured_at","2026-12-31"]]);expect(call.fields).toBe("observation_id,athlete_id,metric_key,metric,unit,value,measured_at,source,imported_at,file_hash");expect(call.to-call.from).toBe(499);}
 });
@@ -157,7 +157,8 @@ it("spends at most one split per team load and never retries either half recursi
  const roster=fictionalRoster(20);
  const calls=teamQueries(roster,ids=>ids.length===10?timeoutPage():{data:[],count:0,error:null});
  await expect(loadAnalytics()).rejects.toThrow("source-query:57014");
- expect(calls.map(c=>c.ids.length)).toEqual([10,5,5,10]);
+ // Both partitions start together; only the first timeout splits, the other fails without retry.
+ expect(calls.map(c=>c.ids.length)).toEqual([10,10,5,5]);
  const failedHalf=teamQueries(fictionalRoster(10),()=>timeoutPage());
  await expect(loadAnalytics()).rejects.toThrow("source-query:57014");expect(failedHalf.map(c=>c.ids.length)).toEqual([10,5]);
  const single=teamQueries(fictionalRoster(1),()=>timeoutPage());
