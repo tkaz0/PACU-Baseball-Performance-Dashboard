@@ -5,8 +5,7 @@ export const TOP_PERFORMER_METRICS = {
   hitting: [
     { key: "batting_production_plus", unit: "index", label: "PAC Production+", direction: "higher" },
     { key: "qpa_pct", unit: "%", label: "QPA%", direction: "higher" },
-    { key: "batting_obp", unit: "avg", label: "OBP", direction: "higher" },
-    { key: "batting_est_iso", unit: "avg", label: "ISO", direction: "higher" },
+    { key: "batting_ops", unit: "avg", label: "OPS", direction: "higher" },
   ],
   pitching: [
     { key: "pitching_whip", unit: "decimal", label: "WHIP", direction: "lower" },

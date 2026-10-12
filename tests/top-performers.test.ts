@@ -14,11 +14,11 @@ export const fictionalRankingData = (discipline: TopDiscipline, values: number[]
 };
 describe("blended Top Performers ranking", () => {
   it("rewards a balanced complete line rather than only the highest production stat", () => {
-    const data = fictionalRankingData("hitting", [[200,10,.1,.01],[150,80,.5,.4],[120,60,.4,.3],[100,40,.3,.2],[80,20,.2,.1]]);
+    const data = fictionalRankingData("hitting", [[200,10,.1],[150,80,.5],[120,60,.4],[100,40,.3],[80,20,.2]]);
     const rows = topPerformers(data,"hitting");
     expect(rows.map(r=>r.player.id)).toEqual(["fictional-1","fictional-2","fictional-3","fictional-0","fictional-4"]);
-    expect(rows[0].score).toBe(93.75);
-    expect(rows.at(-1)?.score).toBe(18.75);
+    expect(rows[0].score).toBeCloseTo(91.667, 3);
+    expect(rows.at(-1)?.score).toBeCloseTo(16.667, 3);
     expect(rows.map(r=>r.rank)).toEqual([1,2,3,4,5]);
     expect(rows.every(r=>r.cohortSize===5)).toBe(true);
   });
@@ -28,10 +28,10 @@ describe("blended Top Performers ranking", () => {
     expect(rows[0].percentiles).toEqual({pitching_whip:100,pitching_k_bb:100,pitching_r9:100});
   });
   it("shares competition ranks for equal blends, regardless of the order of component strengths", () => {
-    const data = fictionalRankingData("hitting", [[200,20,.2,.2],[100,50,.5,.5],[150,30,.4,.1],[50,10,.1,.3],[180,40,.3,.4]]);
+    const data = fictionalRankingData("hitting", [[200,20,.2],[180,50,.4],[150,30,.3],[50,10,.1],[100,40,.5]]);
     const rows = topPerformers(data,"hitting");
     const tied = rows.filter(r=>["fictional-0","fictional-2"].includes(r.player.id));
-    expect(tied.map(r=>[r.score,r.rank])).toEqual([[43.75,3],[43.75,3]]);
+    expect(tied.map(r=>[r.score,r.rank])).toEqual([[50,3],[50,3]]);
     expect(rows.at(-1)?.rank).toBe(5);
     expect(topPerformers({...data,players:[...data.players].reverse(),games:[...data.games].reverse()},"hitting")).toEqual(rows);
   });
@@ -42,7 +42,7 @@ describe("blended Top Performers ranking", () => {
   });
   it("keeps missing, duplicate, negative, nonfinite or wrong-unit components unranked without changing the complete cohort", () => {
     for (const replacement of [null,{value:-1},{value:Infinity},{unit:"wrong"},"duplicate"] as const) {
-      const data=fictionalRankingData("hitting",Array(6).fill([100,50,.4,.2]));
+      const data=fictionalRankingData("hitting",Array(6).fill([100,50,.8]));
       const original=data.games[0];data.games=data.games.filter(g=>g!==original);
       if(replacement==="duplicate")data.games.push(original,original);
       else if(replacement)data.games.push({...original,...replacement});
@@ -60,7 +60,7 @@ describe("blended Top Performers ranking", () => {
     expect(topPerformers(data,"pitching").every(r=>r.score===null&&r.pending==="mixed_snapshots")).toBe(true);
   });
   it("includes two-way players in both comparisons and retains early sample sizes", () => {
-    const hitters=fictionalRankingData("hitting",Array(5).fill([100,50,.4,.2]));
+    const hitters=fictionalRankingData("hitting",Array(5).fill([100,50,.8]));
     const pitchers=fictionalRankingData("pitching",Array(5).fill([1,2,3]));
     const data={players:hitters.players.map(p=>({...p,playerType:"two_way",secondaryPosition:"P"})),games:[...hitters.games,...pitchers.games]};
     for(const discipline of ["hitting","pitching"] as const){
@@ -69,8 +69,8 @@ describe("blended Top Performers ranking", () => {
     }
   });
   it("renders the overall score, exact contributing stats, sample sizes and method without an individual-stat sort", () => {
-    const html=renderToStaticMarkup(createElement(TopPerformers,{data:fictionalRankingData("hitting",Array(5).fill([100,50,.4,.2]))}));
-    expect(html).toContain("Overall Score");expect(html).toContain("50.0");expect(html).toContain("equal weight");expect(html).toContain("25%");
+    const html=renderToStaticMarkup(createElement(TopPerformers,{data:fictionalRankingData("hitting",Array(5).fill([100,50,.8]))}));
+    expect(html).toContain("Overall Score");expect(html).toContain("50.0");expect(html).toContain("equal weight");expect(html).toContain("⅓ of the score");
     expect(html).toContain("10 PA");expect(html).toContain("Early sample");expect(html).toContain('aria-sort="descending"');
     expect(html).not.toContain('Rank hitting by');
     for (const metric of TOP_PERFORMER_METRICS.hitting) expect(html).toContain(metric.label);

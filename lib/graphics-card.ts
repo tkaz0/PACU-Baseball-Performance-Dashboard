@@ -105,7 +105,7 @@ export function buildGraphicsCard(options: GraphicsCardOptions): GraphicsCard | 
     if (!week || !tiles.length) return null;
     return { kind: "weekly", title: headline || "PLAYERS OF\nTHE WEEK", subtitle: "", kicker: `Fall Ball · ${week.label}${week.date ? ` · ${week.date}` : ""}`, source: "Team game sheets", metrics: tiles,
       captionDetails: tiles.map(tile => `${tile.label}: ${tile.value} — ${tile.sample}`),
-      footerNotes: ["#1 on the Top Performer blend for that week alone: hitters PAC Production+, QPA%, OBP and ISO; pitchers WHIP, K/BB and Runs/9. A small weekly sample can swing these quickly."] };
+      footerNotes: ["#1 on the Top Performer blend for that week alone: hitters PAC Production+, QPA% and OPS; pitchers WHIP, K/BB and Runs/9. A small weekly sample can swing these quickly."] };
   }
   if (template === "leaderboard") {
     if (!board?.rows.length) return null;

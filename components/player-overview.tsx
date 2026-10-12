@@ -82,7 +82,7 @@ export function PlayerOverview({ quick=false, cards, gameStats = [], gameCompari
   const hitterQualified = hitterBadgeQualified(games, weeksPlayed), pitcherQualified = pitcherBadgeQualified(games, weeksPlayed);
   const badgeRows = rankingRows.filter(row => !row.game || (row.guide.source === "qpa_fall_2026" ? hitterQualified : pitcherQualified));
   const trends = profileTrends([...physicality, ...testing]);
-  // Featured stats are the Top Performer score components: hitters PAC Production+, QPA%, OBP, ISO;
+  // Featured stats are the Top Performer score components: hitters PAC Production+, QPA%, OPS;
   // pitchers WHIP, K/BB, Runs/9 (both for two-way players). Without game stats, testing highlights remain.
   const featuredGameKeys: string[] = [TOP_PERFORMER_METRICS.hitting, TOP_PERFORMER_METRICS.pitching].flatMap(group => group.some(metric => games.some(item => item.metric === metric.key)) ? group.map(metric => metric.key) : []);
   const headlineKeys = featuredGameKeys.length ? featuredGameKeys : ["body_score", "muscle_mass", "max_exit_velocity", "max_pitch_velocity", "body_fat_pct"];
