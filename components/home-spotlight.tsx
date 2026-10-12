@@ -19,7 +19,7 @@ export function HomeSpotlight({ weeks, headshots = {}, showRankingLink = false }
         <div><h3>{card.profileId ? <Link prefetch={false} href={`/athletes/${card.profileId}`}>{card.name}</Link> : card.name}</h3><small>{card.weekLabel} · {card.detail}</small></div></div>
       <div className={styles.headline}><strong>{card.headline.value}</strong><span>{card.headline.label}</span></div>
       {!!card.stats.length && <dl className={styles.stats}>{card.stats.map(stat => <div key={stat.label}><dt>{stat.label}</dt><dd>{stat.value}</dd></div>)}</dl>}
-      <p className={styles.basis}>{card.sample ? `${card.sample} this week · ` : ""}#1 Top Performer score for the week{card.early && <em>Early sample</em>}</p>
+      <p className={styles.basis}>{card.sample ? `${card.sample} this week · ` : ""}#1 Top Performer score for the week</p>
     </article>)}</div>
     {earlier.length > 0 && <div className={styles.history} aria-label="Earlier weeks"><h3>Earlier Weeks</h3><ol>{earlier.map(week => <li key={week.week}>
       <strong>{week.label}</strong>

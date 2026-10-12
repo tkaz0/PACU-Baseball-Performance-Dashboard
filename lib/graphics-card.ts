@@ -101,7 +101,7 @@ export function buildGraphicsCard(options: GraphicsCardOptions): GraphicsCard | 
   if (template === "weekly") {
     const week = options.week;
     const tiles = week ? ([["Hitter of the Week", week.hitting], ["Pitcher of the Week", week.pitching]] as const).flatMap(([label, item]) => item ? [{ label: `${label}${item.tied ? " (tied)" : ""}`, value: item.name,
-      sample: [`${item.headlineValue} ${item.headlineLabel}`, ...item.stats.map(stat => `${stat.label} ${stat.value}`), item.sample, item.early ? "Early sample" : ""].filter(Boolean).join(" · ") }] : []) : [];
+      sample: [`${item.headlineValue} ${item.headlineLabel}`, ...item.stats.map(stat => `${stat.label} ${stat.value}`), item.sample].filter(Boolean).join(" · ") }] : []) : [];
     if (!week || !tiles.length) return null;
     return { kind: "weekly", title: headline || "PLAYERS OF\nTHE WEEK", subtitle: "", kicker: `Fall Ball · ${week.label}${week.date ? ` · ${week.date}` : ""}`, source: "Team game sheets", metrics: tiles,
       captionDetails: tiles.map(tile => `${tile.label}: ${tile.value} — ${tile.sample}`),

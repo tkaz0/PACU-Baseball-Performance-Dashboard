@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { StatInfo } from "@/components/stat-info";
+import { TEAM_HISTORY_SPAN } from "@/lib/stat-benchmarks";
 import type { ReportCardArea } from "@/lib/team-report-card";
 import styles from "./team-report-card.module.css";
 
@@ -21,7 +22,7 @@ export function TeamReportCard({ areas, compact = false, href }: { areas: readon
   if (!areas.length) return null;
   const strengths = areas.filter(a => a.level >= 3), focus = areas.filter(a => a.level <= 1);
   return <section className={styles.panel} aria-label="Team report card" data-testid="team-report-card">
-    <header className={styles.header}><div><p className={styles.eyebrow}>Fall 2026 · vs 2025 NWC teams</p><h2>Team Report Card</h2></div>{href && <Link prefetch={false} href={href} className={styles.link}>Full report card<ArrowRight size={14}/></Link>}</header>
+    <header className={styles.header}><div><p className={styles.eyebrow}>Fall 2026 · vs NWC teams {TEAM_HISTORY_SPAN}</p><h2>Team Report Card</h2></div>{href && <Link prefetch={false} href={href} className={styles.link}>Full report card<ArrowRight size={14}/></Link>}</header>
     <div className={compact ? styles.compact : styles.layout}>
       <ul className={styles.grades}>{areas.map(area => <li key={area.key} data-grade={area.grade} data-area={area.key}>
         <span className={styles.letter}>{area.grade}</span>
@@ -30,9 +31,9 @@ export function TeamReportCard({ areas, compact = false, href }: { areas: readon
       {!compact && areas.length >= 3 && <Radar areas={[...areas]}/>}
     </div>
     {!compact && (strengths.length > 0 || focus.length > 0) && <div className={styles.notes}>
-      {strengths.length > 0 && <div><h3>What&apos;s Working</h3><ul>{strengths.map(a => <li key={a.key}>{a.label}: {a.statLabel} {a.value} is in the {a.level === 4 ? "top fifth" : "second fifth"} of 2025 NWC teams.</li>)}</ul></div>}
-      {focus.length > 0 && <div><h3>Focus Areas</h3><ul>{focus.map(a => <li key={a.key}>{a.label}: {a.statLabel} {a.value} is in the {a.level === 0 ? "bottom fifth" : "fourth fifth"} of 2025 NWC teams.</li>)}</ul></div>}
+      {strengths.length > 0 && <div><h3>What&apos;s Working</h3><ul>{strengths.map(a => <li key={a.key}>{a.label}: {a.statLabel} {a.value} is in the {a.level === 4 ? "top fifth" : "second fifth"} of NWC team-seasons since {TEAM_HISTORY_SPAN.slice(0, 4)}.</li>)}</ul></div>}
+      {focus.length > 0 && <div><h3>Focus Areas</h3><ul>{focus.map(a => <li key={a.key}>{a.label}: {a.statLabel} {a.value} is in the {a.level === 0 ? "bottom fifth" : "fourth fifth"} of NWC team-seasons since {TEAM_HISTORY_SPAN.slice(0, 4)}.</li>)}</ul></div>}
     </div>}
-    {!compact && <p className={styles.note}>Each letter is the fifth of the published 2025 Northwest Conference team distribution (all 9 teams) that Pacific&apos;s pooled Fall rate falls in: A top fifth, F bottom fifth. These are dashboard bands, not official grades, and there is no overall grade. Fall intrasquads face Pacific pitching and hitting, not conference opponents.</p>}
+    {!compact && <p className={styles.note}>Each letter is the fifth of the published Northwest Conference team distribution ({TEAM_HISTORY_SPAN}, 90 team-seasons; 2020 left out as COVID-shortened) that Pacific&apos;s pooled Fall rate falls in: A top fifth, F bottom fifth. These are dashboard bands, not official grades, and there is no overall grade. Fall intrasquads face Pacific pitching and hitting, not conference opponents.</p>}
   </section>;
 }

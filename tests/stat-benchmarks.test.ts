@@ -4,11 +4,12 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { StatInfo } from "@/components/stat-info";
 import { benchmarkGrade, benchmarkRows, blastReference, collegePitchReference, pacificBenchmark, statBenchmark, statRangeGuide, ungradedMetric, metricDirection } from "@/lib/stat-benchmarks";
 import reference from "@/lib/nwc-benchmarks.json";
+import teamHistoryForTest from "@/lib/nwc-team-history.json";
 
 it("uses separate, inspectable D3 team and published-player populations",()=>{
  expect(reference.cohorts).toEqual({teams:9,publishedHitters:73,hitters:71,minimumAB:75,publishedPitchers:27,pitchers:27,minimumIP:20});
  const team=statBenchmark("batting_avg",{scope:"team"})!,player=statBenchmark("batting_avg")!;
- expect(team.n).toBe(9);expect(player.n).toBe(71);expect(team.cuts).not.toEqual(player.cuts);
+ expect(team.n).toBe(90);expect(team.title).toContain("2016–2026 Team-Seasons");expect(team.note).toContain("2020 left out");expect(player.n).toBe(71);expect(team.cuts).not.toEqual(player.cuts);
  expect(team.url).toContain("nwcsports.com");expect(player.note).toContain("75 AB");
  expect(statBenchmark("pitching_r9")?.note).toContain("20 IP");
 });
@@ -114,4 +115,10 @@ it("never applies a Blast reference in the wrong valid metric unit",()=>{
  expect(blastReference("blast_time_to_contact",{source:"blast_fall",unit:"mph"})).toBeNull();
  expect(blastReference("avg_bat_speed",{source:"blast_fall"})).toBeNull();
  expect(statRangeGuide("Average Bat Speed",{source:"blast_fall",unit:"mph"}).summary).toContain("66–75 mph");
+});
+it("builds team bands from every NWC team-season 2016-2026 without 2020", () => {
+ const history = teamHistoryForTest;
+ expect(history.seasons).toEqual([2016, 2017, 2018, 2019, 2021, 2022, 2023, 2024, 2025, 2026]);
+ expect(history.cohorts.teamSeasons).toBe(90);
+ expect(Object.values(history.cohorts.perSeason).every(n => n === 9)).toBe(true);
 });

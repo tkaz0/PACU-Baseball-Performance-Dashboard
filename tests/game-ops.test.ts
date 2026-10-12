@@ -53,6 +53,6 @@ it("carries OPS through profiles, team cards, analytics and saved trend rebuildi
   for (const html of [renderToStaticMarkup(createElement(TeamGameStats, { stats: data, names: new Map() })), renderToStaticMarkup(createElement(AthleteGameStats, { stats: data }))]) expect(html).toContain("OPS");
   const observations = data.map(r => ({ athleteCode: "SYN-001", metric: r.metric, value: r.value, unit: r.unit, scope: r.scope }));
   expect(teamGameTrends([{ id: "fictional-snapshot", source: "qpa_fall_2026", fetched_at: data[0].fetched_at, observations }]).qpa_fall_2026?.batting_ops?.[0].value).toBe(ops(data)!.value);
-  for (const scope of ["team", "player"] as const) expect(statBenchmark("batting_ops", { scope })?.n).toBe(scope === "team" ? 9 : 71);
+  for (const scope of ["team", "player"] as const) expect(statBenchmark("batting_ops", { scope })?.n).toBe(scope === "team" ? 90 : 71);
   expect(STAT_DEFINITIONS.batting_ops).toContain("combined doubles/triples as doubles");
 });

@@ -17,7 +17,7 @@ const LETTERS = ["F", "D", "C", "B", "A"] as const;
 export type ReportCardArea = { key: string; label: string; metric: string; statLabel: string; value: string; grade: (typeof LETTERS)[number]; band: (typeof GRADE_LABELS)[number]; level: number; sample: string | null };
 
 /**
- * Pooled Pacific team rates graded against the published 2025 NWC team distribution (9 teams):
+ * Pooled Pacific team rates graded against the published NWC team-season distribution (lib/nwc-team-history.json):
  * each fifth of that distribution is one letter. Pending or unmatched rates are left out, never zero.
  * There is no overall grade; each area stands alone.
  */

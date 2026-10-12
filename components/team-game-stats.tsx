@@ -8,7 +8,7 @@ import Link from "next/link";
 import { StatInfo } from "@/components/stat-info";
 import { LimitedSample } from "@/components/limited-sample";
 import type { SharedGameStat } from "@/lib/game-server";
-import { benchmarkGrade, benchmarkNumber, GRADE_LABELS, statBenchmark } from "@/lib/stat-benchmarks";
+import { benchmarkGrade, benchmarkNumber, GRADE_LABELS, statBenchmark, TEAM_HISTORY_SPAN } from "@/lib/stat-benchmarks";
 import { formatTeamGameMetric, teamGameMetricStatus, teamGameSummary, type TeamGameMetric, type TeamGameSummary } from "@/lib/team-game-stats";
 import styles from "./team-game-stats.module.css";
 const colors=["#4b91ce","#83b8d9","#9c9ba3","#d57976","#d73c48"];
@@ -50,6 +50,6 @@ export function TeamGameStats({stats,names,trends={},streamedTrend}:{stats:Share
  const definitions=[...team.counts,...team.rates];
  return <div key={source} className="table-wrap mt-6"><table className={styles.table}><caption>{title} · Fall to Date</caption><thead><tr><th>Player</th>{keys.map(key=><th key={key}>{definitions.find(m=>m.metric===key)?.label}</th>)}</tr></thead><tbody>{ids.flatMap(id=>{const summary=teamGameSummary(stats.filter(r=>r.athlete_id===id),source);if(!summary.entries)return [];const metrics=[...summary.counts,...summary.rates];return [<tr key={id}><th scope="row"><Link prefetch={false} href={`/athletes/${id}`} className="text-link">{names.get(id)??"Player"}</Link></th>{keys.map(key=>{const m=metrics.find(m=>m.metric===key)!;return <td key={key} title={m.pending?teamGameMetricStatus(m):undefined}>{key==="innings_outs"&&m.value!==null?formatInnings(m.value):formatTeamGameMetric(m)}</td>;})}</tr>];})}</tbody></table></div>;
  })}</details>}
- <p className={styles.note}>D3 bands compare against 2025 Northwest Conference teams, using five evenly sized groups. “Elite” means the top reference band, not a national award. Fall intrasquads and full-season schedules differ. Counts include matched players only; rates marked “Recorded Subset” use complete lines only and show their coverage. Conflicting counts are never dropped to make a rate work. Use ⓘ for ranges and sources.</p>
+ <p className={styles.note}>D3 bands compare against every Northwest Conference team-season from {TEAM_HISTORY_SPAN} (2020 left out as COVID-shortened), using five evenly sized groups. “Elite” means the top reference band, not a national award. Fall intrasquads and full-season schedules differ. Counts include matched players only; rates marked “Recorded Subset” use complete lines only and show their coverage. Conflicting counts are never dropped to make a rate work. Use ⓘ for ranges and sources.</p>
  </div>;
 }
