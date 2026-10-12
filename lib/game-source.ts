@@ -93,10 +93,13 @@ export function parseGameSource(snapshot: GameSourceSnapshot, contract: Reviewed
   }
   const rows = new Set(contract.detailRows);
   if (rows.size !== contract.detailRows.length || [...rows].some(row => !Number.isSafeInteger(row) || row < (qpa ? 2 : 3) || row > 2000)) problem("detail_rows", "The reviewed source detail-row coverage is invalid.");
-  for(const cell of cells.values()) if(cell.column>(qpa?29:26)&&(cell.entered!==undefined||cell.effective!==undefined||cell.formula||cell.error)) problem("unreviewed_columns", "Source content appeared outside the reviewed columns. Review the changed source layout before syncing.",cell.row,cell.column);
+  // Owner-reviewed October 12: Z:AC contains summary rankings/notes, not weekly observations.
+  // Keep this exception bounded to the existing top summary and its exact ranking header.
+  const summaryRankingCell = (cell:GameSourceCell) => !qpa && normalize(text(2,26))==="k% rk" && cell.row>=3 && cell.row<=33 && cell.column>=26 && cell.column<=29;
+  for(const cell of cells.values()) if(cell.column>(qpa?29:26)&&!summaryRankingCell(cell)&&(cell.entered!==undefined||cell.effective!==undefined||cell.formula||cell.error)) problem("unreviewed_columns", "Source content appeared outside the reviewed columns. Review the changed source layout before syncing.",cell.row,cell.column);
   const rawColumns=new Set<number>((qpa?QPA_RAW:PITCHING_RAW).map(([column])=>column));
   if(!qpa)rawColumns.add(18);
-  for(const cell of cells.values()) if(!rows.has(cell.row)&&rawColumns.has(cell.column)&&(typeof cell.entered==="number"||(typeof cell.entered==="string"&&/^\d{1,10}$/.test(cell.entered.trim())))&&!cell.formula){
+  for(const cell of cells.values()) if(!rows.has(cell.row)&&!summaryRankingCell(cell)&&rawColumns.has(cell.column)&&(typeof cell.entered==="number"||(typeof cell.entered==="string"&&/^\d{1,10}$/.test(cell.entered.trim())))&&!cell.formula){
     problem("unreviewed_rows", "Entered statistics appeared outside the reviewed detail rows. Review the changed source layout before syncing.",cell.row,cell.column);
   }
   for (const row of rows) for (let column=1;column<=(qpa ? 29 : 23);column++) {

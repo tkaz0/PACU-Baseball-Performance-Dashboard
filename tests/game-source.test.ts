@@ -15,6 +15,22 @@ function fixture(pitching=false) {
   return{contract,snapshot,set,events,run:()=>parseGameSource(snapshot,contract,identities,events)};
 }
 describe("source-grounded Fall game adapters",()=>{
+  it("ignores reviewed top-summary rankings without importing them as weekly counts",()=>{
+    const f=fixture(true);f.set(3,20);
+    f.snapshot.cells.push({row:2,column:26,entered:"K% RK"},{row:3,column:26,entered:1},{row:33,column:29,entered:"Fictional note"});
+    const p=f.run();expect(p.canImport).toBe(true);expect(p.observations.every(o=>o.sourceRow===40)).toBe(true);
+    expect(p.observations.some(o=>o.metric==="earned_runs")).toBe(false);
+  });
+  it.each([[34,27],[3,30],[40,27]])("rejects content beyond the reviewed summary at %s:%s",(row,column)=>{
+    const f=fixture(true);f.set(3,20);f.snapshot.cells.push({row:2,column:26,entered:"K% RK"},{row,column,effective:1});
+    expect(f.run().issues.some(i=>i.code==="unreviewed_columns")).toBe(true);
+  });
+  it("requires the reviewed ranking header and still rejects raw summary count entries",()=>{
+    const f=fixture(true);f.set(3,20);f.snapshot.cells.push({row:3,column:27,entered:1});
+    expect(f.run().issues.some(i=>i.code==="unreviewed_columns")).toBe(true);
+    f.snapshot.cells.push({row:2,column:26,entered:"K% RK"},{row:3,column:3,entered:20});
+    expect(f.run().issues.some(i=>i.code==="unreviewed_rows")).toBe(true);
+  });
   it("uses owner-confirmed blank zeros only on QPA rows with PA or AB",()=>{
     const f=fixture();f.set(2,4);const p=f.run();expect(p.canImport).toBe(true);expect(p.observations.find(x=>x.metric==="base_hit")?.value).toBe(0);expect(p.observations.find(x=>x.metric==="sb")?.value).toBe(0);
     const blank=fixture();expect(blank.run().observations).toEqual([]);
