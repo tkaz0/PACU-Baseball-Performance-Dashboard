@@ -45,6 +45,7 @@ import { RenphoCharts } from "@/components/renpho-charts";
 import { PlayerPerformanceProfile } from "@/components/player-performance-profile";
 import { loadAthleteHeadshot } from "@/lib/headshots-server";
 import { profileMeasurementVisible, profileShowsHitting, profileShowsPitching } from "@/lib/player-profile-layout";
+import { loadFallBallWeeks } from "@/lib/fall-ball-weeks-server";
 
 export default async function Profile({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ preview?: string; focus?: string; goal?: string; tab?: string | string[]; detail?: string | string[] }> }) {
   const access = await requireAccess();
@@ -69,6 +70,8 @@ export default async function Profile({ params, searchParams }: { params: Promis
   const today = pacificTestingDate();
   const videoActions = { prepare: prepareSwingVideo, finish: finishSwingVideo, play: playSwingVideo };
   // Independent readers start together after the exact player passes live authorization.
+  // Week dates count Fall Ball weeks for qualified badges and name the weekly columns.
+  await loadFallBallWeeks(access);
   const sharedPromise = loadAthletePerformance(access,athlete);
   const allowedPromise = selectedTab === "pitching" && profileShowsPitching(season) ? loadContactsAllowed(access, athlete.id).catch(() => null) : Promise.resolve(null);
   const weeksPromise = selectedTab === "game-stats" ? loadAthleteGameWeeks(access, athlete.id).catch(() => null) : Promise.resolve(null);

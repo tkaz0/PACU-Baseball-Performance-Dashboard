@@ -6,6 +6,7 @@ import type { WeekPlayer } from "@/lib/home-spotlight";
 import { gameWeeks } from "@/lib/game-weeks";
 import { canReadPresentedAthlete } from "@/lib/access-preview";
 import { UUID_PATTERN } from "@/lib/types";
+import { loadFallBallWeeks } from "@/lib/fall-ball-weeks-server";
 
 const text = (value: unknown, max = 100) => typeof value === "string" && value.length > 0 && value.length <= max;
 /**
@@ -15,6 +16,7 @@ const text = (value: unknown, max = 100) => typeof value === "string" && value.l
 export const loadGameWeeks = cache(async (access: Pick<Awaited<ReturnType<typeof requireAccess>>, "supabase" | "roles" | "athleteId">): Promise<{ players: WeekPlayer[]; weeks: ReturnType<typeof gameWeeks> } | null> => {
   const staff = access.roles.some(role => role === "admin" || role === "coach");
   if (!staff && !(access.roles.includes("player") && access.athleteId)) return null;
+  await loadFallBallWeeks(access);
   const { data, error } = await access.supabase.rpc("team_game_week_inputs");
   if (error || !data || typeof data !== "object" || !Array.isArray(data.players) || !Array.isArray(data.snapshots)) throw new Error("Weekly game stats could not be loaded.");
   const players: WeekPlayer[] = [];
@@ -32,6 +34,7 @@ export const loadGameWeeks = cache(async (access: Pick<Awaited<ReturnType<typeof
 /** Own-player (or staff-selected) week-by-week lines through the scoped reader; failure shows no trend. */
 export async function loadAthleteGameWeeks(access: Awaited<ReturnType<typeof requireAccess>>, athleteId: string) {
   if (!UUID_PATTERN.test(athleteId) || !canReadPresentedAthlete(access, athleteId)) throw new Error("Game history access denied.");
+  await loadFallBallWeeks(access);
   const { data, error } = await access.supabase.rpc("athlete_game_snapshot_history", { p_athlete_id: athleteId });
   if (error || !Array.isArray(data) || data.some(row => !row || typeof row.id !== "string" || !["qpa_fall_2026", "pitching_fall_2026"].includes(row.source) || typeof row.fetched_at !== "string" || !Number.isFinite(Date.parse(row.fetched_at)) || !Array.isArray(row.observations))) return null;
   return gameWeeks(data as GameSnapshotRow[]);

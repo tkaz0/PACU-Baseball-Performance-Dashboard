@@ -1,7 +1,7 @@
 import { gameOpportunityLabel } from "@/lib/game-opportunities";
 import type { GameLeaderboardRow } from "@/lib/game-metrics";
 import type { GameOverviewMetric } from "@/lib/game-overview";
-import { FALL_BALL_WEEK_DATES } from "@/lib/game-weeks";
+import { fallBallWeekDates } from "@/lib/game-weeks";
 
 /** Owner-chosen display filter: 2 PA or 1 IP for each Fall Ball week played so far. Ranks never change. */
 export const QUALIFY_PER_WEEK = { hitting: 2, pitching: 3 } as const;
@@ -20,7 +20,7 @@ export function qualifiedGameCodes(rows: readonly GameLeaderboardRow[], discipli
 
 /** Fall Ball weeks with an owner-confirmed game date on or before today (at least one). */
 export function fallBallWeeksPlayed(today: string): number {
-  return Math.max(1, Object.values(FALL_BALL_WEEK_DATES).filter(date => date <= today).length);
+  return Math.max(1, Object.values(fallBallWeekDates()).filter(date => date <= today).length);
 }
 
 /**

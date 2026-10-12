@@ -6,6 +6,7 @@ import type { Measurement } from "@/lib/imports/engine";
 
 const fake = vi.hoisted(() => ({ fall: vi.fn(async () => []), access: vi.fn(), from: vi.fn(), select: vi.fn(), eq: vi.fn(), single: vi.fn(), rpc: vi.fn(), load: vi.fn(), contacts: vi.fn(), charts: vi.fn(), games: vi.fn(), comparisons: vi.fn(), logs: vi.fn(), team: vi.fn(), speed: vi.fn(), movement: vi.fn(), goals: vi.fn() }));
 vi.mock("server-only", () => ({}));
+vi.mock("@/lib/fall-ball-weeks-server", () => ({ loadFallBallWeeks: async () => ({ 1: "2026-09-12", 2: "2026-09-26", 3: "2026-10-10" }) }));
 vi.mock("@/lib/player-fall-summaries-server", () => ({ loadPlayerFallSummaries: fake.fall }));
 vi.mock("@/lib/blast-speed-percentile-server", () => ({ loadBlastBatSpeedPercentile: fake.speed }));
 vi.mock("@/lib/player-goals-server", () => ({ loadPlayerGoals: fake.goals }));

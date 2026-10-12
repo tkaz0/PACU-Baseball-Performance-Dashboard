@@ -1,6 +1,6 @@
-"""Read public NWC season HTML files; emit team-season reference bands only.
+"""Read public NWC season HTML files; emit team-season and player-season reference bands only.
 Usage: python3 scripts/prepare-nwc-team-history.py output.json 2016=path.html 2017=path.html ...
-Team totals only. No athlete names or row-level statistics are retained in the output.
+Only aggregate bands are written. No athlete names or row-level statistics are retained in the output.
 """
 import json, sys
 from html.parser import HTMLParser
@@ -58,18 +58,24 @@ def team_rows(path):
         return [dict(zip(table[0],r)) for r in table[1:]]
     bat, pit = records(0), records(1)
     assert len(bat)==len(pit)>=8
-    return bat, pit
+    hitters=[r for r in records(3) if number(r,'AB')>=75]
+    pitchers=[r for r in records(4) if outs(r['IP'])>=60]
+    return bat, pit, hitters, pitchers
 seasons={}
 for arg in sys.argv[2:]:
     year, path = arg.split('=',1)
     seasons[int(year)] = team_rows(path)
 all_bat=[r for y in sorted(seasons) for r in seasons[y][0]]
 all_pit=[r for y in sorted(seasons) for r in seasons[y][1]]
+all_hitters=[r for y in sorted(seasons) for r in seasons[y][2]]
+all_pitchers=[r for y in sorted(seasons) for r in seasons[y][3]]
 years=sorted(seasons)
 result={'source':'https://nwcsports.com/stats.aspx?path=baseball','seasons':years,'retrievedOn':str(date.today()),
-  'method':'Linear-interpolated 20th, 40th, 60th and 80th percentiles across every NWC team-season. Coaching labels are dashboard bands, not official NWC grades.',
+  'method':'Linear-interpolated 20th, 40th, 60th and 80th percentiles across every NWC team-season or qualified player-season. Coaching labels are dashboard bands, not official NWC grades.',
   'excluded':{'2020':'COVID-shortened season (4-16 games per team)'},
   'team':{**batting(all_bat),**pitching(all_pit)},
-  'cohorts':{'teamSeasons':len(all_bat),'perSeason':{str(y):len(seasons[y][0]) for y in years}}}
+  'player':{**batting(all_hitters),**pitching(all_pitchers)},
+  'cohorts':{'teamSeasons':len(all_bat),'perSeason':{str(y):len(seasons[y][0]) for y in years},
+    'hitterSeasons':len(all_hitters),'minimumAB':75,'pitcherSeasons':len(all_pitchers),'minimumIP':20}}
 with open(sys.argv[1],'w') as f: json.dump(result,f,indent=2); f.write('\n')
-print('Verified team-season cohorts:',result['cohorts'])
+print('Verified cohorts:',result['cohorts'])

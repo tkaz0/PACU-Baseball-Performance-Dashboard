@@ -7,6 +7,7 @@ import { buildHomeSummary } from "@/lib/home-summary";
 
 const fake = vi.hoisted(() => ({ access: vi.fn(), from: vi.fn(), rpc:vi.fn(), home: vi.fn(), activity:vi.fn(), leaderboards: vi.fn(), due: vi.fn(), status: vi.fn(), navigation: vi.fn() }));
 vi.mock("server-only",()=>({}));
+vi.mock("@/lib/fall-ball-weeks-server",()=>({loadFallBallWeeks:async()=>({1:"2026-09-12",2:"2026-09-26",3:"2026-10-10"})}));
 vi.mock("@/lib/design-navigation-server", () => ({ loadDesignNavigation: fake.navigation }));
 vi.mock("@/lib/home-server", () => ({loadHomeSnapshot: fake.home,loadHomeActivity:fake.activity}));
 vi.mock("@/lib/home-leaderboards-server", () => ({loadHomeLeaderboards: fake.leaderboards}));
@@ -18,7 +19,7 @@ vi.mock("@/app/(workspace)/overview/visit-actions", () => ({ recordDashboardVisi
 vi.mock("next/navigation", () => ({ redirect: (path: string) => { throw new Error(`REDIRECT:${path}`); }, usePathname: () => "/roster",useRouter:()=>({refresh:vi.fn()}) }));
 vi.mock("next/link", () => ({ default: ({ href, children, ...props }: { href: string; children: ReactNode }) => createElement("a", { href, ...props }, children) }));
 vi.mock("@/lib/headshots-server", () => ({ loadTeamHeadshots: async () => new Map(), loadAthleteHeadshot: async () => null }));
-vi.mock("@/lib/game-trends-server", () => ({ loadTeamGameTrends: async () => ({}) }));
+vi.mock("@/lib/game-trends-server", () => ({ loadTeamGameTrends: async () => ({}), loadOwnGameTrends: async () => ({}) }));
 vi.mock("@/lib/game-weeks-server", () => ({ loadGameWeeks: async () => null }));
 import Overview from "@/app/(workspace)/overview/page";
 import { Sidebar } from "@/components/sidebar";

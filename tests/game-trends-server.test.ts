@@ -1,5 +1,6 @@
 import { beforeEach,expect,it,vi } from "vitest";
 vi.mock("server-only",()=>({}));
+vi.mock("@/lib/fall-ball-weeks-server",()=>({loadFallBallWeeks:async()=>({1:"2026-09-12",2:"2026-09-26",3:"2026-10-10"})}));
 import { loadTeamGameTrends } from "@/lib/game-trends-server";
 import { latestDailySnapshots,teamGameTrends,type GameSnapshotRow } from "@/lib/game-trends";
 const source="qpa_fall_2026" as const;

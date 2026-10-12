@@ -1,6 +1,8 @@
 import { GameLeaderboard } from "@/components/game-leaderboard";
 import { loadGameLeaderboards } from "@/lib/game-comparison-server";
-import { loadGameWeeks } from "@/lib/game-weeks-server";
+import { loadFallBallWeeks } from "@/lib/fall-ball-weeks-server";
+import { fallBallWeeksPlayed } from "@/lib/game-qualification";
+import { pacificTestingDate } from "@/lib/testing-checklist";
 import { requireRenderAccess as requireAccess } from "@/lib/render-access";
 import { PageHeading } from "@/components/page-heading";
 import { LeaderboardBoard } from "@/components/leaderboard-board";
@@ -12,9 +14,9 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
   const access = await requireAccess(["admin", "coach", "player"]);
   const query = await searchParams;
   if(query.group === "games") {
-    // Weeks so far set the optional qualified minimum; a failed weekly read keeps one week.
-    const [rows, weekly] = await Promise.all([loadGameLeaderboards(access), loadGameWeeks(access).catch(() => null)]);
-    const weeks = Math.max(1, ...(weekly ? [...weekly.weeks.hitting, ...weekly.weeks.pitching].map(week => week.week) : []));
+    // Confirmed Fall Ball game dates set the optional qualified minimum, the same count badges use.
+    const [rows] = await Promise.all([loadGameLeaderboards(access), loadFallBallWeeks(access)]);
+    const weeks = fallBallWeeksPlayed(pacificTestingDate());
     return <><PageHeading section="Team" title="Leaderboards" description="Fall 2026 · Team game rankings."/><GameLeaderboard rows={rows} discipline={query.discipline==="pitching"?"pitching":"hitting"} qualified={query.qualified==="1"} weeks={weeks}/></>;
   }
   const group = LEADERBOARD_GROUPS.find(group => group === query.group) ?? "physicality";

@@ -1,6 +1,5 @@
-import reference from "@/lib/nwc-benchmarks.json";
 import teamHistory from "@/lib/nwc-team-history.json";
-/** Team rates compare with every NWC team-season in the history file (owner request); player bands stay 2025. */
+/** Team and player bands compare with every NWC team-season / qualified player-season in the history file (owner request). */
 export const TEAM_HISTORY_SPAN = `${teamHistory.seasons[0]}–${teamHistory.seasons.at(-1)}`;
 import { PLAYER_METRICS } from "@/lib/player-performance";
 import { STAT_DEFINITIONS, statDefinitionKey } from "@/lib/stat-definitions";
@@ -44,13 +43,13 @@ export function pacificBenchmark(metric:string, values:readonly number[], contex
 }
 export function statBenchmark(metric:string,context:StatGuideContext={}):Benchmark|null {
   const key=benchmarkMetric(metric),scope=context.scope??"player";
-  const catalog=(scope==="team"?teamHistory.team:reference.player) as Record<string,{cuts:number[];n:number;direction:"higher"|"lower"}>;
+  const catalog=(scope==="team"?teamHistory.team:teamHistory.player) as Record<string,{cuts:number[];n:number;direction:"higher"|"lower"}>;
   if(catalog[key]){
     const b=catalog[key], batting=key.startsWith("batting_");
     const unit=key.endsWith("_pct")?"%":key.startsWith("batting_")?"avg":["pitching_k9","pitching_bb9","pitching_r9"].includes(key)?"per9":"decimal";
     if(context.unit&&context.unit!==unit&&!(unit==="avg"&&["ratio","decimal"].includes(context.unit))&&!(unit==="decimal"&&context.unit==="ratio"))return null;
-    return {...b,cuts:readableCuts(key,b.cuts,unit),title:scope==="team"?`D3 Northwest Conference · ${TEAM_HISTORY_SPAN} Team-Seasons`:"D3 Northwest Conference · 2025 Players",url:scope==="team"?`${teamHistory.source}&year=${teamHistory.seasons.at(-1)}`:reference.source,unit,
-      note:`${scope==="team"?`${teamHistory.cohorts.teamSeasons} team-seasons, ${TEAM_HISTORY_SPAN} (2020 left out as COVID-shortened)`:batting?"Published hitting table; 71 players with at least 75 AB":"Published pitching table; 27 pitchers with at least 20 IP"}. Dashboard bands use the 20th/40th/60th/80th percentiles, not official NWC grades. Regular-season/full-season opponents differ from Fall intrasquads.${(key.includes("est_")||key==="batting_ops")?" Recalculated with the dashboard’s doubles/triples-as-doubles rule and fixed contact weights.":""}`};
+    return {...b,cuts:readableCuts(key,b.cuts,unit),title:`D3 Northwest Conference · ${TEAM_HISTORY_SPAN} ${scope==="team"?"Team":"Player"}-Seasons`,url:`${teamHistory.source}&year=${teamHistory.seasons.at(-1)}`,unit,
+      note:`${scope==="team"?`${teamHistory.cohorts.teamSeasons} team-seasons, ${TEAM_HISTORY_SPAN} (2020 left out as COVID-shortened)`:batting?`${teamHistory.cohorts.hitterSeasons} published hitter-seasons with at least 75 AB, ${TEAM_HISTORY_SPAN} (2020 left out)`:`${teamHistory.cohorts.pitcherSeasons} published pitcher-seasons with at least 20 IP, ${TEAM_HISTORY_SPAN} (2020 left out)`}. Dashboard bands use the 20th/40th/60th/80th percentiles, not official NWC grades. Regular-season/full-season opponents differ from Fall intrasquads.${(key.includes("est_")||key==="batting_ops")?" Recalculated with the dashboard’s doubles/triples-as-doubles rule and fixed contact weights.":""}`};
   }
   // Team pooled rates must never be judged against the distribution of individual players.
   return scope==="player"&&context.cohort?pacificBenchmark(key,context.cohort,context):null;

@@ -33,3 +33,5 @@ September 29 dashboard help pass: each information panel explicitly answers how 
 ## Team benchmarks: NWC team-seasons 2016–2026 (October 12 owner request)
 
 Pooled Pacific team rates (Team Game Stats bands and the Team Report Card) now compare with every Northwest Conference team-season from 2016 through 2026: 90 team-seasons, nine per season. 2020 is left out because the COVID-shortened season had only 4–16 games per team; 2021 (20–42 games) is kept. `scripts/prepare-nwc-team-history.py` reads the public season pages at `nwcsports.com/stats.aspx?path=baseball&year=YYYY`, uses the same formulas as the 2025 file and writes only aggregate bands to `lib/nwc-team-history.json`. Player bands stay on the 2025 published player tables. Bands remain dashboard groupings, not official NWC grades.
+
+Player bands also use the 2016–2026 history (October 12): 699 published hitter-seasons with at least 75 AB and 270 pitcher-seasons with at least 20 IP, pooled across seasons, 2020 left out. `lib/nwc-benchmarks.json` remains as the 2025 source record.

@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { HomeActivityPlaceholder, HomeCoachingPulse, HomeVisitActivity } from "@/components/home-activity";
 import { TeamGameTrend } from "@/components/team-game-trend";
-import { loadTeamGameTrends } from "@/lib/game-trends-server";
+import { loadOwnGameTrends, loadTeamGameTrends } from "@/lib/game-trends-server";
 import { requireRenderAccess as requireAccess } from "@/lib/render-access";
 import { canImportPresentedAccess } from "@/lib/access-preview";
 import { AccessPreviewNotice } from "@/components/access-preview-notice";
@@ -17,6 +17,7 @@ import { trendingPlayers } from "@/lib/home-trending";
 import { playersOfTheWeek } from "@/lib/home-spotlight";
 import { loadGameWeeks } from "@/lib/game-weeks-server";
 import { loadDesignNavigation } from "@/lib/design-navigation-server";
+import { loadFallBallWeeks } from "@/lib/fall-ball-weeks-server";
 
 /** One failed Home section must not take down the whole page; the failure is logged by section name. */
 function settle<T>(section:string,failed:string[],promise:Promise<T>,fallback:T):Promise<T>{
@@ -31,18 +32,20 @@ export default async function Overview({searchParams}:{searchParams:Promise<{pre
   const activityPromise=visitPromise.then(visit=>loadHomeActivity(access,visit)).catch(()=>({ok:false as const}));
   // Streamed sections: Players of the Week and team leaders never hold up the rest of Home.
   const leaderboardsPromise=loadHomeLeaderboards(access).catch(()=>null);
-  const trendsPromise=staff?loadTeamGameTrends(access).catch(()=>({})):Promise.resolve({});
+  // Staff see team week-over-week changes; a linked player sees only their own.
+  const ownTrends=!staff&&access.roles.includes("player")&&!!access.athleteId;
+  const trendsPromise=staff?loadTeamGameTrends(access).catch(()=>({})):ownTrends?loadOwnGameTrends(access).catch(()=>({})):Promise.resolve({});
   const canSeeBoards=staff || (access.roles.includes("player") && !!access.athleteId);
   const weeksPromise=canSeeBoards?loadGameWeeks(access).catch(()=>null):Promise.resolve(null);
   const photosPromise=canSeeBoards?loadTeamHeadshots(access).catch(()=>new Map<string,string>()):Promise.resolve(new Map<string,string>());
   const [params,summary,sourceStatus,designNavigation,visit]=await Promise.all([
-    searchParams,settle("results summary",failed,loadHomeSnapshot(access),null),
+    searchParams.then(async value=>{await loadFallBallWeeks(access);return value;}),settle("results summary",failed,loadHomeSnapshot(access),null),
     staff?settle("source status",failed,loadWeeklySourceStatus(access),[]):Promise.resolve([]),settle("design links",failed,loadDesignNavigation(access),undefined),visitPromise,
   ]);
   return <><AccessPreviewNotice status={params.preview} isPreview={!!access.preview}/>{failed.length>0&&<p role="status" className="muted mb-4 text-sm">Some Home sections are temporarily unavailable ({failed.join(", ")}). Refresh to try again.</p>}<DashboardHome
     coachingPulse={staff&&summary?<Suspense fallback={<HomeActivityPlaceholder coaching/>}><HomeCoachingPulse activity={activityPromise} reviewCount={[...summary.batting.rates,...summary.pitching.rates].filter(rate=>rate.pending&&rate.pendingReason!=="missing").length}/></Suspense>:undefined}
     activity={summary?<Suspense fallback={<HomeActivityPlaceholder/>}><HomeVisitActivity activity={activityPromise} visit={visit} staff={staff} athleteId={access.athleteId}/></Suspense>:undefined}
-    streamedTrend={staff?(source,metric,updatedAt)=><Suspense fallback={null}><TeamGameTrend trends={trendsPromise} source={source} metric={metric} updatedAt={updatedAt}/></Suspense>:undefined}
+    streamedTrend={staff||ownTrends?(source,metric,updatedAt)=><Suspense fallback={null}><TeamGameTrend trends={trendsPromise} source={source} metric={metric} updatedAt={updatedAt}/></Suspense>:undefined}
     spotlight={canSeeBoards?<Suspense fallback={null}><StreamedSpotlight weeks={weeksPromise} photos={photosPromise} staff={staff}/></Suspense>:undefined}
     trending={staff?<Suspense fallback={null}><StreamedTrending weeks={weeksPromise}/></Suspense>:undefined}
     leaderboardsSlot={<Suspense fallback={<HomeLeaderboardPlaceholder/>}><StreamedLeaderboards boards={leaderboardsPromise} photos={photosPromise}/></Suspense>}

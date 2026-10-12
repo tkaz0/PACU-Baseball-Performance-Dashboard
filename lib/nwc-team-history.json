@@ -13,7 +13,7 @@
     2026
   ],
   "retrievedOn": "2026-10-12",
-  "method": "Linear-interpolated 20th, 40th, 60th and 80th percentiles across every NWC team-season. Coaching labels are dashboard bands, not official NWC grades.",
+  "method": "Linear-interpolated 20th, 40th, 60th and 80th percentiles across every NWC team-season or qualified player-season. Coaching labels are dashboard bands, not official NWC grades.",
   "excluded": {
     "2020": "COVID-shortened season (4-16 games per team)"
   },
@@ -184,6 +184,173 @@
       "direction": "higher"
     }
   },
+  "player": {
+    "batting_avg": {
+      "cuts": [
+        0.251919,
+        0.282353,
+        0.307692,
+        0.333333
+      ],
+      "mean": 0.294481,
+      "n": 699,
+      "direction": "higher"
+    },
+    "batting_obp": {
+      "cuts": [
+        0.341122,
+        0.36802,
+        0.396552,
+        0.427054
+      ],
+      "mean": 0.383315,
+      "n": 699,
+      "direction": "higher"
+    },
+    "batting_ops": {
+      "cuts": [
+        0.688106,
+        0.761224,
+        0.835268,
+        0.928315
+      ],
+      "mean": 0.809592,
+      "n": 699,
+      "direction": "higher"
+    },
+    "batting_est_slg": {
+      "cuts": [
+        0.333333,
+        0.389331,
+        0.439023,
+        0.509688
+      ],
+      "mean": 0.426277,
+      "n": 699,
+      "direction": "higher"
+    },
+    "batting_est_iso": {
+      "cuts": [
+        0.06127,
+        0.097826,
+        0.13827,
+        0.191636
+      ],
+      "mean": 0.131796,
+      "n": 699,
+      "direction": "higher"
+    },
+    "batting_est_wobacon": {
+      "cuts": [
+        0.309689,
+        0.348378,
+        0.383033,
+        0.436157
+      ],
+      "mean": 0.373164,
+      "n": 699,
+      "direction": "higher"
+    },
+    "batting_bb_pct": {
+      "cuts": [
+        6.748466,
+        8.611555,
+        10.562505,
+        12.846087
+      ],
+      "mean": 9.842882,
+      "n": 699,
+      "direction": "higher"
+    },
+    "batting_k_pct": {
+      "cuts": [
+        9.938422,
+        12.670958,
+        15.963618,
+        20.360538
+      ],
+      "mean": 15.165653,
+      "n": 699,
+      "direction": "lower"
+    },
+    "batting_hr_pct": {
+      "cuts": [
+        0.0,
+        1.020408,
+        2.018172,
+        3.468097
+      ],
+      "mean": 1.995827,
+      "n": 699,
+      "direction": "higher"
+    },
+    "batting_sb_per_pa": {
+      "cuts": [
+        0.006502,
+        0.017271,
+        0.03125,
+        0.051603
+      ],
+      "mean": 0.031312,
+      "n": 699,
+      "direction": "higher"
+    },
+    "pitching_k9": {
+      "cuts": [
+        5.130594,
+        6.014876,
+        6.934665,
+        8.46776
+      ],
+      "mean": 6.815269,
+      "n": 270,
+      "direction": "higher"
+    },
+    "pitching_bb9": {
+      "cuts": [
+        2.227336,
+        3.142174,
+        3.852096,
+        4.461258
+      ],
+      "mean": 3.485656,
+      "n": 270,
+      "direction": "lower"
+    },
+    "pitching_r9": {
+      "cuts": [
+        4.162228,
+        5.006611,
+        6.008633,
+        7.115211
+      ],
+      "mean": 5.659607,
+      "n": 270,
+      "direction": "lower"
+    },
+    "pitching_whip": {
+      "cuts": [
+        1.271755,
+        1.392992,
+        1.528746,
+        1.677785
+      ],
+      "mean": 1.464033,
+      "n": 270,
+      "direction": "lower"
+    },
+    "pitching_k_bb": {
+      "cuts": [
+        1.427706,
+        1.745652,
+        2.256667,
+        2.952
+      ],
+      "mean": 2.288962,
+      "n": 270,
+      "direction": "higher"
+    }
+  },
   "cohorts": {
     "teamSeasons": 90,
     "perSeason": {
@@ -197,6 +364,10 @@
       "2024": 9,
       "2025": 9,
       "2026": 9
-    }
+    },
+    "hitterSeasons": 699,
+    "minimumAB": 75,
+    "pitcherSeasons": 270,
+    "minimumIP": 20
   }
 }

@@ -9,7 +9,7 @@ import teamHistoryForTest from "@/lib/nwc-team-history.json";
 it("uses separate, inspectable D3 team and published-player populations",()=>{
  expect(reference.cohorts).toEqual({teams:9,publishedHitters:73,hitters:71,minimumAB:75,publishedPitchers:27,pitchers:27,minimumIP:20});
  const team=statBenchmark("batting_avg",{scope:"team"})!,player=statBenchmark("batting_avg")!;
- expect(team.n).toBe(90);expect(team.title).toContain("2016–2026 Team-Seasons");expect(team.note).toContain("2020 left out");expect(player.n).toBe(71);expect(team.cuts).not.toEqual(player.cuts);
+ expect(team.n).toBe(90);expect(team.title).toContain("2016–2026 Team-Seasons");expect(team.note).toContain("2020 left out");expect(player.n).toBe(699);expect(player.title).toContain("Player-Seasons");expect(team.cuts).not.toEqual(player.cuts);
  expect(team.url).toContain("nwcsports.com");expect(player.note).toContain("75 AB");
  expect(statBenchmark("pitching_r9")?.note).toContain("20 IP");
 });
