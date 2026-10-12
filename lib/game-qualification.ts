@@ -1,5 +1,7 @@
 import { gameOpportunityLabel } from "@/lib/game-opportunities";
 import type { GameLeaderboardRow } from "@/lib/game-metrics";
+import type { GameOverviewMetric } from "@/lib/game-overview";
+import { FALL_BALL_WEEK_DATES } from "@/lib/game-weeks";
 
 /** Owner-chosen display filter: 2 PA or 1 IP for each Fall Ball week played so far. Ranks never change. */
 export const QUALIFY_PER_WEEK = { hitting: 2, pitching: 3 } as const;
@@ -14,4 +16,18 @@ export function qualifiedGameCodes(rows: readonly GameLeaderboardRow[], discipli
   }
   return { codes: new Set([...chances].filter(([, count]) => count >= minimum).map(([code]) => code)), minimum,
     label: discipline === "hitting" ? `${minimum} PA` : `${Math.floor(minimum / 3)}${minimum % 3 ? `.${minimum % 3}` : ""} IP` };
+}
+
+/** Fall Ball weeks with an owner-confirmed game date on or before today (at least one). */
+export function fallBallWeeksPlayed(today: string): number {
+  return Math.max(1, Object.values(FALL_BALL_WEEK_DATES).filter(date => date <= today).length);
+}
+
+/**
+ * Award badges for hitting game stats require the same minimum as the Qualified leaderboard view:
+ * 2 PA per Fall Ball week so far. Ranks and percentiles are unchanged; only the badge is withheld.
+ */
+export function hitterBadgeQualified(games: readonly Pick<GameOverviewMetric, "source" | "metric" | "opportunities">[], weeks: number): boolean {
+  const pa = Math.max(0, ...games.flatMap(g => g.source === "qpa_fall_2026" && gameOpportunityLabel(g.source, g.metric) === "PA" && typeof g.opportunities === "number" && Number.isFinite(g.opportunities) ? [g.opportunities] : []));
+  return pa >= QUALIFY_PER_WEEK.hitting * Math.max(1, weeks);
 }

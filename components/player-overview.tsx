@@ -12,6 +12,8 @@ import type { StatGuideContext } from "@/lib/stat-benchmarks";
 import { StatInfo } from "@/components/stat-info";
 import { PercentileRankings, percentileRankingGroups } from "@/components/percentile-rankings";
 import { AwardBadges, SkillProfile } from "@/components/skill-profile";
+import { fallBallWeeksPlayed, hitterBadgeQualified } from "@/lib/game-qualification";
+import { pacificTestingDate } from "@/lib/testing-checklist";
 import { GameOpportunity } from "@/components/game-opportunity";
 import { gameOverviewMetrics, type GameOverviewMetric } from "@/lib/game-overview";
 import { gameValue, type GameComparison } from "@/lib/game-metrics";
@@ -75,6 +77,9 @@ export function PlayerOverview({ quick=false, cards, gameStats = [], gameCompari
   const lastTested = availableCards.map(card => card.timedTrials?.lastTested ?? card.latest!.measuredAt).sort().at(-1);
   const bodyResultsOnly = availableCards.length > 0 && availableCards.every(card => card.metric.group === "body");
   const rankingRows = percentileRankingGroups(availableCards, games).flatMap(group => group.rows);
+  // Hitting game-stat badges need a qualified sample (2 PA per Fall Ball week so far); testing badges are unchanged.
+  const hitterQualified = hitterBadgeQualified(games, fallBallWeeksPlayed(pacificTestingDate()));
+  const badgeRows = rankingRows.filter(row => !(row.game && row.guide.source === "qpa_fall_2026") || hitterQualified);
   const trends = profileTrends([...physicality, ...testing]);
   // Featured stats are the Top Performer score components: hitters PAC Production+, QPA%, OBP, ISO;
   // pitchers WHIP, K/BB, Runs/9 (both for two-way players). Without game stats, testing highlights remain.
@@ -91,7 +96,7 @@ export function PlayerOverview({ quick=false, cards, gameStats = [], gameCompari
   return <section aria-label="Player overview" className={styles.overview} data-testid="player-overview">
     <div className={overview.snapshotHeader}><div className={overview.snapshotIntro}><h2 className="m-0 text-xl font-bold tracking-tight">Performance Snapshot</h2><p className="mb-0 mt-1.5 text-sm leading-6 text-[var(--text-secondary)]">{games.length ? (showMethods ? "This player’s latest tests and Fall game stats, alongside the Pacific team." : "Your latest tests and Fall game stats, alongside the Pacific team.") : bodyResultsOnly ? comparisonCards.length ? (showMethods ? "This player’s latest body results compared with the team. More highlights will appear as testing continues." : "Your latest body results compared with the team. More highlights will appear as testing continues.") : (showMethods ? "Body results are in Physicality. More highlights will appear as testing continues." : "Your body results are in Physicality. More highlights will appear as testing continues.") : (showMethods ? "Where this player stands now and how they have changed since earlier tests." : "Where you stand now and how you have changed since earlier tests.")}</p></div>{(lastTested || games.length > 0) && <dl className={overview.snapshotFacts}><div><dt className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Stats Available</dt><dd className="m-0 mt-1 font-bold tabular-nums">{availableCards.length + games.length}</dd></div>{lastTested && <div><dt className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Last Tested</dt><dd className="m-0 mt-1 font-semibold"><time dateTime={lastTested}>{leaderboardTestDate(lastTested)}</time></dd></div>}{games.length > 0 && <div><dt className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)]">Game Stats Updated</dt><dd className="m-0 mt-1 font-semibold">{leaderboardTestDate(gameDate(games.map(g=>g.updatedAt).sort().at(-1)!))}</dd></div>}</dl>}</div>
     {!!headline.length && <dl className={overview.headlineStats} data-count={headline.length} aria-label="Key performance results">{headline.map(item=><div key={item.key} className={overview.heroTile} style={{ "--hero-accent": item.percentile === null || item.neutral ? "var(--line-subtle)" : percentileColor(item.percentile).backgroundColor } as React.CSSProperties}><div className={overview.heroTop}><div className="min-w-0"><dt>{item.label}<StatInfo metric={item.key} label={item.label} {...item.guide}/></dt><dd>{(([number, ...unit]) => <>{number}{unit.length > 0 && <span className="hero-unit"> {unit.join(" ")}</span>}</>)(item.value.split(" "))}</dd></div>{item.percentile !== null && <PercentileRing value={item.percentile} neutral={item.neutral} label={item.label} size={54}/>}</div>{item.trend && <Sparkline points={item.trend.points} width={160} height={30} label={`${item.label} trend`} direction={item.neutral ? "neutral" : item.lowerIsBetter ? "lower" : "higher"}/>}<p>{item.detail}{item.percentile !== null ? ` · ${item.neutral ? "Team position" : "Team percentile"}` : ""}</p></div>)}</dl>}
-    <AwardBadges rows={rankingRows}/>
+    <AwardBadges rows={badgeRows}/>
     {comparableCount > 0 && <ScaleLegend low="Bottom of team" high="Top of team" note="Percentile colors: red is the top of the team for that stat. Gray rings marked POS are body or spin positions, not grades."/>}
     <div className={overview.insights} data-has-jumps={insights.biggestJumps.length > 0 || undefined}>
       {[
