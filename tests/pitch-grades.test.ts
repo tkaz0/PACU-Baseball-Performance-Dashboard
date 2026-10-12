@@ -30,11 +30,17 @@ describe("Pitch+ (Team)", () => {
     expect(best.grade).toBeCloseTo(.4 * best.strike! + .4 * best.contact! + .2 * best.stuff!);
     expect(rows[0].player.code).toBe("SYN-3");
   });
+  it("falls back to the pitcher's balls in play across pitches until a pitch has 8 of its own", () => {
+    const mixed = new Map([...contacts].map(([id, rows]) => [id, rows.map((row, i) => ({ ...row, pitchType: i < 4 ? "Four-Seam Fastball" as const : "Slider" as const }))]));
+    const { rows } = pitchGrades(players, stats, arsenals, mixed);
+    expect(rows.every(r => r.contactBasis === "pitcher" && r.contact !== null && r.ballsInPlay === 8)).toBe(true);
+    expect(pitchGrades(players, stats, arsenals, contacts).rows.every(r => r.contactBasis === "pitch")).toBe(true);
+  });
   it("withholds the blend when a part misses its minimum but keeps the parts", () => {
     const few = new Map([...contacts].map(([id, rows]) => [id, rows.slice(0, 3)]));
     const { rows } = pitchGrades(players, stats, arsenals, few);
     expect(rows.every(r => r.grade === null && r.contact === null && r.strike !== null)).toBe(true);
-    expect(rows[0].missing).toContain("8+ balls in play");
+    expect(rows[0].missing).toContain("8+ balls in play against the pitcher");
     const html = renderToStaticMarkup(createElement(PitchGradesTable, { rows }));
     expect(html).toContain("Needs data");
   });

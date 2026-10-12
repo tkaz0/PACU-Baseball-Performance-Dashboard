@@ -30,6 +30,8 @@ export type PitchGradeRow = {
   velocity: number | null; spin: number | null; velocityGap: number | null; ballsInPlay: number; familyPitches: number | null;
   strike: number | null; contact: number | null; stuff: number | null; grade: number | null;
   strikePct: number | null; avgEvAgainst: number | null; hardHitAgainst: number | null; squaredAgainst: number | null;
+  /** "pitch" = this pitch type's own balls in play; "pitcher" = all of this pitcher's balls in play (fallback). */
+  contactBasis: "pitch" | "pitcher" | null;
   missing: string[];
 };
 
@@ -63,8 +65,8 @@ export function pitchGrades(players: readonly CoachingPlayer[], stats: readonly 
     let p = 0, s = 0; for (const own of familyCounts.values()) { const c = own.get(family); if (c) { p += c.pitches; s += c.strikes; } }
     if (p > 0) teamStrike.set(family, s / p);
   }
-  // Team contact baseline: every linked in-game, in-play, classified ball against Pacific pitchers.
-  const allInPlay = [...contacts.values()].flat().filter(c => c.pitchType && !isLikelyFoul(c));
+  // Team contact baseline: every linked in-game, in-play ball against Pacific pitchers (with or without a pitch label).
+  const allInPlay = [...contacts.values()].flat().filter(c => !isLikelyFoul(c));
   const squaredAll = allInPlay.filter(c => typeof c.squaredUp === "number");
   const team = { ev: allInPlay.length ? mean(allInPlay.map(c => c.exitVelocity)) : null, hard: allInPlay.length ? allInPlay.filter(c => c.exitVelocity >= 90).length / allInPlay.length : null, squared: squaredAll.length ? mean(squaredAll.map(c => c.squaredUp!)) : null };
   const lowerBetter = (value: number, baseline: number | null) => baseline && baseline > 0 ? clamp(100 + 100 * (baseline - value) / baseline) : null;
@@ -77,16 +79,19 @@ export function pitchGrades(players: readonly CoachingPlayer[], stats: readonly 
       const family = PITCH_FAMILY[type] ?? null, { velocity, spin } = inGame(pitches, type);
       const fam = family ? familyCounts.get(player.id)?.get(family) : undefined;
       const strikePct = fam ? fam.strikes / fam.pitches : null, teamPct = family ? teamStrike.get(family) ?? null : null;
-      const balls = (contacts.get(player.id) ?? []).filter(c => c.pitchType === type && !isLikelyFoul(c));
+      // Until a pitch type has enough of its own balls in play, Contact+ uses all of the pitcher's in-play contact.
+      const ownInPlay = (contacts.get(player.id) ?? []).filter(c => !isLikelyFoul(c)), pitchBalls = ownInPlay.filter(c => c.pitchType === type);
+      const contactBasis = pitchBalls.length >= MIN_BALLS_IN_PLAY ? "pitch" as const : ownInPlay.length >= MIN_BALLS_IN_PLAY ? "pitcher" as const : null;
+      const balls = contactBasis === "pitch" ? pitchBalls : ownInPlay;
       const squared = balls.filter(c => typeof c.squaredUp === "number");
       const ev = balls.length ? mean(balls.map(c => c.exitVelocity)) : null, hard = balls.length ? balls.filter(c => c.exitVelocity >= 90).length / balls.length : null, sq = squared.length ? mean(squared.map(c => c.squaredUp!)) : null;
-      const contactParts = balls.length >= MIN_BALLS_IN_PLAY ? [lowerBetter(ev!, team.ev), lowerBetter(hard!, team.hard), squared.length >= MIN_BALLS_IN_PLAY ? lowerBetter(sq!, team.squared) : null].filter((v): v is number => v !== null) : [];
+      const contactParts = contactBasis ? [lowerBetter(ev!, team.ev), lowerBetter(hard!, team.hard), squared.length >= MIN_BALLS_IN_PLAY ? lowerBetter(sq!, team.squared) : null].filter((v): v is number => v !== null) : [];
       rows.push({ player, pitchType: type, family: family ? FAMILY_LABEL[family] : null, velocity, spin,
         velocityGap: family === "ch" && primaryFb && velocity !== null ? primaryFb.velocity! - velocity : null,
-        ballsInPlay: balls.length, familyPitches: fam?.pitches ?? null,
+        ballsInPlay: contactBasis === "pitcher" ? ownInPlay.length : pitchBalls.length, familyPitches: fam?.pitches ?? null,
         strike: fam && fam.pitches >= MIN_FAMILY_PITCHES && teamPct ? clamp(100 * strikePct! / teamPct) : null,
         contact: contactParts.length ? mean(contactParts) : null, stuff: null, grade: null,
-        strikePct: strikePct === null ? null : 100 * strikePct, avgEvAgainst: ev, hardHitAgainst: hard === null ? null : 100 * hard, squaredAgainst: sq === null ? null : 100 * sq, missing: [] });
+        strikePct: strikePct === null ? null : 100 * strikePct, avgEvAgainst: ev, hardHitAgainst: hard === null ? null : 100 * hard, squaredAgainst: sq === null ? null : 100 * sq, contactBasis, missing: [] });
     }
   }
   // Stuff-lite: velocity and spin z-scores against teammates throwing the same pitch type (changeups: speed gap off the pitcher's main fastball).
@@ -104,7 +109,7 @@ export function pitchGrades(players: readonly CoachingPlayer[], stats: readonly 
   }
   for (const row of rows) {
     if (row.strike === null) row.missing.push(row.family ? `${MIN_FAMILY_PITCHES}+ ${row.family.toLowerCase()} pitches` : "a sheet strike family");
-    if (row.contact === null) row.missing.push(`${MIN_BALLS_IN_PLAY}+ balls in play`);
+    if (row.contact === null) row.missing.push(`${MIN_BALLS_IN_PLAY}+ balls in play against the pitcher`);
     if (row.stuff === null) row.missing.push(`${MIN_STUFF_PITCHERS}+ teammates with this pitch`);
     if (!row.missing.length) row.grade = PITCH_GRADE_WEIGHTS.strike * row.strike! + PITCH_GRADE_WEIGHTS.contact * row.contact! + PITCH_GRADE_WEIGHTS.stuff * row.stuff!;
   }
