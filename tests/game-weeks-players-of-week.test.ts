@@ -63,6 +63,7 @@ describe("players of the week", () => {
     // Only the viewer's own profile is linked; peers render as plain names.
     expect(html).not.toMatch(/href="\/athletes\/(?!fictional-3)/);
     expect(html).not.toContain('href="/top-performers"');
+    expect(html).toContain("which may not line up with exact calendar weeks");
   });
   it("shows nothing without five complete weekly lines", () => {
     const few = players.slice(0, 4);
@@ -79,5 +80,7 @@ describe("weekly profile trend", () => {
     expect(html).toContain('data-week-metric="qpa_pct"');
     expect(html).toContain('data-week-metric="pitching_whip"');
     expect(html).toContain("90.0%");
+    expect(html).toContain("added QPA counts between saved updates");
+    expect(html).not.toContain("Each column uses only");
   });
 });

@@ -12,6 +12,8 @@ import { loadHomeLeaderboards } from "@/lib/home-leaderboards-server";
 import { loadDashboardVisit } from "@/lib/personal-dashboard-server";
 import { loadWeeklySourceStatus } from "@/lib/weekly-source-checks";
 import { HomeSpotlight } from "@/components/home-spotlight";
+import { HomeTrending } from "@/components/home-trending";
+import { trendingPlayers } from "@/lib/home-trending";
 import { playersOfTheWeek } from "@/lib/home-spotlight";
 import { loadGameWeeks } from "@/lib/game-weeks-server";
 import { loadDesignNavigation } from "@/lib/design-navigation-server";
@@ -42,8 +44,14 @@ export default async function Overview({searchParams}:{searchParams:Promise<{pre
     activity={summary?<Suspense fallback={<HomeActivityPlaceholder/>}><HomeVisitActivity activity={activityPromise} visit={visit} staff={staff} athleteId={access.athleteId}/></Suspense>:undefined}
     streamedTrend={staff?(source,metric,updatedAt)=><Suspense fallback={null}><TeamGameTrend trends={trendsPromise} source={source} metric={metric} updatedAt={updatedAt}/></Suspense>:undefined}
     spotlight={canSeeBoards?<Suspense fallback={null}><StreamedSpotlight weeks={weeksPromise} photos={photosPromise} staff={staff}/></Suspense>:undefined}
+    trending={staff?<Suspense fallback={null}><StreamedTrending weeks={weeksPromise}/></Suspense>:undefined}
     leaderboardsSlot={<Suspense fallback={<HomeLeaderboardPlaceholder/>}><StreamedLeaderboards boards={leaderboardsPromise} photos={photosPromise}/></Suspense>}
     staff={staff} athleteId={access.athleteId} summary={summary} sourceStatus={sourceStatus} visit={visit} designNavigation={designNavigation}/></>;
+}
+
+async function StreamedTrending({weeks}:{weeks:ReturnType<typeof loadGameWeeks>|Promise<null>}){
+  const weekly=await weeks;
+  return <HomeTrending groups={weekly?trendingPlayers(weekly.players,weekly.weeks):null}/>;
 }
 
 async function StreamedSpotlight({weeks,photos,staff}:{weeks:ReturnType<typeof loadGameWeeks>|Promise<null>;photos:Promise<Map<string,string>>;staff:boolean}){

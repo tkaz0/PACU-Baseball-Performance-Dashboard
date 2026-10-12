@@ -6,3 +6,9 @@ const complete={pa:5,ab:4,base_hit:1,bb:1,hbp:0,sac_fly:0,sac_bunt:0,punchies:1,
 it("reports source-count conflicts once with a precise row link",()=>{const issues=reviewGameData(rows({...complete,ab:4,sac_fly:2,bb:0}),[]);expect(issues).toHaveLength(1);expect(issues[0]).toMatchObject({athleteId:"fictional",message:"AB + BB + HBP + Sac Fly exceeds PA."});expect(issues[0].href).toContain('range=A8:AC8');expect(obpReadyCount(rows({...complete,ab:4,sac_fly:2,bb:0}))).toBe(0);});
 it("does not invent errors from complete zero counts or empty data",()=>{expect(reviewGameData(rows(complete),[])).toEqual([]);expect(obpReadyCount(rows(complete))).toBe(1);expect(reviewGameData([],[])).toEqual([]);});
 it("flags missing rate inputs and impossible hard-hit totals",()=>{expect(reviewGameData(rows({ab:4}),[]).some(i=>i.message.includes("Missing counts"))).toBe(true);expect(reviewGameData(rows({...complete,hh_base_hit:5}),[]).some(i=>i.message.includes("Hard-hit"))).toBe(true);});
+it("labels weekly pitching review issues by period instead of a null game date",()=>{
+ const pitching=rows({pitches:5,strikes:8}).map(r=>({...r,source:"pitching_fall_2026" as const,scope:"pitching_event" as const,event_id:"fall-2026-week-3"}));
+ expect(reviewGameData(pitching,[])[0]?.source).toBe("Pitching · Fall Ball · Week 3");
+ expect(reviewGameData(pitching.map(r=>({...r,event_id:"fictional-game",played_on:"2026-10-10"})),[])[0]?.source).toBe("Pitching · Oct 10, 2026");
+ expect(reviewGameData(pitching.map(r=>({...r,event_id:null})),[])[0]?.source).toBe("Pitching · Period unavailable");
+});

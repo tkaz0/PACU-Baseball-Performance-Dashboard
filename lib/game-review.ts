@@ -3,13 +3,14 @@ import type {SharedGameStat} from "@/lib/game-server";
 import {countIssues,type GameLog} from "@/lib/game-log";
 import {battingRates} from "@/lib/batting-stats";
 import {GAME_SOURCES} from "@/lib/game-source-config";
+import {pitchingPeriodLabel} from "@/lib/game-source";
 export type GameReviewIssue={id:string;athleteId:string;source:string;message:string;href:string;action:string};
 export function reviewGameData(stats:readonly SharedGameStat[],logs:readonly GameLog[]):GameReviewIssue[]{
  const issues:GameReviewIssue[]=[],groups=new Map<string,SharedGameStat[]>();
  for(const row of stats){const key=JSON.stringify([row.source,row.athlete_id,row.snapshot_id,row.event_id]);groups.set(key,[...(groups.get(key)??[]),row]);}
  for(const [group,rows]of groups){const first=rows[0],qpa=first.source==="qpa_fall_2026",v=Object.fromEntries(rows.map(r=>[r.metric,r.value])),source=GAME_SOURCES[first.source];
  const href=`https://docs.google.com/spreadsheets/d/${source.spreadsheetId}/edit#gid=${source.sheetId}&range=A${first.source_row}:${qpa?"AC":"AE"}${first.source_row}`;
- const add=(id:string,message:string)=>issues.push({id:`${group}:${id}`,athleteId:first.athlete_id,source:qpa?"QPA · Fall totals":`Pitching · ${first.played_on}`,message,href,action:"Open Source Row"});
+ const add=(id:string,message:string)=>issues.push({id:`${group}:${id}`,athleteId:first.athlete_id,source:qpa?"QPA · Fall totals":`Pitching · ${pitchingPeriodLabel(first.event_id,first.played_on)}`,message,href,action:"Open Source Row"});
  if(qpa){
   const mapped=Object.fromEntries([...qpaBattingCounts(new Map(Object.entries(v)))].map(([k,n])=>[{base_hit:"h",pumps:"hr",sac_fly:"sf",sac_bunt:"sh",punchies:"k"}[k]??k,n]));
   for(const [i,message]of countIssues(mapped,{}).entries())add(`counts-${i}`,message);
