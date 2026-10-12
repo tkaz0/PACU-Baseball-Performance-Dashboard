@@ -28,7 +28,7 @@ const date = (value: string, withYear = false) => new Date(value.length === 10 ?
 const opportunity = (metric: TeamGameMetric) => metric.pending ? teamGameMetricStatus(metric) : metric.opportunities === undefined ? "No chances recorded yet" : metric.opportunityLabel === "outs" ? `${formatInnings(metric.opportunities)} IP` : countLabel(metric.opportunities,metric.opportunityLabel??"");
 
 function GameSnapshot({ summary, kind, trends = {}, streamedTrend }: { summary: TeamGameSummary; kind: "Hitting" | "Pitching"; trends?: Record<string, TrendPoint[]>; streamedTrend?: (metric: string, label: string) => ReactNode }) {
-  const metrics = (kind === "Hitting" ? ["batting_est_slg", "batting_est_iso", "batting_est_wobacon", "batting_hh_pct"] : ["pitching_k_bb", "pitching_k9", "pitching_bb9", "pitching_whip"]).flatMap(key => summary.rates.filter(m => m.metric === key));
+  const metrics = (kind === "Hitting" ? ["batting_ops", "batting_est_iso", "batting_est_wobacon", "batting_hh_pct"] : ["pitching_k_bb", "pitching_k9", "pitching_bb9", "pitching_whip"]).flatMap(key => summary.rates.filter(m => m.metric === key));
   const weak = summary.rates.find(m => m.metric === "weak_contact_pct"), hard = summary.rates.find(m => m.metric === "hard_contact_pct");
   const contactComplete = !!weak && !!hard && !weak.pending && !hard.pending && weak.value !== null && hard.value !== null && weak.opportunities === hard.opportunities;
   return <section className={styles.gameCard} data-discipline={kind.toLowerCase()} aria-label={`${kind} game snapshot`}>

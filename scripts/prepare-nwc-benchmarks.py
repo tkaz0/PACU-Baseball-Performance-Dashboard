@@ -33,13 +33,13 @@ def outs(ip):
     assert part in ('','0','1','2')
     return int(whole)*3+int(part or 0)
 def batting(rows):
-    values={k:[] for k in ['batting_avg','batting_obp','batting_est_slg','batting_est_iso','batting_est_wobacon','batting_bb_pct','batting_k_pct','batting_hr_pct','batting_sb_per_pa']}
+    values={k:[] for k in ['batting_avg','batting_obp','batting_ops','batting_est_slg','batting_est_iso','batting_est_wobacon','batting_bb_pct','batting_k_pct','batting_hr_pct','batting_sb_per_pa']}
     for r in rows:
         ab,h,d,t,hr,bb,hbp,k,sf,sh=[number(r,key) for key in ['AB','H','2B','3B','HR','BB','HBP','SO','SF','SH']]
         assert 0<=d+t+hr<=h<=ab and h+k<=ab and ab>0
         assert number(r,'TB')==h+d+2*t+3*hr
         pa=ab+bb+hbp+sf+sh; contact=ab-k+sf; tb=h+d+t+3*hr
-        results=[h/ab,(h+bb+hbp)/(ab+bb+hbp+sf),tb/ab,(d+t+3*hr)/ab,(.882*(h-d-t-hr)+1.252*(d+t)+2.037*hr)/contact,100*bb/pa,100*k/pa,100*hr/pa,number(r,'SB-ATT')/pa]
+        results=[h/ab,(h+bb+hbp)/(ab+bb+hbp+sf),(h+bb+hbp)/(ab+bb+hbp+sf)+tb/ab,tb/ab,(d+t+3*hr)/ab,(.882*(h-d-t-hr)+1.252*(d+t)+2.037*hr)/contact,100*bb/pa,100*k/pa,100*hr/pa,number(r,'SB-ATT')/pa]
         for key,value in zip(values,results): values[key].append(value)
     return {key:band(v,'lower' if key=='batting_k_pct' else 'higher') for key,v in values.items()}
 def pitching(rows):

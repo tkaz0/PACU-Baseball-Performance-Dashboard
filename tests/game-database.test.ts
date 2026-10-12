@@ -27,6 +27,8 @@ beforeAll(async()=>{
  await db.exec(readFileSync(new URL("202609150002_cumulative_pitching.sql",dir),"utf8"));
  await db.exec(readFileSync(new URL("202609280005_advanced_game_rates.sql",dir),"utf8"));
  await db.exec(readFileSync(new URL("202609280006_qpa_sac_fly_at_bats.sql",dir),"utf8"));
+ await db.exec(readFileSync(new URL("202610090005_eight_plus_pitch_pct.sql",dir),"utf8"));
+ await db.exec(readFileSync(new URL("202610120001_game_ops.sql",dir),"utf8"));
  await db.exec("create or replace function private.game_sync_now() returns timestamptz language sql stable set search_path='' as $$select '2026-09-15T12:00:00Z'::timestamptz$$;");
  for(const[id,role]of[[admin,"admin"],[coach,"coach"],[player,"player"],[unlinked,"player"]]){await db.query("insert into auth.users values($1)",[id]);await db.query("insert into public.app_accounts(user_id,is_active) values($1,true)",[id]);await db.query("insert into public.account_roles(user_id,role) values($1,$2)",[id,role]);}
  for(const[id,code]of[[a,"PAC-0001"],[b,"PAC-0002"]]){await db.query("insert into public.athletes(id,athlete_code,first_name,last_name) values($1,$2,'Fictional','Player')",[id,code]);await db.query("insert into public.athlete_seasons(athlete_id,season) values($1,'2026-27')",[id]);}
@@ -183,11 +185,11 @@ it("matches new SQL estimates/index to JS without exposing peer source data or i
  expect(own.find(r=>r.metric==="batting_production_plus")).toMatchObject({sampleSize:5,snapshotId:index.snapshotId});
  expect(own.find(r=>r.metric==="batting_production_plus")?.value).toBeCloseTo(index.value,12);
  const leaders=await asUser(player,async()=>(await db.query<{r:Record<string,unknown>[]}>("select public.game_leaderboards() r")).rows[0].r);
- for(const [metric,unit,opportunities] of [["batting_est_slg","avg",10],["batting_est_iso","avg",10],["batting_est_wobacon","avg",8],["batting_production_plus","index",13]])expect(leaders.find(r=>r.metric===metric&&r.code==="PAC-0001")).toMatchObject({unit,opportunities,sampleSize:5});
+ for(const [metric,unit,opportunities] of [["batting_ops","avg",13],["batting_est_slg","avg",10],["batting_est_iso","avg",10],["batting_est_wobacon","avg",8],["batting_production_plus","index",13]])expect(leaders.find(r=>r.metric===metric&&r.code==="PAC-0001")).toMatchObject({unit,opportunities,sampleSize:5});
  expect(leaders.filter(r=>r.code!=="PAC-0001").every(r=>r.profileId===null)).toBe(true);expect(await counts()).toEqual(before);
  await asUser(admin,()=>save(input.map(r=>r.athleteCode==="PAC-0001"&&r.metric==="hh_extra_base_hit"?{...r,value:4}:r),"9".repeat(64),"2026-09-14T12:00:00Z"));
  const invalid=await asUser(player,async()=>(await db.query<{r:Record<string,unknown>[]}>("select public.game_comparisons($1) r",[a])).rows[0].r);
- expect(invalid.some(r=>String(r.metric).startsWith("batting_est_")||r.metric==="batting_production_plus")).toBe(false);expect(invalid.some(r=>r.metric==="batting_avg")).toBe(true);
+ expect(invalid.some(r=>String(r.metric).startsWith("batting_est_")||["batting_ops","batting_production_plus"].includes(String(r.metric)))).toBe(false);expect(invalid.some(r=>r.metric==="batting_avg")).toBe(true);
 });
 it("matches cumulative WHIP/KBB with complete outs, omits zero walks and preserves own-player permissions",async()=>{
  const cols:Record<string,number>={innings_outs:18,h:19,bb_outcome:21,k:23};
@@ -209,7 +211,7 @@ it("accounts for legacy sacrifice flies consistently without rewriting source ob
  await asUser(coach,()=>save(payload));const before=await counts();
  const raw=await asUser(player,()=>read(a));expect(raw.find(r=>r.metric==="ab")?.value).toBe(5);
  const leaders=await asUser(player,async()=>(await db.query<{r:Record<string,unknown>[]}>("select public.game_leaderboards() r")).rows[0].r);
- for(const [metric,value,opportunities] of [["batting_avg",.5,4],["batting_obp",.4,5],["batting_est_slg",1.25,4],["batting_est_iso",.75,4],["batting_est_wobacon",(.882+2.037)/5,5],["batting_hh_pct",40,5]] as const){
+ for(const [metric,value,opportunities] of [["batting_ops",1.65,5],["batting_avg",.5,4],["batting_obp",.4,5],["batting_est_slg",1.25,4],["batting_est_iso",.75,4],["batting_est_wobacon",(.882+2.037)/5,5],["batting_hh_pct",40,5]] as const){
   expect(leaders.find(r=>r.metric===metric)).toMatchObject({value,opportunities});
  }
  for(const metric of battingPowerRates(raw as never))expect(leaders.find(r=>r.metric===metric.metric)?.value).toBeCloseTo(metric.value,12);

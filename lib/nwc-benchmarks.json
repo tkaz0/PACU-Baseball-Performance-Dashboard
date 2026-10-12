@@ -157,6 +157,17 @@
       "mean": 1.764409,
       "n": 9,
       "direction": "higher"
+    },
+    "batting_ops": {
+      "cuts": [
+        0.708241,
+        0.780117,
+        0.817126,
+        0.827035
+      ],
+      "mean": 0.782441,
+      "n": 9,
+      "direction": "higher"
     }
   },
   "player": {
@@ -312,6 +323,17 @@
       ],
       "mean": 2.303123,
       "n": 27,
+      "direction": "higher"
+    },
+    "batting_ops": {
+      "cuts": [
+        0.709922,
+        0.77401,
+        0.848443,
+        0.935509
+      ],
+      "mean": 0.819235,
+      "n": 71,
       "direction": "higher"
     }
   },

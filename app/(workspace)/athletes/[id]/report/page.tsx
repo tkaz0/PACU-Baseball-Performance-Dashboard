@@ -37,7 +37,7 @@ import styles from "./report.module.css";
 
 const REPORT_TESTS = 10;
 const REPORT_PITCHES = 8;
-const REPORT_GAME_KEYS = ["batting_production_plus", "batting_avg", "batting_obp", "batting_est_iso", "qpa_pct", "batting_bb_pct", "batting_k_pct", "pitching_whip", "pitching_k_bb", "pitching_r9", "pitching_k9", "pitching_bb9", "strike_pct"];
+const REPORT_GAME_KEYS = ["batting_production_plus", "batting_avg", "batting_obp", "batting_ops", "batting_est_iso", "qpa_pct", "batting_bb_pct", "batting_k_pct", "pitching_whip", "pitching_k_bb", "pitching_r9", "pitching_k9", "pitching_bb9", "strike_pct"];
 
 /** One authorized athlete read shared by the page and its title. */
 const loadReportAthlete = cache(async (id: string) => {

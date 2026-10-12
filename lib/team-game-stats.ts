@@ -76,6 +76,13 @@ export function teamGameSummary(stats: readonly SharedGameStat[], source: Shared
     ...[["batting_est_slg","SLG"],["batting_est_iso","ISO"]].map(([metric,label])=>rate(metric,label,"avg",["base_hit","hh_extra_base_hit","pumps","ab"],v=>{const p=battingPowerParts(v,true);return p?{top:metric==="batting_est_slg"?p.bases:p.xbh+3*p.hr,bottom:p.ab}:null;},"AB",true)),
     rate("batting_est_wobacon","wOBAcon","avg",["base_hit","hh_extra_base_hit","pumps","ab","punchies","sac_fly"],v=>{const p=battingPowerParts(v,true);return p&&v.get("punchies")!+p.hits<=p.ab?{top:p.weightedHits,bottom:p.ab-v.get("punchies")!+v.get("sac_fly")!}:null;},"contacts",true),
    ] : [simple("strike_pct", "Strike %", "strikes", "pitches", "%", "pitches"), ...[["pitching_k9","K/9","k"],["pitching_bb9","BB/9","bb_outcome"],["pitching_r9","Runs/9","r"]].map(([metric,label,key])=>rate(metric,label,"per9",[key,"innings_outs"],v=>({top:v.get(key)!,bottom:v.get("innings_outs")!}),"outs",true)), ...[["weak_contact_pct","Weak Contact %","weak_contact"],["hard_contact_pct","Hard Contact %","hard_contact"]].map(([metric,label,key])=>rate(metric,label,"%",["weak_contact","hard_contact"],v=>({top:v.get(key)!,bottom:v.get("weak_contact")!+v.get("hard_contact")!}),"classified contacts")), rate("pitching_whip","WHIP","decimal",["h","bb_outcome","innings_outs"],v=>({top:3*(v.get("h")!+v.get("bb_outcome")!),bottom:v.get("innings_outs")!}),"outs",true),rate("pitching_k_bb","K/BB","decimal",["k","bb_outcome"],v=>({top:v.get("k")!,bottom:v.get("bb_outcome")!}),"walks",true),...[["pitching_fb_strike_pct","Fastball Family","fb","fb_k"],["pitching_breaking_strike_pct","Breaking Ball","bb_pitch_family","bb_pitch_family_k"],["pitching_ch_strike_pct","Changeup","ch","ch_k"]].map(([metric,label,pitches,strikes])=>rate(metric,label,"%",[pitches,strikes],v=>({top:v.get(strikes)!,bottom:v.get(pitches)!}),"pitches")),];
+  if(qpa){
+    const obp=rates.find(r=>r.metric==="batting_obp")!,slg=rates.find(r=>r.metric==="batting_est_slg")!;
+    const complete=!obp.pending&&!slg.pending&&obp.value!==null&&slg.value!==null;
+    rates.push({metric:"batting_ops",label:"OPS",unit:"avg",value:complete?obp.value!+slg.value!:null,pending:obp.pending||slg.pending,
+      ...(complete?{opportunities:obp.opportunities,opportunityLabel:"OBP opportunities"}:{}),
+      ...(obp.pending||slg.pending?{pendingReason:obp.pendingReason==="conflict"||slg.pendingReason==="conflict"?"conflict" as const:"missing" as const}:{})});
+  }
   return { players: new Set(rows.map(r => r.athlete_id)).size, entries: entries.length,
     games: qpa ? 0 : new Set(rows.map(r => r.event_id)).size,
     updatedAt: rows.length ? rows.reduce((latest, r) => r.fetched_at > latest ? r.fetched_at : latest, rows[0].fetched_at) : null,

@@ -90,6 +90,7 @@ export const STAT_DEFINITIONS: Readonly<Record<string, string>> = {
   "metabolic age": "A device-generated comparison of estimated metabolism with its age reference data. It is not the player’s actual age.",
   "skeletal muscle index": "The skeletal muscle index reported by the device, in kg/m². Retained as reported without inferring its calculation method.",
   "waist-to-hip ratio": "Waist circumference divided by hip circumference, as reported by the device.",
+  game_log_ops: "On-base plus slugging from the selected dated game logs: OBP + SLG. These logs record doubles and triples separately, so their exact bases are used. Kept separate from the cumulative QPA sheet.",
   game_log_slg: "Slugging percentage: (Hits + Doubles + 2 × Triples + 3 × Home Runs) / AB. Uses complete recorded hit types from dated game logs, separate from QPA totals.",
   game_log_iso: "Isolated power: (Doubles + 2 × Triples + 3 × Home Runs) / AB. Requires complete extra-base-hit counts in the selected dated games.",
   batting_8plus_pct: "Patience rate: plate appearances that reached 8 or more pitches (the QPA sheet’s 8+ Pitch column) divided by plate appearances × 100. Long at-bats wear pitchers down and show patience; it is not a walk or on-base rate.",
@@ -120,6 +121,7 @@ export const STAT_DEFINITIONS: Readonly<Record<string, string>> = {
   fps: "First-pitch strikes recorded in the pitching sheet. This is a count; a first-pitch-strike percentage would also require a matching count of first-pitch opportunities.",
   innings_outs: "Innings pitched stored as outs. For example, 1.1 IP is four outs, not 1.1 decimal innings. The team also enters .33/.67 for one/two outs.",
   earned_runs: "Earned runs recorded separately in the ER column. Total runs allowed are never substituted for earned runs.",
+  batting_ops: "On-base plus slugging: OBP + SLG, using the unrounded values. Combines getting on base with hitting for power; higher is better. The dashboard counts combined doubles/triples as doubles, so OPS follows the same conservative slugging rule. Sample size shows OBP opportunities; SLG separately uses AB.",
   batting_est_slg: "Slugging in this dashboard: (Hits + HH Extra Base Hits + 3 × Pumps) / AB. HH Extra Base Hit contains all doubles/triples, excluding home runs. Singles count 1, doubles/triples 2, HR 4. This is a lower bound on actual SLG: each triple would add 1/AB. Uses QPA outcomes, not Full Swing distance.",
   batting_est_iso: "Isolated power in this dashboard: (HH Extra Base Hits + 3 × Pumps) / AB. Extra bases beyond a single; combined doubles/triples use the double value. Each actual triple would add 1/AB. A conservative estimate, not exact ISO.",
   batting_est_wobacon: "Weighted on-base average on contact in this dashboard: (0.882 × singles + 1.252 × doubles/triples + 2.037 × HR) / (AB − K + Sac Fly). Singles = Hits − HH Extra Base Hits − Pumps. Combined doubles/triples use the double weight. Fixed FanGraphs 2025 MLB reference weights; not calibrated to Pacific scoring and not an exit-velocity prediction. Excludes walks, HBP and strikeouts; sac bunts are excluded. Missing or inconsistent counts withhold the estimate.",
@@ -144,7 +146,7 @@ export const STAT_DEFINITIONS: Readonly<Record<string, string>> = {
 };
 
 const aliases: Readonly<Record<string, string>> = {
-  slg: "batting_est_slg", iso: "batting_est_iso", wobacon: "batting_est_wobacon", avg: "batting_avg", obp: "batting_obp", whip: "pitching_whip", "k/bb": "pitching_k_bb", "k/9": "pitching_k9", "bb/9": "pitching_bb9", "runs/9": "pitching_r9", "pac production+": "batting_production_plus",
+  ops: "batting_ops", slg: "batting_est_slg", iso: "batting_est_iso", wobacon: "batting_est_wobacon", avg: "batting_avg", obp: "batting_obp", whip: "pitching_whip", "k/bb": "pitching_k_bb", "k/9": "pitching_k9", "bb/9": "pitching_bb9", "runs/9": "pitching_r9", "pac production+": "batting_production_plus",
   fb_strike_pct: "pitching_fb_strike_pct", bb_pitch_family_strike_pct: "pitching_breaking_strike_pct", ch_strike_pct: "pitching_ch_strike_pct",
   subcutaneous_fat_pct:"subcutaneous fat", skeletal_muscle_pct:"skeletal muscle percentage", body_water_pct:"body water percentage", protein_pct:"protein percentage", bone_mass_pct:"bone mass percentage",
   "basal metabolic rate":"bmr", "basal metabolic rate (bmr)":"bmr", "skeletal muscle index (smi)":"skeletal muscle index", "waist-to-hip ratio (whr)":"waist-to-hip ratio",

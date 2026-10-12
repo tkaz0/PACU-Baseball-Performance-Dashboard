@@ -6,7 +6,7 @@ import { classifiedPitchSource } from "@/lib/imports/classified-pitch-results";
 const physicality = new Set(["height", "weight", "muscle_mass", "body_score", "body_fat_pct", "grip_strength", "grip_dominant", "grip_non_dominant"]);
 const testing = new Set(["home_to_first", "home_to_second", "boxer_t", "infield_velocity", "outfield_velocity"]);
 const hitting = new Set(["max_exit_velocity", "avg_exit_velocity", "avg_bat_speed", "max_bat_speed", "max_distance"]);
-const batting = new Set(["batting_production_plus", "batting_est_slg", "batting_est_wobacon","batting_avg", "batting_obp", "qpa_pct", "batting_hh_pct", "batting_bb_pct", "batting_k_pct", "pumps", "sb"]);
+const batting = new Set(["batting_production_plus", "batting_ops","batting_est_slg", "batting_est_wobacon","batting_avg", "batting_obp", "qpa_pct", "batting_hh_pct", "batting_bb_pct", "batting_k_pct", "pumps", "sb"]);
 const pitching = new Set(["pitching_whip", "pitching_k_bb","pitching_k9", "pitching_bb9", "pitching_r9", "strike_pct", "weak_contact_pct", "hard_contact_pct"]);
 
 /** Exact source + pitch type partitions; means require every contributing file's matching count. */

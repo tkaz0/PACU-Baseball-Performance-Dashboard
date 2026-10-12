@@ -46,6 +46,8 @@ export function loggedBattingRates(logs:readonly GameLog[]):LogRate[]{
  const rates:LogRate[]=[];const add=(label:string,keys:string[],top:number,bottom:number,unit:"avg"|"%",opportunityLabel:string)=>{if(keys.every(k=>totals[k]!==undefined)&&bottom>0)rates.push({label,value:top/bottom*(unit==="%"?100:1),unit,opportunities:bottom,opportunityLabel});};
  const v=totals;add("AVG",["h","ab"],v.h,v.ab,"avg","AB");add("OBP",["h","bb","hbp","ab","sf"],v.h+v.bb+v.hbp,v.ab+v.bb+v.hbp+v.sf,"avg","OBP opportunities");
  const tb=v.h+v.doubles+2*v.triples+3*v.hr;add("SLG",["h","doubles","triples","hr","ab"],tb,v.ab,"avg","AB");add("ISO",["doubles","triples","hr","ab"],v.doubles+2*v.triples+3*v.hr,v.ab,"avg","AB");
+ const obp=rates.find(r=>r.label==="OBP"),slg=rates.find(r=>r.label==="SLG");
+ if(obp&&slg)rates.push({label:"OPS",value:obp.value+slg.value,unit:"avg",opportunities:obp.opportunities,opportunityLabel:obp.opportunityLabel});
  add("HR %",["hr","pa"],v.hr,v.pa,"%","PA");add("BB %",["bb","pa"],v.bb,v.pa,"%","PA");add("K %",["k","pa"],v.k,v.pa,"%","PA");return rates;
 }
 

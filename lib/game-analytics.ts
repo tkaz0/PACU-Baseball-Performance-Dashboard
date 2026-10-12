@@ -1,4 +1,4 @@
-import { pitchingExtraRates } from "@/lib/advanced-game-stats";
+import { battingPowerRates, pitchingExtraRates } from "@/lib/advanced-game-stats";
 import { pitchingRates, pitchingContactRates, pitchSplits } from "@/lib/pitching-stats";
 import { cumulativePitching } from "@/lib/pitching-cumulative";
 import type { SharedGameStat } from "@/lib/game-server";
@@ -14,7 +14,7 @@ export function qpaAnalytics(stats:readonly SharedGameStat[]):AnalyticsReading[]
  for(const [athleteId,rows] of groups){if(new Set(rows.map(r=>r.snapshot_id)).size!==1)continue;
   const first=rows[0],base={athleteId,date:pacificDate(first.fetched_at),importedAt:first.fetched_at,source:"QPA · Fall cumulative (snapshot date)"};
   for(const row of rows)if(metrics[row.metric])result.push({...base,id:JSON.stringify([row.snapshot_id,athleteId,row.metric]),metric:`qpa_game_${row.metric}`,label:metrics[row.metric],unit:row.unit,value:row.value});
-  for(const rate of battingRates(rows).filter(rate=>["batting_avg","batting_bb_pct","batting_k_pct","batting_hh_pct"].includes(rate.metric)))result.push({...base,id:JSON.stringify([first.snapshot_id,athleteId,rate.metric]),metric:rate.metric,label:`Game ${rate.label}`,unit:rate.unit,value:rate.value});
+  for(const rate of [...battingRates(rows),...battingPowerRates(rows)].filter(rate=>["batting_ops","batting_avg","batting_bb_pct","batting_k_pct","batting_hh_pct"].includes(rate.metric)))result.push({...base,id:JSON.stringify([first.snapshot_id,athleteId,rate.metric]),metric:rate.metric,label:`Game ${rate.label}`,unit:rate.unit,value:rate.value});
  }
  return result;
 }

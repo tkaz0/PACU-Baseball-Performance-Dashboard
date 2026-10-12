@@ -47,7 +47,7 @@ export function statBenchmark(metric:string,context:StatGuideContext={}):Benchma
     const unit=key.endsWith("_pct")?"%":key.startsWith("batting_")?"avg":["pitching_k9","pitching_bb9","pitching_r9"].includes(key)?"per9":"decimal";
     if(context.unit&&context.unit!==unit&&!(unit==="avg"&&["ratio","decimal"].includes(context.unit))&&!(unit==="decimal"&&context.unit==="ratio"))return null;
     return {...b,cuts:readableCuts(key,b.cuts,unit),title:`D3 Northwest Conference · 2025 ${scope==="team"?"Teams":"Players"}`,url:reference.source,unit,
-      note:`${scope==="team"?"All 9 teams":batting?"Published hitting table; 71 players with at least 75 AB":"Published pitching table; 27 pitchers with at least 20 IP"}. Dashboard bands use the 20th/40th/60th/80th percentiles, not official NWC grades. Regular-season/full-season opponents differ from Fall intrasquads.${key.includes("est_")?" Recalculated with the dashboard’s doubles/triples-as-doubles rule and fixed contact weights.":""}`};
+      note:`${scope==="team"?"All 9 teams":batting?"Published hitting table; 71 players with at least 75 AB":"Published pitching table; 27 pitchers with at least 20 IP"}. Dashboard bands use the 20th/40th/60th/80th percentiles, not official NWC grades. Regular-season/full-season opponents differ from Fall intrasquads.${(key.includes("est_")||key==="batting_ops")?" Recalculated with the dashboard’s doubles/triples-as-doubles rule and fixed contact weights.":""}`};
   }
   // Team pooled rates must never be judged against the distribution of individual players.
   return scope==="player"&&context.cohort?pacificBenchmark(key,context.cohort,context):null;

@@ -1,3 +1,4 @@
+import { battingRates } from "@/lib/batting-stats";
 import { qpaBattingCounts } from "@/lib/qpa-at-bats";
 import type { SharedGameStat } from "@/lib/game-server";
 import type { GameComparison } from "@/lib/game-metrics";
@@ -37,6 +38,8 @@ export function battingPowerRates(rows:readonly SharedGameStat[]):AdvancedGameRa
   {metric:"batting_est_slg",label:"SLG",value:p.bases/p.ab,unit:"avg",opportunities:p.ab,opportunityLabel:"AB"},
   {metric:"batting_est_iso",label:"ISO",value:(p.xbh+3*p.hr)/p.ab,unit:"avg",opportunities:p.ab,opportunityLabel:"AB"}
  ];
+ const obp=battingRates(rows).find(r=>r.metric==="batting_obp");
+ if(obp)result.push({metric:"batting_ops",label:"OPS",value:obp.value+p.bases/p.ab,unit:"avg",opportunities:p.ab+v.get("bb")!+v.get("hbp")!+v.get("sac_fly")!,opportunityLabel:"OBP opportunities"});
  const k=v.get("punchies"),sf=v.get("sac_fly");
  if(Number.isSafeInteger(k)&&Number.isSafeInteger(sf)&&k!>=0&&sf!>=0&&k!+p.hits<=p.ab){
   const contacts=p.ab-k!+sf!;

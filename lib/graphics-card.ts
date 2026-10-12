@@ -76,7 +76,7 @@ export function compactGraphicsSample(sample: string): string {
 }
 function metricNotes(metrics: Pick<GraphicsMetric, "key">[]): string[] {
   const keys = metrics.map(metric => metric.key), notes: string[] = [];
-  if (keys.some(key => /batting_est_(slg|iso)/.test(key))) notes.push("SLG / ISO count each double or triple as two bases; home runs as four.");
+  if (keys.some(key => /batting_ops|batting_est_(slg|iso)/.test(key))) notes.push("OPS / SLG / ISO count each double or triple as two bases; home runs as four.");
   if (keys.some(key => key.includes("wobacon"))) notes.push("wOBAcon uses fixed MLB reference weights and treats doubles/triples as doubles.");
   if (keys.some(key => key.includes("production_plus"))) notes.push("PAC Production+ is a Pacific team index (100 = team); not MLB wRC+.");
   return notes;

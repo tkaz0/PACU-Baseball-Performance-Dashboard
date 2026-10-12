@@ -14,7 +14,7 @@ const updated = (rows: readonly SharedGameStat[]) => new Date(rows.map(row => ro
 type SheetStat = {metric:string;label:string;display:string;value?:number|null;unit:string;sample?:string|null};
 function StatSheet({title,items,source,eventId=""}:{title:string;items:SheetStat[];source:string;eventId?:string}) {
   if (!items.length) return null;
-  return <section className={styles.statSection} aria-label={title}><h4>{title}</h4><dl className={styles.sheet} style={{"--stat-columns":Math.min(items.length,6)} as CSSProperties}>{items.map(item => <div key={item.metric}><dt>{item.label}<StatInfo metric={item.metric} label={item.label} value={item.value??undefined} source={source} unit={item.unit} period="fall_2026" eventId={eventId}/></dt><dd>{item.display}</dd>{item.sample && <small>{item.sample}</small>}</div>)}</dl></section>;
+  return <section className={styles.statSection} aria-label={title}><h4>{title}</h4><dl className={styles.sheet} style={{"--stat-columns":Math.min(items.length,7)} as CSSProperties}>{items.map(item => <div key={item.metric}><dt>{item.label}<StatInfo metric={item.metric} label={item.label} value={item.value??undefined} source={source} unit={item.unit} period="fall_2026" eventId={eventId}/></dt><dd>{item.display}</dd>{item.sample && <small>{item.sample}</small>}</div>)}</dl></section>;
 }
 function recorded(rows:readonly SharedGameStat[],keys:readonly string[]):SheetStat[] {
   return keys.flatMap(key => {const row=rows.find(row=>row.metric===key);return row?[{metric:key,label:labels[key]??key,value:row.value,unit:row.unit,display:key==="innings_outs"?formatInnings(row.value):row.unit==="%"?`${row.value.toFixed(1)}%`:String(row.value)}]:[];});
@@ -23,7 +23,7 @@ function Samples({rows,source,metric,eventId=null}:{rows:readonly SharedGameStat
   const count=gameOpportunities(rows,source,metric,eventId),label=gameSampleText(source,metric,count);
   return label?<span className={styles.sample}>{label}{isEarlyGameSample(source,metric,count)?" · Early sample":""}</span>:null;
 }
-const productionKeys=["batting_production_plus","batting_avg","batting_obp","batting_est_slg","batting_est_iso","batting_est_wobacon"];
+const productionKeys=["batting_production_plus","batting_avg","batting_obp","batting_ops","batting_est_slg","batting_est_iso","batting_est_wobacon"];
 const rateKeys=["qpa_pct","batting_hh_pct","batting_bb_pct","batting_k_pct","batting_8plus_pct","batting_hr_pct","batting_sb_per_pa"];
 const pitchingTotals=["innings_outs","pitches","strikes","k","bb_outcome","h","r","hbp"];
 export function AthleteGameStats({stats,comparisons=[],showDetails=true}:{stats:SharedGameStat[];comparisons?:GameComparison[];showDetails?:boolean}) {

@@ -30,7 +30,7 @@ function sample(source:string,metric:string,count:number|null|undefined):string{
  const early=(source==="qpa_fall_2026"&&label==="PA"&&count<20)||(label==="pitches"&&count<50);
  return `${label==="outs"?`${formatInnings(count)} IP`:countLabel(count,label)}${early?" · Early sample":""}`;
 }
-const gameOrder=["batting_production_plus","batting_avg","batting_obp","batting_est_slg","batting_est_iso","batting_hh_pct","batting_est_wobacon","batting_bb_pct","batting_k_pct","qpa_pct","pumps","sb","batting_sb_per_pa","gdp","pitching_r9","pitching_k9","pitching_bb9","pitching_whip","strike_pct","pitching_k_bb","weak_contact_pct","hard_contact_pct"];
+const gameOrder=["batting_production_plus","batting_avg","batting_obp","batting_ops","batting_est_slg","batting_est_iso","batting_hh_pct","batting_est_wobacon","batting_bb_pct","batting_k_pct","qpa_pct","pumps","sb","batting_sb_per_pa","gdp","pitching_r9","pitching_k9","pitching_bb9","pitching_whip","strike_pct","pitching_k_bb","weak_contact_pct","hard_contact_pct"];
 /** Read-only comparison of the already authorized staff projection; no raw source or identity writes. */
 export function buildGroupComparison(data:CoachingData,selectedIds:string[],category:CoachingCategory|"Game Stats",today:string,maxGap=30,gameSource:"qpa"|"pitching"="qpa"){
  const ids=new Set(selectedIds),players=[...new Map(data.players.filter(p=>ids.has(p.id)).map(p=>[p.id,p])).values()];

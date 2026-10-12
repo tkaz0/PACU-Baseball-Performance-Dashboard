@@ -5,7 +5,7 @@ import { gameSampleText } from "@/lib/game-opportunities";
 import { gameOverviewMetrics } from "@/lib/game-overview";
 import type { GameWeek } from "@/lib/game-weeks";
 
-const HITTING = ["qpa_pct", "batting_avg", "batting_obp", "batting_est_slg", "batting_est_iso", "batting_k_pct"];
+const HITTING = ["qpa_pct", "batting_avg", "batting_obp", "batting_ops","batting_est_slg", "batting_est_iso", "batting_k_pct"];
 const PITCHING = ["pitching_whip", "pitching_k_bb", "pitching_r9", "strike_pct", "pitching_k9"];
 
 type Line = { week: number; label: string; detail: string; values: Map<string, { value: number; unit: string; label: string; sample: string | null; direction: string }> };
