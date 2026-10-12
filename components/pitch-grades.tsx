@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { pitchTypeLabel } from "@/lib/imports/pitch-assignments";
-import { MIN_BALLS_IN_PLAY, MIN_FAMILY_PITCHES, MIN_STUFF_PITCHERS, PITCH_GRADE_WEIGHTS, type PitchGradeRow } from "@/lib/pitch-grades";
+import { MIN_BALLS_IN_PLAY, MIN_FAMILY_PITCHES, MIN_STUFF_PITCHERS, PLAYER_BASELINE_MIN_PITCHERS, PITCH_GRADE_WEIGHTS, type PitchGradeRow } from "@/lib/pitch-grades";
 import styles from "./pitch-grades.module.css";
 
 const score = (v: number | null) => v === null ? <span className={styles.na}>—</span> : <span className={styles.score} data-band={v >= 110 ? "high" : v <= 90 ? "low" : "mid"}>{Math.round(v)}</span>;
 const one = (v: number | null, suffix = "") => v === null ? "—" : `${v.toFixed(1)}${suffix}`;
 
-export function PitchGradesMethod() {
-  return <p className={styles.note}>Pitch+ (Team) is a Pacific-only outcome grade, not Stuff+: there is no movement, release or run-value model. 100 is the team average. Strike+ ({PITCH_GRADE_WEIGHTS.strike * 100}%) compares the game sheet&apos;s strike rate for that pitch family (fastball, breaking ball or changeup) with the team rate, so pitches in one family share it ({MIN_FAMILY_PITCHES}+ family pitches). Contact+ ({PITCH_GRADE_WEIGHTS.contact * 100}%) compares average exit velocity, hard-hit rate (90+ mph) and Squared Up against this pitch with every linked in-game ball against Pacific pitchers (likely fouls left out). A pitch uses its own balls in play once it has {MIN_BALLS_IN_PLAY}+; until then Contact+ uses all of the pitcher&apos;s balls in play ({MIN_BALLS_IN_PLAY}+), marked &ldquo;all pitches&rdquo;, so those pitches share one contact score. Stuff-lite ({PITCH_GRADE_WEIGHTS.stuff * 100}%) scores velocity and spin against teammates throwing the same pitch type; changeups and splitters use their speed gap below the pitcher&apos;s main fastball ({MIN_STUFF_PITCHERS}+ teammates). Parts are capped at 50–150. The overall grade appears only when all three parts meet their minimums. Cutters count in the fastball family. Swing-and-miss is not recorded, so strikeout stuff is not graded. Small samples move quickly.</p>;
+export function PitchGradesMethod({ stuffMinimum = MIN_STUFF_PITCHERS }: { stuffMinimum?: number } = {}) {
+  return <p className={styles.note}>Pitch+ (Team) is a Pacific-only outcome grade, not Stuff+: there is no movement, release or run-value model. 100 is the team average. Strike+ ({PITCH_GRADE_WEIGHTS.strike * 100}%) compares the game sheet&apos;s strike rate for that pitch family (fastball, breaking ball or changeup) with the team rate, so pitches in one family share it ({MIN_FAMILY_PITCHES}+ family pitches). Contact+ ({PITCH_GRADE_WEIGHTS.contact * 100}%) compares average exit velocity, hard-hit rate (90+ mph) and Squared Up against this pitch with every linked in-game ball against Pacific pitchers (likely fouls left out). A pitch uses its own balls in play once it has {MIN_BALLS_IN_PLAY}+; until then Contact+ uses all of the pitcher&apos;s balls in play ({MIN_BALLS_IN_PLAY}+), marked &ldquo;all pitches&rdquo;, so those pitches share one contact score. Stuff-lite ({PITCH_GRADE_WEIGHTS.stuff * 100}%) scores velocity and spin against teammates throwing the same pitch type; changeups and splitters use their speed gap below the pitcher&apos;s main fastball ({stuffMinimum}+ pitchers with that pitch). Parts are capped at 50–150. The overall grade appears only when all three parts meet their minimums. Cutters count in the fastball family. Swing-and-miss is not recorded, so strikeout stuff is not graded. Small samples move quickly.</p>;
 }
 
 export function PitchGradesTable({ rows, showPitcher = true }: { rows: readonly PitchGradeRow[]; showPitcher?: boolean }) {
@@ -32,5 +32,18 @@ export async function PitcherPitchGrades({ athleteId, load }: { athleteId: strin
   return <section className={styles.panel} aria-label="Pitch grades" data-testid="pitcher-pitch-grades">
     <header><h2>Pitch+ (Team)</h2><p>Staff view · 100 = Pacific average · <Link prefetch={false} href="/pitch-grades">All pitchers</Link></p></header>
     <PitchGradesTable rows={rows} showPitcher={false}/><PitchGradesMethod/>
+  </section>;
+}
+
+/** A player's own Pitch+ against the published aggregate team baselines; no other pitcher's values are read. */
+export async function OwnPitchGrades({ load }: { load: Promise<{ rows: PitchGradeRow[]; computedAt: string; contactUnavailable: boolean } | null> }) {
+  let result: Awaited<typeof load>;
+  try { result = await load; } catch { return <p role="status" className="muted text-sm">Pitch grades are temporarily unavailable.</p>; }
+  if (!result || !result.rows.length) return null;
+  const updated = new Date(result.computedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/Los_Angeles" });
+  return <section className={styles.panel} aria-label="Pitch grades" data-testid="own-pitch-grades">
+    <header><h2>Pitch+ (Team)</h2><p>100 = Pacific average · Team baselines updated {updated}</p></header>
+    {result.contactUnavailable && <p role="status" className="muted text-sm">Contact against is temporarily unavailable, so Contact+ is missing.</p>}
+    <PitchGradesTable rows={result.rows} showPitcher={false}/><PitchGradesMethod stuffMinimum={PLAYER_BASELINE_MIN_PITCHERS}/>
   </section>;
 }

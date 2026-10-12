@@ -208,7 +208,9 @@ it.each(["physicality","game-stats","hitting","pitching","practice","progress"])
  expect(fake.contacts).toHaveBeenCalledTimes(tab==="hitting"||tab==="practice"?1:0);
  if(tab==="hitting"||tab==="practice")expect(fake.contacts).toHaveBeenCalledWith(trusted,athlete.id,tab==="practice"?"practice":"in_game");
  expect(fake.movement).toHaveBeenCalledTimes(tab==="physicality"?1:0);
- expect(fake.games).toHaveBeenCalledTimes(tab==="game-stats"?1:0);
+ // Pitching adds only the player's own sheet counts for their own Pitch+.
+ expect(fake.games).toHaveBeenCalledTimes(tab==="game-stats"||tab==="pitching"?1:0);
+ if(tab==="pitching")expect(fake.games).toHaveBeenCalledWith(trusted,athlete.id);
  expect(fake.logs).not.toHaveBeenCalled();
  const calls=fake.rpc.mock.calls.map(([name])=>name);
  expect(calls.includes("athlete_swing_videos")).toBe(tab==="hitting"||tab==="practice");

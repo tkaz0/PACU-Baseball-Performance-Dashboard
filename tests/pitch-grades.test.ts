@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { pitchGrades, PITCH_FAMILY } from "@/lib/pitch-grades";
+import { ownPitchGrades, parsePitchGradeBaselines, pitchGrades, playerVisibleBaselines, PITCH_FAMILY } from "@/lib/pitch-grades";
 import { PitchGradesTable } from "@/components/pitch-grades";
 import type { CoachingPlayer } from "@/lib/coaching-tools";
 import type { SharedGameStat } from "@/lib/game-server";
@@ -54,5 +54,20 @@ describe("Pitch+ (Team)", () => {
     const ch = rows.filter(r => r.pitchType === "Changeup").sort((a, b) => a.player.code.localeCompare(b.player.code));
     expect(ch.map(r => r.velocityGap)).toEqual([8, 10, 12]);
     expect(ch[2].stuff!).toBeGreaterThan(ch[0].stuff!);
+  });
+  it("publishes only aggregate baselines, dropping pitch-type spreads with fewer than five pitchers", () => {
+    const { baselines } = pitchGrades(players, stats, arsenals, contacts);
+    const visible = playerVisibleBaselines(baselines);
+    expect(visible.types).toEqual({});
+    expect(JSON.stringify(visible)).not.toContain("SYN-");
+    const five = [1, 2, 3, 4, 5].map(pitcher);
+    const big = pitchGrades(five, five.flatMap((p, i) => [stat(p.id, "fb", 40), stat(p.id, "fb_k", 20 + 2 * i)]), five.map((p, i) => ({ athleteId: p.id, pitches: [pitch("Four-Seam Fastball", 80 + i, 2100 + 50 * i)] })), new Map(five.map((p, i) => [p.id, Array.from({ length: 8 }, () => ball(85 + i))])));
+    const published = parsePitchGradeBaselines(JSON.parse(JSON.stringify(playerVisibleBaselines(big.baselines))))!;
+    expect(published.types["Four-Seam Fastball"].velocity?.n).toBe(5);
+    // A player's own grade from their own inputs matches the staff grade for that pitcher.
+    const own = ownPitchGrades(five[4], five.flatMap((p, i) => [stat(p.id, "fb", 40), stat(p.id, "fb_k", 20 + 2 * i)]), [pitch("Four-Seam Fastball", 84, 2300)], Array.from({ length: 8 }, () => ball(89)), published)[0];
+    const staff = big.rows.find(r => r.player.code === "SYN-5")!;
+    expect(own.grade).toBeCloseTo(staff.grade!, 2);
+    expect(parsePitchGradeBaselines({ teamStrike: {}, contact: {}, types: { Slider: { spin: { n: 3, mean: 2400, sd: 100 } } } })).toBeNull();
   });
 });
