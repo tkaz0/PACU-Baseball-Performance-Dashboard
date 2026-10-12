@@ -33,6 +33,11 @@ import { Sparkline } from "@/components/charts/sparkline";
 import { fallArsenalPitches } from "@/lib/pitch-arsenal";
 import { pitchTypeLabel } from "@/lib/imports/pitch-assignments";
 import { PrintButton } from "@/components/print-button";
+import { loadFullSwingContacts } from "@/lib/full-swing-contacts-server";
+import { loadContactsAllowed } from "@/lib/contacts-allowed-server";
+import { loadOwnPitchGrades } from "@/lib/pitch-grades-server";
+import { squaredUpSummary } from "@/lib/contact-trends";
+import { exitMeetingPacificDate } from "@/lib/exit-meeting";
 import styles from "./report.module.css";
 
 const REPORT_TESTS = 10;
@@ -65,7 +70,15 @@ export default async function PlayerReport({ params }: { params: Promise<{ id: s
   const [shared, gameStats, gameComparisons, headshot] = await Promise.all([
     loadAthletePerformance(access, athlete, { includePercentiles: true }), loadGameStats(access, athlete.id), loadGameComparisons(access, athlete.id), loadAthleteHeadshot(access, athlete.id),
   ]);
-  const fallSummaries = await loadPlayerFallSummaries(access, athlete.athlete_code, shared.measurements).catch(() => []);
+  // Squared Up and Pitch+ are optional lines; a failed reader leaves them out rather than the report.
+  const [fallSummaries, contacts, allowed] = await Promise.all([
+    loadPlayerFallSummaries(access, athlete.athlete_code, shared.measurements).catch(() => []),
+    profileShowsHitting(season) ? loadFullSwingContacts(access, athlete.id, "in_game").catch(() => null) : Promise.resolve(null),
+    profileShowsPitching(season) ? loadContactsAllowed(access, athlete.id).catch(() => null) : Promise.resolve(null),
+  ]);
+  const grades = profileShowsPitching(season) ? await loadOwnPitchGrades(access, { id: athlete.id, code: athlete.athlete_code, name: athleteName(athlete), academicClass: "", position: "", playerType: "", bats: "", throws: "" }, shared.measurements, allowed).catch(() => null) : null;
+  const squared = contacts ? squaredUpSummary(contacts.filter(c => c.category !== "practice" && c.playedOn >= "2026-09-01" && c.playedOn <= "2026-12-31")) : null;
+  const gradeFor = (pitchType: string) => grades?.rows.find(row => row.pitchType === pitchType)?.grade ?? null;
   const today = pacificTestingDate();
   const performance = getPlayerPerformance({ readings: shared.measurements, batches: shared.batches, athleteCode: athlete.athlete_code, cohortAthleteCodes: [], percentileOverrides: shared.percentileOverrides, fallSummaries });
   // Same filters as the profile so printed numbers match what the player sees there.
@@ -120,10 +133,10 @@ export default async function PlayerReport({ params }: { params: Promise<{ id: s
         <section aria-label="Game stats"><h2>Game Stats · Fall 2026</h2>{gameGroups.length ? <table className={styles.table}><thead><tr><th>Stat</th><th className={styles.right}>Value</th><th className={styles.center}>Pctl</th></tr></thead>{gameGroups.map(group => <tbody key={group.label}><tr className={styles.groupRow}><th colSpan={3} scope="colgroup">{group.label}</th></tr>{group.rows.map(game => {
           const pct = game.comparison && game.comparison.sampleSize >= 5 && game.comparison.percentile !== null ? Math.round(game.comparison.percentile) : null, sample = gameSampleText(game.source, game.metric, game.opportunities);
           return <tr key={`${game.source}-${game.metric}`}><td><strong>{game.label}</strong><small>{sample}{isEarlyGameSample(game.source, game.metric, game.opportunities) ? " · Early sample" : ""}</small></td><td className={styles.num}>{gameValue(game.value, game.unit)}</td><td className={styles.center}><Pctl value={pct} neutral={game.direction === "neutral"}/></td></tr>;
-        })}</tbody>)}</table> : <p className={styles.muted}>No game stats yet.</p>}</section>
+        })}</tbody>)}</table> : <p className={styles.muted}>No game stats yet.</p>}{squared && squared.count > 0 && <p className={styles.more} data-testid="report-squared-up">Squared Up (In-Game, Full Swing): <strong>{squared.avgSquaredUp!.toFixed(1)}%</strong> of potential exit velocity · average potential {squared.avgPotential!.toFixed(1)} mph · {squared.count} of {squared.total} contacts</p>}</section>
       </div>
-      {arsenal.length > 0 && <section className={styles.arsenal} aria-label="Pitch arsenal"><h2>Pitch Arsenal · Fall 2026</h2><div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Pitch</th><th>Setting</th><th className={styles.right}>Avg Velo</th><th className={styles.right}>Max Velo</th><th className={styles.right}>Avg Spin</th><th className={styles.right}>Max Spin</th><th className={styles.right}>Pitches</th></tr></thead><tbody>{arsenal.map(pitch => <tr key={pitch.source}><td><strong>{pitchTypeLabel(pitch.pitchType)}</strong></td><td>{pitch.category}</td><td className={styles.num}>{pitch.averageVelocity === null ? "—" : `${pitch.averageVelocity.toFixed(1)} mph${pitch.velocityBasis === "latest" ? "†" : ""}`}</td><td className={styles.num}>{pitch.maxVelocity === null ? "—" : `${pitch.maxVelocity.toFixed(1)} mph`}</td><td className={styles.num}>{pitch.averageSpin === null ? "—" : `${formatSpin(pitch.averageSpin)} rpm${pitch.spinBasis === "latest" ? "†" : ""}`}</td><td className={styles.num}>{pitch.maxSpin === null ? "—" : `${formatSpin(pitch.maxSpin)} rpm`}</td><td className={styles.num}>{pitch.count ?? "—"}</td></tr>)}</tbody></table></div>
-        {(hiddenPitches > 0 || latestFallback) && <p className={styles.more}>{latestFallback ? "† Latest-session average (a session count could not be verified). " : ""}{hiddenPitches > 0 ? `+${hiddenPitches} more on the full profile.` : ""}</p>}</section>}
+      {arsenal.length > 0 && <section className={styles.arsenal} aria-label="Pitch arsenal"><h2>Pitch Arsenal · Fall 2026</h2><div className={styles.tableWrap}><table className={styles.table}><thead><tr><th>Pitch</th><th>Setting</th><th className={styles.right}>Avg Velo</th><th className={styles.right}>Max Velo</th><th className={styles.right}>Avg Spin</th><th className={styles.right}>Max Spin</th><th className={styles.right}>Pitches</th>{grades && <th className={styles.right}>Pitch+</th>}</tr></thead><tbody>{arsenal.map(pitch => <tr key={pitch.source}><td><strong>{pitchTypeLabel(pitch.pitchType)}</strong></td><td>{pitch.category}</td><td className={styles.num}>{pitch.averageVelocity === null ? "—" : `${pitch.averageVelocity.toFixed(1)} mph${pitch.velocityBasis === "latest" ? "†" : ""}`}</td><td className={styles.num}>{pitch.maxVelocity === null ? "—" : `${pitch.maxVelocity.toFixed(1)} mph`}</td><td className={styles.num}>{pitch.averageSpin === null ? "—" : `${formatSpin(pitch.averageSpin)} rpm${pitch.spinBasis === "latest" ? "†" : ""}`}</td><td className={styles.num}>{pitch.maxSpin === null ? "—" : `${formatSpin(pitch.maxSpin)} rpm`}</td><td className={styles.num}>{pitch.count ?? "—"}</td>{grades && <td className={styles.num}>{pitch.category === "Practice" || gradeFor(pitch.pitchType) === null ? "—" : Math.round(gradeFor(pitch.pitchType)!)}</td>}</tr>)}</tbody></table></div>
+        {grades && <p className={styles.more}>Pitch+ (Team): In-Game outcome grade, 100 = Pacific average (strike rate 40%, contact against 40%, velocity/spin 20%); baselines updated {leaderboardTestDate(exitMeetingPacificDate(grades.computedAt))}.</p>}{(hiddenPitches > 0 || latestFallback) && <p className={styles.more}>{latestFallback ? "† Latest-session average (a session count could not be verified). " : ""}{hiddenPitches > 0 ? `+${hiddenPitches} more on the full profile.` : ""}</p>}</section>}
       <footer className={styles.footer}>Percentiles compare with at least five Pacific teammates on the same test, source and unit; red is the top of the team. Outlined values are body or spin positions, not grades. Small game samples can swing widely. PACU Baseball Performance is an independent project for Pacific Baseball; it is not an official university application.</footer>
     </article>
   </div>;

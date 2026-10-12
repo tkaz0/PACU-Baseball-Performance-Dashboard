@@ -76,6 +76,19 @@ describe("exit meeting report",()=>{
   expect(parseExitMeetingOptions({meetingDate:"2026-10-01",talkingPoints:" Review plan "})).toEqual({meetingDate:"2026-10-01",talkingPoints:"Review plan",format:"meeting"});
   for(const value of [{meetingDate:"2026-02-30"},{meetingDate:"2026-09-27",talkingPoints:"x".repeat(1601)},{meetingDate:"2026-09-27",talkingPoints:"bad\u0000text"}])expect(()=>parseExitMeetingOptions(value)).toThrow();
  });
+ it("adds Squared Up, Contact Allowed, Pitch+ and week-by-week rates from own data only",()=>{
+  const squared={...contact,squaredUp:.8,potentialExitVelocity:100};
+  const allowed=[{playedOn:"2026-09-26",category:"intrasquad" as const,exitVelocity:92,launchAngle:5,direction:0,distance:120,squaredUp:.9,potentialExitVelocity:98,pitchType:null},{playedOn:"2026-10-10",category:"game" as const,exitVelocity:78,launchAngle:30,direction:10,distance:250,squaredUp:null,potentialExitVelocity:null,pitchType:null}];
+  const week=(n:number,counts:Record<string,number>)=>({week:n,source:"qpa_fall_2026" as const,label:`Week ${n}`,detail:"Fictional",withheld:0,rows:Object.entries(counts).map(([metric,value])=>({...game(metric,value),athlete_id:"PAC-9999"}))});
+  const counts=(h:number)=>({pa:5,ab:4,base_hit:h,pumps:0,hh_extra_base_hit:0,bb:1,hbp:0,sac_fly:0,punchies:1,qpa:3});
+  const grade={player:{id:fictionalExitAthlete.id,code:"PAC-9999",name:"Fictional Boxer",academicClass:"",position:"",playerType:"",bats:"",throws:""},pitchType:"Four-Seam Fastball",family:"Fastball family",velocity:84,spin:2200,velocityGap:null,ballsInPlay:9,familyPitches:40,strike:110,contact:105,stuff:98,grade:105.6,strikePct:65,avgEvAgainst:84,hardHitAgainst:30,squaredAgainst:80,contactBasis:"pitch" as const,missing:[]};
+  const report=build({contacts:[squared],contactsAllowed:allowed,weeks:{hitting:[week(1,counts(1)),week(2,counts(2))],pitching:[]},pitchGrades:{rows:[grade],computedAt:"2026-10-12T20:00:00Z"}});
+  expect(report.sections.find(s=>s.id==="contact-in_game")!.rows.find(r=>r.label==="Squared Up")).toMatchObject({value:"80.0%",sample:"1 of 1 contacts"});
+  const against=report.sections.find(s=>s.id==="contact-allowed")!.rows;expect(against.find(r=>r.label==="Average Exit Velocity Against")!.value).toBe("85.0 mph");expect(against.find(r=>r.label.startsWith("Hard Hit"))!.value).toBe("50.0%");
+  expect(report.sections.find(s=>s.id==="pitch-grades")!.rows[0]).toMatchObject({label:"4-Seam Fastball · Pitch+",value:"106",basis:"Strike+ 110 · Contact+ 105 · Stuff-lite 98"});
+  const weeks=report.sections.find(s=>s.id==="weeks-qpa_fall_2026")!;expect(weeks.rows.find(r=>r.metricKey==="batting_avg")!.value).toBe(".500");expect(weeks.rows.find(r=>r.metricKey==="batting_avg")!.trend).toHaveLength(2);
+  expect(JSON.stringify(report)).not.toContain("PRIVATE-SOURCE");
+ });
 });
 
 export function fictionalExitReport(): ExitMeetingReport {

@@ -8,6 +8,10 @@ import { loadGameComparisons } from "@/lib/game-comparison-server";
 import { loadMovementScreening } from "@/lib/movement-server";
 import { loadFullSwingContacts } from "@/lib/full-swing-contacts-server";
 import { loadPlayerFallSummaries } from "@/lib/player-fall-summaries-server";
+import { loadContactsAllowed } from "@/lib/contacts-allowed-server";
+import { loadAthleteGameWeeks } from "@/lib/game-weeks-server";
+import { loadOwnPitchGrades } from "@/lib/pitch-grades-server";
+import { profileShowsPitching } from "@/lib/player-profile-layout";
 import { buildExitMeetingReport, exitMeetingFormat, type ExitMeetingFormat } from "@/lib/exit-meeting";
 
 type Access = Awaited<ReturnType<typeof requireAccess>>;
@@ -30,6 +34,16 @@ export async function loadExitMeetingReport(access: Access, athleteId: string, f
     selectedFormat === "detailed" ? loadMovementScreening(access, athleteId, athlete.athlete_code) : Promise.resolve(null),
     selectedFormat === "detailed" ? loadFullSwingContacts(access, athleteId) : Promise.resolve([]),
   ]);
-  const fallSummaries = await loadPlayerFallSummaries(access, athlete.athlete_code, performance.measurements).catch(() => []);
-  return buildExitMeetingReport({ athlete, ...performance, games, comparisons, movement, contacts, fallSummaries, generatedAt: new Date().toISOString() }, selectedFormat);
+  const season = athlete.athlete_seasons.find(s => s.season === "2026-27"), pitcher = profileShowsPitching(season);
+  // Optional sections: a failed reader omits its section rather than the whole report.
+  const [fallSummaries, contactsAllowed, weeks] = await Promise.all([
+    loadPlayerFallSummaries(access, athlete.athlete_code, performance.measurements).catch(() => []),
+    pitcher ? loadContactsAllowed(access, athleteId).catch(() => null) : Promise.resolve(null),
+    loadAthleteGameWeeks(access, athleteId).catch(() => null),
+  ]);
+  const pitchGrades = pitcher ? await loadOwnPitchGrades(access, { id: athlete.id, code: athlete.athlete_code, name: `${athlete.preferred_name ?? athlete.first_name} ${athlete.last_name}`, academicClass: "", position: "", playerType: "", bats: "", throws: "" }, performance.measurements, contactsAllowed).catch(() => null) : null;
+  const report = buildExitMeetingReport({ athlete, ...performance, games, comparisons, movement, contacts, fallSummaries, contactsAllowed, weeks, pitchGrades, generatedAt: new Date().toISOString() }, selectedFormat);
+  const unavailable = [...(pitcher && contactsAllowed === null ? ["Contact Allowed"] : []), ...(pitcher && pitchGrades === null ? ["Pitch+"] : []), ...(weeks === null ? ["Week by Week"] : [])];
+  if (unavailable.length) report.notes.push(`Temporarily unavailable in this report: ${unavailable.join(", ")}. Other sections are complete.`);
+  return report;
 }

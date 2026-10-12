@@ -23,6 +23,11 @@ import { getRenphoMuscleBalance } from "@/lib/renpho-muscle-balance";
 import { isMovementRom, MOVEMENT_LABELS, movementTone, type MovementColor, type MovementReport } from "@/lib/movement-screening";
 import type { SavedContact } from "@/lib/full-swing-contacts-server";
 import { contactQuality } from "@/lib/contact-quality";
+import { squaredUpSummary } from "@/lib/contact-trends";
+import { contactAllowedSummary, type AllowedContact } from "@/lib/contacts-allowed";
+import type { PitchGradeRow } from "@/lib/pitch-grades";
+import { fallBallWeekDate, fallBallWeekDates, type GameWeek } from "@/lib/game-weeks";
+import { gameSampleText } from "@/lib/game-opportunities";
 import { compactExitMeetingReport } from "@/lib/exit-meeting-compact";
 
 export type ExitMeetingRow = {
@@ -58,6 +63,7 @@ const row = (label: string, value: string, source: string, date: string, basis =
 const displayReading = (value: number, metric: string, unit: string, source: string) => metric === "height" ? formatHeight(value, unit) ?? `${value} ${unit}` : `${formatMetricNumber(value, metric, source, value.toLocaleString("en-US", { maximumFractionDigits: unit === "s" ? 3 : 2 }))}${unit === "%" ? "" : " "}${unit}`;
 export const exitMeetingPacificDate = (stamp: string) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(stamp));
 const dateOf = (rows: readonly SharedGameStat[]) => { const stamp = rows.map(r => r.fetched_at).sort().at(-1); return stamp ? exitMeetingPacificDate(stamp) : ""; };
+const WEEK_HITTING = ["batting_ops", "qpa_pct", "batting_obp", "batting_avg", "batting_k_pct"], WEEK_PITCHING = ["pitching_whip", "pitching_k_bb", "pitching_r9", "strike_pct", "pitching_k9"];
 const gameLabels: Record<string, string> = { pa: "Plate Appearances", qpa: "Quality Plate Appearances", ab: "At Bats", hh_base_hit: "HH Base Hit", hh_extra_base_hit: "HH Extra Base Hit", pumps: "Home Runs", base_hit: "Hits", three_eight_hh: "3-8 Hard Hit", eight_plus_pitches: "8+ Pitch Appearances", bb: "Walks", rbi: "RBI", sac_bunt: "Sacrifice Bunts", moving_runner: "Moved Runner", hbp: "Hit by Pitch", punchies: "Strikeouts", ab_control: "AB Control", sb: "Stolen Bases", gdp: "Grounded into Double Play", sac_fly: "Sacrifice Flies", qpa_pct: "QPA %", pitches: "Pitches", strikes: "Strikes", fb: "Fastball Family", fb_k: "Fastball Family Strikes", bb_pitch_family: "Breaking Balls", bb_pitch_family_k: "Breaking Ball Strikes", ch: "Changeups", ch_k: "Changeup Strikes", baf: "BAF (Sheet Label)", fps: "FPS (Sheet Label)", h: "Hits Allowed", r: "Runs Allowed", bb_outcome: "Walks Allowed", k: "Strikeouts", innings_outs: "Innings Pitched", weak_contact: "Weak Contacts", hard_contact: "Hard Contacts", strike_pct: "Strike %" };
 
 /** A shareable, numerical report projection. Never serialize source files, hashes, rows, emails, or staff-only notes. */
@@ -66,6 +72,9 @@ export function buildExitMeetingReport(input: {
   percentileOverrides: readonly PlayerPercentileOverride[]; games: readonly SharedGameStat[];
   comparisons: readonly GameComparison[]; movement: MovementReport | null; contacts?: readonly SavedContact[]; generatedAt: string;
   fallSummaries?: readonly PlayerFallSummary[];
+  /** Own contact against (pitchers), own week-by-week sheet counts and own Pitch+ rows; null when unavailable. */
+  contactsAllowed?: readonly AllowedContact[] | null; weeks?: { hitting: GameWeek[]; pitching: GameWeek[] } | null;
+  pitchGrades?: { rows: readonly PitchGradeRow[]; computedAt: string } | null;
 }, format: ExitMeetingFormat = "meeting"): ExitMeetingReport {
   const { athlete } = input;
   if (input.measurements.some(r => r.athlete_code !== athlete.athlete_code) || input.games.some(r => r.athlete_id !== athlete.id) || input.movement && input.movement.athleteCode !== athlete.athlete_code) throw new Error("Report player identity could not be verified.");
@@ -111,6 +120,16 @@ export function buildExitMeetingReport(input: {
   }
   const cumulative = cumulativePitching(input.games);
   if (gameMetrics.some(g => g.source === "pitching_fall_2026")) add("pitch-splits", "Pitch Execution", "Pitching sheet · Fall to date", pitchSplits(cumulative).flatMap(p => p.strikePct === null ? [] : [row(`${p.label} Strike %`, `${p.strikePct.toFixed(1)}%`, "Pitching Fall Sheet", dateOf(cumulative), "Updated snapshot", { sample: `${p.strikes} strikes / ${p.pitches} pitches` })]));
+  if (pitchingRole && input.contactsAllowed?.length) {
+    const allowed = contactAllowedSummary(input.contactsAllowed), dates = input.contactsAllowed.map(c => c.playedOn).sort(), range = `${dates[0]} to ${dates.at(-1)}`;
+    const pct = (label: string, value: number | null) => value === null ? [] : [row(label, `${value.toFixed(1)}%`, "Full Swing · In-Game", range, "Balls in play against", { sample: countLabel(allowed.count, "balls in play") })];
+    if (allowed.count) add("contact-allowed", "Contact Allowed · In-Game", "Full Swing · Batted balls linked to this pitcher, likely fouls left out", [
+      ...(allowed.avgEv === null ? [] : [row("Average Exit Velocity Against", `${allowed.avgEv.toFixed(1)} mph`, "Full Swing · In-Game", range, `Max ${allowed.maxEv!.toFixed(1)} mph`, { sample: countLabel(allowed.count, "balls in play") })]),
+      ...pct("Hard Hit Against · 90+ mph", allowed.hardHitPct), ...(allowed.squaredUp === null ? [] : [row("Squared Up Against", `${allowed.squaredUp.toFixed(1)}%`, "Full Swing · In-Game", range, "Average share of potential exit velocity", { sample: `${allowed.squaredCount} of ${allowed.count} balls in play` })]),
+      ...pct("Ground Ball Share", allowed.groundPct), ...pct("Line Drive Share", allowed.linePct), ...pct("Fly Ball Share", allowed.flyPct), ...pct("Pop-Up Share", allowed.popupPct),
+    ], "Lower exit velocity and hard-hit rate against are better. Batted-ball shares use MLB Statcast launch-angle ranges and describe how the ball left the bat, not hit outcomes.");
+  }
+  if (pitchingRole && input.pitchGrades?.rows.length) add("pitch-grades", "Pitch+ (Team)", `100 = Pacific average · Team baselines updated ${exitMeetingPacificDate(input.pitchGrades.computedAt)}`, input.pitchGrades.rows.map(g => row(`${pitchTypeLabel(g.pitchType)} · Pitch+`, g.grade === null ? "Needs data" : String(Math.round(g.grade)), "Pitching Sheet + Full Swing", exitMeetingPacificDate(input.pitchGrades!.computedAt), [["Strike+", g.strike], ["Contact+", g.contact], ["Stuff-lite", g.stuff]].map(([label, value]) => `${label} ${value === null ? "—" : Math.round(value as number)}`).join(" · "), { sample: g.grade === null ? `Needs ${g.missing.join(", ")}` : g.contactBasis === "pitcher" ? "Contact+ uses all pitches" : null })), "A Pacific-only outcome grade, not Stuff+: Strike+ 40% (sheet family strike rate vs team), Contact+ 40% (exit velocity, hard-hit and Squared Up against vs team), Stuff-lite 20% (velocity and spin vs teammates with the same pitch, 5+ pitchers). Swing-and-miss is not recorded.");
   // Keep each classified session separate, including multiple files on the same day.
   const classified = input.measurements.filter(r => pitchingRole && classifiedPitchSource(r.source) && r.measured_at >= "2026-09-01" && r.measured_at <= "2026-12-31");
   const sessions = new Map<string, Measurement[]>();
@@ -139,8 +158,24 @@ export function buildExitMeetingReport(input: {
     }
     for (const context of ["in_game", "practice"] as const) {
         const contacts = (input.contacts ?? []).filter(c => c.playedOn >= "2026-09-01" && c.playedOn <= "2026-12-31" && (c.category === "practice" ? "practice" : "in_game") === context), quality = contactQuality(contacts);
-        if (quality.count) add(`contact-${context}`, `Contact Quality · ${context === "in_game" ? "In-Game" : "Practice"}`, "Full Swing · Saved paired exit velocity and launch angle", [["Hard Hit · 90+ mph", quality.hardHitPct], ["Launch Angle · 8-32°", quality.sweetSpotPct], ["Both Windows", quality.bothPct]].map(([label, value]) => row(String(label), `${Number(value).toFixed(1)}%`, "Full Swing", `${contacts.map(c => c.playedOn).sort()[0]} to ${contacts.map(c => c.playedOn).sort().at(-1)}`, "Fall saved contacts", { sample: `${quality.count} paired contacts` })), "These percentages describe batted balls with both readings. They are not batting average, hit outcomes, or the QPA sheet's HH %.");
+        const range = `${contacts.map(c => c.playedOn).sort()[0]} to ${contacts.map(c => c.playedOn).sort().at(-1)}`, squared = squaredUpSummary(contacts);
+        const squaredRows = squared.count ? [row("Squared Up", `${squared.avgSquaredUp!.toFixed(1)}%`, "Full Swing", range, "Average share of potential exit velocity", { metricKey: "squared_up", sample: `${squared.count} of ${squared.total} contacts` }), row("Potential Exit Velocity", `${squared.avgPotential!.toFixed(1)} mph`, "Full Swing", range, `Average at 100% squared up · Max ${squared.maxPotential!.toFixed(1)} mph`, { sample: `${squared.count} of ${squared.total} contacts` })] : [];
+        if (quality.count) add(`contact-${context}`, `Contact Quality · ${context === "in_game" ? "In-Game" : "Practice"}`, "Full Swing · Saved paired exit velocity and launch angle", [...[["Hard Hit · 90+ mph", quality.hardHitPct], ["Launch Angle · 8-32°", quality.sweetSpotPct], ["Both Windows", quality.bothPct]].map(([label, value]) => row(String(label), `${Number(value).toFixed(1)}%`, "Full Swing", range, "Fall saved contacts", { sample: `${quality.count} paired contacts` })), ...squaredRows], "These percentages describe batted balls with both readings. They are not batting average, hit outcomes, or the QPA sheet's HH %. Squared Up is Full Swing's actual exit velocity as a share of the potential from that bat speed and pitch speed.");
     }
+  }
+  const weekDates = fallBallWeekDates();
+  for (const [source, list, metrics] of [["qpa_fall_2026", input.weeks?.hitting ?? [], WEEK_HITTING], ["pitching_fall_2026", input.weeks?.pitching ?? [], WEEK_PITCHING]] as const) {
+    if (source === "qpa_fall_2026" ? !layout.showHitting : !pitchingRole) continue;
+    const lines = list.flatMap(week => { const rows = week.rows.map(r => ({ ...r, athlete_id: athlete.id })); const values = rows.length ? gameOverviewMetrics(rows, []) : []; return values.length ? [{ week, values }] : []; });
+    const latest = lines.at(-1);
+    if (!latest) continue;
+    add(`weeks-${source}`, `Week by Week · ${source === "qpa_fall_2026" ? "Hitting" : "Pitching"}`, `Each Fall Ball week's own counts · Latest ${latest.week.label}${fallBallWeekDate(latest.week.week) ? ` (${fallBallWeekDate(latest.week.week)})` : ""}`, metrics.flatMap(metric => {
+      const current = latest.values.find(v => v.metric === metric);
+      if (!current) return [];
+      const history = lines.flatMap(line => { const v = line.values.find(x => x.metric === metric), date = weekDates[line.week.week]; return v && date ? [{ date, value: v.value }] : []; });
+      const earlier = lines.slice(0, -1).flatMap(line => { const v = line.values.find(x => x.metric === metric); return v ? [`${line.week.label} ${gameValue(v.value, v.unit)}`] : []; });
+      return [row(current.label, gameValue(current.value, current.unit), source === "qpa_fall_2026" ? "QPA Fall Sheet" : "Pitching Fall Sheet", weekDates[latest.week.week] ?? latest.week.detail, earlier.length ? `${latest.week.label} only · Earlier: ${earlier.join(", ")}` : `${latest.week.label} only`, { metricKey: metric, sample: gameSampleText(source, metric, current.opportunities), trend: history.length >= 2 ? history.slice(-8) : undefined })];
+    }), "Week rates use only that week's counts with the same definitions as the Fall totals. Hitting weeks are the change between saved cumulative sheet updates; a week whose counts went down is withheld. Small weekly samples move quickly.");
   }
   const renpho = getRenphoReports(input.measurements.filter(r => r.measured_at >= "2026-06-01" && r.measured_at <= "2026-12-31"), [...input.batches], athlete.athlete_code)[0];
   if (renpho) {
