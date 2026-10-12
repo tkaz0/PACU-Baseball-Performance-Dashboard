@@ -16,6 +16,11 @@ function pacificDay(timestamp: string): string {
 /** Owner-confirmed Fall Ball week dates; sheet updates for a week may be saved days later. */
 export const FALL_BALL_WEEK_DATES: Readonly<Record<number, string>> = { 1: "2026-09-12", 2: "2026-09-26", 3: "2026-10-10" };
 const ordinalDay = (day: number) => `${day}${day % 100 >= 11 && day % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][day % 10] ?? "th"}`;
+/** The Fall Ball game week a sheet save covers: the latest confirmed BDL game date on or before the save day. */
+export function fallBallWeekThrough(day: string): { week: number; date: string } | null {
+  const weeks = Object.entries(FALL_BALL_WEEK_DATES).map(([week, date]) => ({ week: Number(week), date })).filter(w => w.date <= day).sort((a, b) => a.date.localeCompare(b.date));
+  return weeks.at(-1) ?? null;
+}
 export function fallBallWeekDate(week: number): string | null {
   const date = FALL_BALL_WEEK_DATES[week];
   if (!date) return null;

@@ -29,7 +29,7 @@ it("never uses a current-week update, and falls back to the latest earlier updat
   expect(change).toMatchObject({ previousDate: "2026-09-29", fallback: true, direction: "up" });
   expect(change.percent).toBeCloseTo(10);
   const html = renderToStaticMarkup(createElement(TeamGameTrendDisplay, { trends, source, metric: metric(), updatedAt: "2026-10-14T16:00:00Z", compact: true }));
-  expect(html).toContain("vs Sep 29"); expect(html).toContain("No update was saved last week");
+  expect(html).toContain("vs Week 2 · Sep 26"); expect(html).toContain("No update was saved last week");
   trends.snapshotDates![source] = ["2026-10-12", "2026-10-14"];
   trends[source]!.batting_avg = [{ date: "2026-10-12", value: .31 }, { date: "2026-10-14", value: .33 }];
   expect(teamWeekChange(trends, source, metric(), "2026-10-14T16:00:00Z")).toBeNull();
@@ -78,9 +78,15 @@ it("handles a zero baseline, unchanged results, declines and tiny movements hone
 });
 it("renders a compact tappable badge with relative change and actual dates, without the full chart", () => {
   const html = renderToStaticMarkup(createElement(TeamGameTrendDisplay, { trends: history(), source, metric: metric(), updatedAt: at, compact: true }));
-  for (const text of ["<details", "<summary", "10.0%", "vs last week", "Oct 9, 2026", "Oct 12, 2026", "not percentage points", 'data-tone="good"']) expect(html).toContain(text);
+  for (const text of ["<details", "<summary", "10.0%", "vs Week 2 · Sep 26", "Oct 9, 2026", "Oct 12, 2026", "not percentage points", 'data-tone="good"']) expect(html).toContain(text);
   expect(html).not.toContain("<svg");
   expect(renderToStaticMarkup(createElement(TeamGameTrendDisplay, { trends: {}, source, metric: metric(), updatedAt: at, compact: true }))).toBe("");
   const zero = renderToStaticMarkup(createElement(TeamGameTrendDisplay, { trends: history("batting_avg", 0, .33), source, metric: metric(), updatedAt: at }));
   expect(zero).toContain("New"); expect(zero).not.toContain("Infinity");
+});
+it("names the comparison by BDL game week when both saves fall in different Fall Ball weeks", () => {
+  const trends: TeamGameTrends = { snapshotDates: { pitching_fall_2026: ["2026-09-28", "2026-10-12"] }, pitching_fall_2026: { pitching_whip: [{ date: "2026-09-28", value: 1.5 }, { date: "2026-10-12", value: 1.65 }] } };
+  const whip: TeamGameMetric = { metric: "pitching_whip", label: "WHIP", value: 1.65, unit: "decimal", pending: false };
+  const html = renderToStaticMarkup(createElement(TeamGameTrendDisplay, { trends, source: "pitching_fall_2026", metric: whip, updatedAt: "2026-10-12T18:00:00Z", compact: true }));
+  for (const text of ["vs Week 2 · Sep 26", "through Week 2 (Sep 26 games; sheet saved Sep 28, 2026)", "through Week 3 (Oct 10 games", 'data-tone="bad"']) expect(html).toContain(text);
 });
