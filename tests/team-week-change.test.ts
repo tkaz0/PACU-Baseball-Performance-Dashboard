@@ -19,12 +19,19 @@ it("compares against the final saved rate of the previous Monday–Sunday Pacifi
   expect(change.previousDate).toBe("2026-10-09");
   expect(change.currentDate).toBe("2026-10-12");
   expect(change.percent).toBeCloseTo(10);
-  expect(change).toMatchObject({ direction: "up", tone: "good" });
+  expect(change).toMatchObject({ direction: "up", tone: "good", fallback: false });
 });
-it("does not use a current-week update or reach back across a missing prior week", () => {
+it("never uses a current-week update, and falls back to the latest earlier update when last week has none", () => {
   const trends = history();
-  trends.snapshotDates![source] = ["2026-09-30", "2026-10-12", "2026-10-14"];
-  trends[source]!.batting_avg = [{ date: "2026-09-30", value: .2 }, { date: "2026-10-12", value: .3 }, { date: "2026-10-14", value: .33 }];
+  trends.snapshotDates![source] = ["2026-09-29", "2026-10-12", "2026-10-14"];
+  trends[source]!.batting_avg = [{ date: "2026-09-29", value: .3 }, { date: "2026-10-12", value: .31 }, { date: "2026-10-14", value: .33 }];
+  const change = teamWeekChange(trends, source, metric(), "2026-10-14T16:00:00Z")!;
+  expect(change).toMatchObject({ previousDate: "2026-09-29", fallback: true, direction: "up" });
+  expect(change.percent).toBeCloseTo(10);
+  const html = renderToStaticMarkup(createElement(TeamGameTrendDisplay, { trends, source, metric: metric(), updatedAt: "2026-10-14T16:00:00Z", compact: true }));
+  expect(html).toContain("vs Sep 29"); expect(html).toContain("No update was saved last week");
+  trends.snapshotDates![source] = ["2026-10-12", "2026-10-14"];
+  trends[source]!.batting_avg = [{ date: "2026-10-12", value: .31 }, { date: "2026-10-14", value: .33 }];
   expect(teamWeekChange(trends, source, metric(), "2026-10-14T16:00:00Z")).toBeNull();
 });
 it("uses Pacific calendar weeks across UTC midnight and daylight saving time", () => {

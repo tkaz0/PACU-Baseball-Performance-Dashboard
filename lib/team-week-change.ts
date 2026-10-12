@@ -5,6 +5,8 @@ import type { TeamGameMetric } from "@/lib/team-game-stats";
 
 export type TeamWeekChange = {
   currentDate: string; previousDate: string; previousValue: number;
+  /** True when the previous Monday–Sunday week had no saved update and the latest earlier update was used. */
+  fallback: boolean;
   percent: number | null; direction: "up" | "down" | "same";
   tone: "good" | "bad" | "neutral";
 };
@@ -23,10 +25,10 @@ export function teamWeekChange(trends: TeamGameTrends, source: SharedGameStat["s
   const mondayOffset = (day.getUTCDay() + 6) % 7;
   const thisMonday = day.getTime() - mondayOffset * 86_400_000;
   const previousMonday = thisMonday - 7 * 86_400_000;
-  const previousDate = dates.filter(date => {
-    const timestamp = Date.parse(`${date}T12:00:00Z`);
-    return timestamp >= previousMonday && timestamp < thisMonday;
-  }).at(-1);
+  const before = dates.filter(date => Date.parse(`${date}T12:00:00Z`) < thisMonday);
+  const lastWeek = before.filter(date => Date.parse(`${date}T12:00:00Z`) >= previousMonday).at(-1);
+  // Owner choice (October 12): if last week had no saved update, compare with the latest earlier one.
+  const previousDate = lastWeek ?? before.at(-1);
   if (!previousDate) return null;
   // The final saved version of the previous week is authoritative, even if pending.
   const previous = points.find(p => p.date === previousDate);
@@ -37,5 +39,5 @@ export function teamWeekChange(trends: TeamGameTrends, source: SharedGameStat["s
   const tone = direction === "same" || preference === "neutral" ? "neutral" : (direction === "up") === (preference === "higher") ? "good" : "bad";
   const percent = previous.value === 0 ? difference === 0 ? 0 : null : difference / previous.value * 100;
   if (percent !== null && !Number.isFinite(percent)) return null;
-  return { currentDate, previousDate, previousValue: previous.value, percent, direction, tone };
+  return { currentDate, previousDate, previousValue: previous.value, percent, direction, tone, fallback: !lastWeek };
 }
