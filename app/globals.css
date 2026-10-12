@@ -956,6 +956,8 @@ html[data-theme="light"] .sidebar-rule, html[data-theme="light"] .workspace-nav-
 /* Page headers: actions wrap under the title instead of squeezing it. */
 .workspace-shell .page-head { flex-wrap: wrap; }
 .workspace-shell .page-heading-copy { flex: 1 1 420px; min-width: 0; }
+/* Stacked headers on phones: the 420px basis would become height and leave a gap under the title. */
+@media (max-width: 540px) { .workspace-shell .page-heading-copy { flex-basis: auto; } }
 /* Profile tabs on phones: 12px labels in a scrollable row. */
 @media (max-width: 600px) {
   .profile-tab-navigation { overflow-x: auto; scroll-snap-type: x mandatory; }
