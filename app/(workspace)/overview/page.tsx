@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { HomeActivityPlaceholder, HomeCoachingPulse, HomeVisitActivity } from "@/components/home-activity";
 import { TeamGameTrend } from "@/components/team-game-trend";
+import { PlayerWeek } from "@/components/player-week";
 import { loadOwnGameTrends, loadTeamGameTrends } from "@/lib/game-trends-server";
 import { requireRenderAccess as requireAccess } from "@/lib/render-access";
 import { canImportPresentedAccess } from "@/lib/access-preview";
@@ -49,6 +50,7 @@ export default async function Overview({searchParams}:{searchParams:Promise<{pre
     spotlight={canSeeBoards?<Suspense fallback={null}><StreamedSpotlight weeks={weeksPromise} photos={photosPromise} staff={staff}/></Suspense>:undefined}
     trending={staff?<Suspense fallback={null}><StreamedTrending weeks={weeksPromise}/></Suspense>:undefined}
     leaderboardsSlot={<Suspense fallback={<HomeLeaderboardPlaceholder/>}><StreamedLeaderboards boards={leaderboardsPromise} photos={photosPromise}/></Suspense>}
+    playerWeek={ownTrends&&summary?<Suspense fallback={null}><PlayerWeek trends={trendsPromise} activity={activityPromise} batting={summary.batting} pitching={summary.pitching}/></Suspense>:undefined}
     staff={staff} athleteId={access.athleteId} summary={summary} sourceStatus={sourceStatus} visit={visit} designNavigation={designNavigation}/></>;
 }
 

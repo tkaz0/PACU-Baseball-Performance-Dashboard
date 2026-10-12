@@ -1,0 +1,13 @@
+.card { border:1px solid var(--line-subtle); border-radius:16px; background:var(--surface-panel); padding:16px 18px; display:grid; gap:12px; }
+.card h2 { font-size:19px; letter-spacing:-.02em; margin:0; }
+.kicker { font-size:12px; letter-spacing:.13em; text-transform:uppercase; font-weight:800; color:var(--text-secondary); margin:0 0 4px; }
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; }
+.jump { border-radius:10px; padding:12px 14px; background:#dcfce7; color:#14532d; display:grid; gap:2px; }
+:global(html[data-theme="dark"]) .jump { background:#153727; color:#bbf7d0; }
+.jump strong { font-size:28px; line-height:1.1; font-variant-numeric:tabular-nums; }
+.jump span, .jump small, .bests small { font-size:12px; }
+.bests { list-style:none; margin:0; padding:0; display:grid; gap:8px; }
+.bests li { display:flex; justify-content:space-between; gap:12px; border-bottom:1px solid var(--line-subtle); padding-bottom:6px; }
+.bests li div:last-child { text-align:right; font-variant-numeric:tabular-nums; }
+.bests small { display:block; color:var(--text-secondary); }
+.empty, .note { color:var(--text-secondary); font-size:13px; margin:0; }

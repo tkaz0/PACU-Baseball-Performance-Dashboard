@@ -6,7 +6,7 @@ import { loadAthletePerformance } from "@/lib/performance-server";
 import { loadGameStats } from "@/lib/game-server";
 import { profileMeasurementVisible } from "@/lib/player-profile-layout";
 import { buildHomeSummary, type HomeSummary } from "@/lib/home-summary";
-import type { VisitDigest } from "@/lib/dashboard-visit-digest";
+import type { VisitBest, VisitDigest } from "@/lib/dashboard-visit-digest";
 import type { coachUpdateDigest } from "@/lib/coach-update-digest";
 import { pacificTestingDate } from "@/lib/testing-checklist";
 import { buildVisitDigest, visitMetricKey } from "@/lib/dashboard-visit-digest";
@@ -59,11 +59,12 @@ export async function loadHomeActivity(access:Awaited<ReturnType<typeof requireA
   try {
     const summary=await loadHomeSummary(access,visit);
     return {ok:true as const,visitDigest:summary&&"visitDigest" in summary?summary.visitDigest:undefined,
+      weekBests:summary&&"weekBests" in summary?summary.weekBests:undefined,
       coachDigest:summary&&"coachDigest" in summary?summary.coachDigest:undefined};
   }catch{return {ok:false as const};}
 }
 
-export async function loadHomeSummary(access:Awaited<ReturnType<typeof requireAccess>>,visit?:DashboardVisitWindow):Promise<(HomeSummary & {visitDigest?:VisitDigest;coachDigest?:ReturnType<typeof coachUpdateDigest>})|null> {
+export async function loadHomeSummary(access:Awaited<ReturnType<typeof requireAccess>>,visit?:DashboardVisitWindow):Promise<(HomeSummary & {visitDigest?:VisitDigest;weekBests?:VisitBest[];coachDigest?:ReturnType<typeof coachUpdateDigest>})|null> {
   if(canImportPresentedAccess(access))return visit?loadStaffHomeSummary(visit):loadStaffHomeSummary();
   if(!access.athleteId)return null;
   // Presented athlete is applied before any query, including Admin-as-Player.
@@ -78,5 +79,8 @@ export async function loadHomeSummary(access:Awaited<ReturnType<typeof requireAc
   if(!visit)return summary;
   const activity=performance.measurements.filter(r=>profileMeasurementVisible(r,season)).map(r=>({id:r.id,athleteId:athlete.id,metric:visitMetricKey(r.metric,r.unit),label:r.metric,unit:r.unit,value:r.value,source:r.source,date:r.measured_at,importedAt:batches.get(r.batch_id)!}));
   const player={id:athlete.id,playerType:season?.player_type,position:season?.primary_position,secondaryPosition:season?.secondary_position};
-  return {...summary,visitDigest:buildVisitDigest([player],activity,games,visit,pacificTestingDate())};
+  // "Your Week": Fall bests among own results added in the last seven days, using the same best rules.
+  const weekSince=new Date(Date.parse(visit.viewedAt)-7*86_400_000).toISOString();
+  const weekDigest=buildVisitDigest([player],activity,games,{since:weekSince,viewedAt:visit.viewedAt,record:false},pacificTestingDate());
+  return {...summary,visitDigest:buildVisitDigest([player],activity,games,visit,pacificTestingDate()),weekBests:weekDigest.bests};
 }

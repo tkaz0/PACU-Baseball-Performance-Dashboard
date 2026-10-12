@@ -90,7 +90,7 @@ function ResultsCoverage({ summary, staff, profile }: { summary: HomeSummary; st
   </section>;
 }
 
-export function DashboardHome({ leaderboardsSlot, spotlight, trending, staff, athleteId, summary, designNavigation, leaderboards = [], sourceStatus = [], visit, headshots = {}, gameTrends = {}, streamedTrend, coachingPulse, activity }: { leaderboardsSlot?:ReactNode; spotlight?:ReactNode; trending?:ReactNode; coachingPulse?:ReactNode; activity?:ReactNode; streamedTrend?: (source: "qpa_fall_2026" | "pitching_fall_2026", metric: TeamGameMetric, updatedAt: string | null) => ReactNode; gameTrends?: TeamGameTrends; headshots?: Readonly<Record<string, string>>; visit?:DashboardVisitWindow; staff: boolean; athleteId: string | null; designNavigation?: DesignNavigation; summary: (HomeSummary & { visitDigest?:VisitDigest; coachDigest?: ReturnType<typeof coachUpdateDigest> }) | null; leaderboards?: HomeLeaderboard[]; sourceStatus?:WeeklySourceStatusRow[] }) {
+export function DashboardHome({ playerWeek, leaderboardsSlot, spotlight, trending, staff, athleteId, summary, designNavigation, leaderboards = [], sourceStatus = [], visit, headshots = {}, gameTrends = {}, streamedTrend, coachingPulse, activity }: { playerWeek?:ReactNode; leaderboardsSlot?:ReactNode; spotlight?:ReactNode; trending?:ReactNode; coachingPulse?:ReactNode; activity?:ReactNode; streamedTrend?: (source: "qpa_fall_2026" | "pitching_fall_2026", metric: TeamGameMetric, updatedAt: string | null) => ReactNode; gameTrends?: TeamGameTrends; headshots?: Readonly<Record<string, string>>; visit?:DashboardVisitWindow; staff: boolean; athleteId: string | null; designNavigation?: DesignNavigation; summary: (HomeSummary & { visitDigest?:VisitDigest; coachDigest?: ReturnType<typeof coachUpdateDigest> }) | null; leaderboards?: HomeLeaderboard[]; sourceStatus?:WeeklySourceStatusRow[] }) {
   const sourceAttention = WEEKLY_SOURCES.filter(source => sourceStatus.find(status => status.source === source.key)?.outcome !== "completed").length;
   const profile = athleteId ? `/athletes/${athleteId}` : null;
   const actions = [...(staff ? [
@@ -116,6 +116,7 @@ export function DashboardHome({ leaderboardsSlot, spotlight, trending, staff, at
     </header>
     {summary && <div className={styles.freshness} aria-label="Dashboard update dates"><span><span className={styles.statusDot}/>{latestUpdate ? <>Latest Update <strong>{date(latestUpdate.date, true)}</strong></> : "Awaiting Fall results"}</span><span><Clock3 size={13} aria-hidden="true"/>Game Stats <strong>{latestGameUpdate ? date(latestGameUpdate, true) : "Awaiting results"}</strong></span></div>}
     {summary && staff && (coachingPulse ?? (summary.coachDigest && <CoachThisWeek digest={summary.coachDigest} reviewCount={[...summary.batting.rates, ...summary.pitching.rates].filter(rate => rate.pending && rate.pendingReason !== "missing").length}/>))}
+    {!staff && playerWeek}
     {spotlight}
     {staff && trending}
     {staff && summary && <TeamReportCard compact href="/game-stats" areas={teamReportCard(summary.batting, summary.pitching)}/>}

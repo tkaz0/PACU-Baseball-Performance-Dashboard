@@ -2,6 +2,7 @@ import { gameDirection } from "@/lib/game-metrics";
 import type { SharedGameStat } from "@/lib/game-server";
 import { pacificDay, type TeamGameTrends } from "@/lib/game-trends";
 import type { TeamGameMetric } from "@/lib/team-game-stats";
+import { fallBallWeekThrough } from "@/lib/game-weeks";
 
 export type TeamWeekChange = {
   currentDate: string; previousDate: string; previousValue: number;
@@ -40,4 +41,12 @@ export function teamWeekChange(trends: TeamGameTrends, source: SharedGameStat["s
   const percent = previous.value === 0 ? difference === 0 ? 0 : null : difference / previous.value * 100;
   if (percent !== null && !Number.isFinite(percent)) return null;
   return { currentDate, previousDate, previousValue: previous.value, percent, direction, tone, fallback: !lastWeek };
+}
+
+const shortDay = (date: string) => new Date(`${date}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+/** Owner choice: name comparisons by BDL game week (e.g. "Week 2 · Sep 26"), not the day the sheet was saved. */
+export function weekChangeSince(change: TeamWeekChange): { since: string; byWeek: boolean; before: { week: number; date: string } | null; now: { week: number; date: string } | null } {
+  const before = fallBallWeekThrough(change.previousDate), now = fallBallWeekThrough(change.currentDate);
+  const byWeek = !!before && !!now && before.week !== now.week;
+  return { since: byWeek ? `Week ${before!.week} · ${shortDay(before!.date)}` : change.fallback ? shortDay(change.previousDate) : "last week", byWeek, before, now };
 }
