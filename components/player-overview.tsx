@@ -12,7 +12,7 @@ import type { StatGuideContext } from "@/lib/stat-benchmarks";
 import { StatInfo } from "@/components/stat-info";
 import { PercentileRankings, percentileRankingGroups } from "@/components/percentile-rankings";
 import { AwardBadges, SkillProfile } from "@/components/skill-profile";
-import { fallBallWeeksPlayed, hitterBadgeQualified } from "@/lib/game-qualification";
+import { fallBallWeeksPlayed, hitterBadgeQualified, pitcherBadgeQualified } from "@/lib/game-qualification";
 import { pacificTestingDate } from "@/lib/testing-checklist";
 import { GameOpportunity } from "@/components/game-opportunity";
 import { gameOverviewMetrics, type GameOverviewMetric } from "@/lib/game-overview";
@@ -77,9 +77,10 @@ export function PlayerOverview({ quick=false, cards, gameStats = [], gameCompari
   const lastTested = availableCards.map(card => card.timedTrials?.lastTested ?? card.latest!.measuredAt).sort().at(-1);
   const bodyResultsOnly = availableCards.length > 0 && availableCards.every(card => card.metric.group === "body");
   const rankingRows = percentileRankingGroups(availableCards, games).flatMap(group => group.rows);
-  // Hitting game-stat badges need a qualified sample (2 PA per Fall Ball week so far); testing badges are unchanged.
-  const hitterQualified = hitterBadgeQualified(games, fallBallWeeksPlayed(pacificTestingDate()));
-  const badgeRows = rankingRows.filter(row => !(row.game && row.guide.source === "qpa_fall_2026") || hitterQualified);
+  // Game-stat badges need a qualified sample (2 PA or 1 IP per Fall Ball week so far); testing badges are unchanged.
+  const weeksPlayed = fallBallWeeksPlayed(pacificTestingDate());
+  const hitterQualified = hitterBadgeQualified(games, weeksPlayed), pitcherQualified = pitcherBadgeQualified(games, weeksPlayed);
+  const badgeRows = rankingRows.filter(row => !row.game || (row.guide.source === "qpa_fall_2026" ? hitterQualified : pitcherQualified));
   const trends = profileTrends([...physicality, ...testing]);
   // Featured stats are the Top Performer score components: hitters PAC Production+, QPA%, OBP, ISO;
   // pitchers WHIP, K/BB, Runs/9 (both for two-way players). Without game stats, testing highlights remain.

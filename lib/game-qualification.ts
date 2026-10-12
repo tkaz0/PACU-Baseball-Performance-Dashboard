@@ -31,3 +31,9 @@ export function hitterBadgeQualified(games: readonly Pick<GameOverviewMetric, "s
   const pa = Math.max(0, ...games.flatMap(g => g.source === "qpa_fall_2026" && gameOpportunityLabel(g.source, g.metric) === "PA" && typeof g.opportunities === "number" && Number.isFinite(g.opportunities) ? [g.opportunities] : []));
   return pa >= QUALIFY_PER_WEEK.hitting * Math.max(1, weeks);
 }
+
+/** Pitching game-stat badges use the Qualified pitching minimum: 1 IP (3 outs) per Fall Ball week so far. */
+export function pitcherBadgeQualified(games: readonly Pick<GameOverviewMetric, "source" | "metric" | "opportunities">[], weeks: number): boolean {
+  const outs = Math.max(0, ...games.flatMap(g => g.source === "pitching_fall_2026" && gameOpportunityLabel(g.source, g.metric) === "outs" && typeof g.opportunities === "number" && Number.isFinite(g.opportunities) ? [g.opportunities] : []));
+  return outs >= QUALIFY_PER_WEEK.pitching * Math.max(1, weeks);
+}
