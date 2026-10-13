@@ -94,8 +94,14 @@ export function parseGameSource(snapshot: GameSourceSnapshot, contract: Reviewed
   const rows = new Set(contract.detailRows);
   if (rows.size !== contract.detailRows.length || [...rows].some(row => !Number.isSafeInteger(row) || row < (qpa ? 2 : 3) || row > 2000)) problem("detail_rows", "The reviewed source detail-row coverage is invalid.");
   // Owner-reviewed October 12: Z:AC contains summary rankings/notes, not weekly observations.
+  // October 13: the unheaded AE summary formulas are also derived outputs, never raw counts.
   // Keep this exception bounded to the existing top summary and its exact ranking header.
-  const summaryRankingCell = (cell:GameSourceCell) => !qpa && normalize(text(2,26))==="k% rk" && cell.row>=3 && cell.row<=33 && cell.column>=26 && cell.column<=29;
+  const aeHeader=cells.get(key(2,31));
+  const aeHeaderBlank=!aeHeader || ((aeHeader.entered===undefined||aeHeader.entered==="") && (aeHeader.effective===undefined||aeHeader.effective==="") && !aeHeader.formula && !aeHeader.error);
+  const summaryRankingCell = (cell:GameSourceCell) => !qpa && normalize(text(2,26))==="k% rk" && cell.row>=3 && cell.row<=33 && (
+    (cell.column>=26 && cell.column<=29) ||
+    (cell.column===31 && !!cell.formula && cell.entered===undefined && aeHeaderBlank)
+  );
   for(const cell of cells.values()) if(cell.column>(qpa?29:26)&&!summaryRankingCell(cell)&&(cell.entered!==undefined||cell.effective!==undefined||cell.formula||cell.error)) problem("unreviewed_columns", "Source content appeared outside the reviewed columns. Review the changed source layout before syncing.",cell.row,cell.column);
   const rawColumns=new Set<number>((qpa?QPA_RAW:PITCHING_RAW).map(([column])=>column));
   if(!qpa)rawColumns.add(18);

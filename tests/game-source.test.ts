@@ -25,6 +25,26 @@ describe("source-grounded Fall game adapters",()=>{
     const f=fixture(true);f.set(3,20);f.snapshot.cells.push({row:2,column:26,entered:"K% RK"},{row,column,effective:1});
     expect(f.run().issues.some(i=>i.code==="unreviewed_columns")).toBe(true);
   });
+  it("ignores owner-reviewed unheaded AE formulas only within the top summary",()=>{
+    const f=fixture(true);f.set(3,20);
+    f.snapshot.cells.push({row:2,column:26,entered:"K% RK"},{row:3,column:31,formula:"=R3+S3",effective:2},{row:33,column:31,formula:"=R33+S33",effective:3});
+    const p=f.run();expect(p.canImport).toBe(true);expect(p.observations.every(o=>o.sourceRow===40&&o.sourceColumn!==31)).toBe(true);
+  });
+  it.each([
+    {row:3,column:31,entered:2},
+    {row:34,column:31,formula:"=R34+S34",effective:2},
+    {row:40,column:31,formula:"=R40+S40",effective:2},
+    {row:3,column:30,formula:"=R3+S3",effective:2},
+  ])("keeps unreviewed AE/AD inputs blocked: %j",cell=>{
+    const f=fixture(true);f.set(3,20);f.snapshot.cells.push({row:2,column:26,entered:"K% RK"},cell);
+    expect(f.run().issues.some(i=>i.code==="unreviewed_columns")).toBe(true);
+  });
+  it("requires the unchanged summary headers before ignoring AE formulas",()=>{
+    const f=fixture(true);f.set(3,20);f.snapshot.cells.push({row:3,column:31,formula:"=R3+S3",effective:2});
+    expect(f.run().canImport).toBe(false);
+    f.snapshot.cells.push({row:2,column:26,entered:"K% RK"},{row:2,column:31,entered:"New raw field"});
+    expect(f.run().canImport).toBe(false);
+  });
   it("requires the reviewed ranking header and still rejects raw summary count entries",()=>{
     const f=fixture(true);f.set(3,20);f.snapshot.cells.push({row:3,column:27,entered:1});
     expect(f.run().issues.some(i=>i.code==="unreviewed_columns")).toBe(true);

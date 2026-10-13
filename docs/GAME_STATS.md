@@ -15,6 +15,8 @@ Source IDs, exact sheet IDs and full bounded capture ranges are in `lib/game-sou
 
 October 12 owner-reviewed pitching summary layout: the top summary's Z3:AC33 contains rankings and notes. With the exact `K% RK` header at Z2, these cells are ignored by the weekly importer, including Z values that must not be mistaken for weekly earned runs. This exception does not permit new raw count rows, weekly extra columns, wider grids or content beyond that exact summary rectangle. Weekly blocks still require separately reviewed periods and identities; source captures and hashes retain every cell unchanged.
 
+October 13 owner-reviewed addition: ignore derived formulas in AE3:AE33 while AE2 stays blank and Z2 retains `K% RK`. Entered AE values, a new AE header, AD content, or formulas outside those exact summary rows still require review. Import only the raw reviewed weekly blocks; captures and source hashes remain unchanged.
+
 The owner also confirmed Week 3 is separate October 10 totals and X/Y still mean weak/hard contact. Both headers are blank at X112:Y112; only this exact reviewed Week 3 block accepts that blank pair. Changed text, formulas/errors/effective-only header content, other weeks and incomplete coverage still require review. Original source cells remain unchanged.
 
 ## Weekly trend badges
