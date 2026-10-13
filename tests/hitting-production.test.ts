@@ -28,9 +28,12 @@ describe("hitting production breakdown",()=>{
     expect(hittingProduction([...rows(),...incomplete.map(r=>({...r,athlete_id:"fictional-b"}))])).toBeNull();
     expect(hittingProduction([...rows(),rows()[0]])).toBeNull();
     expect(hittingProduction(rows({...counts,hh_extra_base_hit:5}))).toBeNull();
-    expect(hittingProduction(rows({...counts,base_hit:10,punchies:2}))).toBeNull();
+    expect(hittingProduction(rows({...counts,pa:10}))).toBeNull();
     expect(hittingProduction(rows().map((r,i)=>i===0?{...r,unit:"%"}:r))).toBeNull();
     expect(hittingProduction([...rows(),...rows(counts,"fictional-b").map(r=>({...r,snapshot_id:"other"}))])).toBeNull();
+  });
+  it("matches existing production when optional sacrifice-bunt counts need separate review",()=>{
+    expect(hittingProduction(rows({...counts,sac_bunt:2}))?.rate).toBe(.75);
   });
   it("preserves true zero production and does not invent a bar or a percentage from zero",()=>{
     const result=hittingProduction(rows({pa:4,ab:4,base_hit:0,hh_extra_base_hit:0,pumps:0,bb:0,hbp:0,sac_fly:0}))!;

@@ -17,9 +17,8 @@ export function hittingProduction(stats: readonly SharedGameStat[]): HittingProd
     const v = gameCountMap(rows.filter(r => r.athlete_id === id), "qpa_fall_2026");
     const p = v && productionParts(v); if (!v || !p) return null;
     const h = v.get("base_hit")!, xbh = v.get("hh_extra_base_hit")!, hr = v.get("pumps")!;
-    // Optional outcomes can invalidate a complete-looking production line.
-    if (v.has("punchies") && v.get("punchies")! + h > v.get("ab")!) return null;
-    if (v.has("sac_bunt") && v.get("ab")! + v.get("bb")! + v.get("hbp")! + v.get("sac_fly")! + v.get("sac_bunt")! > p.bottom) return null;
+    // Use the exact existing production contract. Strikeouts and sacrifice bunts
+    // are not components of its numerator; unrelated count reviews stay separate.
     counts.singles += h - xbh - hr; counts.xbh += xbh; counts.hr += hr; counts.free += v.get("bb")! + v.get("hbp")!; pa += p.bottom;
   }
   const total = counts.singles + 2 * counts.xbh + 4 * counts.hr + counts.free;
