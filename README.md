@@ -59,6 +59,7 @@ On the owner's Mac, **Start PACU.command** starts the local app; keep its Termin
 - [TESTING_WORKFLOW](docs/TESTING_WORKFLOW.md): manual test entry, Fall checklist and save receipts.
 - [INFORMATION_IMPORTS](docs/INFORMATION_IMPORTS.md), [GAME_STATS](docs/GAME_STATS.md) and [APPEARANCE](docs/APPEARANCE.md): current upload, source-update and appearance workflows.
 - [PLAYER_PROFILES](docs/PLAYER_PROFILES.md) and [LEADERBOARDS](docs/LEADERBOARDS.md): profile tabs, metric definitions, periods, comparisons and read boundaries.
+- [PITCH_GRADES](docs/PITCH_GRADES.md): Pitch+ (Team) definitions, player baselines and refresh.
 - [BRANDING](docs/BRANDING.md): official asset sources and presentation rules.
 - [ATHLETE_IDS](docs/ATHLETE_IDS.md): stable PAC IDs, old-import compatibility and reviewed migration.
 - [DATA_MODEL](docs/DATA_MODEL.md): identities, roles, measurements, provenance and database controls.
@@ -250,3 +251,5 @@ October 9 layout refinement: Home prioritizes game summaries and featured leader
 Player profiles keep percentile visuals on Overview and the physicality radar in Physicality. Cumulative game results use compact stat sheets with sample sizes, stat explanations and pitch-family splits.
 
 Full Swing contact maps now include contact quality by staff-classified pitch; pitchers see the contact allowed against each pitch. Staff can complete older saved contact details from original exports without republishing sessions. See [Contact Details](docs/CONTACT_DETAILS.md).
+
+October 12: Pitch+ (Team) grades for staff and each pitcher's own profile ([PITCH_GRADES](docs/PITCH_GRADES.md)); staff-entered Fall Ball week dates, game-week change badges and the player Home Your Week card ([GAME_STATS](docs/GAME_STATS.md)); refreshed Exit Meeting and Player Report sections ([EXIT_MEETINGS](docs/EXIT_MEETINGS.md)); faster staff team reads ([PERFORMANCE](docs/PERFORMANCE.md)).

@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { refreshPitchGradeBaselines } from "@/lib/pitch-grades-server";
 import { requireAdminMutation, requireImportAccess } from "@/lib/auth";
 import { fullSwingSessionDatabasePayload, validateFullSwingSessionBundle, type FullSwingSessionReceipt, type FullSwingSessionState } from "@/lib/imports/full-swing-session-bundle";
 
@@ -38,6 +40,8 @@ export async function publishFullSwingSession(input: unknown): Promise<FullSwing
     const saved = receipt(data,bundle.requestId,bundle.fileHash);
     if (saved.measurementCount !== bundle.measurements.length || saved.sampleCount !== bundle.samples.length || saved.contactCount !== bundle.contacts.length || saved.unresolvedPitchCount !== bundle.unresolvedPitchCount) throw new Error("Incomplete receipt");
     refreshSessionViews();
+    // New pitch summaries and contact against change the published Pitch+ team baselines.
+    after(refreshPitchGradeBaselines);
     return saved;
   } catch { return {error:"The session receipt could not be confirmed. Check the Session Library before retrying this same review."}; }
 }

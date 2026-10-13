@@ -512,3 +512,9 @@ October 9 layout refinement is app-only; no migration or configuration change. H
 The Physicality radar placement and compact cumulative profile stat sheets are presentation-only app changes; no migration or environment change is required.
 
 Contact-by-pitch views require `202610090007_contact_pitch_details.sql` before deploying the consuming app. It adds only authorized read projections; existing contact, quality, pitcher-link and assignment tables are preserved. Staff can complete older sessions from original CSVs at `/imports/contact-details`. See [Contact Details](CONTACT_DETAILS.md).
+
+October 12 migrations, in order:
+
+1. `202610120001_game_ops.sql`: deploy the app first; adds OPS to read-only rank projections.
+2. `202610120002_fall_ball_weeks.sql`: Fall Ball game dates with staff-only writes. Seeds Weeks 1–3 using an existing administrator from `public.account_roles`.
+3. `202610120003_pitch_grade_baselines.sql`: aggregate Pitch+ baselines for players. Apply before the app. Staff open Pitch Grades once to publish the first row. See [Pitch+](PITCH_GRADES.md).

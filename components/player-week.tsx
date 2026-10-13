@@ -17,7 +17,7 @@ export function PlayerWeekDisplay({ trends, batting, pitching, bests }: { trends
   return <section className={styles.card} aria-label="Your week" data-testid="player-week">
     <div><p className={styles.kicker}>This Week</p><h2>Your Week</h2></div>
     <div className={styles.grid}>
-      {jump && <div className={styles.jump} data-testid="player-week-jump"><span>Biggest jump · {jump.metric.label}</span><strong>↑ {Math.abs(jump.change.percent) < .05 ? "<0.1" : Math.abs(jump.change.percent).toFixed(1)}%</strong>
+      {jump && <div className={styles.jump} data-testid="player-week-jump"><span>{jump.change.percent === null ? "New this week" : "Biggest jump"} · {jump.metric.label}</span><strong>{jump.change.percent === null ? "Up from 0" : `${jump.change.direction === "up" ? "↑" : "↓"} ${Math.abs(jump.change.percent) < .05 ? "<0.1" : Math.abs(jump.change.percent).toFixed(1)}%`}</strong>
         <small>{formatTeamGameMetric({ ...jump.metric, value: jump.change.previousValue })} → {formatTeamGameMetric(jump.metric)} vs {jump.since}</small></div>}
       {bests && bests.length > 0 && <div><p className={styles.kicker}>New Fall Bests · last 7 days</p><ul className={styles.bests}>{bests.map(b => { const pitch = classifiedPitchSource(b.source); return <li key={JSON.stringify([b.metric, b.source, b.unit])}>
         <div>{pitch ? `${pitchTypeLabel(pitch.pitchType)} ${b.label.replace(/^Pitch Type /, "")}` : b.label}<small>{pitchSourceLabel(b.source)} · Tested {day(b.measuredAt)}</small></div>

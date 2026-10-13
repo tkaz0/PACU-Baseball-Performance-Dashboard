@@ -233,3 +233,5 @@ October 9 profile stat-sheet refinement: the existing Fall Physicality radar liv
 
 
 October 9 Fall contact heatmap and velocity ladder: the Hitter Contact Map has a Contact Heatmap view using the same authorized player, context, session and Likely Foul selection. Fixed EV columns (<70, 70–<80, 80–<90, 90–<100, 100+ mph) and launch rows (<0, 0–<8, 8–32, >32–<50, 50+ degrees) partition complete paired contact. Cell percentages use all valid selected balls; darker red means frequency, not quality. Selecting a cell lists its swings and reuses the existing video selection. Pitch Separation now shows every valid classified average and dated Fall best on a common mph scale, with colored average dots and best diamonds. Gaps still require matching context, average basis, dates and verified counts; maxima never substitute for averages. No readings, rankings, source imports or access rules change.
+
+October 12: a pitcher's own Pitching tab shows their **Pitch+ (Team)** against the published aggregate baselines (see [Pitch+](PITCH_GRADES.md)); staff keep the team-computed card. The player Home shows **Your Week** (see [Game Stats](GAME_STATS.md)).

@@ -54,3 +54,12 @@ export async function loadOwnPitchGrades(access: Access, player: CoachingPlayer,
   const rows = ownPitchGrades(player, stats, fallArsenalPitches(measurements, pacificTestingDate()), contacts ?? [], baselines);
   return { rows, computedAt: data.computed_at, contactUnavailable: contacts === null };
 }
+
+/**
+ * Re-publish the aggregate baselines after new Full Swing or game-sheet data is saved, so players'
+ * own Pitch+ never waits for staff to open Pitch Grades. Runs through `after()` with the same staff
+ * session; any failure leaves the last published row unchanged.
+ */
+export async function refreshPitchGradeBaselines(): Promise<void> {
+  try { await loadPitchGrades(); } catch { /* the previous published baselines stay in place */ }
+}

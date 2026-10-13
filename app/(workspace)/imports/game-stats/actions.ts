@@ -1,6 +1,8 @@
 "use server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { refreshPitchGradeBaselines } from "@/lib/pitch-grades-server";
 import { requireImportAccess } from "@/lib/auth";
 import { validateGameImport } from "@/lib/game-import";
 import { UUID_PATTERN } from "@/lib/types";
@@ -16,5 +18,7 @@ export async function importGameSnapshot(form:FormData) {
   const {data,error}=response;
   if(error||!data||!UUID_PATTERN.test(data.snapshot_id)||typeof data.changed!=="boolean"||data.observations!==checked.observations.length)redirect("/imports/game-stats?error=save");
   revalidatePath("/game-stats");revalidatePath("/athletes","layout");
+  // Changed pitching counts move the published Pitch+ family strike baselines.
+  if(data.changed&&checked.source==="pitching_fall_2026")after(refreshPitchGradeBaselines);
   redirect(`/imports/game-stats?saved=${data.snapshot_id}`);
 }

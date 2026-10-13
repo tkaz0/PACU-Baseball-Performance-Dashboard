@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Measurement } from "@/lib/imports/engine";
 const fake = vi.hoisted(() => ({ guard: vi.fn(), rpc: vi.fn(), revalidate: vi.fn() }));
+vi.mock("@/lib/pitch-grades-server",()=>({refreshPitchGradeBaselines:async()=>undefined}));vi.mock("next/server",()=>({after:()=>undefined}));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/auth", () => ({ requireImportAccess: fake.guard }));
 vi.mock("next/cache", () => ({ revalidatePath: fake.revalidate }));

@@ -2,6 +2,8 @@
 
 import { validatePitchAssignments, type PitchAssignmentSnapshot } from "@/lib/imports/pitch-assignments";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { refreshPitchGradeBaselines } from "@/lib/pitch-grades-server";
 import { requireImportAccess } from "@/lib/auth";
 import { prepareReviewedPerformanceRows } from "@/lib/performance-import";
 import { importReviewedPerformance, type PerformanceImportReceipt } from "@/lib/performance-server";
@@ -124,6 +126,8 @@ export async function saveContactPitchers(fileHash: unknown, input: unknown): Pr
     data.created + data.unchanged + data.skipped !== rows.length)
     return { error: "Pitcher hands could not be saved. Batted balls are unaffected." };
   revalidatePath("/athletes", "layout");
+  // Newly linked contact against changes the published Pitch+ contact baselines.
+  if (data.created > 0) after(refreshPitchGradeBaselines);
   return data as { created: number; unchanged: number; skipped: number };
 }
 
@@ -141,6 +145,7 @@ export async function saveContactSquaredUp(fileHash: unknown, input: unknown): P
     data.created + data.unchanged + data.skipped !== rows.length)
     return { error: "Squared-up values could not be saved. Batted balls are unaffected." };
   revalidatePath("/athletes", "layout");
+  if ((data as { created: number }).created > 0) after(refreshPitchGradeBaselines);
   return data as { created: number; unchanged: number; skipped: number };
 }
 

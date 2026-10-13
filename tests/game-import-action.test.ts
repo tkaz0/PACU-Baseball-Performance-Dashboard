@@ -1,5 +1,6 @@
 import { afterEach,beforeEach,describe,expect,it,vi } from "vitest";
 const fake=vi.hoisted(()=>({guard:vi.fn(),rpc:vi.fn(),revalidate:vi.fn()}));
+vi.mock("@/lib/pitch-grades-server",()=>({refreshPitchGradeBaselines:async()=>undefined}));vi.mock("next/server",()=>({after:()=>undefined}));
 vi.mock("@/lib/auth",()=>({requireImportAccess:fake.guard}));vi.mock("next/cache",()=>({revalidatePath:fake.revalidate}));vi.mock("next/navigation",()=>({redirect:(path:string)=>{throw new Error(`REDIRECT:${path}`);}}));
 import { importGameSnapshot } from "@/app/(workspace)/imports/game-stats/actions";
 import { validateGameImport } from "@/lib/game-import";

@@ -26,4 +26,15 @@ describe("player Your Week", () => {
     expect(html).toContain("Biggest jump · OPS"); expect(html).toContain("10.0%"); expect(html).toContain("Max Exit Velocity"); expect(html).toContain("101.2");
     expect(renderToStaticMarkup(createElement(PlayerWeekDisplay, { trends: {} as TeamGameTrends, batting: none, pitching: none, bests: [] }))).toBe("");
   });
+  it("gives pitchers a card for a first result from zero and shows lower-is-better gains as a decrease", () => {
+    const pitchTrends = { pitching_fall_2026: { pitching_k9: [{ date: "2026-09-29", value: 0 }, { date: "2026-10-12", value: 4.5 }], pitching_whip: [{ date: "2026-09-29", value: 2 }, { date: "2026-10-12", value: 1.5 }], pitching_bb9: [{ date: "2026-09-29", value: 0 }, { date: "2026-10-12", value: 3 }] }, snapshotDates: { pitching_fall_2026: ["2026-09-29", "2026-10-12"] } } as unknown as TeamGameTrends;
+    const empty = { ...summary([], null), entries: 0 } as TeamGameSummary;
+    const onlyNew = summary([metric("pitching_k9", "K/9", 4.5, "per9"), metric("pitching_bb9", "BB/9", 3, "per9")], updated);
+    const first = biggestWeekJump(pitchTrends, empty, onlyNew)!;
+    expect(first.metric.label).toBe("K/9"); expect(first.change.percent).toBeNull();
+    expect(renderToStaticMarkup(createElement(PlayerWeekDisplay, { trends: pitchTrends, batting: empty, pitching: onlyNew, bests: null }))).toContain("Up from 0");
+    const withWhip = summary([metric("pitching_k9", "K/9", 4.5, "per9"), metric("pitching_whip", "WHIP", 1.5, "ratio")], updated);
+    expect(biggestWeekJump(pitchTrends, empty, withWhip)!.metric.label).toBe("WHIP");
+    expect(renderToStaticMarkup(createElement(PlayerWeekDisplay, { trends: pitchTrends, batting: empty, pitching: withWhip, bests: null }))).toContain("↓ 25.0%");
+  });
 });

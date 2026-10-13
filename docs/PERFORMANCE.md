@@ -54,3 +54,7 @@ October 4 EV presentation: numerical staff readers use the security-invoker perf
 ## October 6 Home coverage cohorts
 
 Athletic Testing and Practice use current eligible position players and explicit two-way players for both distinct-player coverage and the denominator. The compact Home reader reuses the staff Swing Design choices and intersects them with its validated eligible roster; the history fallback uses the same season role rule. Physicality, In-Game and the overall saved-results ring keep the whole eligible roster. Pitcher-only Player Home omits those two non-applicable coverage rows. Reads remain ordinary-session and role-scoped; no measurements or database schema change.
+
+## October 12 concurrent team reads
+
+Every staff team read (Analytics, Correlation Map, comparisons, coaching tools, Pitch+) reads its ten-player partitions concurrently through the request-local three-query queue, as Home already did. Each partition claims its exact first-page count against the shared 20,000-row cap before reading more pages; once the cap is exceeded, every partition stops. A timeout still splits at most one partition once. Warm Analytics loads measured about 2.2 s, down from 4–6 s.
