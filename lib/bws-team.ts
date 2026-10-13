@@ -130,15 +130,12 @@ export function lineupIssues(lineup: BwsLineup): LineupIssue[] {
   ];
 }
 
-/** Each pitcher's usage across planned/played games: the most recent outing and total outs (actual when recorded, else planned). */
-export function pitcherUsage(plan: BwsTeamPlan, today: string) {
-  return plan.players.filter(p => p.role !== "position").map(player => {
-    const outings = plan.games.flatMap(g => g.pitchers.filter(p => p.playerId === player.id).map(p => ({ date: g.date, opponent: g.opponent, planned: p.plannedOuts, actual: p.actualOuts, pitches: p.pitches })));
-    const played = outings.filter(o => o.date <= today), upcoming = outings.filter(o => o.date > today);
-    const last = played.at(-1) ?? null;
-    return { player, outings, appearances: played.length, totalOuts: played.reduce((sum, o) => sum + (o.actual ?? o.planned), 0),
-      plannedUpcoming: upcoming.reduce((sum, o) => sum + o.planned, 0), last, daysSinceLast: last ? (Date.parse(`${today}T00:00:00Z`) - Date.parse(`${last.date}T00:00:00Z`)) / 86_400_000 : null };
-  });
+/** Simple planning coverage: games each batter is in the lineup, and planned innings for each pitcher. */
+export function planCoverage(plan: BwsTeamPlan) {
+  const lineups = new Map(plan.lineups.map(l => [l.id, l]));
+  const batters = plan.players.filter(p => p.role !== "pitcher").map(player => ({ player, games: plan.games.filter(g => g.lineupId && lineups.get(g.lineupId)?.slots.some(s => s.playerId === player.id)).length }));
+  const pitchers = plan.players.filter(p => p.role !== "position").map(player => ({ player, outs: plan.games.reduce((sum, g) => sum + (g.pitchers.find(p => p.playerId === player.id)?.plannedOuts ?? 0), 0), games: plan.games.filter(g => g.pitchers.some(p => p.playerId === player.id)).length }));
+  return { batters, pitchers };
 }
 
 /** Trim free text before saving so stray spaces never fail validation; empty notes are dropped. */
@@ -147,63 +144,6 @@ export function normalizeBwsPlan(plan: BwsTeamPlan): BwsTeamPlan {
     lineups: plan.lineups.map(l => ({ ...l, name: l.name.trim() || "Lineup" })),
     games: plan.games.map(g => ({ ...g, opponent: g.opponent.trim(), notes: g.notes.trim() })).sort((a, b) => a.date.localeCompare(b.date)),
     notes: plan.notes.map(n => ({ ...n, text: n.text.trim() })).filter(n => n.text) };
-}
-
-/** Plate appearances a batting-order slot can expect: team PA spread from the top of the order. */
-export function slotPlateAppearances(slot: number, inningsPerGame: number, battersPerInning = 4.25): number {
-  const total = Math.round(inningsPerGame * battersPerInning), base = Math.floor(total / 9);
-  return base + (slot < total % 9 ? 1 : 0);
-}
-const DEFAULT_AB_RATE = 0.88;
-export type BwsRequirementRow = {
-  player: BwsPlayer; kind: "batter" | "pitcher";
-  actual: number; projected: number; required: number; games: number; status: "met" | "on-track" | "at-risk";
-  /** Pitchers: recorded batters faced and outs, and projected values. */
-  detail: { actualOuts?: number; actualBattersFaced?: number; projectedOuts?: number; projectedBattersFaced?: number; abRate?: number; estimated: boolean };
-};
-/**
- * Series minimums. Recorded results count first. For games without a recorded line, a batter's at-bats
- * are projected from the game's lineup slot (team PA spread from the top) times the player's own Fall
- * AB/PA rate (0.88 when unknown); a pitcher's batters faced are projected from planned outs and Fall WHIP.
- * Projections are planning estimates only.
- */
-export function seriesRequirements(plan: BwsTeamPlan, rates: ReadonlyMap<string, { abRate: number | null; whip: number | null }>): BwsRequirementRow[] {
-  const { minAtBats, minBattersFaced, minOuts, inningsPerGame } = plan.series;
-  const lineups = new Map(plan.lineups.map(l => [l.id, l]));
-  const rows: BwsRequirementRow[] = [];
-  for (const player of plan.players) {
-    const rate = player.athleteId ? rates.get(player.athleteId) : undefined;
-    if (player.role !== "pitcher") {
-      const abRate = rate?.abRate ?? DEFAULT_AB_RATE;
-      let actual = 0, projected = 0, games = 0;
-      for (const game of plan.games) {
-        const line = game.batters.find(b => b.playerId === player.id);
-        if (line) { actual += line.atBats; projected += line.atBats; games++; continue; }
-        if (game.batters.length) continue; // results recorded for this game and this player did not bat
-        const slot = game.lineupId ? lineups.get(game.lineupId)?.slots.findIndex(s => s.playerId === player.id) ?? -1 : -1;
-        if (slot >= 0) { projected += slotPlateAppearances(slot, inningsPerGame) * abRate; games++; }
-      }
-      rows.push({ player, kind: "batter", actual, projected, required: minAtBats, games, status: actual >= minAtBats ? "met" : projected >= minAtBats ? "on-track" : "at-risk", detail: { abRate, estimated: rate?.abRate == null } });
-    }
-    if (player.role !== "position") {
-      let actualOuts = 0, actualBf = 0, projectedOuts = 0, projectedBf = 0, games = 0, estimated = false;
-      for (const game of plan.games) {
-        const line = game.pitchers.find(p => p.playerId === player.id);
-        if (!line) continue;
-        games++;
-        const outsDone = line.actualOuts, bf = line.battersFaced;
-        if (outsDone !== null || bf !== null) {
-          actualOuts += outsDone ?? 0; actualBf += bf ?? 0;
-          projectedOuts += outsDone ?? 0; projectedBf += bf ?? Math.round((outsDone ?? 0) + (outsDone ?? 0) / 3 * (rate?.whip ?? 1.4));
-        } else {
-          projectedOuts += line.plannedOuts; projectedBf += line.plannedOuts + line.plannedOuts / 3 * (rate?.whip ?? 1.4); if (rate?.whip == null) estimated = true;
-        }
-      }
-      const met = actualBf >= minBattersFaced || actualOuts >= minOuts, onTrack = projectedBf >= minBattersFaced || projectedOuts >= minOuts;
-      rows.push({ player, kind: "pitcher", actual: actualBf, projected: projectedBf, required: minBattersFaced, games, status: met ? "met" : onTrack ? "on-track" : "at-risk", detail: { actualOuts, actualBattersFaced: actualBf, projectedOuts, projectedBattersFaced: projectedBf, estimated } });
-    }
-  }
-  return rows;
 }
 
 /**
