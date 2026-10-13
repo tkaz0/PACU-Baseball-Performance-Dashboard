@@ -38,8 +38,8 @@ test("stored appearance paints correctly without waiting for application hydrati
   await page.route(/\/_next\/static\/.*\.js(?:\?.*)?$/, route => route.abort());
   await page.goto("/login");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  // Current charcoal theme (#1e1e22), painted while application scripts are blocked.
-  await expect(page.locator(".login-form-panel")).toHaveCSS("background-color", "rgb(30, 30, 34)");
+  // Athletic-theme panel surface (#12151b, app/athletic-theme.css), painted while application scripts are blocked.
+  await expect(page.locator(".login-form-panel")).toHaveCSS("background-color", "rgb(18, 21, 27)");
 });
 
 test("appearance remains usable when storage is unavailable", async ({ page }) => {
