@@ -518,3 +518,5 @@ October 12 migrations, in order:
 1. `202610120001_game_ops.sql`: deploy the app first; adds OPS to read-only rank projections.
 2. `202610120002_fall_ball_weeks.sql`: Fall Ball game dates with staff-only writes. Seeds Weeks 1–3 using an existing administrator from `public.account_roles`.
 3. `202610120003_pitch_grade_baselines.sql`: aggregate Pitch+ baselines for players. Apply before the app. Staff open Pitch Grades once to publish the first row. See [Pitch+](PITCH_GRADES.md).
+
+October 13: apply `202610130001_bws_team_plans.sql` before deploying the BWS Team page. It adds the owner-scoped `public.bws_team_plans` table, private revision receipts and the ordinary-session save/read RPCs. The retired draft board's tables and saved data are left unchanged, and `/admin/draft-board` now redirects to `/admin/bws-team`.
