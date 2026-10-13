@@ -57,7 +57,7 @@ export function BwsTeam({ initial, athletes, stats, today }: { initial: BwsSnaps
     {tab === "lineups" && <Lineups plan={plan} update={update} byId={byId} statsFor={statsFor} onPrint={id => setPrinting({ kind: "lineup", id })}/>}
     {tab === "depth" && <Depth plan={plan} update={update} byId={byId}/>}
     {tab === "roster" && <Roster plan={plan} update={update} athletes={athletes} statsFor={statsFor}/>}
-    {tab === "scouting" && <Scouting plan={plan} stats={stats}/>}
+    {tab === "scouting" && <Scouting plan={plan} update={update} stats={stats}/>}
     {printing?.kind === "lineup" && plan.lineups.some(l => l.id === printing.id) && <LineupCard lineup={plan.lineups.find(l => l.id === printing.id)!} plan={plan} byId={byId}/>}
     {printing?.kind === "game" && plan.games.some(g => g.id === printing.id) && <GameSheet game={plan.games.find(g => g.id === printing.id)!} plan={plan} byId={byId}/>}
   </div>;
@@ -224,21 +224,29 @@ const playerType = (s: BwsPlayerStats) => s.playerType.trim().toLowerCase();
 const isPitcher = (s: BwsPlayerStats) => playerType(s) === "two_way" || playerType(s) === "pitcher" || [s.position, s.secondaryPosition].some(p => p.trim().toUpperCase() === "P");
 const isHitter = (s: BwsPlayerStats) => playerType(s) !== "pitcher";
 const rawStat = (list: BwsStat[], key: string) => list.find(x => x.key === key)?.raw;
-/** The other team is everyone on the current eligible roster who is not on your team. */
-function Scouting({ plan, stats }: { plan: BwsTeamPlan; stats: BwsPlayerStats[] | null }) {
+/** The other team is everyone on the current eligible roster who is not on your team, minus players you hide. */
+function Scouting({ plan, update, stats }: Shared & { stats: BwsPlayerStats[] | null }) {
+  const [showHidden, setShowHidden] = useState(false);
   if (!stats) return <section className={styles.panel} aria-label="Scouting"><p className={styles.note}>Stats are temporarily unavailable.</p></section>;
   const mine = new Set(plan.players.flatMap(p => p.athleteId ? [p.athleteId] : []));
+  const hidden = new Set(plan.series.hidden);
   const others = stats.filter(s => !mine.has(s.athleteId));
-  const hitters = others.filter(isHitter).sort((a, b) => (rawStat(b.hitting, "batting_ops") ?? -1) - (rawStat(a.hitting, "batting_ops") ?? -1) || a.name.localeCompare(b.name));
-  const arms = others.filter(isPitcher).sort((a, b) => (rawStat(a.pitching, "pitching_whip") ?? 99) - (rawStat(b.pitching, "pitching_whip") ?? 99) || a.name.localeCompare(b.name));
+  const shown = others.filter(s => !hidden.has(s.athleteId)), hiddenPlayers = others.filter(s => hidden.has(s.athleteId));
+  const setHidden = (ids: string[]) => update({ ...plan, series: { ...plan.series, hidden: ids } });
+  const hide = (id: string) => setHidden([...plan.series.hidden, id]);
+  const hitters = shown.filter(isHitter).sort((a, b) => (rawStat(b.hitting, "batting_ops") ?? -1) - (rawStat(a.hitting, "batting_ops") ?? -1) || a.name.localeCompare(b.name));
+  const arms = shown.filter(isPitcher).sort((a, b) => (rawStat(a.pitching, "pitching_whip") ?? 99) - (rawStat(b.pitching, "pitching_whip") ?? 99) || a.name.localeCompare(b.name));
+  const hideButton = (s: BwsPlayerStats) => <td><button type="button" className={styles.iconButton} aria-label={`Hide ${s.name} from scouting`} title="Hide (injured or not playing)" onClick={() => hide(s.athleteId)}><X size={14}/></button></td>;
   return <section className={styles.panel} aria-label="Scouting">
-    <p className={styles.note}>Every eligible Pacific player who isn&apos;t on your BWS team ({others.length} players). Players you added by typed name aren&apos;t linked to a profile, so they can still appear here.</p>
+    <p className={styles.note}>Every eligible Pacific player who isn&apos;t on your BWS team ({shown.length} players). Use × to hide anyone who is injured or not playing.</p>
     <h3>Their Hitters <small>{hitters.length} · by OPS</small></h3>
-    <div className="table-wrap"><table className={styles.table}><thead><tr><th>Hitter</th><th>Pos</th><th>Bats</th>{SCOUT_HIT_LABELS.map(l => <th key={l} className={styles.num}>{l}</th>)}</tr></thead>
-      <tbody>{hitters.map(s => <tr key={s.athleteId}><th scope="row"><Link prefetch={false} href={`/athletes/${s.athleteId}`}>{s.name}</Link></th><td>{[s.position, s.secondaryPosition].filter(Boolean).join("/") || "—"}</td><td>{s.bats || "—"}</td><StatCells stats={s.hitting} keys={SCOUT_HIT}/></tr>)}</tbody></table></div>
+    <div className="table-wrap"><table className={styles.table}><thead><tr><th>Hitter</th><th>Pos</th><th>Bats</th>{SCOUT_HIT_LABELS.map(l => <th key={l} className={styles.num}>{l}</th>)}<th aria-label="Hide"/></tr></thead>
+      <tbody>{hitters.map(s => <tr key={s.athleteId}><th scope="row"><Link prefetch={false} href={`/athletes/${s.athleteId}`}>{s.name}</Link></th><td>{[s.position, s.secondaryPosition].filter(Boolean).join("/") || "—"}</td><td>{s.bats || "—"}</td><StatCells stats={s.hitting} keys={SCOUT_HIT}/>{hideButton(s)}</tr>)}</tbody></table></div>
     <h3>Their Pitchers <small>{arms.length} · by WHIP</small></h3>
-    <div className="table-wrap"><table className={styles.table}><thead><tr><th>Pitcher</th><th>Throws</th>{SCOUT_PITCH_LABELS.map(l => <th key={l} className={styles.num}>{l}</th>)}</tr></thead>
-      <tbody>{arms.map(s => <tr key={s.athleteId}><th scope="row"><Link prefetch={false} href={`/athletes/${s.athleteId}?tab=pitching`}>{s.name}</Link></th><td>{s.throws || "—"}</td><StatCells stats={s.pitching} keys={SCOUT_PITCH}/></tr>)}</tbody></table></div>
+    <div className="table-wrap"><table className={styles.table}><thead><tr><th>Pitcher</th><th>Throws</th>{SCOUT_PITCH_LABELS.map(l => <th key={l} className={styles.num}>{l}</th>)}<th aria-label="Hide"/></tr></thead>
+      <tbody>{arms.map(s => <tr key={s.athleteId}><th scope="row"><Link prefetch={false} href={`/athletes/${s.athleteId}?tab=pitching`}>{s.name}</Link></th><td>{s.throws || "—"}</td><StatCells stats={s.pitching} keys={SCOUT_PITCH}/>{hideButton(s)}</tr>)}</tbody></table></div>
+    {hiddenPlayers.length > 0 && <div><button type="button" className={styles.linkButton} onClick={() => setShowHidden(!showHidden)}>{showHidden ? "Hide list" : `Hidden players (${hiddenPlayers.length})`}</button>
+      {showHidden && <ul className={styles.chips}>{hiddenPlayers.map(s => <li key={s.athleteId}>{s.name}<button type="button" className={styles.linkButton} onClick={() => setHidden(plan.series.hidden.filter(id => id !== s.athleteId))}>Show</button></li>)}</ul>}</div>}
     <p className={styles.note}>Cumulative Fall game-sheet stats; hover a value for its sample. Players without game stats show dashes. Open a name for their full profile.</p>
   </section>;
 }

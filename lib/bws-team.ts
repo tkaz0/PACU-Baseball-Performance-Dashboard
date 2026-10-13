@@ -14,14 +14,16 @@ export type BwsGamePitcher = { playerId: string; plannedOuts: number; actualOuts
 export type BwsGameBatter = { playerId: string; atBats: number; plateAppearances: number | null };
 export type BwsGame = { id: string; date: string; opponent: string; lineupId: string | null; pitchers: BwsGamePitcher[]; batters: BwsGameBatter[]; notes: string };
 /** Series participation minimums (owner-set) and the opposing team's players for scouting. */
-export type BwsSeries = { minAtBats: number; minBattersFaced: number; minOuts: number; inningsPerGame: number; opponents: { athleteId: string; role: BwsRole }[] };
+export type BwsSeries = { minAtBats: number; minBattersFaced: number; minOuts: number; inningsPerGame: number; opponents: { athleteId: string; role: BwsRole }[];
+  /** Players hidden from Scouting (for example injured players); owner choice, never a roster change. */
+  hidden: string[] };
 export type BwsNote = { playerId: string; text: string };
 export type BwsTeamPlan = { version: 1; name: string; players: BwsPlayer[]; depth: Record<BwsPosition, string[]>; lineups: BwsLineup[]; games: BwsGame[]; notes: BwsNote[]; series: BwsSeries };
 export type BwsSnapshot = { revision: number; document: BwsTeamPlan; updatedAt: string; lastRequestId: string };
 export type BwsSaveRequest = { requestId: string; expectedRevision: number; document: BwsTeamPlan };
 
 export const BWS_LIMITS = { players: 40, depthPerPosition: 5, lineups: 12, games: 40, pitchersPerGame: 15, note: 500, notes: 40, opponents: 40 } as const;
-export const DEFAULT_BWS_SERIES: BwsSeries = { minAtBats: 4, minBattersFaced: 8, minOuts: 6, inningsPerGame: 9, opponents: [] };
+export const DEFAULT_BWS_SERIES: BwsSeries = { minAtBats: 4, minBattersFaced: 8, minOuts: 6, inningsPerGame: 9, opponents: [], hidden: [] };
 const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 const exact = (v: Record<string, unknown>, keys: string[]) => Object.keys(v).length === keys.length && keys.every(key => key in v);
 const text = (v: unknown, max: number, empty = false): v is string => typeof v === "string" && v === v.trim() && (empty || v.length > 0) && v.length <= max && !/[\u0000-\u0008\u000b-\u001f\u007f]/.test(v);
@@ -31,7 +33,7 @@ const outs = (v: unknown, max: number): v is number => Number.isSafeInteger(v) &
 const isDate = (v: unknown): v is string => typeof v === "string" && /^2026-(0[89]|1[0-2])-\d{2}$/.test(v) && new Date(`${v}T00:00:00Z`).toISOString().slice(0, 10) === v;
 
 export function emptyBwsPlan(name = "Boxer World Series"): BwsTeamPlan {
-  return { version: 1, name, players: [], depth: Object.fromEntries(BWS_POSITIONS.map(p => [p, []])) as unknown as Record<BwsPosition, string[]>, lineups: [], games: [], notes: [], series: { ...DEFAULT_BWS_SERIES, opponents: [] } };
+  return { version: 1, name, players: [], depth: Object.fromEntries(BWS_POSITIONS.map(p => [p, []])) as unknown as Record<BwsPosition, string[]>, lineups: [], games: [], notes: [], series: { ...DEFAULT_BWS_SERIES, opponents: [], hidden: [] } };
 }
 
 export function validateBwsPlan(value: unknown): BwsTeamPlan {
@@ -82,15 +84,17 @@ export function validateBwsPlan(value: unknown): BwsTeamPlan {
   if (!Array.isArray(value.notes) || value.notes.length > BWS_LIMITS.notes) return fail();
   const notes = value.notes.map(n => object(n) && exact(n, ["playerId", "text"]) && typeof n.playerId === "string" && ids.has(n.playerId) && text(n.text, BWS_LIMITS.note) ? { playerId: n.playerId, text: n.text } : fail());
   if (!unique(notes.map(n => n.playerId))) return fail();
-  let series: BwsSeries = { ...DEFAULT_BWS_SERIES, opponents: [] };
+  let series: BwsSeries = { ...DEFAULT_BWS_SERIES, opponents: [], hidden: [] };
   if ("series" in value) {
     const v = value.series;
-    if (!object(v) || !exact(v, ["minAtBats", "minBattersFaced", "minOuts", "inningsPerGame", "opponents"]) || !outs(v.minAtBats, 30) || !outs(v.minBattersFaced, 60) || !outs(v.minOuts, 60)
+    if (!object(v) || !exact(v, ["minAtBats", "minBattersFaced", "minOuts", "inningsPerGame", "opponents", ...("hidden" in v ? ["hidden"] : [])]) || !outs(v.minAtBats, 30) || !outs(v.minBattersFaced, 60) || !outs(v.minOuts, 60)
       || !Number.isSafeInteger(v.inningsPerGame) || (v.inningsPerGame as number) < 3 || (v.inningsPerGame as number) > 12 || !Array.isArray(v.opponents) || v.opponents.length > BWS_LIMITS.opponents) return fail();
     const opponents = v.opponents.map(o => object(o) && exact(o, ["athleteId", "role"]) && uuid(o.athleteId) && ["pitcher", "position", "two_way"].includes(o.role as string) ? { athleteId: o.athleteId, role: o.role as BwsRole } : fail());
     const own = new Set(players.flatMap(p => p.athleteId ? [p.athleteId] : []));
     if (!unique(opponents.map(o => o.athleteId)) || opponents.some(o => own.has(o.athleteId))) return fail();
-    series = { minAtBats: v.minAtBats as number, minBattersFaced: v.minBattersFaced as number, minOuts: v.minOuts as number, inningsPerGame: v.inningsPerGame as number, opponents };
+    const hidden = "hidden" in v ? v.hidden : [];
+    if (!Array.isArray(hidden) || hidden.length > 60 || hidden.some(id => !uuid(id)) || !unique(hidden as string[])) return fail();
+    series = { minAtBats: v.minAtBats as number, minBattersFaced: v.minBattersFaced as number, minOuts: v.minOuts as number, inningsPerGame: v.inningsPerGame as number, opponents, hidden: hidden as string[] };
   }
   return { version: 1, name: value.name, players, depth, lineups, games: games.sort((a, b) => a.date.localeCompare(b.date)), notes, series };
 }

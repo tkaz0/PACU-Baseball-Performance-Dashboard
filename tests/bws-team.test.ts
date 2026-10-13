@@ -75,3 +75,10 @@ it("counts games in a lineup per batter and planned innings per pitcher", () => 
   expect(pitchers.find(p => p.player.id === id(20))).toMatchObject({ outs: 3, games: 1 });
   expect(pitchers.some(p => p.player.role === "position")).toBe(false);
 });
+it("keeps scouting hides as valid unique athlete ids and accepts plans saved before them", () => {
+  const plan = fixture(); plan.series = { ...plan.series, hidden: [id(700), id(701)] };
+  expect(validateBwsPlan(plan).series.hidden).toEqual([id(700), id(701)]);
+  const legacy = fixture() as BwsTeamPlan; const { hidden: _h, ...rest } = legacy.series; void _h;
+  expect(validateBwsPlan({ ...legacy, series: rest }).series.hidden).toEqual([]);
+  expect(() => validateBwsPlan({ ...fixture(), series: { ...fixture().series, hidden: [id(700), id(700)] } })).toThrow();
+});
