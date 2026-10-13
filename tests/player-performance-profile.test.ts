@@ -140,11 +140,13 @@ it("keeps the full Fall arsenal in the Pitching tab and hides only broad Full Sw
 });
 
 it("does not render pitcher result slots for a position-only profile", () => {
- const props={performance:model(),pitchResults:createElement("p",null,"Fictional in-game arsenal"),practicePitchResults:createElement("p",null,"Fictional practice arsenal")};
+ const props={performance:model(),pitchResults:createElement("p",null,"Fictional in-game arsenal"),practicePitchResults:createElement("p",null,"Fictional practice arsenal"),pitchDevelopment:createElement("p",null,"Fictional pitch development"),practicePitchDevelopment:createElement("p",null,"Fictional practice development")};
  const position=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{...props,athlete:fictionalAthlete("position")}));
  expect(position).not.toContain("Fictional in-game arsenal");expect(position).not.toContain("Fictional practice arsenal");
+ expect(position).not.toContain("Fictional pitch development");expect(position).not.toContain("Fictional practice development");
  const twoWay=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{...props,athlete:fictionalAthlete("two_way")}));
  expect(twoWay).toContain("Fictional in-game arsenal");expect(twoWay).toContain("Fictional practice arsenal");
+ expect(panelOf(twoWay,"pitching")).toContain("Fictional pitch development");expect(panelOf(twoWay,"practice")).toContain("Fictional practice development");
 });
 
 it.each(["Game", "Intrasquad", "Practice"] as const)("replaces only the exact %s broad velocity source when that classified arsenal exists", category => {

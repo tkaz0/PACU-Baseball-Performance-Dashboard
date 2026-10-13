@@ -4,13 +4,14 @@ import { expect, it } from "vitest";
 import { PlayerOverview } from "@/components/player-overview";
 import { GameLeaderboard } from "@/components/game-leaderboard";
 import { TeamGameStats } from "@/components/team-game-stats";
+import { teamGameSummary } from "@/lib/team-game-stats";
 import { gameOverviewMetrics } from "@/lib/game-overview";
 import type { SharedGameStat } from "@/lib/game-server";
 import type { GameComparison, GameLeaderboardRow } from "@/lib/game-metrics";
 
 // Fictional values only; no source captures or roster identities are fixtures.
 const counts = (values: Record<string, number>, pitching = false): SharedGameStat[] => Object.entries(values).map(([metric, value]) => ({
-  source: pitching ? "pitching_fall_2026" : "qpa_fall_2026", athlete_id: "fictional-player", metric, value, unit: "count",
+  source: pitching ? "pitching_fall_2026" : "qpa_fall_2026", athlete_id: "fictional-player", metric, value, unit: ["qpa_pct","strike_pct"].includes(metric) ? "%" : "count",
   scope: pitching ? "pitching_event" : "cumulative_fall", event_id: pitching ? "fall-2026-week-1" : null, played_on: null,
   source_row: 2, source_column: 2, derived_from: [], snapshot_id: "fictional-snapshot", fetched_at: "2026-09-28T01:00:00Z", content_hash: "a".repeat(64),
 }));
@@ -70,8 +71,9 @@ it("shows pooled team power estimates in the main cards without fabricating a te
   const html = renderToStaticMarkup(createElement(TeamGameStats, { stats: [...batting, ...pitching], names: new Map([["fictional-player", "Fictional Player"]]) }));
   const main = html.split("More Team Totals &amp; Rates")[0];
   expect(main).toContain("Team Batting");
-  expect(main).toContain("How We Get Our Hits");
+  expect(main).toContain("Where Production Comes From");
   expect(main).toContain("D3 NWC");
   for (const label of ["SLG", "ISO", "wOBAcon"]) expect(main).toContain(label);
-  expect(html).not.toContain("PAC Production+");
+  expect(html).toContain("same weighted production behind PAC Production+");
+  expect(teamGameSummary(batting,"qpa_fall_2026").rates.some(rate=>rate.metric==="batting_production_plus")).toBe(false);
 });

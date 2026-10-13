@@ -1,3 +1,5 @@
+import { HittingProductionChart } from "@/components/hitting-production";
+import { hittingProduction } from "@/lib/hitting-production";
 import { battingAdvancedRates, pitchingExtraRates } from "@/lib/advanced-game-stats";
 import { cumulativePitching } from "@/lib/pitching-cumulative";
 import { formatInnings, pitchSplits, pitchingContactRates, pitchingRates } from "@/lib/pitching-stats";
@@ -43,6 +45,7 @@ export function AthleteGameStats({stats,comparisons=[],showDetails=true}:{stats:
       <StatSheet title="Production" source="qpa_fall_2026" items={production}/>
       <StatSheet title="Rates" source="qpa_fall_2026" items={rateItems(rateKeys)}/>
       <StatSheet title="Counting Stats" source="qpa_fall_2026" items={recorded(qpa,["pumps","sb","gdp"])}/>
+      <HittingProductionChart production={hittingProduction(qpa)}/>
       {rates.some(rate=>rate.metric.startsWith("batting_est_")||["batting_production_plus","batting_hr_pct"].includes(rate.metric))&&<p className={styles.note}>Power stats count doubles/triples as doubles; doubles and triples share the same recorded category. PAC Production+ compares production with the team (100 = average); it is not wRC+.</p>}
     </section>}
     {pitching.length>0&&<section className={styles.discipline} aria-label="Cumulative pitching statistics"><header className={styles.header}><div><h3>Pitching · Fall to Date</h3><p>Sheet changed {updated(pitching)}</p></div><Samples rows={pitching} source="pitching_fall_2026" metric="strike_pct" eventId={eventId}/></header>
