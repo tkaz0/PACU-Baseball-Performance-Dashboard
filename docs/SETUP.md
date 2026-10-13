@@ -520,3 +520,5 @@ October 12 migrations, in order:
 3. `202610120003_pitch_grade_baselines.sql`: aggregate Pitch+ baselines for players. Apply before the app. Staff open Pitch Grades once to publish the first row. See [Pitch+](PITCH_GRADES.md).
 
 October 13: apply `202610130001_bws_team_plans.sql` before deploying the BWS Team page. It adds the owner-scoped `public.bws_team_plans` table, private revision receipts and the ordinary-session save/read RPCs. The retired draft board's tables and saved data are left unchanged, and `/admin/draft-board` now redirects to `/admin/bws-team`.
+
+Apply `202610130002_bws_series.sql` before deploying the BWS series planner. It replaces only `private.valid_bws_team_plan`.

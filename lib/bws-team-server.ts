@@ -15,8 +15,8 @@ export async function loadBwsTeamPlan(access: Access) {
 }
 
 export type BwsStat = { key: string; label: string; value: string; raw: number; sample: string | null };
-export type BwsPlayerStats = { athleteId: string; playerType: string; position: string; secondaryPosition: string; hitting: BwsStat[]; pitching: BwsStat[] };
-export const BWS_HITTING_STATS = ["batting_production_plus", "batting_ops", "batting_obp", "qpa_pct", "batting_k_pct", "sb"];
+export type BwsPlayerStats = { athleteId: string; name: string; playerType: string; position: string; secondaryPosition: string; bats: string; throws: string; hitting: BwsStat[]; pitching: BwsStat[]; atBats: number | null; plateAppearances: number | null };
+export const BWS_HITTING_STATS = ["batting_production_plus", "batting_ops", "batting_obp", "batting_avg", "qpa_pct", "batting_k_pct", "batting_bb_pct", "batting_est_iso", "sb"];
 export const BWS_PITCHING_STATS = ["pitching_whip", "pitching_k_bb", "pitching_r9", "strike_pct", "pitching_k9"];
 
 /** Cumulative Fall game stats for the current eligible roster, from the existing staff reader (Admin only here). */
@@ -28,7 +28,9 @@ export async function loadBwsPlayerStats(): Promise<BwsPlayerStats[]> {
       const g = own.find(row => row.metric === key && row.source === source);
       return g ? [{ key, label: g.label, value: gameValue(g.value, g.unit), raw: g.value, sample: gameSampleText(g.source, g.metric, g.opportunities) }] : [];
     });
-    return { athleteId: player.id, playerType: player.playerType, position: player.position, secondaryPosition: player.secondaryPosition ?? "",
-      hitting: pick(BWS_HITTING_STATS, "qpa_fall_2026"), pitching: pick(BWS_PITCHING_STATS, "pitching_fall_2026") };
+    // AVG's sample is official AB and QPA%'s is PA, so the pair gives the player's own AB/PA rate.
+    const count = (metric: string) => own.find(g => g.metric === metric && g.source === "qpa_fall_2026")?.opportunities ?? null;
+    return { athleteId: player.id, name: player.name, playerType: player.playerType, position: player.position, secondaryPosition: player.secondaryPosition ?? "", bats: player.bats, throws: player.throws,
+      hitting: pick(BWS_HITTING_STATS, "qpa_fall_2026"), pitching: pick(BWS_PITCHING_STATS, "pitching_fall_2026"), atBats: count("batting_avg"), plateAppearances: count("qpa_pct") };
   });
 }

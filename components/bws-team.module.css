@@ -39,6 +39,7 @@
 .notes { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:10px; }
 .notes label { display:grid; gap:4px; font-size:13px; font-weight:600; }
 .printCard { display:none; }
+.printColumns ol { margin:4px 0; padding-left:18px; }
 @media print {
   :global(body *) { visibility:hidden; }
   .printCard, .printCard * { visibility:visible; }
@@ -49,3 +50,15 @@
   .printColumns { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
   .printColumns ul { margin:4px 0; padding-left:18px; }
 }
+.setting { display:grid; gap:4px; font-size:12px; color:var(--text-secondary); }
+.setting input { width:110px; font-size:14px; color:var(--text-primary); }
+.chip { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; font-weight:700; background:var(--surface-raised, rgba(127,127,127,.15)); }
+.chip[data-status="met"] { background:#dcfce7; color:#166534; }
+.chip[data-status="on-track"] { background:#dbeafe; color:#1e40af; }
+.chip[data-status="at-risk"] { background:#fee2e2; color:#991b1b; }
+:global(html[data-theme="dark"]) .chip[data-status="met"] { background:#153727; color:#86efac; }
+:global(html[data-theme="dark"]) .chip[data-status="on-track"] { background:#172554; color:#93c5fd; }
+:global(html[data-theme="dark"]) .chip[data-status="at-risk"] { background:#431f25; color:#fca5a5; }
+.warnText { color:#b45309; font-weight:600; }
+.game h4, .results h4 { margin:4px 0 0; font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-secondary); }
+.results { display:grid; gap:6px; }
