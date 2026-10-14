@@ -75,7 +75,8 @@
 .logoSmall { width: 26px; }
 .backHead h2 { margin: 0; font-family: var(--font-display, inherit); font-size: 26px; font-weight: 900; text-transform: uppercase; }
 .backHead span { margin-left: auto; font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
-.columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; min-height: 0; }
+.columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; flex: none; }
+.page > section, .page > div, .page > p { flex-shrink: 0; }
 .columns > :last-child:nth-child(odd) { grid-column: 1 / -1; }
 .table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .table th { font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); text-align: left; padding: 2px 4px 4px; border-bottom: 1px solid var(--line); }
@@ -137,3 +138,4 @@
 /* Screen preview scales to fit narrower panes; print always uses true size. */
 .fit { width: 100%; overflow: hidden; }
 @media print { .fit, .fit > div { zoom: 1 !important; overflow: visible; } }
+.page > .rankPanel { flex-shrink: 1; }
