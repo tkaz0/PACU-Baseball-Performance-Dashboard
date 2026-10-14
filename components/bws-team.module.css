@@ -64,14 +64,25 @@
   .spot { position:static; transform:none; width:auto; box-shadow:none; }
 }
 @media print {
+  @page { margin: 0.4in; }
   :global(body *) { visibility:hidden; }
   .printCard, .printCard * { visibility:visible; }
-  .printCard { display:block; position:absolute; inset:0 auto auto 0; width:100%; color:#000; background:#fff; padding:24px; font-size:14px; }
-  .printCard h2 { margin:0; font-size:22px; }
-  .printCard table { width:100%; border-collapse:collapse; margin:12px 0; }
-  .printCard th, .printCard td { border:1px solid #000; padding:6px 8px; text-align:left; }
+  .printCard { display:block; position:absolute; inset:0 auto auto 0; width:100%; color:#000; background:#fff; padding:0; font-size:15px; font-family: ui-sans-serif, system-ui, sans-serif; }
+  .dugoutHeader { display:flex; align-items:center; gap:14px; padding-bottom:10px; margin-bottom:12px; border-bottom:4px solid #c8102e; }
+  .dugoutLogo { width:54px; }
+  .dugoutHeader h2 { margin:0; font-size:26px; font-weight:900; text-transform:uppercase; letter-spacing:.02em; }
+  .dugoutHeader p { margin:2px 0 0; font-size:14px; font-weight:700; color:#333; }
+  .dugoutGrid { width:100%; border-collapse:collapse; margin:0 0 14px; }
+  .dugoutGrid th { background:#c8102e; color:#fff; font-size:12px; text-transform:uppercase; letter-spacing:.08em; padding:6px 8px; border:2px solid #000; text-align:left; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .dugoutGrid td { border:2px solid #000; padding:0 8px; height:38px; font-size:17px; font-weight:700; }
+  .dugoutGrid td:first-child { width:34px; text-align:center; font-weight:900; }
+  .dugoutGrid td:nth-child(3), .dugoutGrid td:nth-child(5) { width:54px; text-align:center; }
+  .dugoutGrid td:nth-child(4) { width:30%; }
   .printColumns { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-  .printColumns ul, .printColumns ol { margin:4px 0; padding-left:18px; }
+  .printColumns h3 { margin:0 0 4px; font-size:13px; text-transform:uppercase; letter-spacing:.1em; border-bottom:2px solid #000; }
+  .dugoutList { margin:0; padding:0; list-style:none; columns:2; column-gap:12px; font-size:13px; }
+  .dugoutList li { display:flex; justify-content:space-between; gap:6px; padding:2px 0; border-bottom:1px dotted #999; break-inside:avoid; }
+  .dugoutNotes { margin-top:12px; padding:8px; border:1px solid #000; font-size:13px; white-space:pre-wrap; }
 }
 .alignments { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px; }
 .alignment { border:1px solid var(--line-subtle); border-radius:12px; padding:10px; display:grid; gap:4px; align-content:start; }

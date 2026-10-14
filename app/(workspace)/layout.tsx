@@ -1,6 +1,7 @@
 import { requireRenderAccess as requireAccess } from "@/lib/render-access";
 import { PlayerProfileGuide } from "@/components/player-profile-guide";
 import { Sidebar } from "@/components/sidebar";
+import { MobileTabBar } from "@/components/mobile-tab-bar";
 import { AccessPreviewControl } from "@/components/access-preview-control";
 import { AppearanceControl } from "@/components/appearance-control";
 import { StaffAthleteSearch } from "@/components/staff-athlete-search";
@@ -35,6 +36,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
       </header>
       {preview && <div className="flex flex-wrap items-center justify-between gap-3 border-b border-red-200 bg-red-50 px-6 py-4 lg:px-10" role="status"><div><p className="mb-1 flex items-center gap-2 font-bold text-pacu-red"><Eye size={17} aria-hidden="true" />Viewing as: <span className="capitalize">{preview.role}</span>{previewAthleteName && <span>· {previewAthleteName}</span>}</p><p className="mb-0 text-xs text-gray-600">{preview.role === "coach" ? "Coach tools are active. Reviewed imports save to shared player profiles under your account." : "Read-only player preview · Your administrator account remains signed in."} This view applies to private workspace tabs in this browser.</p></div></div>}
       <main id="main-content" className="workspace-main">{children}</main>
+      <MobileTabBar roles={roles} athleteId={athleteId}/>
       <footer className="workspace-footer"><span>Pacific Baseball Performance</span><span>An independent project · Not an official university application</span></footer>
     </div>
   </div>;

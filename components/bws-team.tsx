@@ -8,6 +8,7 @@ import { ALIGNMENT_MIN_BALLS, MATCHUP_SPLIT_MIN, handSplit, hitterAlignment, mat
 import { BWS_LIMITS, BWS_POSITIONS, emptyBwsPlan, formatOuts, lineupIssues, normalizeBwsPlan, parseInnings, planCoverage, suggestedOrder, withoutPlayer, type BwsGame, type BwsLineup, type BwsPlayer, type BwsPosition, type BwsRole, type BwsSnapshot, type BwsTeamPlan } from "@/lib/bws-team";
 import type { BwsPlayerStats, BwsStat } from "@/lib/bws-team-server";
 import { SkeletonCards } from "@/components/skeleton";
+import { PacificLogo } from "@/components/pacific-brand";
 import styles from "./bws-team.module.css";
 
 type Tab = "games" | "lineups" | "depth" | "roster" | "scouting" | "matchups";
@@ -277,26 +278,30 @@ function Scouting({ plan, update, stats, scout }: Shared & { stats: BwsPlayerSta
   </section>;
 }
 
-/** Print-only cards; everything else is hidden when printing. */
-function LineupCard({ lineup, plan, byId }: { lineup: BwsLineup; plan: BwsTeamPlan; byId: Map<string, BwsPlayer> }) {
-  const inLineup = new Set(lineup.slots.map(s => s.playerId));
+/** Print-only dugout cards: classic lineup grid with sub lines, bench and pitchers. Everything else is hidden when printing. */
+function DugoutCard({ plan, title, subtitle, lineup, byId, pitchers, notes }: { plan: BwsTeamPlan; title: string; subtitle: string; lineup: BwsLineup | undefined; byId: Map<string, BwsPlayer>; pitchers: { name: string; ip: string | null }[]; notes?: string }) {
+  const inLineup = new Set(lineup?.slots.map(s => s.playerId) ?? []);
+  const bench = plan.players.filter(p => p.role !== "pitcher" && !inLineup.has(p.id));
+  const slots = lineup?.slots ?? [];
   return <div className={styles.printCard} aria-hidden="true">
-    <h2>{plan.name}</h2><p>{lineup.name}</p>
-    <table><thead><tr><th>#</th><th>Player</th><th>Pos</th></tr></thead><tbody>{lineup.slots.map((s, i) => <tr key={s.playerId}><td>{i + 1}</td><td>{byId.get(s.playerId)?.name}</td><td>{s.position}</td></tr>)}</tbody></table>
-    <div className={styles.printColumns}><div><h3>Bench</h3><ul>{plan.players.filter(p => p.role !== "pitcher" && !inLineup.has(p.id)).map(p => <li key={p.id}>{p.name}</li>)}</ul></div><div><h3>Pitchers</h3><ul>{plan.players.filter(p => p.role !== "position").map(p => <li key={p.id}>{p.name}</li>)}</ul></div></div>
+    <header className={styles.dugoutHeader}><PacificLogo className={styles.dugoutLogo} decorative/><div><h2>{plan.name}</h2><p>{title}{subtitle ? ` · ${subtitle}` : ""}</p></div></header>
+    <table className={styles.dugoutGrid}><thead><tr><th>#</th><th>Starter</th><th>Pos</th><th>Sub</th><th>Pos</th></tr></thead>
+      <tbody>{Array.from({ length: Math.max(9, slots.length) }, (_, i) => { const s = slots[i]; return <tr key={i}><td>{i + 1}</td><td>{s ? byId.get(s.playerId)?.name : ""}</td><td>{s?.position ?? ""}</td><td/><td/></tr>; })}</tbody></table>
+    <div className={styles.printColumns}>
+      <div><h3>Bench</h3><ul className={styles.dugoutList}>{bench.map(p => <li key={p.id}>{p.name}</li>)}</ul></div>
+      <div><h3>Pitchers</h3><ul className={styles.dugoutList}>{pitchers.map(p => <li key={p.name}><span>{p.name}</span>{p.ip && <b>{p.ip} IP</b>}</li>)}</ul></div>
+    </div>
+    {notes && <p className={styles.dugoutNotes}>{notes}</p>}
   </div>;
 }
+function LineupCard({ lineup, plan, byId }: { lineup: BwsLineup; plan: BwsTeamPlan; byId: Map<string, BwsPlayer> }) {
+  return <DugoutCard plan={plan} title={lineup.name} subtitle="" lineup={lineup} byId={byId} pitchers={plan.players.filter(p => p.role !== "position").map(p => ({ name: p.name, ip: null }))}/>;
+}
 function GameSheet({ game, plan, byId }: { game: BwsGame; plan: BwsTeamPlan; byId: Map<string, BwsPlayer> }) {
-  const lineup = plan.lineups.find(l => l.id === game.lineupId), inLineup = new Set(lineup?.slots.map(s => s.playerId) ?? []);
-  return <div className={styles.printCard} aria-hidden="true">
-    <h2>{plan.name} · Game {plan.games.findIndex(g => g.id === game.id) + 1}</h2><p>{shortDate(game.date)}{lineup ? ` · ${lineup.name}` : ""}</p>
-    {lineup && <table><thead><tr><th>#</th><th>Batter</th><th>Pos</th></tr></thead><tbody>{lineup.slots.map((s, i) => <tr key={s.playerId}><td>{i + 1}</td><td>{byId.get(s.playerId)?.name}</td><td>{s.position}</td></tr>)}</tbody></table>}
-    <div className={styles.printColumns}>
-      <div><h3>Bench</h3><ul>{plan.players.filter(p => p.role !== "pitcher" && !inLineup.has(p.id)).map(p => <li key={p.id}>{p.name}</li>)}</ul></div>
-      <div><h3>Pitching Plan</h3><ol>{game.pitchers.map(p => <li key={p.playerId}>{byId.get(p.playerId)?.name} · {formatOuts(p.plannedOuts)} IP</li>)}</ol></div>
-    </div>
-    {game.notes && <p>{game.notes}</p>}
-  </div>;
+  const lineup = plan.lineups.find(l => l.id === game.lineupId);
+  const planned = game.pitchers.map(p => ({ name: byId.get(p.playerId)?.name ?? "", ip: formatOuts(p.plannedOuts) }));
+  const others = plan.players.filter(p => p.role !== "position" && !game.pitchers.some(x => x.playerId === p.id)).map(p => ({ name: p.name, ip: null }));
+  return <DugoutCard plan={plan} title={`Game ${plan.games.findIndex(g => g.id === game.id) + 1}`} subtitle={`${shortDate(game.date)}${lineup ? ` · ${lineup.name}` : ""}`} lineup={lineup} byId={byId} pitchers={[...planned, ...others]} notes={game.notes}/>;
 }
 
 /** Opposing roster: every current eligible player not linked on your team and not hidden. */

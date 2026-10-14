@@ -131,3 +131,13 @@ html[data-theme="dark"] .baseball-sidebar { background: linear-gradient(180deg, 
 .workspace-main :is([class*="__blockHeading"], [class*="__sessionHeading"]) h2 { text-transform: uppercase; letter-spacing: .02em; }
 /* Leaderboard results */
 .workspace-main [class*="leaderboard-module__"][class*="__result"] > span.break-all { font-family: var(--font-display); font-weight: 700; font-size: 1.3em; letter-spacing: .005em; }
+
+/* Phone bottom bar (October 14): fixed quick links on narrow screens; hidden on tablets/desktop and in print. */
+.mobile-tab-bar { display: none; }
+@media (max-width: 700px) {
+  .mobile-tab-bar { position: fixed; inset: auto 0 0 0; z-index: 40; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); background: color-mix(in srgb, var(--surface-panel) 92%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--line-subtle); }
+  .mobile-tab-bar a { display: grid; justify-items: center; gap: 3px; padding: 6px 2px; border-radius: 10px; color: var(--text-secondary); font-size: 12px; font-weight: 700; text-decoration: none; }
+  .mobile-tab-bar a[aria-current="page"] { color: var(--brand-red, #c8102e); background: color-mix(in srgb, var(--brand-red, #c8102e) 12%, transparent); }
+  .workspace-body { padding-bottom: calc(68px + env(safe-area-inset-bottom)); }
+}
+@media print { .mobile-tab-bar { display: none !important; } }
