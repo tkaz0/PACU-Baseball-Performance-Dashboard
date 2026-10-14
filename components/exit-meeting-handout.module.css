@@ -77,9 +77,10 @@
 .logoSmall { width: 26px; }
 .backHead h2 { margin: 0; font-family: var(--font-display, inherit); font-size: 26px; font-weight: 900; text-transform: uppercase; }
 .backHead span { margin-left: auto; font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
-.columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; flex: none; }
+/* Two balanced columns: panels flow top to bottom and never split. */
+.columns { columns: 2; column-gap: 12px; flex: none; }
+.columns > section { break-inside: avoid; margin-bottom: 12px; display: block; }
 .pageBody > section, .pageBody > div, .pageBody > p { flex-shrink: 0; }
-.columns > :last-child:nth-child(odd) { grid-column: 1 / -1; }
 .table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .table th { font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); text-align: left; padding: 2px 4px 4px; border-bottom: 1px solid var(--line); }
 .table td { padding: 2px 4px; border-bottom: 1px solid var(--line); vertical-align: middle; }

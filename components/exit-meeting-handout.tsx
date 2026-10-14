@@ -167,9 +167,10 @@ export function ExitMeetingHandout({ report, meetingDate, talkingPoints, headsho
         {showHitting && <Panel title="Hitting" kicker="Fall game sheet · week trends">
           <StatTable rows={hitting.filter(r => ["batting_production_plus", "batting_ops", "batting_obp", "batting_avg", "qpa_pct", "batting_k_pct", "batting_bb_pct", "batting_est_slg"].includes(r.metricKey ?? "")).slice(0, 6)} weeks={hittingWeeks} empty="No hitting game stats yet."/>
           {swing.length > 0 && <><h4>Swing &amp; Contact</h4><ValueGrid rows={swing.slice(0, 6)}/></>}
-          {(contactQuality.length > 0 || battedBall.length > 0) && <><h4>Batted Ball Quality <small>in-game Full Swing</small></h4>
-            {contactQuality.length > 0 && <ValueGrid rows={contactQuality}/>}
-            <MixBar rows={launchMix} title="Launch"/><MixBar rows={directionMix} title="Direction"/></>}
+        </Panel>}
+        {(contactQuality.length > 0 || battedBall.length > 0) && <Panel title="Batted Ball Quality" kicker="In-game Full Swing · likely fouls out">
+          {contactQuality.length > 0 && <ValueGrid rows={contactQuality}/>}
+          <MixBar rows={launchMix} title="Launch"/><MixBar rows={directionMix} title="Direction"/>
         </Panel>}
         {showPitching && <Panel title="Pitching" kicker="Fall game sheet · Pitch+ · arsenal">
           <StatTable rows={pitching.filter(r => ["pitching_whip", "pitching_k_bb", "pitching_k9", "pitching_bb9", "pitching_r9", "strike_pct"].includes(r.metricKey ?? "")).slice(0, 6)} weeks={pitchingWeeks} empty="No pitching game stats yet."/>
