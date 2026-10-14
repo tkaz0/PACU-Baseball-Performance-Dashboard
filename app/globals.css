@@ -753,8 +753,9 @@ html[data-theme="dark"] .measurement-change[data-tone="red"] .measurement-change
 @media (min-width: 1101px) { .pitch-leaderboard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 @media (max-width: 600px) {
-  .leaderboard-navigation[aria-label="Leaderboard group"] { flex-wrap: wrap; }
-  .leaderboard-navigation[aria-label="Leaderboard group"] a { flex: 1 0 28%; min-width: 0; }
+  /* One scrollable row on phones instead of wrapping onto a second line. */
+  .leaderboard-navigation[aria-label="Leaderboard group"] { flex-wrap: nowrap; scrollbar-width: none; }
+  .leaderboard-navigation[aria-label="Leaderboard group"] a { flex: 0 0 auto; padding-inline: 14px; }
 }
 
 /* Fall workspace refresh: shared surfaces and a quieter, consistent reading rhythm. */

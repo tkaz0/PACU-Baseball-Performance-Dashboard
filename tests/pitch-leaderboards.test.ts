@@ -1,6 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, it, vi } from "vitest";
+vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn(), push: vi.fn() }) }));
 import { LeaderboardBoard } from "@/components/leaderboard-board";
 import { ALL_PITCHES, PITCH_LEADERBOARD_KEYS, loadLeaderboardPanels, selectPitchLeaderboards, leaderboardMetrics, visibleLeaderboardComparisons, type LeaderboardComparison, type LeaderboardRow } from "@/lib/leaderboards";
 const base:LeaderboardComparison={metricKey:"classified_avg_velocity",source:"full swing · intrasquad · four-seam fastball",unit:"mph",period:"fall_2026",athleteCount:3};

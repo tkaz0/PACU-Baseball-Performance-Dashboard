@@ -1,6 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn() }) }));
 import { LEADERBOARD_METRICS, leaderboardMetrics, leaderboardGroup, initialLeaderboardSelection, visibleLeaderboardComparisons, type LeaderboardComparison, type LeaderboardRow } from "@/lib/leaderboards";
 import { PLAYER_METRICS } from "@/lib/player-performance";
 import { LeaderboardResults } from "@/components/leaderboard-results";
@@ -97,7 +98,9 @@ describe("automatic ranking boards", () => {
   it("keeps every measured athlete available after the first five", () => {
     const rows = Array.from({ length: 12 }, (_, index) => ({ ...row, athleteCode: `SYN-${String(index + 1).padStart(3, "0")}`, name: `Fictional Player ${index + 1}`, rank: index + 1, value: 100 - index }));
     const output = html("max_exit_velocity", rows);
-    expect(output).toContain("Show 7 More");
+    // Top three sit on the podium, five more in the first table, the rest behind Show More.
+    expect(output).toContain('aria-label="Top 3 on Max Exit Velocity"');
+    expect(output).toContain("Show 4 More");
     expect(output).toContain("Fictional Player 12");
     expect(output.match(/<table>/g)).toHaveLength(2);
   });

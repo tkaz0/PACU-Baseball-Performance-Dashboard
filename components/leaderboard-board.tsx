@@ -6,6 +6,7 @@ import { LeaderboardPitchSelector } from "@/components/leaderboard-pitch-selecto
 import { LeaderboardNavigation } from "@/components/leaderboard-navigation";
 import { Trophy } from "lucide-react";
 import { LeaderboardResults } from "@/components/leaderboard-results";
+import { LeaderboardFilters } from "@/components/leaderboard-filters";
 import { ALL_PITCHES, LEADERBOARD_METRICS, PITCH_LEADERBOARD_KEYS, isPitchLeaderboardMetric, leaderboardPitchType, leaderboardGroupLabels, leaderboardMetrics, leaderboardSourceLabel, selectPitchLeaderboards, type LeaderboardComparison, type LeaderboardGroup, type LeaderboardRow, type LeaderboardSession } from "@/lib/leaderboards";
 
 import styles from "./leaderboard.module.css";
@@ -46,15 +47,7 @@ export function LeaderboardBoard({ staff = false, group, panels, session = "in_g
   return <div className={styles.board}><div className={styles.controls}>
     <LeaderboardNavigation group={group} staff={staff} />
     {group !== "physicality" && <nav aria-label="Leaderboard session" className="leaderboard-navigation mb-5">{(["in_game", "practice"] as const).map(kind => <Link key={kind} href={`/leaderboards?group=${group}&session=${kind}${group === "pitching" && selectedPitch !== ALL_PITCHES ? `&pitch=${encodeURIComponent(selectedPitch)}` : ""}`} aria-current={session === kind ? "page" : undefined}>{kind === "in_game" ? "In-Game" : "Practice"}</Link>)}</nav>}
-    <form method="get" action="/leaderboards" className={styles.filterBar} aria-label="Filter players">
-      <input type="hidden" name="group" value={group}/>
-      {group !== "physicality" && <input type="hidden" name="session" value={session}/>}
-      {group === "pitching" && selectedPitch !== ALL_PITCHES && <input type="hidden" name="pitch" value={selectedPitch}/>}
-      {group !== "pitching" && <label>Players<select name="pos" defaultValue={position}><option value="all">Everyone</option><option value="pitchers">Pitchers</option><option value="position">Position Players</option></select></label>}
-      <label>Find a Player<input type="search" name="q" defaultValue={search} maxLength={60} placeholder="Name or jersey #"/></label>
-      <button type="submit" className="btn btn-secondary">Apply</button>
-      {filtering && <Link href={`/leaderboards?group=${group}${group !== "physicality" ? `&session=${session}` : ""}${group === "pitching" && selectedPitch !== ALL_PITCHES ? `&pitch=${encodeURIComponent(selectedPitch)}` : ""}`} className="text-link text-sm">Clear</Link>}
-    </form>
+    <LeaderboardFilters base={`/leaderboards?group=${group}${group !== "physicality" ? `&session=${session}` : ""}${group === "pitching" && selectedPitch !== ALL_PITCHES ? `&pitch=${encodeURIComponent(selectedPitch)}` : ""}`} position={position} search={search} showPositions={group !== "pitching"}/>
     {filtering && <p className="muted -mt-3 mb-5 text-xs">Showing matching players with their full-team rank. Team averages still include everyone.</p>}
     </div>
     {group === "pitching" && pitches.length > 0 && <header className={styles.toolbar}>

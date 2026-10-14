@@ -19,13 +19,26 @@ function ResultValue({ row, metric, unit }: { row: LeaderboardRow; metric: Leade
     : <span className="break-all">{formatMetricNumber(row.value,metric.key,row.source,unit === "s" ? row.value.toFixed(2) : String(row.value))}</span>}{unit !== "ratio" && <span className={styles.unit}>{unit === "%" ? unit : `\u00a0${unit}`}</span>}</>;
 }
 
-function RankingTable({ rows, metric, unit, continued = false, tiedRanks, barMax, headshots = {} }: { rows: LeaderboardRow[]; metric: LeaderboardMetricDefinition; unit: string; continued?: boolean; tiedRanks: ReadonlySet<number>; barMax?: number; headshots?: Readonly<Record<string, string>> }) {
+const MEDAL = ["gold", "silver", "bronze"] as const;
+/** Top three as a podium (2nd · 1st · 3rd); ties keep their shared rank. Photos load right away. */
+function Podium({ rows, metric, unit, headshots, tiedRanks }: { rows: LeaderboardRow[]; metric: LeaderboardMetricDefinition; unit: string; headshots: Readonly<Record<string, string>>; tiedRanks: ReadonlySet<number> }) {
+  const order = rows.length >= 3 ? [rows[1], rows[0], rows[2]] : rows;
+  return <ol className={styles.podium} aria-label={`Top ${rows.length} on ${leaderboardMetricLabel(metric)}`}>{order.map(row => { const place = rows.indexOf(row); return <li key={row.athleteCode} data-place={place + 1} data-medal={MEDAL[Math.min(2, row.rank - 1)] ?? "bronze"}>
+    <span className={styles.podiumRank} aria-label={`${tiedRanks.has(row.rank) ? "Tied for rank" : "Rank"} ${row.rank}`}>{row.rank}</span>
+    <PlayerAvatar name={row.name} path={headshots[row.athleteCode]} size={place === 0 ? 64 : 52} eager className={styles.podiumPhoto}/>
+    <span className={styles.podiumName}>{row.profileId ? <Link href={`/athletes/${row.profileId}`} prefetch={false}>{row.name}</Link> : row.name}</span>
+    <span className={styles.podiumValue}><ResultValue row={row} metric={metric} unit={unit}/></span>
+    <span className={styles.podiumMeta}>{row.jerseyNumber !== null ? `#${row.jerseyNumber}` : row.athleteCode}{row.sampleCount && row.sampleUnit ? ` · ${row.sampleCount} ${row.sampleCount === 1 ? { swings: "swing", pitches: "pitch", trials: "trial" }[row.sampleUnit] : row.sampleUnit}` : ""}</span>
+  </li>; })}</ol>;
+}
+
+function RankingTable({ rows, metric, unit, continued = false, tiedRanks, barMax, headshots = {}, eager = false }: { rows: LeaderboardRow[]; metric: LeaderboardMetricDefinition; unit: string; continued?: boolean; tiedRanks: ReadonlySet<number>; barMax?: number; headshots?: Readonly<Record<string, string>>; eager?: boolean }) {
   return <div className={styles.tableWrap}><table>
     <caption className="sr-only">{leaderboardMetricLabel(metric)} team results{continued ? ", continued" : ""}; recorded in {unit}</caption>
     <thead><tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col">Result</th></tr></thead>
     <tbody>{rows.map(row => <tr key={row.athleteCode} className={row.rank === 1 ? styles.leading : undefined}>
       <td><span aria-label={`${tiedRanks.has(row.rank) ? "Tied for rank" : "Rank"} ${row.rank}`} title={tiedRanks.has(row.rank) ? `Tied for rank ${row.rank}` : undefined} className={`${styles.rank} ${row.rank === 1 ? styles.first : ""}`}>{row.rank}</span></td>
-      <th scope="row"><div className={styles.playerCell}><PlayerAvatar name={row.name} path={headshots[row.athleteCode]} size={34}/><div className="min-w-0 flex-1"><span className={styles.player}>{row.profileId ? <Link href={`/athletes/${row.profileId}`} prefetch={false}>{row.name}</Link> : row.name}</span>
+      <th scope="row"><div className={styles.playerCell}><PlayerAvatar name={row.name} path={headshots[row.athleteCode]} size={34} eager={eager}/><div className="min-w-0 flex-1"><span className={styles.player}>{row.profileId ? <Link href={`/athletes/${row.profileId}`} prefetch={false}>{row.name}</Link> : row.name}</span>
         <span className={styles.playerMeta}>{row.jerseyNumber !== null ? `#${row.jerseyNumber}` : row.athleteCode}{row.position ? ` · ${row.position}` : ""}<span className={styles.date}><time dateTime={row.measuredAt}>{leaderboardTestDate(row.measuredAt)}</time></span></span>
         {barMax !== undefined && <span aria-hidden="true" className={styles.barTrack}><span className={unit === "rpm" ? styles.spinBar : styles.valueBar} style={{ width: `${barMax > 0 ? Math.max(0, Math.min(100, row.value / barMax * 100)) : 0}%` }} /></span>}
       </div></div></th>
@@ -53,7 +66,8 @@ export function LeaderboardResults({ rows, teamRows = rows, metric, unit, source
       {mixedAverages && <p className={styles.contextNote}>Latest-session results are marked below.</p>}
     </header>
     <LeaderboardAverage basis={isFallBestMetric(metric.key) || isTimedMetric(metric.key) ? "best" : fallAverageKeys.has(metric.key) ? "average" : "result"} values={teamRows.map(row => row.value)} swingWeights={source && isBlastFallSource(source) ? teamRows.map(row => row.sampleCount) : undefined} label={leaderboardMetricLabel(metric)} format={value => metric.key === "height" ? formatHeight(value, unit) ?? String(value) : `${formatMetricNumber(value, metric.key, source, value.toLocaleString("en-US", { maximumFractionDigits: unit === "s" ? 2 : 1 }))}${unit === "ratio" ? "" : unit === "%" ? "%" : ` ${unit === "score" ? "pts" : unit}`}`} />
-    {rows.length ? <><RankingTable rows={rows.slice(0, 5)} metric={metric} unit={unit} tiedRanks={tiedRanks} barMax={barMax} headshots={headshots} />{rows.length > 5 && <details className={styles.more}><summary>Show {rows.length - 5} More</summary><RankingTable rows={rows.slice(5)} metric={metric} unit={unit} tiedRanks={tiedRanks} barMax={barMax} headshots={headshots} continued /></details>}</>
+    {rows.length ? <>{rows.length >= 3 && <Podium rows={rows.slice(0, 3)} metric={metric} unit={unit} headshots={headshots} tiedRanks={tiedRanks}/>}
+      {(() => { const rest = rows.length >= 3 ? rows.slice(3) : rows; return <><RankingTable rows={rest.slice(0, 5)} metric={metric} unit={unit} tiedRanks={tiedRanks} barMax={barMax} headshots={headshots} eager />{rest.length > 5 && <details className={styles.more}><summary>Show {rest.length - 5} More</summary><RankingTable rows={rest.slice(5)} metric={metric} unit={unit} tiedRanks={tiedRanks} barMax={barMax} headshots={headshots} continued /></details>}</>; })()}</>
       : <p className="muted m-0 p-6 text-sm">{teamRows.length ? "No matching players on this board." : "Results will appear after testing data is added."}</p>}
   </section>;
 }
