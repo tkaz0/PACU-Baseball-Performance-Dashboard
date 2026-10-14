@@ -29,6 +29,11 @@ describe("meeting-first report",()=>{
   const before=JSON.stringify(full),summary=compactExitMeetingReport(full,[]);
   expect(summary.sections.map(s=>s.id)).toEqual(["physicality","game-qpa_fall_2026","game-pitching_fall_2026","hitting-in_game","blast-fall","testing"]);expect(summary.sections[0].rows).toHaveLength(7);expect(summary.sections.find(s=>s.id==="blast-fall")!.rows).toHaveLength(5);expect(summary.sections.flatMap(s=>s.rows).map(r=>r.metricKey)).not.toEqual(expect.arrayContaining(["bmr","gdp","k","steal_break","smash_factor","detail"]));expect(summary.lastTested).toBe("2026-09-16");expect(JSON.stringify(full)).toBe(before);
  });
+ it("keeps weekly, Pitch+ and Contact Allowed breakdowns in Detailed Report instead of expanding the handout",()=>{
+  const sections=["weeks-qpa_fall_2026","weeks-pitching_fall_2026","pitch-grades","contact-allowed"].map(id=>({id,title:id,subtitle:"Fictional detail",rows:[row("batting_ops")]}));
+  const detailed={...base(),sections};const before=structuredClone(detailed);const handout=compactExitMeetingReport(detailed,[]);
+  expect(handout.sections).toEqual([]);expect(handout.notes.join(" ")).toContain("Contact Allowed");expect(detailed).toEqual(before);
+ });
  it("keeps at most two verified highlights per group and does not create missing highlights",()=>{
   const highlights=Array.from({length:5},(_,index)=>({label:`Measured strength ${index}`,detail:"Source and sample",percentile:90-index}));const summary=compactExitMeetingReport({...base(),strengths:highlights,development:highlights,jumps:highlights},[]);expect(summary.strengths).toEqual(highlights.slice(0,2));expect(summary.development).toHaveLength(2);expect(summary.jumps).toHaveLength(2);expect(compactExitMeetingReport(base(),[]).strengths).toEqual([]);
  });
@@ -40,7 +45,7 @@ describe("meeting-first report",()=>{
 describe("compact classified arsenal",()=>{
  it("weights averages by the matching reading counts and preserves same-day files and exact contexts",()=>{
   const rows=[...session(80,85,10),...session(84,87,30,"b".repeat(64)),...session(90,92,5,"c".repeat(64),"Full Swing · Game · Fastball"),...session(75,79,8,"d".repeat(64),"Full Swing · Practice · Fastball"),reading("Pitch Type Average Spin",2000,"rpm"),reading("Pitch Type Max Spin",2200,"rpm"),reading("Pitch Type Spin Readings",7,"count")];
-  const result=compactExitMeetingArsenal(rows);expect(result).toHaveLength(3);expect(result.find(s=>s.id==="arsenal-summary-intrasquad")!.rows).toEqual(expect.arrayContaining([expect.objectContaining({value:"83.0 avg / 87.0 max mph",sample:"40 velocity readings · 2 sessions",percentile:null}),expect.objectContaining({value:"2000.0 avg / 2200.0 max rpm",sample:"7 spin readings · 1 session"})]));expect(result.find(s=>s.id==="arsenal-summary-practice")!.rows[0].value).toBe("75.0 avg / 79.0 max mph");expect(JSON.stringify(result)).not.toMatch(/PRIVATE|source_row|file_hash/);
+  const result=compactExitMeetingArsenal(rows);expect(result).toHaveLength(3);expect(result.find(s=>s.id==="arsenal-summary-intrasquad")!.rows).toEqual(expect.arrayContaining([expect.objectContaining({value:"83.0 avg / 87.0 max mph",sample:"40 velocity readings · 2 sessions",percentile:null}),expect.objectContaining({value:"2000 avg / 2200 max rpm",sample:"7 spin readings · 1 session"})]));expect(result.find(s=>s.id==="arsenal-summary-practice")!.rows[0].value).toBe("75.0 avg / 79.0 max mph");expect(JSON.stringify(result)).not.toMatch(/PRIVATE|source_row|file_hash/);
  });
  it("keeps each pitch family date tied to its own contributing readings",()=>{
   const oldSpin=[reading("Pitch Type Average Spin",2000,"rpm","a".repeat(64),source,"2026-09-11"),reading("Pitch Type Max Spin",2200,"rpm","a".repeat(64),source,"2026-09-11"),reading("Pitch Type Spin Readings",7,"count","a".repeat(64),source,"2026-09-11")];

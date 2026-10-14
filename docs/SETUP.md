@@ -526,3 +526,5 @@ Apply `202610130002_bws_series.sql` before deploying the BWS series planner. It 
 October 14 profile visual refresh is app-only: no migration, environment variable or source import is required. Existing photos/initials and authorized measurements supply the compact header and expandable chart previews.
 
 October 14 Astra review: application-only reliability and presentation fixes; no migration, configuration, source edit or account change is required. Deploy after the standard checks. Profile headers reuse existing authorized Fall summaries across all tabs; original session history remains unchanged.
+
+October 14 Exit Meetings update is app-only: the default Meeting Handout is designed for one front-and-back Letter sheet. Choose Detailed Report for weekly, Pitch+ and Contact Allowed breakdowns; long notes and historical meeting content can add continuation pages. Existing saved snapshots are read unchanged. No migration, source refresh or new environment variable is required.

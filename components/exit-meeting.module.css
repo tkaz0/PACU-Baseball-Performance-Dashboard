@@ -15,3 +15,5 @@
 .currentMeeting{font-size:12px;color:var(--accent-readable);font-weight:750}
 .savedBanner{display:flex;align-items:flex-start;gap:11px;padding:16px 18px;margin-bottom:16px;border:1px solid color-mix(in srgb,var(--accent-readable) 35%,var(--line-subtle));border-radius:10px;background:var(--surface-raised);color:var(--accent-readable)}
 .savedBanner svg{flex:none;margin-top:1px}.savedBanner strong{display:block;font-size:13px}.savedBanner span{display:block;font-size:12px;line-height:1.6;color:var(--text-secondary);margin-top:4px}
+
+.handoutGuide{display:flex;align-items:flex-start;gap:12px;padding:18px;border:1px solid var(--line-subtle);border-left:3px solid var(--accent-readable);border-radius:12px;background:var(--surface-panel)}.handoutGuide>svg{flex:none;color:var(--accent-readable);margin-top:2px}.handoutGuide div{display:grid;gap:6px;min-width:0}.handoutGuide strong{font-size:14px}.handoutGuide span,.handoutGuide small{font-size:12px;line-height:1.65;color:var(--text-secondary)}

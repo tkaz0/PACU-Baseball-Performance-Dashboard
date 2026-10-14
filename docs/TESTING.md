@@ -570,3 +570,7 @@ BWS Team coverage: `tests/bws-team.test.ts` (strict validation, player removal e
 ### October 14 Astra review regressions
 
 Cover tied podium ranks and filtered non-medal ranks, top-player dates/counts/latest-session labels, roster no-match recovery, and active importer-category clicks that must preserve the current session/file review. Profile trend fixtures include an earlier Fall best and a pooled average that differ from the newest recorded session. Analytics labels count only visible matched players. Browser QA should exercise delayed search responses with newer typing, a chip/tab click before debounce, reset/clear/Back, phone-menu closure after bottom navigation, and keyboard-scrolling of Development Focus tables in light/dark themes. Use fictional data; no production captures of player details.
+
+## October 14 exit meeting handouts
+
+`exit-meeting-pdf.test.ts` checks exactly two normal Letter pages for populated fictional hitter, pitcher and two-way handouts; bounded text, retained values/source/date/basis/sample evidence, sparse data, complete long notes, original saved sections and separate Practice arsenals. `exit-meeting-compact.test.ts` checks semantic selection and whole-RPM display while preserving weighted means and separate reading counts. Render the fictional PDFs with Poppler via `EXIT_MEETING_QA_DIR` outside Git and inspect both sides. Long/historical content may add labeled appendices; nothing is silently trimmed. Print double-sided, flipping on the long edge.

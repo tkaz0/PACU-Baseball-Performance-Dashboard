@@ -32,15 +32,14 @@ export function compactExitMeetingArsenal(readings: readonly Measurement[]): Exi
       const maximum = maxima.length ? Math.max(...maxima) : null;
       if (average === null && maximum === null) continue;
       const rows = output.get(pitch.category) ?? [];
-      rows.push({ label: `${pitchTypeLabel(pitch.pitchType)} · ${family}`, value: `${average === null ? "—" : average.toFixed(1)} avg / ${maximum === null ? "—" : maximum.toFixed(1)} max ${unit}`, source: `Full Swing · ${pitch.category}`, date: dates[0] === dates.at(-1) ? dates[0] : `${dates[0]} to ${dates.at(-1)}`, basis: average === null ? "Fall best · Average needs complete counts" : "Fall weighted average / best", percentile: null, peers: null, sample: count === null ? `Reading count unavailable · ${relevant.length} ${relevant.length === 1 ? "session" : "sessions"}` : `${count} ${family.toLowerCase()} readings · ${relevant.length} ${relevant.length === 1 ? "session" : "sessions"}`, metricKey: `compact_pitch_${family.toLowerCase()}` });
+      rows.push({ label: `${pitchTypeLabel(pitch.pitchType)} · ${family}`, value: `${average === null ? "—" : average.toFixed(family === "Spin" ? 0 : 1)} avg / ${maximum === null ? "—" : maximum.toFixed(family === "Spin" ? 0 : 1)} max ${unit}`, source: `Full Swing · ${pitch.category}`, date: dates[0] === dates.at(-1) ? dates[0] : `${dates[0]} to ${dates.at(-1)}`, basis: average === null ? "Fall best · Average needs complete counts" : "Fall weighted average / best", percentile: null, peers: null, sample: count === null ? `Reading count unavailable · ${relevant.length} ${relevant.length === 1 ? "session" : "sessions"}` : `${count} ${family.toLowerCase()} readings · ${relevant.length} ${relevant.length === 1 ? "session" : "sessions"}`, metricKey: `compact_pitch_${family.toLowerCase()}` });
       output.set(pitch.category, rows);
     }
   }
-  return [...output].map(([category, rows]) => ({ id: `arsenal-summary-${category.toLowerCase()}`, title: `Pitch Arsenal · ${category === "Practice" ? "Practice" : "In-Game"}`, subtitle: `Full Swing ${category} · Fall averages and bests`, rows, note: "Average / max stay within the same classified pitch and source. Spin describes the pitch; higher is not automatically better." }));
+  return [...output].map(([category, rows]) => ({ id: `arsenal-summary-${category.toLowerCase()}`, title: `Pitch Arsenal · ${category === "Practice" ? "Practice" : "In-Game"}`, subtitle: `Full Swing ${category} · Fall averages and bests`, rows }));
 }
 
 /** Meeting-first projection. All excluded detail remains in the explicit Detailed Report and saved sources. */
-const weekly: ReadonlySet<string> = new Set(["batting_ops", "qpa_pct", "batting_obp", "pitching_whip", "pitching_k_bb", "pitching_r9"]);
 export function compactExitMeetingReport(report: ExitMeetingReport, classified: readonly Measurement[]): ExitMeetingReport {
   const sections: ExitMeetingSection[] = report.sections.flatMap(section => {
     let keys: ReadonlySet<string>;
@@ -50,14 +49,11 @@ export function compactExitMeetingReport(report: ExitMeetingReport, classified: 
     else if (section.id === "game-pitching_fall_2026") keys = pitching;
     else if (section.id === "hitting-in_game") keys = hitting;
     else if (section.id === "blast-fall") return [{ ...section, title: "Hitting · Blast Practice", note: undefined }];
-    else if (section.id === "pitch-grades") return [{ ...section, rows: section.rows.slice(0, 6), note: undefined }];
-    else if (section.id === "contact-allowed") { const rows = section.rows.filter(row => /^(Average Exit Velocity|Hard Hit|Squared Up) Against/.test(row.label)); return rows.length ? [{ ...section, rows, note: undefined }] : []; }
-    else if (section.id === "weeks-qpa_fall_2026" || section.id === "weeks-pitching_fall_2026") keys = weekly;
     else return [];
     const rows = section.rows.filter(row => row.metricKey && keys.has(row.metricKey));
     return rows.length ? [{ ...section, rows, note: undefined }] : [];
   });
-  const order = ["physicality", "game-qpa_fall_2026", "weeks-qpa_fall_2026", "game-pitching_fall_2026", "weeks-pitching_fall_2026", "pitch-grades", "contact-allowed", "hitting-in_game", "blast-fall", "testing"];
+  const order = ["physicality", "game-qpa_fall_2026", "game-pitching_fall_2026", "hitting-in_game", "blast-fall", "testing"];
   sections.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
   sections.push(...compactExitMeetingArsenal(classified));
   const needed: string[] = [];
@@ -66,8 +62,8 @@ export function compactExitMeetingReport(report: ExitMeetingReport, classified: 
   return { ...report, format: "meeting", lastTested, sections, strengths: report.strengths.slice(0, 2), development: report.development.slice(0, 2), jumps: report.jumps.slice(0, 2), missing: report.missing.filter(m => m !== "Movement screening"), notes: [
     ...(sections.some(s => s.id === "game-qpa_fall_2026") ? ["Hitting stats treat doubles/triples as doubles; wOBAcon uses fixed 2025 MLB reference weights. PAC Production+ is a custom recorded-production index (team = 100), not wRC+."] : []),
     ...needed,
-    "Percentiles: red is higher, blue lower; at least five teammates in the same test/source/unit/period. Unranked means no verified comparison. Body and spin ranks are descriptive, not strengths or weaknesses.",
-    "Game stats are Fall to date. Profile test values are latest results; timed tests use best time. Pitch arsenal uses Fall weighted averages and saved bests. In-Game and Practice are separate. Empty readings stay missing.",
-    "Meeting Summary shows the coaching priorities. Detailed Report includes all saved weekly Blast/P95, RENPHO details, movement screening, supporting counts and per-session pitching results.",
+    "Percentiles: red is higher, blue lower; at least five teammates in the same test/source/unit/period. Strengths are top quarter; development areas bottom quarter. Unranked is no verified comparison. Body/spin ranks are descriptive.",
+    "Game stats are Fall to date. Measurements follow the displayed source and basis; timed tests use best time. Full Swing bests and weighted averages stay within their source. Pitch averages use each metric’s own reading counts; max is Fall best. Spin is descriptive. Empty readings stay missing.",
+    "Meeting Summary focuses on Fall totals and meeting priorities. Detailed Report includes Week by Week, Pitch+, Contact Allowed, weekly Blast/P95, RENPHO detail, movement screening, supporting counts and per-session pitching.",
   ] };
 }
