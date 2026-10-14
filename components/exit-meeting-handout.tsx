@@ -113,7 +113,7 @@ export function ExitMeetingHandout({ report, meetingDate, talkingPoints, headsho
 
   return <div className={styles.sheet} data-testid="exit-meeting-handout">
     {/* FRONT */}
-    <article className={styles.page} aria-label="Front">
+    <article className={styles.page} aria-label="Front"><div className={styles.pageBody} data-page-body>
       <header className={styles.hero}>
         <div className={styles.heroBrand}><PacificLogo className={styles.logo} decorative/><span>Pacific Baseball · Fall 2026 Exit Meeting</span><time dateTime={meetingDate}>{day(meetingDate)}</time></div>
         <div className={styles.heroMain}>
@@ -133,15 +133,15 @@ export function ExitMeetingHandout({ report, meetingDate, talkingPoints, headsho
         <Insights title="Focus Areas" tone="focus" items={report.development} empty="No directional stat is in the bottom team quarter."/>
         <Insights title="Biggest Jumps" tone="progress" items={report.jumps} empty="Another test date will show progress."/>
       </div>
-      <footer className={styles.pageFoot}><span>Front · {report.name}</span><span>PACU Baseball Performance · An independent project, not an official university application</span></footer>
+      </div><footer className={styles.pageFoot}><span>Front · {report.name}</span><span>PACU Baseball Performance · An independent project, not an official university application</span></footer>
     </article>
 
     {/* BACK */}
-    <article className={styles.page} aria-label="Back">
+    <article className={styles.page} aria-label="Back"><div className={styles.pageBody} data-page-body>
       <div className={styles.backHead}><PacificLogo className={styles.logoSmall} decorative/><h2>{report.name}</h2><span>Fall 2026 · Back</span></div>
       <div className={styles.columns}>
         {showHitting && <Panel title="Hitting" kicker="Fall game sheet · week trends">
-          <StatTable rows={hitting.filter(r => ["batting_production_plus", "batting_ops", "batting_obp", "batting_avg", "qpa_pct", "batting_k_pct", "batting_bb_pct", "batting_est_slg"].includes(r.metricKey ?? "")).slice(0, 7)} weeks={hittingWeeks} empty="No hitting game stats yet."/>
+          <StatTable rows={hitting.filter(r => ["batting_production_plus", "batting_ops", "batting_obp", "batting_avg", "qpa_pct", "batting_k_pct", "batting_bb_pct", "batting_est_slg"].includes(r.metricKey ?? "")).slice(0, 6)} weeks={hittingWeeks} empty="No hitting game stats yet."/>
           {swing.length > 0 && <><h4>Swing &amp; Contact</h4><ValueGrid rows={swing.slice(0, 6)}/></>}
         </Panel>}
         {showPitching && <Panel title="Pitching" kicker="Fall game sheet · Pitch+ · arsenal">
@@ -159,7 +159,7 @@ export function ExitMeetingHandout({ report, meetingDate, talkingPoints, headsho
         <div className={styles.weekGrid}>{[...hittingWeeks.map(row => ({ row, group: "Hitting" })), ...pitchingWeeks.map(row => ({ row, group: "Pitching" }))].map(({ row, group }) => <div key={`${group}-${row.label}`} className={styles.weekCard}>
           <span className={styles.weekLabel}>{row.label}<small>{group}</small></span>
           <strong>{row.value}<small> latest week</small></strong>
-          {row.trend && row.trend.length >= 2 ? <Sparkline points={row.trend} width={150} height={36} label={`${row.label} by week`} noun="weeks" direction={row.metricKey && LOWER_BETTER.has(row.metricKey) ? "lower" : "higher"}/> : <small className={styles.muted}>One week so far</small>}
+          {row.trend && row.trend.length >= 2 ? <Sparkline points={row.trend} width={150} height={26} label={`${row.label} by week`} noun="weeks" direction={row.metricKey && LOWER_BETTER.has(row.metricKey) ? "lower" : "higher"}/> : <small className={styles.muted}>One week so far</small>}
           <small className={styles.weekBasis}>{row.basis}</small>
         </div>)}</div>
       </Panel>}
@@ -169,7 +169,7 @@ export function ExitMeetingHandout({ report, meetingDate, talkingPoints, headsho
       </div>
       {report.missing.length > 0 && <p className={styles.missing}>Still to add: {report.missing.join(" · ")}</p>}
       <p className={styles.method}>Percentiles compare at least five eligible teammates on the same stat, source, unit and period; body measurements are positions, not grades. Hitting doubles/triples count as doubles; PAC Production+ is a custom team index (100 = team). Pitch+ is a Pacific outcome grade, not Stuff+. Week trends use each week&apos;s own counts. Missing results stay blank.</p>
-      <footer className={styles.pageFoot}><span>Back · Generated {day(report.generatedAt.slice(0, 10))}</span><span>Private · Coaches and the player only</span></footer>
+      </div><footer className={styles.pageFoot}><span>Back · Generated {day(report.generatedAt.slice(0, 10))}</span><span>Private · Coaches and the player only</span></footer>
     </article>
   </div>;
 }

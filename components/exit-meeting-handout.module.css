@@ -1,8 +1,10 @@
 /* Exit meeting handout: two letter-size pages (8.5 x 11 in at 96 px/in), always a light paper sheet. */
 .sheet { --red: #c8102e; --ink: #12151b; --muted: #5b6270; --line: #e3e6ea; --paper: #fff; --soft: #f5f6f8;
   display: grid; gap: 24px; justify-content: center; overflow-x: auto; padding-bottom: 8px; color: var(--ink); font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif); }
-.page { position: relative; box-sizing: border-box; width: 816px; height: 1056px; padding: 0 0 34px; overflow: hidden; background: var(--paper); border-radius: 6px; box-shadow: 0 10px 30px rgba(0,0,0,.25); display: flex; flex-direction: column; gap: 12px; }
-.page > :not(.hero) { margin-inline: 36px; }
+.page { position: relative; box-sizing: border-box; width: 816px; height: 1056px; padding: 0 0 34px; overflow: hidden; background: var(--paper); border-radius: 6px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+/* Content column; scaled down by HandoutFit when a long sheet would run past the page. */
+.pageBody { display: flex; flex-direction: column; gap: 12px; min-height: 100%; }
+.pageBody > :not(.hero) { margin-inline: 36px; }
 .page * { box-sizing: border-box; }
 .empty { margin: 0; color: var(--muted); font-size: 12px; }
 .muted { color: var(--muted); }
@@ -37,11 +39,11 @@
 .ringEmpty { border: 2px dashed var(--line); color: var(--muted); font-size: 12px; }
 
 /* Panels */
-.panel { border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px 12px; background: var(--paper); min-width: 0; }
+.panel { border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px 10px; background: var(--paper); min-width: 0; }
 .panel > header { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 6px; padding-bottom: 6px; border-bottom: 2px solid var(--ink); }
 .panel h3 { margin: 0; font-family: var(--font-display, inherit); font-size: 19px; font-weight: 900; text-transform: uppercase; letter-spacing: .02em; }
 .panel > header span { font-size: 11px; color: var(--muted); }
-.panel h4 { margin: 10px 0 4px; font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--red); }
+.panel h4 { margin: 7px 0 3px; font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--red); }
 .panel h4 small { color: var(--muted); font-weight: 600; letter-spacing: 0; text-transform: none; }
 .rankPanel { flex: 1 1 auto; min-height: 0; overflow: hidden; }
 
@@ -76,21 +78,21 @@
 .backHead h2 { margin: 0; font-family: var(--font-display, inherit); font-size: 26px; font-weight: 900; text-transform: uppercase; }
 .backHead span { margin-left: auto; font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
 .columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; flex: none; }
-.page > section, .page > div, .page > p { flex-shrink: 0; }
+.pageBody > section, .pageBody > div, .pageBody > p { flex-shrink: 0; }
 .columns > :last-child:nth-child(odd) { grid-column: 1 / -1; }
 .table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .table th { font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); text-align: left; padding: 2px 4px 4px; border-bottom: 1px solid var(--line); }
-.table td { padding: 4px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.table td { padding: 2px 4px; border-bottom: 1px solid var(--line); vertical-align: middle; }
 .table td small { display: block; font-size: 10px; color: var(--muted); }
 .table td b { font-weight: 700; }
-.table td strong { font-size: 14px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.table td strong { font-size: 13px; font-weight: 900; font-variant-numeric: tabular-nums; }
 .pctChip { display: inline-grid; place-items: center; min-width: 26px; height: 20px; padding: 0 4px; border-radius: 999px; font-size: 11px; font-weight: 900; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .trend { display: flex; align-items: center; gap: 6px; }
 .trend small { font-size: 10px !important; display: inline !important; white-space: nowrap; }
-.values { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 0; }
-.values div { padding: 6px 8px; border-radius: 8px; background: var(--soft); min-width: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.values { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 5px; margin: 0; }
+.values div { padding: 4px 7px; border-radius: 8px; background: var(--soft); min-width: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .values dt { font-size: 10px; font-weight: 700; color: var(--muted); line-height: 1.2; overflow-wrap: anywhere; }
-.values dd { margin: 2px 0 0; font-size: 14px; font-weight: 900; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.values dd { margin: 1px 0 0; font-size: 13px; font-weight: 900; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .values small { font-size: 10px; color: var(--muted); }
 .grades { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
 .grades li { display: grid; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); text-align: center; }
@@ -108,17 +110,17 @@
 
 /* Meeting notes + goals */
 .weekGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.weekCard { display: grid; gap: 2px; padding: 8px 10px; border-radius: 10px; background: var(--soft); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.weekCard { display: grid; gap: 1px; padding: 6px 10px; border-radius: 10px; background: var(--soft); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .weekLabel { font-size: 12px; font-weight: 800; }
 .weekLabel small { margin-left: 6px; font-size: 10px; font-weight: 600; color: var(--muted); }
-.weekCard strong { font-family: var(--font-display, inherit); font-size: 22px; font-weight: 900; line-height: 1.05; }
+.weekCard strong { font-family: var(--font-display, inherit); font-size: 19px; font-weight: 900; line-height: 1.05; }
 .weekCard strong small { font-family: inherit; font-size: 10px; font-weight: 600; color: var(--muted); }
-.weekBasis { font-size: 9.5px; color: var(--muted); line-height: 1.25; }
+.weekBasis { font-size: 9.5px; color: var(--muted); line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .meeting { display: grid; grid-template-columns: 1.3fr 1fr; gap: 12px; margin-top: auto !important; }
-.notes, .goals { border: 2px solid var(--ink); border-radius: 12px; padding: 10px 14px; min-height: 150px; }
+.notes, .goals { border: 2px solid var(--ink); border-radius: 12px; padding: 8px 14px; min-height: 118px; }
 .notes h3, .goals h3 { margin: 0 0 6px; font-family: var(--font-display, inherit); font-size: 17px; font-weight: 900; text-transform: uppercase; }
 .notes p { margin: 0; font-size: 12.5px; line-height: 1.5; white-space: pre-wrap; }
-.lines span, .goals li span { display: block; height: 22px; border-bottom: 1px solid #b8bec8; }
+.lines span, .goals li span { display: block; height: 19px; border-bottom: 1px solid #b8bec8; }
 .goals ol { margin: 0; padding-left: 18px; font-size: 13px; font-weight: 800; }
 .sign { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
 .sign span { padding-top: 4px; border-top: 1px solid var(--ink); font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
@@ -138,4 +140,4 @@
 /* Screen preview scales to fit narrower panes; print always uses true size. */
 .fit { width: 100%; overflow: hidden; }
 @media print { .fit, .fit > div { zoom: 1 !important; overflow: visible; } }
-.page > .rankPanel { flex-shrink: 1; }
+.pageBody > .rankPanel { flex-shrink: 1; }
