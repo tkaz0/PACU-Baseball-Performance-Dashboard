@@ -40,6 +40,8 @@ export function compactExitMeetingArsenal(readings: readonly Measurement[]): Exi
 }
 
 /** Meeting-first projection. All excluded detail remains in the explicit Detailed Report and saved sources. */
+/** Week-by-week rates kept on the handout (hitting OPS/QPA%/OBP, pitching WHIP/K-BB/Runs/9). */
+const weekly: ReadonlySet<string> = new Set(["batting_ops", "qpa_pct", "batting_obp", "pitching_whip", "pitching_k_bb", "pitching_r9"]);
 export function compactExitMeetingReport(report: ExitMeetingReport, classified: readonly Measurement[]): ExitMeetingReport {
   const sections: ExitMeetingSection[] = report.sections.flatMap(section => {
     let keys: ReadonlySet<string>;
@@ -49,11 +51,14 @@ export function compactExitMeetingReport(report: ExitMeetingReport, classified: 
     else if (section.id === "game-pitching_fall_2026") keys = pitching;
     else if (section.id === "hitting-in_game") keys = hitting;
     else if (section.id === "blast-fall") return [{ ...section, title: "Hitting · Blast Practice", note: undefined }];
+    else if (section.id === "pitch-grades") return [{ ...section, rows: section.rows.slice(0, 6), note: undefined }];
+    else if (section.id === "contact-allowed") { const rows = section.rows.filter(row => /^(Average Exit Velocity|Hard Hit|Squared Up) Against/.test(row.label)); return rows.length ? [{ ...section, rows, note: undefined }] : []; }
+    else if (section.id === "weeks-qpa_fall_2026" || section.id === "weeks-pitching_fall_2026") keys = weekly;
     else return [];
     const rows = section.rows.filter(row => row.metricKey && keys.has(row.metricKey));
     return rows.length ? [{ ...section, rows, note: undefined }] : [];
   });
-  const order = ["physicality", "game-qpa_fall_2026", "game-pitching_fall_2026", "hitting-in_game", "blast-fall", "testing"];
+  const order = ["physicality", "game-qpa_fall_2026", "weeks-qpa_fall_2026", "game-pitching_fall_2026", "weeks-pitching_fall_2026", "pitch-grades", "contact-allowed", "hitting-in_game", "blast-fall", "testing"];
   sections.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
   sections.push(...compactExitMeetingArsenal(classified));
   const needed: string[] = [];

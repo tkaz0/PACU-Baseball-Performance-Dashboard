@@ -16,6 +16,11 @@ const HITTING_HEADLINE = ["batting_production_plus", "batting_ops", "qpa_pct", "
 const PITCHING_HEADLINE = ["pitching_whip", "pitching_k_bb", "pitching_r9", "strike_pct"];
 const TESTING_HEADLINE = ["max_exit_velocity", "avg_bat_speed", "max_bat_speed"];
 const LOWER_BETTER = new Set(["pitching_whip", "pitching_r9", "pitching_bb9", "batting_k_pct", "hard_contact_pct", "home_to_first", "home_to_second", "boxer_t", "body_fat_pct"]);
+// Counting totals depend on playing time, so the ranking bars show rates and test results only.
+const COUNTS = new Set(["pumps", "sb", "gdp", "k", "bb_outcome"]);
+const RANK_ORDER = ["batting_production_plus", "batting_ops", "batting_obp", "batting_avg", "batting_est_slg", "qpa_pct", "batting_hh_pct", "batting_bb_pct", "batting_k_pct",
+  "pitching_whip", "pitching_k_bb", "pitching_k9", "pitching_bb9", "pitching_r9", "strike_pct", "max_exit_velocity", "avg_exit_velocity", "max_bat_speed", "avg_bat_speed", "max_distance"];
+const rankIndex = (key?: string) => { const i = key ? RANK_ORDER.indexOf(key) : -1; return i < 0 ? RANK_ORDER.length : i; };
 // Body size and composition are shown as values, not ranked bars (descriptive, not a grade).
 const BODY = new Set(["height", "weight", "muscle_mass", "body_score", "body_fat_pct"]);
 
@@ -93,7 +98,8 @@ export function ExitMeetingHandout({ report, meetingDate, talkingPoints, headsho
     ...rowsOf(section(report, "pitch-grades")).filter(r => r.percentile !== null).map(row => ({ label: row.label, group: "Pitch+", row })),
     ...testing.map(row => ({ label: row.label, group: pitchSourceLabel(row.source), row })),
     ...rowsOf(section(report, "physicality")).filter(r => r.metricKey?.startsWith("grip")).map(row => ({ label: row.label, group: "Strength", row })),
-  ].filter(item => item.row.percentile !== null && !(item.row.metricKey && BODY.has(item.row.metricKey))).slice(0, 16);
+  ].filter(item => item.row.percentile !== null && !(item.row.metricKey && (BODY.has(item.row.metricKey) || COUNTS.has(item.row.metricKey))))
+    .map((item, i) => ({ item, i })).sort((a, b) => rankIndex(a.item.row.metricKey) - rankIndex(b.item.row.metricKey) || a.i - b.i).map(({ item }) => item).slice(0, 14);
   const hittingWeeks = rowsOf(section(report, "weeks-qpa_fall_2026")), pitchingWeeks = rowsOf(section(report, "weeks-pitching_fall_2026"));
   const hitting = rowsOf(section(report, "game-qpa_fall_2026")), pitching = rowsOf(section(report, "game-pitching_fall_2026"));
   const grades = rowsOf(section(report, "pitch-grades"));
@@ -149,6 +155,14 @@ export function ExitMeetingHandout({ report, meetingDate, talkingPoints, headsho
           {runTests.length > 0 && <><h4>Speed &amp; Throwing</h4><ValueGrid rows={runTests}/></>}
         </Panel>
       </div>
+      {(hittingWeeks.length > 0 || pitchingWeeks.length > 0) && <Panel title="Fall Week by Week" kicker="Each week's own counts · same definitions as the Fall totals">
+        <div className={styles.weekGrid}>{[...hittingWeeks.map(row => ({ row, group: "Hitting" })), ...pitchingWeeks.map(row => ({ row, group: "Pitching" }))].map(({ row, group }) => <div key={`${group}-${row.label}`} className={styles.weekCard}>
+          <span className={styles.weekLabel}>{row.label}<small>{group}</small></span>
+          <strong>{row.value}<small> latest week</small></strong>
+          {row.trend && row.trend.length >= 2 ? <Sparkline points={row.trend} width={150} height={36} label={`${row.label} by week`} noun="weeks" direction={row.metricKey && LOWER_BETTER.has(row.metricKey) ? "lower" : "higher"}/> : <small className={styles.muted}>One week so far</small>}
+          <small className={styles.weekBasis}>{row.basis}</small>
+        </div>)}</div>
+      </Panel>}
       <div className={styles.meeting}>
         <section className={styles.notes}><h3>Coach Talking Points</h3>{talkingPoints.trim() ? <p>{talkingPoints}</p> : <div className={styles.lines} aria-hidden="true">{Array.from({ length: 4 }, (_, i) => <span key={i}/>)}</div>}</section>
         <section className={styles.goals}><h3>Winter Focus</h3><ol>{Array.from({ length: 3 }, (_, i) => <li key={i}><span/></li>)}</ol><div className={styles.sign}><span>Player</span><span>Coach</span></div></section>

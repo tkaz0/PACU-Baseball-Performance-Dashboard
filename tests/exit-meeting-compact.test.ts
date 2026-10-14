@@ -29,10 +29,10 @@ describe("meeting-first report",()=>{
   const before=JSON.stringify(full),summary=compactExitMeetingReport(full,[]);
   expect(summary.sections.map(s=>s.id)).toEqual(["physicality","game-qpa_fall_2026","game-pitching_fall_2026","hitting-in_game","blast-fall","testing"]);expect(summary.sections[0].rows).toHaveLength(7);expect(summary.sections.find(s=>s.id==="blast-fall")!.rows).toHaveLength(5);expect(summary.sections.flatMap(s=>s.rows).map(r=>r.metricKey)).not.toEqual(expect.arrayContaining(["bmr","gdp","k","steal_break","smash_factor","detail"]));expect(summary.lastTested).toBe("2026-09-16");expect(JSON.stringify(full)).toBe(before);
  });
- it("keeps weekly, Pitch+ and Contact Allowed breakdowns in Detailed Report instead of expanding the handout",()=>{
-  const sections=["weeks-qpa_fall_2026","weeks-pitching_fall_2026","pitch-grades","contact-allowed"].map(id=>({id,title:id,subtitle:"Fictional detail",rows:[row("batting_ops")]}));
+ it("keeps weekly rates, Pitch+ and Contact Allowed on the two-page handout without changing the source report",()=>{
+  const sections=["weeks-qpa_fall_2026","weeks-pitching_fall_2026","pitch-grades","contact-allowed"].map(id=>({id,title:id,subtitle:"Fictional detail",rows:[id==="contact-allowed"?{...row("batting_ops"),label:"Hard Hit Against · 90+ mph"}:row(id==="weeks-pitching_fall_2026"?"pitching_whip":"batting_ops")]}));
   const detailed={...base(),sections};const before=structuredClone(detailed);const handout=compactExitMeetingReport(detailed,[]);
-  expect(handout.sections).toEqual([]);expect(handout.notes.join(" ")).toContain("Contact Allowed");expect(detailed).toEqual(before);
+  expect(handout.sections.map(s=>s.id)).toEqual(["weeks-qpa_fall_2026","weeks-pitching_fall_2026","pitch-grades","contact-allowed"]);expect(detailed).toEqual(before);
  });
  it("keeps at most two verified highlights per group and does not create missing highlights",()=>{
   const highlights=Array.from({length:5},(_,index)=>({label:`Measured strength ${index}`,detail:"Source and sample",percentile:90-index}));const summary=compactExitMeetingReport({...base(),strengths:highlights,development:highlights,jumps:highlights},[]);expect(summary.strengths).toEqual(highlights.slice(0,2));expect(summary.development).toHaveLength(2);expect(summary.jumps).toHaveLength(2);expect(compactExitMeetingReport(base(),[]).strengths).toEqual([]);

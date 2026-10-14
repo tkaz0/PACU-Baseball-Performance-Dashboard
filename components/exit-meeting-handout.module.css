@@ -46,7 +46,7 @@
 .rankPanel { flex: 1 1 auto; min-height: 0; overflow: hidden; }
 
 /* Percentile bars */
-.bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+.bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
 .bars li { display: grid; grid-template-columns: 190px 1fr 92px; align-items: center; gap: 10px; }
 .barLabel { font-size: 12px; font-weight: 700; line-height: 1.15; }
 .barLabel small { display: block; font-size: 10px; font-weight: 600; color: var(--muted); }
@@ -75,7 +75,7 @@
 .logoSmall { width: 26px; }
 .backHead h2 { margin: 0; font-family: var(--font-display, inherit); font-size: 26px; font-weight: 900; text-transform: uppercase; }
 .backHead span { margin-left: auto; font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
-.columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+.columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; min-height: 0; }
 .columns > :last-child:nth-child(odd) { grid-column: 1 / -1; }
 .table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .table th { font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); text-align: left; padding: 2px 4px 4px; border-bottom: 1px solid var(--line); }
@@ -106,7 +106,14 @@
 .arsenalText { grid-column: 2; font-size: 10.5px; color: var(--muted); }
 
 /* Meeting notes + goals */
-.meeting { display: grid; grid-template-columns: 1.3fr 1fr; gap: 12px; }
+.weekGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.weekCard { display: grid; gap: 2px; padding: 8px 10px; border-radius: 10px; background: var(--soft); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.weekLabel { font-size: 12px; font-weight: 800; }
+.weekLabel small { margin-left: 6px; font-size: 10px; font-weight: 600; color: var(--muted); }
+.weekCard strong { font-family: var(--font-display, inherit); font-size: 22px; font-weight: 900; line-height: 1.05; }
+.weekCard strong small { font-family: inherit; font-size: 10px; font-weight: 600; color: var(--muted); }
+.weekBasis { font-size: 9.5px; color: var(--muted); line-height: 1.25; }
+.meeting { display: grid; grid-template-columns: 1.3fr 1fr; gap: 12px; margin-top: auto !important; }
 .notes, .goals { border: 2px solid var(--ink); border-radius: 12px; padding: 10px 14px; min-height: 150px; }
 .notes h3, .goals h3 { margin: 0 0 6px; font-family: var(--font-display, inherit); font-size: 17px; font-weight: 900; text-transform: uppercase; }
 .notes p { margin: 0; font-size: 12.5px; line-height: 1.5; white-space: pre-wrap; }
@@ -126,3 +133,7 @@
   .page { width: 8.5in; height: 11in; border-radius: 0; box-shadow: none; break-after: page; page-break-after: always; }
   .page:last-child { break-after: auto; page-break-after: auto; }
 }
+
+/* Screen preview scales to fit narrower panes; print always uses true size. */
+.fit { width: 100%; overflow: hidden; }
+@media print { .fit, .fit > div { zoom: 1 !important; overflow: visible; } }

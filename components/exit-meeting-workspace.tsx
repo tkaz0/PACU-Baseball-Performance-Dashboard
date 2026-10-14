@@ -8,6 +8,7 @@ import type { StaffAthleteChoice } from "@/lib/staff-athlete-search";
 import { matchesStaffAthlete } from "@/lib/staff-athlete-search";
 import { EXIT_MEETING_NOTES_LIMIT, type ExitMeetingReport } from "@/lib/exit-meeting";
 import { ExitMeetingHandout } from "@/components/exit-meeting-handout";
+import { HandoutFit } from "@/components/exit-meeting-handout-fit";
 import { parseSaveExitMeetingCommand, type SavedExitMeeting, type ExitMeetingHistory, type SaveExitMeetingCommand } from "@/lib/exit-meeting-history";
 import { UUID_PATTERN } from "@/lib/types";
 import styles from "./exit-meeting.module.css";
@@ -45,7 +46,7 @@ export function ExitMeetingWorkspace({ players, selectedId, report, saved = null
       <section aria-label="Exit meeting handout" className={styles.preview} aria-busy={navigating}>{navigating?<div className={styles.empty}><LoaderCircle className={styles.spin} size={30}/><h2>Gathering the Player’s Results</h2><p>Checking every source and team comparison.</p></div>:!report?<div className={styles.empty}><div className={styles.emptyBadge}><Users size={34}/></div><h2>Start With a Player</h2><p>Build a front-and-back handout: photo and headline numbers, where they rank on the team, strengths and focus areas, game stats with week-by-week trends, Pitch+ and arsenal, testing, and space for your talking points and winter goals.</p><div className={styles.previewFeatures}><span><Trophy size={16}/> Team percentiles</span><span><TrendingUp size={16}/> Week-by-week trends</span><span><FileText size={16}/> Prints front &amp; back</span></div></div>:<>
         {saved&&<div className={styles.savedBanner}><History size={18}/><div><strong>Saved Meeting · {saved.meetingDate}</strong><span>Snapshot captured {new Date(saved.generatedAt).toLocaleDateString("en-US",{timeZone:"America/Los_Angeles",month:"short",day:"numeric",year:"numeric"})}. These results and notes do not change when new data arrives.</span></div></div>}
         <header className={styles.playerHeader}><div><span className={styles.eyebrow}>{report.code} / {report.season}</span><h2>{report.name} <span>{report.jersey}</span></h2><p>{report.position} · {report.academicClass} · {report.batsThrows}</p></div><Link href={`/athletes/${selectedId}`} aria-label={`Open ${report.name}'s profile`}>Open Profile <ArrowUpRight size={15}/></Link></header>
-        <ExitMeetingHandout report={report} meetingDate={meetingDate} talkingPoints={talkingPoints} headshot={headshot}/>
+        <HandoutFit><ExitMeetingHandout report={report} meetingDate={meetingDate} talkingPoints={talkingPoints} headshot={headshot}/></HandoutFit>
       </>}</section>
     </div>
   </div>;

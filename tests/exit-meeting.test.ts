@@ -89,6 +89,13 @@ describe("exit meeting report",()=>{
   const weeks=report.sections.find(s=>s.id==="weeks-qpa_fall_2026")!;expect(weeks.rows.find(r=>r.metricKey==="batting_avg")!.value).toBe(".500");expect(weeks.rows.find(r=>r.metricKey==="batting_avg")!.trend).toHaveLength(2);
   expect(JSON.stringify(report)).not.toContain("PRIVATE-SOURCE");
  });
+ it("keeps week-by-week hitting rates in the meeting handout format",()=>{
+  const week=(n:number,counts:Record<string,number>)=>({week:n,source:"qpa_fall_2026" as const,label:`Week ${n}`,detail:"Fictional",withheld:0,rows:Object.entries(counts).map(([metric,value])=>({...game(metric,value),athlete_id:"PAC-9999"}))});
+  const counts=(h:number)=>({pa:5,ab:4,base_hit:h,pumps:0,hh_extra_base_hit:0,bb:1,hbp:0,sac_fly:0,punchies:1,qpa:3});
+  const meeting=buildExitMeetingReport({athlete:fictionalExitAthlete,measurements:[],batches:[],percentileOverrides:[],games:[],comparisons:[],movement:null,generatedAt:"2026-09-27T12:00:00Z",weeks:{hitting:[week(1,counts(1)),week(2,counts(2))],pitching:[]}},"meeting");
+  const weeks=meeting.sections.find(s=>s.id==="weeks-qpa_fall_2026");
+  expect(weeks?.rows.map(r=>r.metricKey)).toEqual(expect.arrayContaining(["batting_ops","batting_obp"]));expect(weeks?.rows.find(r=>r.metricKey==="batting_ops")?.trend).toHaveLength(2);
+ });
 });
 
 export function fictionalExitReport(): ExitMeetingReport {
