@@ -14,9 +14,13 @@ export function HomeSpotlight({ weeks, headshots = {}, showRankingLink = false }
   return <section aria-label="Players of the week" data-testid="home-spotlight">
     <div className={styles.heading}><p>Fall Ball · {latest.label}{latest.date ? ` · ${latest.date}` : ""}</p><h2>Players of the Week</h2></div>
     <div className={styles.grid}>{featured.map(card => <article key={card.key} className={styles.card} data-spotlight={card.discipline}>
-      <p className={styles.title}><Trophy size={14} aria-hidden="true"/>{title(card)}{card.tied && <span>Tied for #1</span>}</p>
-      <div className={styles.player}><PlayerAvatar name={card.name} path={headshots[card.code]} size={64} eager/>
-        <div><h3>{card.profileId ? <Link prefetch={false} href={`/athletes/${card.profileId}`}>{card.name}</Link> : card.name}</h3><small>{card.weekLabel} · {card.detail}</small></div></div>
+      {/* Trading-card frame: photo band with a week ribbon, name plate, then the headline stat. */}
+      <div className={styles.photoBand}>
+        <span className={styles.ribbon}>{card.weekLabel}</span>
+        <p className={styles.title}><Trophy size={14} aria-hidden="true"/>{title(card)}{card.tied && <span>Tied for #1</span>}</p>
+        <PlayerAvatar name={card.name} path={headshots[card.code]} size={104} eager className={styles.cardPhoto}/>
+      </div>
+      <div className={styles.namePlate}><h3>{card.profileId ? <Link prefetch={false} href={`/athletes/${card.profileId}`}>{card.name}</Link> : card.name}</h3><small>{card.detail}</small></div>
       <div className={styles.headline}><strong>{card.headline.value}</strong><span>{card.headline.label}</span></div>
       {!!card.stats.length && <dl className={styles.stats}>{card.stats.map(stat => <div key={stat.label}><dt>{stat.label}</dt><dd>{stat.value}</dd></div>)}</dl>}
       <p className={styles.basis}>{card.sample ? `${card.sample} this week · ` : ""}#1 Top Performer score for the week</p>

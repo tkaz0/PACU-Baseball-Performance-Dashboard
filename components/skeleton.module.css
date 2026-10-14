@@ -1,0 +1,13 @@
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 14px; }
+.card, .panel { display: grid; gap: 10px; padding: 16px; border: 1px solid var(--line-subtle); border-radius: var(--radius-card, 14px); background: var(--surface-panel); }
+.card { justify-items: center; }
+.card[data-tall="true"] { min-height: 300px; }
+.line, .circle, .block, .dot { display: block; border-radius: 6px; background: linear-gradient(90deg, var(--surface-raised) 0%, color-mix(in srgb, var(--surface-raised) 60%, var(--line-subtle)) 50%, var(--surface-raised) 100%); background-size: 200% 100%; animation: shimmer 1.4s ease-in-out infinite; }
+.line { height: 12px; }
+.circle { width: 84px; height: 84px; border-radius: 50%; }
+.block { width: 60%; height: 40px; }
+.row { display: flex; align-items: center; gap: 10px; }
+.dot { width: 28px; height: 28px; border-radius: 50%; flex: none; }
+.row .line { flex: none; }
+@keyframes shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) { .line, .circle, .block, .dot { animation: none; } }

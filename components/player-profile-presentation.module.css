@@ -80,3 +80,6 @@
 .identityFacts dd { margin:0; font-size:12px; font-weight:650; color:white; }
 .identityFacts > div :is(dt,dd) { margin-top:0; font-size:12px; letter-spacing:0; text-transform:none; }
 @container player-profile (max-width:420px) { .identityFacts { gap:8px 14px; } .identityHighlights dd { margin:5px 0; } .identityHighlights small { line-height:1.4; } }
+
+/* Large faded jersey number behind the profile header (October 14). */
+.jerseyWatermark { position:absolute; right:clamp(8px,4%,40px); bottom:-0.18em; z-index:-1; font-family:var(--font-display, inherit); font-size:clamp(140px,22vw,260px); font-weight:900; line-height:1; color:#fff; opacity:.06; letter-spacing:-.04em; pointer-events:none; user-select:none; }

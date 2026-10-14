@@ -7,6 +7,8 @@ export type TrendingPlayer = {
   code: string; name: string; profileId: string | null;
   before: number; after: number; change: number;
   beforeSample: string; afterSample: string; tied: boolean;
+  /** Every saved week's line for this player (same definitions), oldest first, for a small trend line. */
+  history: { week: number; value: number }[];
 };
 export type TrendingGroup = {
   kind: "hitting" | "pitching"; metric: string; label: string; unit: string;
@@ -51,7 +53,8 @@ export function trendingPlayers(players: readonly WeekPlayer[], weeks: { hitting
       const change = current.value - old.value, gain = hitting ? change : -change;
       if (gain <= 1e-10) continue;
       improvements.push({ code: player.code, name: player.name, profileId: player.profileId,
-        before: old.value, after: current.value, change, beforeSample: old.sample, afterSample: current.sample, tied: false });
+        before: old.value, after: current.value, change, beforeSample: old.sample, afterSample: current.sample, tied: false,
+        history: ordered.flatMap(week => { const l = line(week, player.code); return l ? [{ week: week.week, value: l.value }] : []; }) });
     }
     improvements.sort((a, b) => (hitting ? b.change - a.change : a.change - b.change) || a.name.localeCompare(b.name));
     for (const player of improvements) player.tied = improvements.some(other => other !== player && Math.abs(other.change - player.change) < 1e-10);

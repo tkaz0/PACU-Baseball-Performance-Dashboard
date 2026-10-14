@@ -6,6 +6,7 @@ import { Sparkline } from "@/components/charts/sparkline";
 import { gameDirection } from "@/lib/game-metrics";
 import type { TeamGameTrends, TrendPoint } from "@/lib/game-trends";
 import { PlayerAvatar } from "@/components/player-avatar";
+import { SkeletonCards } from "@/components/skeleton";
 import { countLabel } from "@/lib/game-opportunities";
 import Link from "next/link";
 import { ArrowUpRight, ArrowRight, Activity, Upload, UsersRound, ChartNoAxesCombined, Trophy, Clock3, Crosshair, UserRound, ClipboardCheck, FolderOpen, FileChartColumn, Check, DraftingCompass, Target } from "lucide-react";
@@ -55,7 +56,7 @@ export function HomeLeaderboardCards({ leaderboards, headshots = {} }: { leaderb
   return leaderboards.length ? <div className={styles.rankGrid}>{leaderboards.map(board => <HomeRankCard board={board} key={board.key} headshots={headshots}/>)}</div> : <div className={styles.rankEmpty}><Trophy size={23} aria-hidden="true"/><p>Team rankings will appear when Fall results are saved.</p></div>;
 }
 export function HomeLeaderboardPlaceholder() {
-  return <div className={styles.rankEmpty} role="status"><Trophy size={23} aria-hidden="true"/><p>Loading team leaders…</p></div>;
+  return <SkeletonCards count={3} label="Loading team leaders"/>;
 }
 function HomeRankCard({ board, headshots }: { board: HomeLeaderboard; headshots?: Readonly<Record<string, string>> }) {
   const maximum = Math.max(0, ...board.rows.map(row => Number.isFinite(row.numericValue) ? row.numericValue! : 0));

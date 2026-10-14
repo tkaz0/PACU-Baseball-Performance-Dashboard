@@ -1,3 +1,5 @@
+import { SkeletonPanel } from "@/components/skeleton";
+
 export default function Loading() {
-  return <p role="status" className="muted text-sm">Loading pitch grades…</p>;
+  return <SkeletonPanel rows={6} label="Loading pitch grades"/>;
 }

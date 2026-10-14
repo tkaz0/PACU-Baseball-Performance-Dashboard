@@ -24,3 +24,4 @@
 .values small { font-size: 12px; }
 .empty { color: var(--text-secondary); font-size: 13px; line-height: 1.5; }
 @media (max-width: 640px) { .grid { grid-template-columns: 1fr; gap: 16px; } }
+.values .spark { margin-left: auto; display: inline-flex; }

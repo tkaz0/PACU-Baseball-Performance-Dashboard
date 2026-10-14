@@ -7,6 +7,7 @@ import { loadBwsScoutingData, type BwsScoutingData } from "@/app/(workspace)/adm
 import { ALIGNMENT_MIN_BALLS, MATCHUP_SPLIT_MIN, handSplit, hitterAlignment, matchupNotes } from "@/lib/bws-scouting";
 import { BWS_LIMITS, BWS_POSITIONS, emptyBwsPlan, formatOuts, lineupIssues, normalizeBwsPlan, parseInnings, planCoverage, suggestedOrder, withoutPlayer, type BwsGame, type BwsLineup, type BwsPlayer, type BwsPosition, type BwsRole, type BwsSnapshot, type BwsTeamPlan } from "@/lib/bws-team";
 import type { BwsPlayerStats, BwsStat } from "@/lib/bws-team-server";
+import { SkeletonCards } from "@/components/skeleton";
 import styles from "./bws-team.module.css";
 
 type Tab = "games" | "lineups" | "depth" | "roster" | "scouting" | "matchups";
@@ -261,7 +262,7 @@ function Scouting({ plan, update, stats, scout }: Shared & { stats: BwsPlayerSta
     <div className="table-wrap"><table className={styles.table}><thead><tr><th>Pitcher</th><th>Throws</th>{SCOUT_PITCH_LABELS.map(l => <th key={l} className={styles.num}>{l}</th>)}<th aria-label="Hide"/></tr></thead>
       <tbody>{arms.map(s => <tr key={s.athleteId}><th scope="row"><Link prefetch={false} href={`/athletes/${s.athleteId}?tab=pitching`}>{s.name}</Link></th><td>{s.throws || "—"}</td><StatCells stats={s.pitching} keys={SCOUT_PITCH}/>{hideButton(s)}</tr>)}</tbody></table></div>
     <h3>Defensive Alignments <small>in-game Full Swing batted balls · likely fouls left out</small></h3>
-    {!scout ? <p role="status" className={styles.note}>Loading batted balls…</p> : "error" in scout ? <p role="status" className={styles.warn}>{scout.error}</p> :
+    {!scout ? <SkeletonCards count={4} label="Loading batted balls"/> : "error" in scout ? <p role="status" className={styles.warn}>{scout.error}</p> :
       <div className={styles.alignments}>{hitters.map(s => { const a = hitterAlignment(scout.hitters[s.athleteId] ?? [], s.bats); return <article key={s.athleteId} className={styles.alignment}>
         <header><strong>{s.name}</strong><small>Bats {s.bats || "?"} · {a.count} balls in play</small></header>
         {a.directedCount ? <SprayChart points={a.points}/> : null}
@@ -339,7 +340,7 @@ function Matchups({ plan, statsFor, opponents, scout }: { plan: BwsTeamPlan; sta
     <div className={styles.addRow}><select aria-label="Your pitcher" value={selected} onChange={e => setSelected(e.target.value)}>{ours.map(p => <option key={p.athleteId!} value={p.athleteId!}>{p.name}</option>)}</select></div>
     {pitcher && <p className={styles.pitcherLine}><strong>{pitcher.name}</strong> · Throws {pitcher.throws || "?"} · {value("pitching_k9")} K/9 · {value("pitching_bb9")} BB/9 · {value("pitching_whip")} WHIP · {value("strike_pct")} strikes
       {contact && contact.count > 0 && <> · Contact against: {contact.avgEv!.toFixed(1)} mph, {Math.round(contact.hardPct!)}% hard, {Math.round(contact.groundPct!)}% grounders ({contact.count} balls)</>}</p>}
-    {!scout ? <p role="status" className={styles.note}>Loading batted balls…</p> : "error" in scout && <p role="status" className={styles.warn}>{scout.error}</p>}
+    {!scout ? <SkeletonCards count={1} label="Loading batted balls"/> : "error" in scout && <p role="status" className={styles.warn}>{scout.error}</p>}
     <div className="table-wrap"><table className={styles.table}><thead><tr><th>Their Hitter</th><th>Bats</th><th className={styles.num}>OPS</th><th className={styles.num}>K%</th><th className={styles.num}>BB%</th><th className={styles.num}>vs {throws === "R" ? "RHP" : "LHP"}</th><th>Notes</th></tr></thead>
       <tbody>{rows.map(({ h, split, notes }) => <tr key={h.athleteId}><th scope="row">{h.name}</th><td>{h.bats || "—"}</td>
         <td className={styles.num}>{h.hitting.find(x => x.key === "batting_ops")?.value ?? "—"}</td><td className={styles.num}>{h.hitting.find(x => x.key === "batting_k_pct")?.value ?? "—"}</td><td className={styles.num}>{h.hitting.find(x => x.key === "batting_bb_pct")?.value ?? "—"}</td>

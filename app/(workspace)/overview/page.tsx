@@ -3,6 +3,7 @@ import { HomeActivityPlaceholder, HomeCoachingPulse, HomeVisitActivity } from "@
 import { TeamGameTrend } from "@/components/team-game-trend";
 import { PlayerWeek } from "@/components/player-week";
 import { HomeDataAlerts } from "@/components/home-data-alerts";
+import { SkeletonCards, SkeletonPanel } from "@/components/skeleton";
 import { loadMissingFullSwingWeeks } from "@/lib/full-swing-week-gaps-server";
 import { loadOwnGameTrends, loadTeamGameTrends } from "@/lib/game-trends-server";
 import { requireRenderAccess as requireAccess } from "@/lib/render-access";
@@ -49,8 +50,8 @@ export default async function Overview({searchParams}:{searchParams:Promise<{pre
     coachingPulse={staff&&summary?<Suspense fallback={<HomeActivityPlaceholder coaching/>}><HomeCoachingPulse activity={activityPromise} reviewCount={[...summary.batting.rates,...summary.pitching.rates].filter(rate=>rate.pending&&rate.pendingReason!=="missing").length}/></Suspense>:undefined}
     activity={summary?<Suspense fallback={<HomeActivityPlaceholder/>}><HomeVisitActivity activity={activityPromise} visit={visit} staff={staff} athleteId={access.athleteId}/></Suspense>:undefined}
     streamedTrend={staff||ownTrends?(source,metric,updatedAt)=><Suspense fallback={null}><TeamGameTrend trends={trendsPromise} source={source} metric={metric} updatedAt={updatedAt}/></Suspense>:undefined}
-    spotlight={canSeeBoards?<Suspense fallback={null}><StreamedSpotlight weeks={weeksPromise} photos={photosPromise} staff={staff}/></Suspense>:undefined}
-    trending={staff?<Suspense fallback={null}><StreamedTrending weeks={weeksPromise}/></Suspense>:undefined}
+    spotlight={canSeeBoards?<Suspense fallback={<SkeletonCards count={2} tall label="Loading Players of the Week"/>}><StreamedSpotlight weeks={weeksPromise} photos={photosPromise} staff={staff}/></Suspense>:undefined}
+    trending={staff?<Suspense fallback={<SkeletonPanel rows={3} label="Loading Trending Up"/>}><StreamedTrending weeks={weeksPromise}/></Suspense>:undefined}
     leaderboardsSlot={<Suspense fallback={<HomeLeaderboardPlaceholder/>}><StreamedLeaderboards boards={leaderboardsPromise} photos={photosPromise}/></Suspense>}
     dataAlerts={staff?<Suspense fallback={null}><HomeDataAlerts missing={loadFallBallWeeks(access).then(()=>loadMissingFullSwingWeeks(access)).catch(()=>null)}/></Suspense>:undefined}
     playerWeek={ownTrends&&summary?<Suspense fallback={null}><PlayerWeek trends={trendsPromise} activity={activityPromise} batting={summary.batting} pitching={summary.pitching}/></Suspense>:undefined}

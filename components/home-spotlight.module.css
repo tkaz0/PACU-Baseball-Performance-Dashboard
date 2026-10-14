@@ -39,3 +39,21 @@
 .history li .plainName { overflow: hidden; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .history li .who { display: flex; flex: 1 1 auto; flex-direction: column; min-width: 0; }
 .history li .historyAvatar { flex: 0 0 28px; }
+
+/* Trading-card look (October 14): red/white Pacific frame, photo band, week ribbon, name plate. */
+.card { padding: 0 0 14px; border: 2px solid var(--brand-red, #c8102e); box-shadow: inset 0 0 0 3px var(--surface-panel), inset 0 0 0 4px color-mix(in srgb, #fff 55%, transparent), var(--shadow-card, none); }
+.card::before { display: none; }
+.card > :not(.photoBand) { margin-inline: 16px; }
+.photoBand { position: relative; display: grid; justify-items: center; gap: 10px; padding: 14px 16px 16px; background: linear-gradient(160deg, var(--brand-red, #c8102e) 0%, #7a0a1c 70%, #3a0610 100%); }
+.photoBand .title { color: #fff; justify-self: start; }
+.photoBand .title svg { color: #ffd166; }
+.photoBand .title span { border-color: rgba(255,255,255,.5); }
+.cardPhoto { box-shadow: 0 0 0 4px #fff, 0 10px 24px rgba(0,0,0,.35); }
+.ribbon { position: absolute; top: 12px; right: -34px; transform: rotate(35deg); width: 150px; padding: 3px 0; text-align: center; background: #fff; color: var(--brand-red, #c8102e); font-size: 11px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+.namePlate { margin-top: -12px; padding: 8px 12px; border-radius: 8px; background: var(--surface-raised); border: 1px solid var(--line-subtle); text-align: center; position: relative; }
+.namePlate h3 { margin: 0; font-family: var(--font-display, inherit); font-size: 22px; font-weight: 800; text-transform: uppercase; letter-spacing: .02em; line-height: 1.1; }
+.namePlate a { color: inherit; text-decoration: none; }
+.namePlate a:hover { text-decoration: underline; }
+.namePlate small { display: block; margin-top: 2px; color: var(--text-secondary); font-size: 12px; }
+.card .headline { justify-content: center; }
+.card .headline strong { font-size: 48px; }
