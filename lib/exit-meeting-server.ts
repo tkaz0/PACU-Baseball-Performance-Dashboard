@@ -7,6 +7,7 @@ import { loadGameStats } from "@/lib/game-server";
 import { loadGameComparisons } from "@/lib/game-comparison-server";
 import { loadPlayerFallSummaries } from "@/lib/player-fall-summaries-server";
 import { loadContactsAllowed } from "@/lib/contacts-allowed-server";
+import { loadFullSwingContacts } from "@/lib/full-swing-contacts-server";
 import { loadAthleteGameWeeks } from "@/lib/game-weeks-server";
 import { loadOwnPitchGrades } from "@/lib/pitch-grades-server";
 import { profileShowsPitching } from "@/lib/player-profile-layout";
@@ -27,8 +28,10 @@ export async function loadExitMeetingReport(access: Access, athleteId: string) {
   if (error) throw new ExitMeetingError("This player could not be loaded. Try again.", 503);
   if (!data || data.id !== athleteId || !data.athlete_seasons?.some((s: { season: string }) => s.season === "2026-27")) throw new ExitMeetingError("This player is not on the current roster.", 404);
   const athlete = data as RosterAthlete;
-  const [performance, games, comparisons] = await Promise.all([
+  const [performance, games, comparisons, contacts] = await Promise.all([
     loadAthletePerformance(access, athlete), loadGameStats(access, athleteId), loadGameComparisons(access, athleteId),
+    // In-game batted balls for the handout's batted-ball quality; optional, so a failure only omits that section.
+    loadFullSwingContacts(access, athleteId, "in_game").catch(() => null),
   ]);
   const season = athlete.athlete_seasons.find(s => s.season === "2026-27"), pitcher = profileShowsPitching(season);
   // Optional sections: a failed reader omits its section rather than the whole report.
@@ -38,8 +41,8 @@ export async function loadExitMeetingReport(access: Access, athleteId: string) {
     loadAthleteGameWeeks(access, athleteId).catch(() => null),
   ]);
   const pitchGrades = pitcher ? await loadOwnPitchGrades(access, { id: athlete.id, code: athlete.athlete_code, name: `${athlete.preferred_name ?? athlete.first_name} ${athlete.last_name}`, academicClass: "", position: "", playerType: "", bats: "", throws: "" }, performance.measurements, contactsAllowed).catch(() => null) : null;
-  const report = buildExitMeetingReport({ athlete, ...performance, games, comparisons, movement: null, fallSummaries, contactsAllowed, weeks, pitchGrades, generatedAt: new Date().toISOString() }, "meeting");
-  const unavailable = [...(pitcher && contactsAllowed === null ? ["Contact Allowed"] : []), ...(pitcher && pitchGrades === null ? ["Pitch+"] : []), ...(weeks === null ? ["Week by Week"] : [])];
+  const report = buildExitMeetingReport({ athlete, ...performance, games, comparisons, movement: null, contacts: contacts ?? [], fallSummaries, contactsAllowed, weeks, pitchGrades, generatedAt: new Date().toISOString() }, "meeting");
+  const unavailable = [...(pitcher && contactsAllowed === null ? ["Contact Allowed"] : []), ...(pitcher && pitchGrades === null ? ["Pitch+"] : []), ...(weeks === null ? ["Week by Week"] : []), ...(contacts === null ? ["Batted ball quality"] : [])];
   if (unavailable.length) report.notes.push(`Temporarily unavailable in this report: ${unavailable.join(", ")}. Other sections are complete.`);
   return report;
 }

@@ -6,7 +6,7 @@ import { classifiedPitchSource } from "@/lib/imports/classified-pitch-results";
 const physicality = new Set(["height", "weight", "muscle_mass", "body_score", "body_fat_pct", "grip_strength", "grip_dominant", "grip_non_dominant"]);
 const testing = new Set(["home_to_first", "home_to_second", "boxer_t", "infield_velocity", "outfield_velocity"]);
 const hitting = new Set(["max_exit_velocity", "avg_exit_velocity", "avg_bat_speed", "max_bat_speed", "max_distance"]);
-const batting = new Set(["batting_production_plus", "batting_ops","batting_est_slg", "batting_est_wobacon","batting_avg", "batting_obp", "qpa_pct", "batting_hh_pct", "batting_bb_pct", "batting_k_pct", "pumps", "sb"]);
+const batting = new Set(["batting_production_plus", "batting_ops","batting_est_slg", "batting_est_iso", "batting_est_wobacon","batting_avg", "batting_obp", "qpa_pct", "batting_hh_pct", "batting_bb_pct", "batting_k_pct", "pumps", "sb"]);
 const pitching = new Set(["pitching_whip", "pitching_k_bb","pitching_k9", "pitching_bb9", "pitching_r9", "strike_pct", "weak_contact_pct", "hard_contact_pct"]);
 
 /** Exact source + pitch type partitions; means require every contributing file's matching count. */
@@ -52,13 +52,13 @@ export function compactExitMeetingReport(report: ExitMeetingReport, classified: 
     else if (section.id === "hitting-in_game") keys = hitting;
     else if (section.id === "blast-fall") return [{ ...section, title: "Hitting · Blast Practice", note: undefined }];
     else if (section.id === "pitch-grades") return [{ ...section, rows: section.rows.slice(0, 6), note: undefined }];
-    else if (section.id === "contact-allowed") { const rows = section.rows.filter(row => /^(Average Exit Velocity|Hard Hit|Squared Up) Against/.test(row.label)); return rows.length ? [{ ...section, rows, note: undefined }] : []; }
+    else if (section.id === "contact-allowed" || section.id === "contact-in_game" || section.id === "batted-ball-in_game" || section.id === "pitch-splits") return [{ ...section, note: undefined }];
     else if (section.id === "weeks-qpa_fall_2026" || section.id === "weeks-pitching_fall_2026") keys = weekly;
     else return [];
     const rows = section.rows.filter(row => row.metricKey && keys.has(row.metricKey));
     return rows.length ? [{ ...section, rows, note: undefined }] : [];
   });
-  const order = ["physicality", "game-qpa_fall_2026", "weeks-qpa_fall_2026", "game-pitching_fall_2026", "weeks-pitching_fall_2026", "pitch-grades", "contact-allowed", "hitting-in_game", "blast-fall", "testing"];
+  const order = ["physicality", "game-qpa_fall_2026", "weeks-qpa_fall_2026", "game-pitching_fall_2026", "weeks-pitching_fall_2026", "pitch-splits", "pitch-grades", "contact-allowed", "hitting-in_game", "contact-in_game", "batted-ball-in_game", "blast-fall", "testing"];
   sections.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
   sections.push(...compactExitMeetingArsenal(classified));
   const needed: string[] = [];

@@ -24,6 +24,8 @@ import { isMovementRom, MOVEMENT_LABELS, movementTone, type MovementColor, type 
 import type { SavedContact } from "@/lib/full-swing-contacts-server";
 import { contactQuality } from "@/lib/contact-quality";
 import { squaredUpSummary } from "@/lib/contact-trends";
+import { battedBallProfile } from "@/lib/batted-ball-profile";
+import { isLikelyFoul } from "@/lib/likely-foul";
 import { contactAllowedSummary, type AllowedContact } from "@/lib/contacts-allowed";
 import type { PitchGradeRow } from "@/lib/pitch-grades";
 import { fallBallWeekDate, fallBallWeekDates, type GameWeek } from "@/lib/game-weeks";
@@ -161,6 +163,13 @@ export function buildExitMeetingReport(input: {
         const range = `${contacts.map(c => c.playedOn).sort()[0]} to ${contacts.map(c => c.playedOn).sort().at(-1)}`, squared = squaredUpSummary(contacts);
         const squaredRows = squared.count ? [row("Squared Up", `${squared.avgSquaredUp!.toFixed(1)}%`, "Full Swing", range, "Average share of potential exit velocity", { metricKey: "squared_up", sample: `${squared.count} of ${squared.total} contacts` }), row("Potential Exit Velocity", `${squared.avgPotential!.toFixed(1)} mph`, "Full Swing", range, `Average at 100% squared up · Max ${squared.maxPotential!.toFixed(1)} mph`, { sample: `${squared.count} of ${squared.total} contacts` })] : [];
         if (quality.count) add(`contact-${context}`, `Contact Quality · ${context === "in_game" ? "In-Game" : "Practice"}`, "Full Swing · Saved paired exit velocity and launch angle", [...[["Hard Hit · 90+ mph", quality.hardHitPct], ["Launch Angle · 8-32°", quality.sweetSpotPct], ["Both Windows", quality.bothPct]].map(([label, value]) => row(String(label), `${Number(value).toFixed(1)}%`, "Full Swing", range, "Fall saved contacts", { sample: `${quality.count} paired contacts` })), ...squaredRows], "These percentages describe batted balls with both readings. They are not batting average, hit outcomes, or the QPA sheet's HH %. Squared Up is Full Swing's actual exit velocity as a share of the potential from that bat speed and pitch speed.");
+        // How the ball left the bat (owner request, October 14): MLB Statcast launch-angle ranges and pull/middle/opposite by
+        // batting side; likely fouls are left out. Descriptive shares only, never hit outcomes.
+        const inPlay = contacts.filter(c => !isLikelyFoul(c)), profile = battedBallProfile(inPlay, season?.bats);
+        if (context === "in_game" && profile.count) add("batted-ball-in_game", "Batted Ball Profile · In-Game", "Full Swing · Balls in play, likely fouls left out", [
+          ...profile.types.map(t => row(t.label, `${t.pct.toFixed(1)}%`, "Full Swing", range, t.range, { metricKey: `bb_${t.key}`, sample: `${t.count} of ${profile.count} balls` })),
+          ...(profile.directedCount ? profile.zones.map(z => row(z.label, `${z.pct.toFixed(1)}%`, "Full Swing", range, "Direction", { metricKey: `dir_${z.zone}`, sample: `${z.count} of ${profile.directedCount} balls` })) : []),
+        ], "Ground ball below 10°, line drive 10–25°, fly ball 25–50°, pop-up above 50°. Middle is within 15° of center.");
     }
   }
   const weekDates = fallBallWeekDates();

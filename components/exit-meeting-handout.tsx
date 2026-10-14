@@ -12,9 +12,9 @@ import styles from "./exit-meeting-handout.module.css";
  * snapshot renders exactly what was captured. Percentiles are the report's verified team ranks
  * (five or more teammates); missing results stay missing. Printed through the browser.
  */
-const HITTING_HEADLINE = ["batting_production_plus", "batting_ops", "qpa_pct", "batting_obp"];
+// Owner choice (October 14): hitters lead with PAC Production+, OPS, QPA% and ISO; pitchers with WHIP, K/BB, Runs/9 and Strike %.
+const HITTING_HEADLINE = ["batting_production_plus", "batting_ops", "qpa_pct", "batting_est_iso"];
 const PITCHING_HEADLINE = ["pitching_whip", "pitching_k_bb", "pitching_r9", "strike_pct"];
-const TESTING_HEADLINE = ["max_exit_velocity", "avg_bat_speed", "max_bat_speed"];
 const LOWER_BETTER = new Set(["pitching_whip", "pitching_r9", "pitching_bb9", "batting_k_pct", "hard_contact_pct", "home_to_first", "home_to_second", "boxer_t", "body_fat_pct"]);
 // Counting totals depend on playing time, so the ranking bars show rates and test results only.
 const COUNTS = new Set(["pumps", "sb", "gdp", "k", "bb_outcome"]);
@@ -68,8 +68,26 @@ function StatTable({ rows, weeks, empty }: { rows: ExitMeetingRow[]; weeks: Exit
     </tr>; })}</tbody></table>;
 }
 
+/** Value cells; any verified team percentile shows as a small bar (body measurements stay a neutral position, not a grade). */
 function ValueGrid({ rows }: { rows: ExitMeetingRow[] }) {
-  return <dl className={styles.values}>{rows.map(row => <div key={row.label}><dt>{row.label}</dt><dd>{row.value}</dd><small>{row.percentile !== null && row.metricKey && !BODY.has(row.metricKey) ? `${ordinal(Math.round(row.percentile))} pctl` : row.metricKey && BODY.has(row.metricKey) && row.percentile !== null ? "Team position" : day(row.date)}</small></div>)}</dl>;
+  return <dl className={styles.values}>{rows.map(row => { const body = !!row.metricKey && BODY.has(row.metricKey), pct = row.percentile === null ? null : Math.round(row.percentile); return <div key={row.label}><dt>{row.label}</dt><dd>{row.value}</dd>
+    {pct !== null ? <span className={styles.miniPct}><span className={styles.miniTrack}><span style={{ width: `${Math.max(4, pct)}%`, background: body ? "#9ca3af" : percentileColor(pct).backgroundColor }}/></span><small>{body ? `Team position ${pct}` : `${ordinal(pct)} pctl`}</small></span> : <small>{row.sample ?? day(row.date)}</small>}</div>; })}</dl>;
+}
+
+/** One stacked bar for shares that add to 100% (batted-ball mix or direction). */
+function MixBar({ rows, title }: { rows: ExitMeetingRow[]; title: string }) {
+  const parts = rows.map(r => ({ label: r.label.replace(" Share", "").replace("Third-base side", "3B side").replace("First-base side", "1B side"), pct: Number.parseFloat(r.value), sample: r.sample })).filter(p => Number.isFinite(p.pct));
+  if (!parts.length) return null;
+  const colors = ["#c8102e", "#ef7f8f", "#9ca3af", "#1764ae", "#68a6d4"];
+  return <div className={styles.mix}><span className={styles.mixTitle}>{title}<small>{parts[0].sample?.replace(/^\d+ of /, "") ?? ""}</small></span>
+    <span className={styles.mixBar}>{parts.map((p, i) => <span key={p.label} style={{ width: `${p.pct}%`, background: colors[i % colors.length] }}/>)}</span>
+    <span className={styles.mixLegend}>{parts.map((p, i) => <span key={p.label}><i style={{ background: colors[i % colors.length] }}/>{p.label} <b>{Math.round(p.pct)}%</b></span>)}</span></div>;
+}
+
+/** Strike rate by pitch family, from the pitching sheet's family strike counts. */
+function StrikeMix({ rows }: { rows: ExitMeetingRow[] }) {
+  if (!rows.length) return null;
+  return <ul className={styles.strikes}>{rows.map(r => { const pct = Number.parseFloat(r.value); return <li key={r.label}><span>{r.label.replace(" Strike %", "")}</span><span className={styles.strikeTrack}><span style={{ width: `${Number.isFinite(pct) ? pct : 0}%` }}/></span><b>{r.value}</b><small>{r.sample}</small></li>; })}</ul>;
 }
 
 /** Arsenal rows read "84.1 avg / 86.0 max mph"; bars scale average velocity across the pitcher's pitches. */
@@ -90,8 +108,9 @@ function Insights({ title, tone, items, empty }: { title: string; tone: string; 
 export function ExitMeetingHandout({ report, meetingDate, talkingPoints, headshot }: { report: ExitMeetingReport; meetingDate: string; talkingPoints: string; headshot?: string | null }) {
   const games = [...rowsOf(section(report, "game-qpa_fall_2026")), ...rowsOf(section(report, "game-pitching_fall_2026"))];
   const testing = [...rowsOf(section(report, "hitting-in_game")), ...rowsOf(section(report, "blast-fall")), ...rowsOf(section(report, "testing"))];
-  const headline = [...HITTING_HEADLINE.slice(0, 3), ...PITCHING_HEADLINE.slice(0, 3)].flatMap(key => byKey(games, key) ? [byKey(games, key)!] : []);
-  const tiles = [...headline, ...TESTING_HEADLINE.flatMap(key => byKey(testing, key) ? [byKey(testing, key)!] : [])].slice(0, 4);
+  const hitTiles = HITTING_HEADLINE.flatMap(key => byKey(games, key) ? [byKey(games, key)!] : []), pitchTiles = PITCHING_HEADLINE.flatMap(key => byKey(games, key) ? [byKey(games, key)!] : []);
+  // Two-way players show their top two of each.
+  const tiles = (hitTiles.length && pitchTiles.length ? [...hitTiles.slice(0, 2), ...pitchTiles.slice(0, 2)] : hitTiles.length ? hitTiles : pitchTiles).slice(0, 4);
   const ranked = [
     ...rowsOf(section(report, "game-qpa_fall_2026")).map(row => ({ label: row.label, group: "Hitting", row })),
     ...rowsOf(section(report, "game-pitching_fall_2026")).map(row => ({ label: row.label, group: "Pitching", row })),
@@ -106,6 +125,11 @@ export function ExitMeetingHandout({ report, meetingDate, talkingPoints, headsho
   const arsenal = report.sections.filter(s => s.id.startsWith("arsenal-summary-"));
   const allowed = rowsOf(section(report, "contact-allowed"));
   const physical = rowsOf(section(report, "physicality"));
+  const contactQuality = rowsOf(section(report, "contact-in_game")).filter(r => r.label !== "Both Windows");
+  const battedBall = rowsOf(section(report, "batted-ball-in_game"));
+  const launchMix = battedBall.filter(r => r.metricKey?.startsWith("bb_")), directionMix = battedBall.filter(r => r.metricKey?.startsWith("dir_"));
+  const strikeMix = rowsOf(section(report, "pitch-splits"));
+  const allowedValues = allowed.filter(r => !/Share$/.test(r.label)), allowedMix = allowed.filter(r => /Share$/.test(r.label));
   const runTests = rowsOf(section(report, "testing"));
   const swing = [...rowsOf(section(report, "hitting-in_game")), ...rowsOf(section(report, "blast-fall"))];
   const showPitching = pitching.length > 0 || grades.length > 0 || arsenal.length > 0;
@@ -143,28 +167,23 @@ export function ExitMeetingHandout({ report, meetingDate, talkingPoints, headsho
         {showHitting && <Panel title="Hitting" kicker="Fall game sheet · week trends">
           <StatTable rows={hitting.filter(r => ["batting_production_plus", "batting_ops", "batting_obp", "batting_avg", "qpa_pct", "batting_k_pct", "batting_bb_pct", "batting_est_slg"].includes(r.metricKey ?? "")).slice(0, 6)} weeks={hittingWeeks} empty="No hitting game stats yet."/>
           {swing.length > 0 && <><h4>Swing &amp; Contact</h4><ValueGrid rows={swing.slice(0, 6)}/></>}
+          {(contactQuality.length > 0 || battedBall.length > 0) && <><h4>Batted Ball Quality <small>in-game Full Swing</small></h4>
+            {contactQuality.length > 0 && <ValueGrid rows={contactQuality}/>}
+            <MixBar rows={launchMix} title="Launch"/><MixBar rows={directionMix} title="Direction"/></>}
         </Panel>}
         {showPitching && <Panel title="Pitching" kicker="Fall game sheet · Pitch+ · arsenal">
           <StatTable rows={pitching.filter(r => ["pitching_whip", "pitching_k_bb", "pitching_k9", "pitching_bb9", "pitching_r9", "strike_pct"].includes(r.metricKey ?? "")).slice(0, 6)} weeks={pitchingWeeks} empty="No pitching game stats yet."/>
           {graded.length > 0 && <><h4>Pitch+ (Team) <small>100 = Pacific average</small></h4><ul className={styles.grades}>{graded.map(g => { const score = Number.parseFloat(g.value); return <li key={g.label} data-band={Number.isFinite(score) ? score >= 110 ? "high" : score <= 90 ? "low" : "mid" : "none"}><b>{g.label.replace(" · Pitch+", "")}</b><strong>{g.value}</strong><small>{g.basis}</small></li>; })}</ul></>}
           {grades.length > 0 && !graded.length && <p className={styles.empty}>Pitch+ needs more in-game pitches and balls in play before a grade shows.</p>}
           {arsenal.map(s => <div key={s.id}><h4>{s.title}</h4><Arsenal rows={s.rows}/></div>)}
-          {allowed.length > 0 && <><h4>Contact Allowed</h4><ValueGrid rows={allowed.slice(0, 3)}/></>}
+          {strikeMix.length > 0 && <><h4>Strike Mix <small>strike % by pitch family · game sheet</small></h4><StrikeMix rows={strikeMix}/></>}
+          {allowed.length > 0 && <><h4>Contact Allowed</h4><ValueGrid rows={allowedValues}/><MixBar rows={allowedMix} title="Launch against"/></>}
         </Panel>}
         <Panel title="Physicality & Testing" kicker="Latest recorded results">
           {physical.length > 0 ? <ValueGrid rows={physical}/> : <p className={styles.empty}>No body or strength results yet.</p>}
           {runTests.length > 0 && <><h4>Speed &amp; Throwing</h4><ValueGrid rows={runTests}/></>}
         </Panel>
       </div>
-      {/* Two-way sheets already show a By Week trend column in both tables, so the larger panel is skipped to fit one page. */}
-      {(hittingWeeks.length > 0 || pitchingWeeks.length > 0) && !(showHitting && showPitching) && <Panel title="Fall Week by Week" kicker="Each week's own counts · same definitions as the Fall totals">
-        <div className={styles.weekGrid}>{[...hittingWeeks.map(row => ({ row, group: "Hitting" })), ...pitchingWeeks.map(row => ({ row, group: "Pitching" }))].map(({ row, group }) => <div key={`${group}-${row.label}`} className={styles.weekCard}>
-          <span className={styles.weekLabel}>{row.label}<small>{group}</small></span>
-          <strong>{row.value}<small> latest week</small></strong>
-          {row.trend && row.trend.length >= 2 ? <Sparkline points={row.trend} width={150} height={26} label={`${row.label} by week`} noun="weeks" direction={row.metricKey && LOWER_BETTER.has(row.metricKey) ? "lower" : "higher"}/> : <small className={styles.muted}>One week so far</small>}
-          <small className={styles.weekBasis}>{row.basis}</small>
-        </div>)}</div>
-      </Panel>}
       <div className={styles.meeting}>
         <section className={styles.notes}><h3>Coach Talking Points</h3>{talkingPoints.trim() ? <p>{talkingPoints}</p> : <div className={styles.lines} aria-hidden="true">{Array.from({ length: 4 }, (_, i) => <span key={i}/>)}</div>}</section>
         <section className={styles.goals}><h3>Winter Focus</h3><ol>{Array.from({ length: 3 }, (_, i) => <li key={i}><span/></li>)}</ol><div className={styles.sign}><span>Player</span><span>Coach</span></div></section>
