@@ -18,7 +18,7 @@ export function HandoutFit({ children }: { children: ReactNode }) {
     for (const body of ref.current?.querySelectorAll<HTMLElement>("[data-page-body]") ?? []) {
       body.style.zoom = "1";
       const page = body.parentElement!, available = page.clientHeight - 34, natural = body.scrollHeight;
-      if (natural > available + 1) body.style.zoom = String(Math.max(0.7, available / natural));
+      if (natural > available + 1) body.style.zoom = String(Math.max(0.6, available / natural));
     }
   });
   return <div ref={ref} className={styles.fit}><div style={{ zoom }}>{children}</div></div>;

@@ -102,7 +102,7 @@ export function ExitMeetingHandout({ report, meetingDate, talkingPoints, headsho
     .map((item, i) => ({ item, i })).sort((a, b) => rankIndex(a.item.row.metricKey) - rankIndex(b.item.row.metricKey) || a.i - b.i).map(({ item }) => item).slice(0, 14);
   const hittingWeeks = rowsOf(section(report, "weeks-qpa_fall_2026")), pitchingWeeks = rowsOf(section(report, "weeks-pitching_fall_2026"));
   const hitting = rowsOf(section(report, "game-qpa_fall_2026")), pitching = rowsOf(section(report, "game-pitching_fall_2026"));
-  const grades = rowsOf(section(report, "pitch-grades"));
+  const grades = rowsOf(section(report, "pitch-grades")), graded = grades.filter(g => Number.isFinite(Number.parseFloat(g.value)));
   const arsenal = report.sections.filter(s => s.id.startsWith("arsenal-summary-"));
   const allowed = rowsOf(section(report, "contact-allowed"));
   const physical = rowsOf(section(report, "physicality"));
@@ -146,7 +146,8 @@ export function ExitMeetingHandout({ report, meetingDate, talkingPoints, headsho
         </Panel>}
         {showPitching && <Panel title="Pitching" kicker="Fall game sheet · Pitch+ · arsenal">
           <StatTable rows={pitching.filter(r => ["pitching_whip", "pitching_k_bb", "pitching_k9", "pitching_bb9", "pitching_r9", "strike_pct"].includes(r.metricKey ?? "")).slice(0, 6)} weeks={pitchingWeeks} empty="No pitching game stats yet."/>
-          {grades.length > 0 && <><h4>Pitch+ (Team) <small>100 = Pacific average</small></h4><ul className={styles.grades}>{grades.map(g => { const score = Number.parseFloat(g.value); return <li key={g.label} data-band={Number.isFinite(score) ? score >= 110 ? "high" : score <= 90 ? "low" : "mid" : "none"}><b>{g.label.replace(" · Pitch+", "")}</b><strong>{g.value}</strong><small>{g.basis}</small></li>; })}</ul></>}
+          {graded.length > 0 && <><h4>Pitch+ (Team) <small>100 = Pacific average</small></h4><ul className={styles.grades}>{graded.map(g => { const score = Number.parseFloat(g.value); return <li key={g.label} data-band={Number.isFinite(score) ? score >= 110 ? "high" : score <= 90 ? "low" : "mid" : "none"}><b>{g.label.replace(" · Pitch+", "")}</b><strong>{g.value}</strong><small>{g.basis}</small></li>; })}</ul></>}
+          {grades.length > 0 && !graded.length && <p className={styles.empty}>Pitch+ needs more in-game pitches and balls in play before a grade shows.</p>}
           {arsenal.map(s => <div key={s.id}><h4>{s.title}</h4><Arsenal rows={s.rows}/></div>)}
           {allowed.length > 0 && <><h4>Contact Allowed</h4><ValueGrid rows={allowed.slice(0, 3)}/></>}
         </Panel>}
@@ -155,7 +156,8 @@ export function ExitMeetingHandout({ report, meetingDate, talkingPoints, headsho
           {runTests.length > 0 && <><h4>Speed &amp; Throwing</h4><ValueGrid rows={runTests}/></>}
         </Panel>
       </div>
-      {(hittingWeeks.length > 0 || pitchingWeeks.length > 0) && <Panel title="Fall Week by Week" kicker="Each week's own counts · same definitions as the Fall totals">
+      {/* Two-way sheets already show a By Week trend column in both tables, so the larger panel is skipped to fit one page. */}
+      {(hittingWeeks.length > 0 || pitchingWeeks.length > 0) && !(showHitting && showPitching) && <Panel title="Fall Week by Week" kicker="Each week's own counts · same definitions as the Fall totals">
         <div className={styles.weekGrid}>{[...hittingWeeks.map(row => ({ row, group: "Hitting" })), ...pitchingWeeks.map(row => ({ row, group: "Pitching" }))].map(({ row, group }) => <div key={`${group}-${row.label}`} className={styles.weekCard}>
           <span className={styles.weekLabel}>{row.label}<small>{group}</small></span>
           <strong>{row.value}<small> latest week</small></strong>
