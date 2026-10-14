@@ -137,6 +137,8 @@ export function ExitMeetingHandout({ report, meetingDate, talkingPoints, headsho
   // Blast labels say "(Practice)" too; name the device so it is not confused with Full Swing practice.
   const blastSpeed = rowsOf(section(report, "blast-fall")).filter(isBatSpeed).map(r => ({ ...r, label: `${r.label.replace(/\s*\(Practice\)$/, "")} (Blast)` }));
   const swing = [...inGameSwing.filter(isBatSpeed), ...practiceSwing.filter(isBatSpeed), ...blastSpeed, ...inGameSwing.filter(r => !isBatSpeed(r))];
+  // The other Blast swing-weighted Fall averages (attack angle, hand speed, connection and so on).
+  const blastSwing = rowsOf(section(report, "blast-fall")).filter(r => !isBatSpeed(r)).map(r => ({ ...r, label: r.label.replace(/\s*\(Practice\)$/, "") }));
   const showPitching = pitching.length > 0 || grades.length > 0 || arsenal.length > 0;
   const showHitting = hitting.length > 0 || swing.length > 0;
 
@@ -172,6 +174,7 @@ export function ExitMeetingHandout({ report, meetingDate, talkingPoints, headsho
         {showHitting && <Panel title="Hitting" kicker="Fall game sheet · week trends">
           <StatTable rows={hitting.filter(r => ["batting_production_plus", "batting_ops", "batting_obp", "batting_avg", "qpa_pct", "batting_k_pct", "batting_bb_pct", "batting_est_slg"].includes(r.metricKey ?? "")).slice(0, 6)} weeks={hittingWeeks} empty="No hitting game stats yet."/>
           {swing.length > 0 && <><h4>Bat Speed &amp; Contact <small>in-game and practice</small></h4><ValueGrid rows={swing.slice(0, 9)}/></>}
+          {blastSwing.length > 0 && <><h4>Blast Swing <small>practice · swing-weighted Fall averages</small></h4><ValueGrid rows={blastSwing}/></>}
         </Panel>}
         {(contactQuality.length > 0 || battedBall.length > 0) && <Panel title="Batted Ball Quality" kicker="In-game Full Swing · likely fouls out">
           {contactQuality.length > 0 && <ValueGrid rows={contactQuality}/>}
