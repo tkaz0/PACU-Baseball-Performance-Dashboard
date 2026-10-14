@@ -17,7 +17,7 @@ Built with Next.js 16, React 19, TypeScript, Tailwind 4, Supabase Auth/PostgreSQ
 
 ## Available workflows
 
-- **[Exit Meetings](docs/EXIT_MEETINGS.md):** choose a player, review a visual front-and-back meeting handout (or choose the detailed report) and download a branded private PDF with stats, verified percentiles, strengths/development areas, and optional meeting talking points. Staff only; optional reviewed snapshots preserve meeting history.
+- **[Exit Meetings](docs/EXIT_MEETINGS.md):** choose a player and print a two-page (front and back) meeting handout: photo and headline numbers, team percentile bars, strengths, focus areas and biggest jumps, game stats with week-by-week trends, Pitch+ and arsenal, physicality and testing, and space for talking points and winter goals. Print or "Save as PDF" from the browser. Staff only; optional saved snapshots keep the exact numbers and notes.
 - **Visual workspace:** refreshed player/staff Home, role-specific profile comparison cards, source-backed rate/coverage/ranking graphics, compact team-average references, and a staff Correlation Map with exact paired-player counts and scatterplot drill-down. Existing data and metric policies remain intact.
 
 - **Coaching Analytics:** compare saved testing and game measures with a scatterplot, best-fit line, Pearson r, class/position filters and color groups. Full Swing uses the same verified Fall maximums and reading-weighted averages as the leaderboards; count-incomplete averages are marked Latest Session. Admin/Coach only; see [ANALYTICS](docs/ANALYTICS.md).

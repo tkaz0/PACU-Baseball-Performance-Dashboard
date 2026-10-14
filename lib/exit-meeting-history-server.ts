@@ -30,7 +30,7 @@ export async function saveExitMeetingSnapshot(access:Access,command:SaveExitMeet
  const prior=await access.supabase.rpc("staff_exit_meeting_attempt",{p_request_id:command.requestId});
  if(prior.error)throw new ExitMeetingError("The previous save could not be checked. Retry the same save after reconnecting.",503);
  if(prior.data){const saved=parseSavedExitMeeting(prior.data,command.athleteId);if(saved.meetingDate!==command.meetingDate||saved.talkingPoints!==command.talkingPoints)throw new ExitMeetingError("This save request already belongs to different meeting options.",409);return saved;}
- const report=parseExitMeetingSnapshotReport(await loadExitMeetingReport(access,command.athleteId,"meeting"));
+ const report=parseExitMeetingSnapshotReport(await loadExitMeetingReport(access,command.athleteId));
  const result=await access.supabase.rpc("staff_save_exit_meeting_snapshot",{p_request_id:command.requestId,p_athlete_id:command.athleteId,p_meeting_date:command.meetingDate,p_talking_points:command.talkingPoints,p_report:report});
  if(result.error){if(result.error.code==="22023")throw new ExitMeetingError("This save request already belongs to different meeting options.",409);throw new ExitMeetingError("The save could not be confirmed. Retry this same save; do not start another snapshot.",503);}
  const saved=parseSavedExitMeeting(result.data,command.athleteId);
