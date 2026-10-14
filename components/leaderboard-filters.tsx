@@ -22,7 +22,7 @@ export function LeaderboardFilters({ base, position, search, showPositions }: { 
   }, [query]);
   return <div className={styles.filterBar} role="search" aria-label="Filter players">
     {showPositions && <nav className={styles.chips} aria-label="Player group">{CHIPS.map(chip => <Link key={chip.value} href={href(chip.value, query)} scroll={false} replace aria-current={position === chip.value ? "true" : undefined}>{chip.label}</Link>)}</nav>}
-    <label className={styles.searchBox}><Search size={15} aria-hidden="true"/><span className="sr-only">Find a player</span>
+    <label className={`${styles.searchBox} flex`}><Search size={15} aria-hidden="true"/><span className="sr-only">Find a player</span>
       <input type="search" value={query} maxLength={60} placeholder="Find a player or jersey #" onChange={e => setQuery(e.target.value)}/>
       {query && <button type="button" aria-label="Clear search" onClick={() => setQuery("")}><X size={14}/></button>}
     </label>
