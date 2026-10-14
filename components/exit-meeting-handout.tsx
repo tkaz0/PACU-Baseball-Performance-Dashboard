@@ -131,7 +131,12 @@ export function ExitMeetingHandout({ report, meetingDate, talkingPoints, headsho
   const strikeMix = rowsOf(section(report, "pitch-splits"));
   const allowedValues = allowed.filter(r => !/Share$/.test(r.label)), allowedMix = allowed.filter(r => /Share$/.test(r.label));
   const runTests = rowsOf(section(report, "testing"));
-  const swing = [...rowsOf(section(report, "hitting-in_game")), ...rowsOf(section(report, "blast-fall"))];
+  // Bat speed first (in-game, then practice Full Swing, then Blast), then the in-game contact results.
+  const inGameSwing = rowsOf(section(report, "hitting-in_game")), practiceSwing = rowsOf(section(report, "hitting-practice"));
+  const isBatSpeed = (r: ExitMeetingRow) => /bat_speed/.test(r.metricKey ?? "") || /Bat Speed/.test(r.label);
+  // Blast labels say "(Practice)" too; name the device so it is not confused with Full Swing practice.
+  const blastSpeed = rowsOf(section(report, "blast-fall")).filter(isBatSpeed).map(r => ({ ...r, label: `${r.label.replace(/\s*\(Practice\)$/, "")} (Blast)` }));
+  const swing = [...inGameSwing.filter(isBatSpeed), ...practiceSwing.filter(isBatSpeed), ...blastSpeed, ...inGameSwing.filter(r => !isBatSpeed(r))];
   const showPitching = pitching.length > 0 || grades.length > 0 || arsenal.length > 0;
   const showHitting = hitting.length > 0 || swing.length > 0;
 
@@ -166,7 +171,7 @@ export function ExitMeetingHandout({ report, meetingDate, talkingPoints, headsho
       <div className={styles.columns}>
         {showHitting && <Panel title="Hitting" kicker="Fall game sheet · week trends">
           <StatTable rows={hitting.filter(r => ["batting_production_plus", "batting_ops", "batting_obp", "batting_avg", "qpa_pct", "batting_k_pct", "batting_bb_pct", "batting_est_slg"].includes(r.metricKey ?? "")).slice(0, 6)} weeks={hittingWeeks} empty="No hitting game stats yet."/>
-          {swing.length > 0 && <><h4>Swing &amp; Contact</h4><ValueGrid rows={swing.slice(0, 6)}/></>}
+          {swing.length > 0 && <><h4>Bat Speed &amp; Contact <small>in-game and practice</small></h4><ValueGrid rows={swing.slice(0, 9)}/></>}
         </Panel>}
         {(contactQuality.length > 0 || battedBall.length > 0) && <Panel title="Batted Ball Quality" kicker="In-game Full Swing · likely fouls out">
           {contactQuality.length > 0 && <ValueGrid rows={contactQuality}/>}

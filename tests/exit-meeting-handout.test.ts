@@ -12,6 +12,8 @@ const report = (): ExitMeetingReport => ({ format: "meeting", name: "Fictional B
     { id: "game-qpa_fall_2026", title: "Game Stats · Hitting", subtitle: "", rows: [row("PAC Production+", "121", "batting_production_plus", 80), row("OPS", ".950", "batting_ops", 88), row("QPA %", "60.0%", "qpa_pct", 70), row("ISO", ".250", "batting_est_iso", 66), row("K %", "30.0%", "batting_k_pct", 18)] },
     { id: "weeks-qpa_fall_2026", title: "Week by Week · Hitting", subtitle: "", rows: [row("OPS", "1.100", "batting_ops", null, { trend: [{ date: "2026-09-12", value: .8 }, { date: "2026-09-26", value: .9 }, { date: "2026-10-10", value: 1.1 }] })] },
     { id: "hitting-in_game", title: "Hitting · In-Game", subtitle: "", rows: [row("Max EV", "101.2 mph", "max_exit_velocity", 92, { source: "Full Swing · Intrasquad" })] },
+    { id: "hitting-practice", title: "Hitting · Practice", subtitle: "", rows: [row("Max Bat Speed (Practice)", "74.2 mph", "max_bat_speed", 70, { source: "Full Swing · Practice" })] },
+    { id: "blast-fall", title: "Blast", subtitle: "", rows: [row("Bat Speed (Practice)", "68.0 mph", "avg_bat_speed", null, { source: "Blast Motion · Practice" })] },
     { id: "contact-in_game", title: "Contact", subtitle: "", rows: [row("Squared Up", "78.0%", "squared_up", null, { source: "Full Swing" })] },
     { id: "batted-ball-in_game", title: "Batted Ball", subtitle: "", rows: [row("Ground Ball", "40.0%", "bb_ground", null, { sample: "4 of 10 balls" }), row("Line Drive", "30.0%", "bb_line", null, { sample: "3 of 10 balls" }), row("Fly Ball", "30.0%", "bb_fly", null, { sample: "3 of 10 balls" })] },
   ], missing: ["Movement screening"], notes: [] });
@@ -30,6 +32,8 @@ it("renders a two-page sheet with headline tiles, percentile bars, insights, wee
   expect(html.split("Where You Rank")[0]).toContain("ISO");
   expect(html).toContain("Batted Ball Quality"); expect(html).toContain("Squared Up"); expect(html).toContain("Ground Ball <b>40%</b>");
   expect(html).not.toContain("Fall Week by Week");
+  // Practice Full Swing bat speed sits beside in-game results; Blast is named by device.
+  expect(html).toContain("Max Bat Speed (Practice)"); expect(html).toContain("Bat Speed (Blast)");
   expect(html).toContain("Still to add: Movement screening");
   expect(html).not.toContain("PAC-9999");
 });
