@@ -1,5 +1,6 @@
-.sections { display: grid; gap: 22px; }
-.panel { padding: clamp(16px, 2.2vw, 24px); border: 1px solid var(--line-subtle); border-radius: var(--radius-card, 14px); background: var(--surface-panel); }
+.sections { display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; gap: 22px; }
+.panel { min-width: 0; padding: clamp(16px, 2.2vw, 24px); border: 1px solid var(--line-subtle); border-radius: var(--radius-card, 14px); background: var(--surface-panel); }
+.panel :global(.table-wrap):focus-visible { outline: 2px solid var(--accent-readable); outline-offset: 3px; }
 .panel h2 { margin: 0; font-family: var(--font-display, inherit); font-size: 24px; font-weight: 800; text-transform: uppercase; }
 .panel header p { margin: 4px 0 12px; color: var(--text-secondary); font-size: 13px; }
 .panel th a { color: inherit; font-weight: 700; text-decoration: none; }

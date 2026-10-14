@@ -566,3 +566,7 @@ BWS Team coverage: `tests/bws-team.test.ts` (strict validation, player removal e
 ### October 14 profile presentation
 
 `profile-header-results.test.ts` checks missing results, exact hitting source/date/precision, role filtering, specific-pitch game versus practice selection, and two-way coverage. Existing profile, trend, contact and arsenal suites preserve the full detailed content. Use a fictional component harness for desktop and 390px light/dark checks, all profile tabs, long names, empty profiles, chart expand/collapse, keyboard focus and table-local scrolling. No production player screenshots.
+
+### October 14 Astra review regressions
+
+Cover tied podium ranks and filtered non-medal ranks, top-player dates/counts/latest-session labels, roster no-match recovery, and active importer-category clicks that must preserve the current session/file review. Profile trend fixtures include an earlier Fall best and a pooled average that differ from the newest recorded session. Analytics labels count only visible matched players. Browser QA should exercise delayed search responses with newer typing, a chip/tab click before debounce, reset/clear/Back, phone-menu closure after bottom navigation, and keyboard-scrolling of Development Focus tables in light/dark themes. Use fictional data; no production captures of player details.

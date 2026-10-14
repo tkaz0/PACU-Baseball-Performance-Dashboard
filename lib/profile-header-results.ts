@@ -14,7 +14,8 @@ export function profileHeaderResults(performance: PlayerPerformance, season: Ath
   const add = (card?: PlayerMetricCard) => {
     const reading = card?.latest;
     if (!card || !reading || !Number.isFinite(reading.value)) return;
-    results.push({ key: card.metric.key, label: card.metric.key === "body_score" ? "Body Score" : profileMetricLabel(card.metric.key, card.metric.label, reading.source), value: `${formatMetricNumber(reading.value, card.metric.key, reading.source)} ${reading.unit}`.trim(), source: pitchSourceLabel(reading.source), date: card.fallSummary?.basis === "best" ? card.fallSummary.bestDate : reading.measuredAt, guide: { value: reading.value, unit: reading.unit, source: reading.source } });
+    const basis = card.fallSummary?.basis === "best" ? "Fall best" : card.fallSummary?.pooled ? "Fall average" : "Latest session";
+    results.push({ key: card.metric.key, label: card.metric.key === "body_score" ? "Body Score" : profileMetricLabel(card.metric.key, card.metric.label, reading.source), value: `${formatMetricNumber(reading.value, card.metric.key, reading.source)} ${reading.unit}`.trim(), source: `${pitchSourceLabel(reading.source)}${card.metric.group === "hitting" ? ` · ${basis}` : ""}`, date: card.fallSummary?.basis === "best" ? card.fallSummary.bestDate : reading.measuredAt, guide: { value: reading.value, unit: reading.unit, source: reading.source } });
   };
   if (profileShowsHitting(season)) add(performance.hitting.find(card => card.metric.key === "max_exit_velocity"));
   if (profileShowsPitching(season)) {
@@ -22,7 +23,7 @@ export function profileHeaderResults(performance: PlayerPerformance, season: Ath
     const available = arsenal.filter(pitch => pitch.maxVelocity !== null && Number.isFinite(pitch.maxVelocity));
     const pitch = [...available].sort((a, b) => Number(a.category === "Practice") - Number(b.category === "Practice") || b.maxVelocity! - a.maxVelocity!)[0];
     if (pitch) {
-      results.push({ key: "classified_max_velocity", label: `${pitchTypeLabel(pitch.pitchType).replace(" Fastball", "")} · Max Velo`, value: `${pitch.maxVelocity!.toFixed(1)} mph`, source: `Full Swing · ${pitch.category}`, date: pitch.maxVelocityDate ?? pitch.lastDate, guide: { value: pitch.maxVelocity!, unit: "mph", source: pitch.source } });
+      results.push({ key: "classified_max_velocity", label: `${pitchTypeLabel(pitch.pitchType).replace(" Fastball", "")} · Max Velo`, value: `${pitch.maxVelocity!.toFixed(1)} mph`, source: `Full Swing · ${pitch.category} · Fall best`, date: pitch.maxVelocityDate ?? pitch.lastDate, guide: { value: pitch.maxVelocity!, unit: "mph", source: pitch.source } });
       if (!profileShowsHitting(season) && pitch.averageSpin !== null) results.push({ key: "classified_avg_spin", label: `${pitchTypeLabel(pitch.pitchType).replace(" Fastball", "")} · Avg Spin`, value: `${formatSpin(pitch.averageSpin)} RPM`, source: `${pitch.category} · ${pitch.spinBasis === "fall" ? "Fall average" : "Latest session"}`, date: pitch.spinAverageLastDate ?? pitch.lastDate, guide: { value: pitch.averageSpin, unit: "rpm", source: pitch.source } });
     }
   } else if (profileShowsHitting(season)) add(performance.hitting.find(card => card.metric.key === "avg_exit_velocity"));

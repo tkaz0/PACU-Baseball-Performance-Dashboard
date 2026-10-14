@@ -9,7 +9,12 @@ export type WorkspaceNavLink = { href: string; label: string; icon: LucideIcon; 
 
 export function WorkspaceNavigation({ links }: { links: WorkspaceNavLink[] }) {
   const path = usePathname(), id = useId(), toggle = useRef<HTMLButtonElement>(null);
-  const [open, setOpen] = useState(false);
+  const [menu, setMenu] = useState({ path, open: false });
+  const open = menu.path === path && menu.open;
+  // The bottom bar and browser history navigate without clicking this menu’s links.
+  // Reset at the route boundary so returning to a page cannot reopen an old menu.
+  if (menu.path !== path) setMenu({ path, open: false });
+  const setOpen = (value: boolean) => setMenu({ path, open: value });
   const exact = links.find(link => link.current ?? path === link.href);
   const current = exact ?? links.filter(link => link.current ?? (path === link.href || path.startsWith(`${link.href}/`) || (link.href === "/testing/coverage" && path.startsWith("/testing")) || (link.href === "/leaderboards" && path.startsWith("/records")) || (link.href === "/roster" && path.startsWith("/athletes/")))).sort((a, b) => b.href.length - a.href.length)[0];
   const groups = links.reduce<{ name: string; items: WorkspaceNavLink[] }[]>((result, link) => {

@@ -40,17 +40,20 @@ export default async function Roster({ searchParams }: { searchParams: Promise<{
       if (sort === "position") return POSITION_ORDER.indexOf(x?.primary_position?.toUpperCase() ?? "") - POSITION_ORDER.indexOf(y?.primary_position?.toUpperCase() ?? "") || a.last_name.localeCompare(b.last_name);
       if (sort === "class") return CLASS_ORDER.indexOf(x?.academic_class?.toLowerCase() ?? "") - CLASS_ORDER.indexOf(y?.academic_class?.toLowerCase() ?? "") || a.last_name.localeCompare(b.last_name);
       return 0; });
+  const filtered = !!query || pos !== "all";
+  const resetHref = `/roster?${new URLSearchParams({ ...(season ? { season } : {}), sort }).toString()}`;
   return <><AccessPreviewNotice status={params.preview} isPreview={!!preview} />
     <RosterHeader season={season} count={seasonal.length}>{roles.includes("admin") && <Link href="/admin/import" className="btn btn-secondary">Import Roster</Link>}</RosterHeader>
-    <form className={`panel ${styles.toolbar}`} method="get">
+    <form key={`${season}:${query}:${pos}:${sort}`} className={`panel ${styles.toolbar}`} method="get">
       <StaffAthleteSearch athletes={seasonal.map(staffAthleteChoice)} defaultQuery={params.q} name="q" />
       <label className={styles.season}>Season<select name="season" defaultValue={season}>{!seasons.length && <option value="">No seasons yet</option>}{seasons.map(s => <option key={s}>{s}</option>)}</select></label>
       <label className={styles.season}>Position<select name="pos" defaultValue={pos}>{POSITION_FILTERS.map(f => <option key={f.key} value={f.key}>{f.label}</option>)}</select></label>
       <label className={styles.season}>Sort By<select name="sort" defaultValue={sort}>{SORTS.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}</select></label>
       <button className="btn btn-secondary">Apply</button>
+      {filtered && <Link className="btn btn-secondary" href={resetHref}>Clear filters</Link>}
       <p className={styles.count}><strong>{athletes.length}</strong>{athletes.length !== seasonal.length ? ` of ${seasonal.length}` : ""} {athletes.length === 1 ? "player" : "players"}</p>
     </form>
-    <RosterTable athletes={athletes} season={season} headshots={Object.fromEntries(await loadTeamHeadshots(access))} />
+    <RosterTable athletes={athletes} season={season} filtered={filtered} resetHref={resetHref} headshots={Object.fromEntries(await loadTeamHeadshots(access))} />
     {all.length === 1000 && <p className="notice mt-4">Showing the first 1,000 identities. Narrow your search to find a player.</p>}
   </>;
 }

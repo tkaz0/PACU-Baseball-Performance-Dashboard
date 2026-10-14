@@ -49,7 +49,7 @@ export function TeamImportCenter({ roster, allowSessionCorrections = false, init
   return <div className={styles.importCenter}>
     <div className={styles.sourceHeading}><h2>Choose Your Report</h2><span>Match the source on your file</span></div>
     <div className={styles.lanes} role="group" aria-label="Import category">
-      {lanes.map(item => <button key={item.key} type="button" disabled={saving} aria-pressed={lane === item.key} onClick={() => { setLane(item.key); if (item.key === "games") setGameKind("intrasquad"); else if (item.key === "hitting" || item.key === "pitching") setGameKind("practice"); }}
+      {lanes.map(item => <button key={item.key} type="button" disabled={saving} aria-pressed={lane === item.key} onClick={() => { if (item.key === lane) return; setLane(item.key); if (item.key === "games") setGameKind("intrasquad"); else if (item.key === "hitting" || item.key === "pitching") setGameKind("practice"); }}
         className={styles.lane}>
         <span className={styles.laneIcon}><item.icon size={19} aria-hidden="true" /></span>
         <span><span className={styles.laneName}>{item.label}</span><span className={styles.laneSource}>{item.source}</span></span>

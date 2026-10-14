@@ -143,3 +143,50 @@ describe("leaderboard player filter", () => {
     expect(filterLeaderboardRows(rows, "all", "12").map(row => row.name)).toEqual(["Fictional Fielder"]);
   });
 });
+
+
+describe("podium result context and full-team ranks", () => {
+  const podiumRows = Array.from({ length: 3 }, (_, index): LeaderboardRow => ({ ...row, athleteCode: `SYN-${index}`, name: `Fictional Leader ${index}`, rank: index + 1, source: "full swing · intrasquad", value: 90 - index, derived: index !== 1, sampleCount: index === 1 ? null : 12, sampleUnit: index === 1 ? null : "swings" }));
+  it("retains the date, average fallback and sample evidence for every podium result", () => {
+    const output = html("avg_exit_velocity", podiumRows);
+    expect(output.match(/dateTime="2026-09-12"/g)).toHaveLength(3);
+    expect(output).toContain("Latest session");
+    expect(output).toContain("Count pending");
+    expect(output.match(/>12 swings</g)).toHaveLength(2);
+    expect(output).not.toContain("<table>");
+    expect(output).not.toContain('href="/athletes/');
+  });
+  it("keeps every athlete tied at the podium cutoff and styles tied leaders alike", () => {
+    const tied = [...podiumRows, { ...podiumRows[2], athleteCode: "SYN-004", name: "Fictional Tied Leader" }].map((entry, index) => ({ ...entry, rank: index < 2 ? 1 : 3 }));
+    const output = html("max_exit_velocity", tied);
+    expect(output).toContain('aria-label="Top 4 on Max Exit Velocity"');
+    expect(output.match(/data-place="1" data-medal="gold"/g)).toHaveLength(2);
+    expect(output.match(/aria-label="Tied for rank 3"/g)).toHaveLength(2);
+    expect(output).toContain('data-staggered="false"');
+    expect(output).not.toContain("<table>");
+  });
+  it("does not award filtered lower-ranked players medals or renumber them", () => {
+    const rows = podiumRows.map(entry => ({ ...entry, rank: entry.rank + 6 }));
+    const output = html("max_exit_velocity", rows);
+    expect(output).not.toContain("data-medal");
+    expect(output).toContain('aria-label="Rank 7"');
+    expect(output).toContain('aria-label="Rank 9"');
+    expect(output).toContain("<table>");
+  });
+});
+
+describe("leaderboard filter navigation", () => {
+  it("retains the exact board while encoding the selected group and search", async () => {
+    const { leaderboardFilterHref } = await import("@/components/leaderboard-filters");
+    expect(leaderboardFilterHref("/leaderboards?group=hitting&session=practice", "position", " Fictional & Example ")).toBe("/leaderboards?group=hitting&session=practice&pos=position&q=Fictional%20%26%20Example");
+    expect(leaderboardFilterHref("/leaderboards?group=physicality", "all", "  ")).toBe("/leaderboards?group=physicality");
+  });
+  it("provides a reset that preserves board context and no speculative filter prefetch", async () => {
+    const { LeaderboardFilters } = await import("@/components/leaderboard-filters");
+    const output = renderToStaticMarkup(createElement(LeaderboardFilters, { base: "/leaderboards?group=hitting&session=practice", position: "pitchers", search: "Fictional", showPositions: true }));
+    expect(output).toContain('href="/leaderboards?group=hitting&amp;session=practice"');
+    expect(output).toContain("Reset filters");
+    expect(output).toContain('aria-label="Clear search"');
+    expect(output).toContain('value="Fictional"');
+  });
+});

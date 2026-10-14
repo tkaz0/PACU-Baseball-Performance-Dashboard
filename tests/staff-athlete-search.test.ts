@@ -103,3 +103,15 @@ describe("shared roster presentation", () => {
     expect(athlete).toEqual(original); expect(athlete.athlete_seasons[0].eligibility_year).toBe(2);
   });
 });
+
+
+it("distinguishes a filtered roster from an empty imported roster and offers recovery", () => {
+  const filtered = renderToStaticMarkup(createElement(RosterTable, { athletes: [], filtered: true, resetHref: "/roster?season=2026-27&sort=name" }));
+  expect(filtered).toContain("No matching players");
+  expect(filtered).toContain("Clear filters");
+  expect(filtered).toContain('href="/roster?season=2026-27&amp;sort=name"');
+  expect(filtered).not.toContain("import the roster");
+  const empty = renderToStaticMarkup(createElement(RosterTable, { athletes: [] }));
+  expect(empty).toContain("No athletes to show");
+  expect(empty).toContain("import the roster");
+});

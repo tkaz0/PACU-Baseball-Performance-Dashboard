@@ -524,3 +524,5 @@ October 13: apply `202610130001_bws_team_plans.sql` before deploying the BWS Tea
 Apply `202610130002_bws_series.sql` before deploying the BWS series planner. It replaces only `private.valid_bws_team_plan`.
 
 October 14 profile visual refresh is app-only: no migration, environment variable or source import is required. Existing photos/initials and authorized measurements supply the compact header and expandable chart previews.
+
+October 14 Astra review: application-only reliability and presentation fixes; no migration, configuration, source edit or account change is required. Deploy after the standard checks. Profile headers reuse existing authorized Fall summaries across all tabs; original session history remains unchanged.

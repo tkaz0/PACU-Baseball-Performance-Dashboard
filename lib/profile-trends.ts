@@ -6,7 +6,9 @@ const validDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) && Number
 /** Only the latest reading's exact partition; conflicting dates suppress the series. */
 export function profileTrends(cards: readonly PlayerMetricCard[]): ProfileTrend[] {
   return cards.flatMap(card => {
-    const latest = card.latest;
+    // Fall summaries replace the card's displayed value, not a recorded test.
+    // Keep the actual latest session as the date/value anchor for progress.
+    const latest = card.sessionLatest ?? card.latest;
     if (!latest || latest.derived || !validDate(latest.measuredAt)) return [];
     const dates = new Map<string, number>();
     for (const reading of [...card.history, latest]) {

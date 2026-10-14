@@ -4,6 +4,8 @@ import { expect, it } from "vitest";
 import { profileTrends } from "@/lib/profile-trends";
 import { ProfileTrendChart } from "@/components/profile-trend-chart";
 import type { PlayerMetricCard, PlayerMetricReading } from "@/lib/player-performance";
+import { getPlayerPerformance } from "@/lib/player-performance";
+import type { Measurement } from "@/lib/imports/engine";
 const latest: PlayerMetricReading = { id: "fictional-new", athleteCode: "SYN-001", metricKey: "muscle_mass", value: 155, unit: "lb", measuredAt: "2026-09-13", period: "fall_2026", source: "RENPHO", importedAt: "2026-09-13T20:00:00Z", provenance: [], derived: false };
 const old = { ...latest, id: "fictional-old", value: 150, measuredAt: "2026-09-01" };
 const card = (history: PlayerMetricReading[], current = latest): PlayerMetricCard => ({metric: {key: "muscle_mass", label: "Muscle Mass", group: "body", units: ["lb", "kg"], direction: "neutral"}, latest: current, summerBaseline: null, history, percentile: null, cohortSampleSize: null, percentileStatus: "unavailable"});
@@ -20,6 +22,24 @@ it("does not manufacture a trend from one date or blend identities, units, sourc
 it("withholds ambiguous or invalid series rather than selecting an arbitrary result", () => {
   for (const patch of [{value: 149}, {value: NaN}, {value: -1}, {measuredAt: "2026-02-30"}]) expect(profileTrends([card([old, {...old, ...patch}])])).toEqual([]);
   expect(profileTrends([card([old, {...latest, value: 160}])])).toEqual([]);
+});
+it("charts recorded sessions when the displayed card carries an earlier Fall best or pooled average", () => {
+  for (const metric of ["max_exit_velocity", "avg_exit_velocity"] as const) {
+    const readings: Measurement[] = [95, 90].map((value, index) => ({
+      id: `fictional-session-${index}`, athlete_code: "SYN-001", metric: metric === "max_exit_velocity" ? "Max Exit Velocity" : "Average Exit Velocity",
+      value, unit: "mph", source: "Full Swing · Intrasquad", measured_at: index ? "2026-10-01" : "2026-09-01",
+      file_hash: (index ? "b" : "a").repeat(64), source_file: "fictional.csv", source_sheet: "CSV", source_row: 2,
+    }));
+    const performance = getPlayerPerformance({ readings, athleteCode: "SYN-001", fallSummaries: [{
+      metricKey: metric, source: "full swing · intrasquad", unit: "mph", value: metric === "max_exit_velocity" ? 95 : 92.5,
+      bestDate: "2026-09-01", pooled: metric === "avg_exit_velocity", sampleCount: 20, sampleUnit: "swings", teamValues: [95, 92.5, 90],
+    }] });
+    const summaryCard = performance.hitting.find(item => item.metric.key === metric)!;
+    expect(summaryCard.latest!.value).not.toBe(90);
+    expect(profileTrends([summaryCard])[0].points).toEqual([{ date: "2026-09-01", value: 95 }, { date: "2026-10-01", value: 90 }]);
+    // Genuine conflicting measurements still suppress the chart after choosing the session anchor.
+    expect(profileTrends([{ ...summaryCard, history: [...summaryCard.history, { ...summaryCard.sessionLatest!, value: 89 }] }])).toEqual([]);
+  }
 });
 it("renders flat and zero series with finite coordinates and accessible exact chart data", () => {
   for (const value of [0, 150]) {

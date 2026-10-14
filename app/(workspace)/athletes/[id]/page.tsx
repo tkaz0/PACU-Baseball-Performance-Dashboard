@@ -89,8 +89,9 @@ export default async function Profile({ params, searchParams }: { params: Promis
     annotatedTab ? loadTrendAnnotations(access,athlete.id).catch(()=>null) : Promise.resolve([]),
     selectedTab === "progress" ? loadTrainingBlockCounts(access,athlete.id).catch(()=>null) : Promise.resolve([]),
     loadAthleteHeadshot(access,athlete.id),
-    // Fall best / reading-weighted Fall averages match the leaderboards; on failure cards keep latest-session values.
-    showHitting && selectedTab !== "progress" && selectedTab !== "physicality" ? sharedPromise.then(data=>loadPlayerFallSummaries(access,athlete.athlete_code,data.measurements)).catch(()=>[]) : Promise.resolve([]),
+    // Every tab shares these Fall highlights in the profile header. The existing batched
+    // projection keeps their values consistent; failed boards retain labeled session values.
+    showHitting ? sharedPromise.then(data=>loadPlayerFallSummaries(access,athlete.athlete_code,data.measurements)).catch(()=>[]) : Promise.resolve([]),
     // Verified Fall Blast percentile; the card shows it only when it matches the displayed average.
     showHitting && selectedTab === "practice" ? loadBlastBatSpeedPercentile(access,athlete.id).catch(()=>null) : Promise.resolve(null),
   ]);
