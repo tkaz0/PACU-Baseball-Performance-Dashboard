@@ -1,14 +1,16 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Plus, Printer, Save, Trash2, X } from "lucide-react";
 import { saveBwsTeamPlan } from "@/app/(workspace)/admin/bws-team/actions";
+import { loadBwsScoutingData, type BwsScoutingData } from "@/app/(workspace)/admin/bws-team/scouting-actions";
+import { ALIGNMENT_MIN_BALLS, MATCHUP_SPLIT_MIN, handSplit, hitterAlignment, matchupNotes } from "@/lib/bws-scouting";
 import { BWS_LIMITS, BWS_POSITIONS, emptyBwsPlan, formatOuts, lineupIssues, normalizeBwsPlan, parseInnings, planCoverage, suggestedOrder, withoutPlayer, type BwsGame, type BwsLineup, type BwsPlayer, type BwsPosition, type BwsRole, type BwsSnapshot, type BwsTeamPlan } from "@/lib/bws-team";
 import type { BwsPlayerStats, BwsStat } from "@/lib/bws-team-server";
 import styles from "./bws-team.module.css";
 
-type Tab = "games" | "lineups" | "depth" | "roster" | "scouting";
-const TABS: { id: Tab; label: string }[] = [{ id: "games", label: "Games" }, { id: "lineups", label: "Lineups" }, { id: "depth", label: "Depth Chart" }, { id: "roster", label: "Roster" }, { id: "scouting", label: "Scouting" }];
+type Tab = "games" | "lineups" | "depth" | "roster" | "scouting" | "matchups";
+const TABS: { id: Tab; label: string }[] = [{ id: "games", label: "Games" }, { id: "lineups", label: "Lineups" }, { id: "depth", label: "Depth Chart" }, { id: "roster", label: "Roster" }, { id: "scouting", label: "Scouting" }, { id: "matchups", label: "Matchups" }];
 type PrintTarget = { kind: "lineup"; id: string } | { kind: "game"; id: string } | null;
 const ROLE_LABEL: Record<BwsRole, string> = { pitcher: "Pitcher", position: "Position", two_way: "Two-Way" };
 const newId = () => crypto.randomUUID();
@@ -31,6 +33,18 @@ export function BwsTeam({ initial, athletes, stats, today }: { initial: BwsSnaps
   const statsFor = useMemo(() => new Map((stats ?? []).map(s => [s.athleteId, s])), [stats]);
   const byId = useMemo(() => new Map(plan.players.map(p => [p.id, p])), [plan.players]);
   const update = (next: BwsTeamPlan) => { setPlan(next); setStatus(null); };
+  // Batted-ball scouting loads once, the first time Scouting or Matchups opens.
+  const [scout, setScout] = useState<BwsScoutingData | { error: string } | null>(null);
+  const opponents = useMemo(() => opposingPlayers(plan, stats), [plan, stats]);
+  const ourPitcherIds = plan.players.filter(p => p.role !== "position" && p.athleteId).map(p => p.athleteId!);
+  const scoutKey = JSON.stringify([opponents.hitters.map(h => h.athleteId), ourPitcherIds]);
+  const loadedKey = useRef("");
+  useEffect(() => {
+    if ((tab !== "scouting" && tab !== "matchups") || loadedKey.current === scoutKey || !stats) return;
+    loadedKey.current = scoutKey;
+    const [hitterIds, pitcherIds] = JSON.parse(scoutKey) as [string[], string[]];
+    loadBwsScoutingData(hitterIds, pitcherIds).then(setScout).catch(() => setScout({ error: "Batted-ball scouting could not be loaded." }));
+  }, [tab, scoutKey, stats]);
 
   async function save() {
     // An uncertain save keeps the same request so a retry can never apply a different change twice.
@@ -57,7 +71,8 @@ export function BwsTeam({ initial, athletes, stats, today }: { initial: BwsSnaps
     {tab === "lineups" && <Lineups plan={plan} update={update} byId={byId} statsFor={statsFor} onPrint={id => setPrinting({ kind: "lineup", id })}/>}
     {tab === "depth" && <Depth plan={plan} update={update} byId={byId}/>}
     {tab === "roster" && <Roster plan={plan} update={update} athletes={athletes} statsFor={statsFor}/>}
-    {tab === "scouting" && <Scouting plan={plan} update={update} stats={stats}/>}
+    {tab === "scouting" && <Scouting plan={plan} update={update} stats={stats} scout={scout}/>}
+    {tab === "matchups" && <Matchups plan={plan} statsFor={statsFor} opponents={opponents.hitters} scout={scout}/>}
     {printing?.kind === "lineup" && plan.lineups.some(l => l.id === printing.id) && <LineupCard lineup={plan.lineups.find(l => l.id === printing.id)!} plan={plan} byId={byId}/>}
     {printing?.kind === "game" && plan.games.some(g => g.id === printing.id) && <GameSheet game={plan.games.find(g => g.id === printing.id)!} plan={plan} byId={byId}/>}
   </div>;
@@ -225,7 +240,7 @@ const isPitcher = (s: BwsPlayerStats) => playerType(s) === "two_way" || playerTy
 const isHitter = (s: BwsPlayerStats) => playerType(s) !== "pitcher";
 const rawStat = (list: BwsStat[], key: string) => list.find(x => x.key === key)?.raw;
 /** The other team is everyone on the current eligible roster who is not on your team, minus players you hide. */
-function Scouting({ plan, update, stats }: Shared & { stats: BwsPlayerStats[] | null }) {
+function Scouting({ plan, update, stats, scout }: Shared & { stats: BwsPlayerStats[] | null; scout: BwsScoutingData | { error: string } | null }) {
   const [showHidden, setShowHidden] = useState(false);
   if (!stats) return <section className={styles.panel} aria-label="Scouting"><p className={styles.note}>Stats are temporarily unavailable.</p></section>;
   const mine = new Set(plan.players.flatMap(p => p.athleteId ? [p.athleteId] : []));
@@ -245,6 +260,16 @@ function Scouting({ plan, update, stats }: Shared & { stats: BwsPlayerStats[] | 
     <h3>Their Pitchers <small>{arms.length} · by WHIP</small></h3>
     <div className="table-wrap"><table className={styles.table}><thead><tr><th>Pitcher</th><th>Throws</th>{SCOUT_PITCH_LABELS.map(l => <th key={l} className={styles.num}>{l}</th>)}<th aria-label="Hide"/></tr></thead>
       <tbody>{arms.map(s => <tr key={s.athleteId}><th scope="row"><Link prefetch={false} href={`/athletes/${s.athleteId}?tab=pitching`}>{s.name}</Link></th><td>{s.throws || "—"}</td><StatCells stats={s.pitching} keys={SCOUT_PITCH}/>{hideButton(s)}</tr>)}</tbody></table></div>
+    <h3>Defensive Alignments <small>in-game Full Swing batted balls · likely fouls left out</small></h3>
+    {!scout ? <p role="status" className={styles.note}>Loading batted balls…</p> : "error" in scout ? <p role="status" className={styles.warn}>{scout.error}</p> :
+      <div className={styles.alignments}>{hitters.map(s => { const a = hitterAlignment(scout.hitters[s.athleteId] ?? [], s.bats); return <article key={s.athleteId} className={styles.alignment}>
+        <header><strong>{s.name}</strong><small>Bats {s.bats || "?"} · {a.count} balls in play</small></header>
+        {a.directedCount ? <SprayChart points={a.points}/> : null}
+        {a.count > 0 && <p className={styles.mix}>{a.profile.types.map(t => `${t.label.replace(" Ball", "").replace("Line Drive", "Liner")} ${Math.round(t.pct)}%`).join(" · ")}</p>}
+        {a.profile.directedCount > 0 && <p className={styles.mix}>{a.profile.zones.map(z => `${z.label} ${Math.round(z.pct)}%`).join(" · ")}</p>}
+        {a.calls.length ? <ul className={styles.calls}>{a.calls.map(c => <li key={c.area}><b>{c.area}:</b> {c.call}</li>)}</ul> : <p className={styles.note}>{a.count === 0 ? "No in-game batted balls saved." : !a.profile.battingSide ? "Batting side not recorded; no shift call." : `Fewer than ${ALIGNMENT_MIN_BALLS} balls with direction; play straight up.`}</p>}
+      </article>; })}</div>}
+    <p className={styles.note}>Calls are simple tendencies from a small Fall sample: infield shades when 60%+ of grounders go one way (40%+ opposite), outfield shades when half the air balls (10°+) are pulled (40%+ opposite), and depth follows average air-ball distance (300+ ft deep, under 230 ft shallow). Dots: green ground balls, blue liners, orange fly balls, gray pop-ups; larger dots are 90+ mph.</p>
     {hiddenPlayers.length > 0 && <div><button type="button" className={styles.linkButton} onClick={() => setShowHidden(!showHidden)}>{showHidden ? "Hide list" : `Hidden players (${hiddenPlayers.length})`}</button>
       {showHidden && <ul className={styles.chips}>{hiddenPlayers.map(s => <li key={s.athleteId}>{s.name}<button type="button" className={styles.linkButton} onClick={() => setHidden(plan.series.hidden.filter(id => id !== s.athleteId))}>Show</button></li>)}</ul>}</div>}
     <p className={styles.note}>Cumulative Fall game-sheet stats; hover a value for its sample. Players without game stats show dashes. Open a name for their full profile.</p>
@@ -271,4 +296,55 @@ function GameSheet({ game, plan, byId }: { game: BwsGame; plan: BwsTeamPlan; byI
     </div>
     {game.notes && <p>{game.notes}</p>}
   </div>;
+}
+
+/** Opposing roster: every current eligible player not linked on your team and not hidden. */
+function opposingPlayers(plan: BwsTeamPlan, stats: BwsPlayerStats[] | null) {
+  const mine = new Set(plan.players.flatMap(p => p.athleteId ? [p.athleteId] : [])), hidden = new Set(plan.series.hidden);
+  const others = (stats ?? []).filter(s => !mine.has(s.athleteId) && !hidden.has(s.athleteId));
+  return { hitters: others.filter(isHitter).sort((a, b) => a.name.localeCompare(b.name)), pitchers: others.filter(isPitcher) };
+}
+
+const DOT: Record<string, string> = { ground: "#16a34a", line: "#2563eb", fly: "#ea580c", popup: "#9ca3af" };
+/** Mini spray chart: home plate at the bottom, foul lines at ±45°, radius scaled to 400 ft. */
+function SprayChart({ points }: { points: { direction: number; distance: number | null; type: string; hard: boolean }[] }) {
+  const xy = (deg: number, ft: number) => { const r = Math.min(ft, 420) / 420 * 88, t = deg * Math.PI / 180; return [50 + r * Math.sin(t), 96 - r * Math.cos(t)]; };
+  const [lx, ly] = xy(-45, 420), [rx, ry] = xy(45, 420);
+  return <svg viewBox="0 0 100 100" className={styles.spray} role="img" aria-label={`${points.length} batted balls`}>
+    <path d={`M50 96 L${lx} ${ly} Q50 -10 ${rx} ${ry} Z`} className={styles.sprayField}/>
+    <path d={`M50 96 L${xy(-45, 90).join(" ")} L${xy(0, 127).join(" ")} L${xy(45, 90).join(" ")} Z`} className={styles.sprayInfield}/>
+    {points.map((p, i) => { const [x, y] = xy(p.direction, p.distance ?? 120); return <circle key={i} cx={x} cy={y} r={p.hard ? 2.6 : 1.8} fill={DOT[p.type]} opacity={0.85}/>; })}
+  </svg>;
+}
+
+/** Your pitcher against each opposing hitter, from Fall game stats and hand-linked batted balls. */
+function Matchups({ plan, statsFor, opponents, scout }: { plan: BwsTeamPlan; statsFor: Map<string, BwsPlayerStats>; opponents: BwsPlayerStats[]; scout: BwsScoutingData | { error: string } | null }) {
+  const ours = plan.players.filter(p => p.role !== "position" && p.athleteId);
+  const [selected, setSelected] = useState(ours[0]?.athleteId ?? "");
+  const pitcher = statsFor.get(selected), throws = pitcher?.throws?.trim().toUpperCase() === "L" ? "L" as const : "R" as const;
+  const pRaw = (key: string) => pitcher ? rawStat(pitcher.pitching, key) ?? null : null;
+  const contact = scout && !("error" in scout) ? scout.pitchers[selected] : undefined;
+  const rows = opponents.map(h => {
+    const contacts = scout && !("error" in scout) ? scout.hitters[h.athleteId] ?? [] : [];
+    const alignment = hitterAlignment(contacts, h.bats), split = handSplit(contacts, throws);
+    const ground = alignment.count ? alignment.profile.types.find(t => t.key === "ground")!.pct : null;
+    const hit = (key: string) => rawStat(h.hitting, key) ?? null;
+    const notes = matchupNotes({ kPct: hit("batting_k_pct"), bbPct: hit("batting_bb_pct"), ops: hit("batting_ops"), groundPct: alignment.count >= ALIGNMENT_MIN_BALLS ? ground : null, split },
+      { k9: pRaw("pitching_k9"), bb9: pRaw("pitching_bb9"), groundPct: contact && contact.count >= ALIGNMENT_MIN_BALLS ? contact.groundPct : null, hardPctAgainst: contact?.hardPct ?? null }, throws);
+    return { h, split, notes };
+  }).sort((a, b) => (rawStat(b.h.hitting, "batting_ops") ?? -1) - (rawStat(a.h.hitting, "batting_ops") ?? -1));
+  if (!ours.length) return <section className={styles.panel} aria-label="Matchups"><p className={styles.note}>Mark linked players as Pitcher or Two-Way on the Roster tab.</p></section>;
+  const value = (key: string) => pitcher?.pitching.find(x => x.key === key)?.value ?? "—";
+  return <section className={styles.panel} aria-label="Matchups">
+    <div className={styles.addRow}><select aria-label="Your pitcher" value={selected} onChange={e => setSelected(e.target.value)}>{ours.map(p => <option key={p.athleteId!} value={p.athleteId!}>{p.name}</option>)}</select></div>
+    {pitcher && <p className={styles.pitcherLine}><strong>{pitcher.name}</strong> · Throws {pitcher.throws || "?"} · {value("pitching_k9")} K/9 · {value("pitching_bb9")} BB/9 · {value("pitching_whip")} WHIP · {value("strike_pct")} strikes
+      {contact && contact.count > 0 && <> · Contact against: {contact.avgEv!.toFixed(1)} mph, {Math.round(contact.hardPct!)}% hard, {Math.round(contact.groundPct!)}% grounders ({contact.count} balls)</>}</p>}
+    {!scout ? <p role="status" className={styles.note}>Loading batted balls…</p> : "error" in scout && <p role="status" className={styles.warn}>{scout.error}</p>}
+    <div className="table-wrap"><table className={styles.table}><thead><tr><th>Their Hitter</th><th>Bats</th><th className={styles.num}>OPS</th><th className={styles.num}>K%</th><th className={styles.num}>BB%</th><th className={styles.num}>vs {throws === "R" ? "RHP" : "LHP"}</th><th>Notes</th></tr></thead>
+      <tbody>{rows.map(({ h, split, notes }) => <tr key={h.athleteId}><th scope="row">{h.name}</th><td>{h.bats || "—"}</td>
+        <td className={styles.num}>{h.hitting.find(x => x.key === "batting_ops")?.value ?? "—"}</td><td className={styles.num}>{h.hitting.find(x => x.key === "batting_k_pct")?.value ?? "—"}</td><td className={styles.num}>{h.hitting.find(x => x.key === "batting_bb_pct")?.value ?? "—"}</td>
+        <td className={styles.num}>{split.count ? <>{split.avgEv!.toFixed(1)} mph<small className={styles.muted}> {split.count} {split.count === 1 ? "ball" : "balls"}</small></> : "—"}</td>
+        <td>{notes.length ? <ul className={styles.notesList}>{notes.map(n => <li key={n.text} data-tone={n.tone}>{n.text}</li>)}</ul> : <span className={styles.muted}>—</span>}</td></tr>)}</tbody></table></div>
+    <p className={styles.note}>Notes use simple planning cutoffs: K% 25+, BB% 12+, K/9 9+, BB/9 5+, ground balls 50%+, and hard contact (90+ mph) 40%+ against this hand with {MATCHUP_SPLIT_MIN}+ linked balls. Red notes favor the hitter, green favor your pitcher. Hand splits count only batted balls linked to a roster pitcher, so most samples are small.</p>
+  </section>;
 }

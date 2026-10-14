@@ -17,7 +17,7 @@ export async function loadBwsTeamPlan(access: Access) {
 export type BwsStat = { key: string; label: string; value: string; raw: number; sample: string | null };
 export type BwsPlayerStats = { athleteId: string; name: string; playerType: string; position: string; secondaryPosition: string; bats: string; throws: string; hitting: BwsStat[]; pitching: BwsStat[]; atBats: number | null; plateAppearances: number | null };
 export const BWS_HITTING_STATS = ["batting_production_plus", "batting_ops", "batting_obp", "batting_avg", "qpa_pct", "batting_k_pct", "batting_bb_pct", "batting_est_iso", "sb"];
-export const BWS_PITCHING_STATS = ["pitching_whip", "pitching_k_bb", "pitching_r9", "strike_pct", "pitching_k9"];
+export const BWS_PITCHING_STATS = ["pitching_whip", "pitching_k_bb", "pitching_r9", "strike_pct", "pitching_k9", "pitching_bb9"];
 
 /** Cumulative Fall game stats for the current eligible roster, from the existing staff reader (Admin only here). */
 export async function loadBwsPlayerStats(): Promise<BwsPlayerStats[]> {

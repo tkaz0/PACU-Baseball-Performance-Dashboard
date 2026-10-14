@@ -73,3 +73,18 @@
   .printColumns { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
   .printColumns ul, .printColumns ol { margin:4px 0; padding-left:18px; }
 }
+.alignments { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px; }
+.alignment { border:1px solid var(--line-subtle); border-radius:12px; padding:10px; display:grid; gap:4px; align-content:start; }
+.alignment header { display:grid; gap:2px; }
+.alignment header small { color:var(--text-secondary); font-size:12px; }
+.spray { width:100%; max-width:200px; aspect-ratio:1; justify-self:center; }
+.sprayField { fill:#1f6f3a; opacity:.25; }
+.sprayInfield { fill:#b07a45; opacity:.3; }
+.mix { margin:0; font-size:12px; color:var(--text-secondary); }
+.calls { margin:2px 0 0; padding-left:16px; font-size:13px; display:grid; gap:2px; }
+.pitcherLine { margin:0; font-size:13px; }
+.notesList { margin:0; padding-left:16px; font-size:12px; display:grid; gap:2px; }
+.notesList li[data-tone="hitter"] { color:#b91c1c; }
+.notesList li[data-tone="pitcher"] { color:#15803d; }
+:global(html[data-theme="dark"]) .notesList li[data-tone="hitter"] { color:#fca5a5; }
+:global(html[data-theme="dark"]) .notesList li[data-tone="pitcher"] { color:#86efac; }

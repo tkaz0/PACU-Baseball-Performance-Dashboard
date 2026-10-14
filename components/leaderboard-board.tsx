@@ -21,7 +21,7 @@ export function filterLeaderboardRows(rows: LeaderboardRow[], position: Leaderbo
     && (!query || row.name.toLowerCase().includes(query) || String(row.jerseyNumber ?? "") === query));
 }
 
-export function LeaderboardBoard({ group, panels, session = "in_game", pitches = [], selectedPitch = ALL_PITCHES, position = "all", search = "", headshots = {} }: { headshots?: Readonly<Record<string, string>>; group: LeaderboardGroup; panels: LeaderboardPanel[]; session?: LeaderboardSession; pitches?: readonly string[]; selectedPitch?: string; position?: LeaderboardPosition; search?: string }) {
+export function LeaderboardBoard({ staff = false, group, panels, session = "in_game", pitches = [], selectedPitch = ALL_PITCHES, position = "all", search = "", headshots = {} }: { staff?: boolean; headshots?: Readonly<Record<string, string>>; group: LeaderboardGroup; panels: LeaderboardPanel[]; session?: LeaderboardSession; pitches?: readonly string[]; selectedPitch?: string; position?: LeaderboardPosition; search?: string }) {
   const populated = panels.filter(panel => panel.rows.length > 0 && (group !== "pitching" || Boolean(leaderboardPitchType(panel.comparison.source)) && (selectedPitch === ALL_PITCHES || leaderboardPitchType(panel.comparison.source) === selectedPitch)) && leaderboardMetrics(group).some(metric => metric.key === panel.comparison.metricKey));
 
   const general = populated.filter(panel => !isPitchLeaderboardMetric(panel.comparison.metricKey));
@@ -44,7 +44,7 @@ export function LeaderboardBoard({ group, panels, session = "in_game", pitches =
   const filtering = position !== "all" || !!search;
   const results = ({ comparison, rows }: LeaderboardPanel) => <LeaderboardResults key={JSON.stringify(comparison)} rows={filtering ? filterLeaderboardRows(rows, position, search) : rows} teamRows={rows} headshots={headshots} metric={LEADERBOARD_METRICS.find(metric => metric.key === comparison.metricKey)!} unit={comparison.unit} source={comparison.source} period={comparison.period} />;
   return <div className={styles.board}><div className={styles.controls}>
-    <LeaderboardNavigation group={group} />
+    <LeaderboardNavigation group={group} staff={staff} />
     {group !== "physicality" && <nav aria-label="Leaderboard session" className="leaderboard-navigation mb-5">{(["in_game", "practice"] as const).map(kind => <Link key={kind} href={`/leaderboards?group=${group}&session=${kind}${group === "pitching" && selectedPitch !== ALL_PITCHES ? `&pitch=${encodeURIComponent(selectedPitch)}` : ""}`} aria-current={session === kind ? "page" : undefined}>{kind === "in_game" ? "In-Game" : "Practice"}</Link>)}</nav>}
     <form method="get" action="/leaderboards" className={styles.filterBar} aria-label="Filter players">
       <input type="hidden" name="group" value={group}/>
