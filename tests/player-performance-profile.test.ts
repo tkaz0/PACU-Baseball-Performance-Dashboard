@@ -19,7 +19,7 @@ describe("player profile tabs and presentation",()=>{
   const athlete=fictionalAthlete("position"),html=renderToStaticMarkup(createElement(PlayerPerformanceProfile,{athlete,performance:model()}));
   expect((html.match(/role="tab"/g)??[])).toHaveLength(6);expect((html.match(/role="tabpanel"/g)??[])).toHaveLength(6);expect((html.match(/aria-selected="true"/g)??[])).toHaveLength(1);expect((html.match(/hidden=""/g)??[])).toHaveLength(5);
   for(const label of ["Overview","Game Stats","Hitting","Practice","Physicality","Progress"])expect(html).toContain(`>${label}</button>`);expect(html).not.toContain(">Pitching</button>");expect(html).not.toContain(">In-Game</button>");
-  expect(html).not.toContain(athlete.pacific_email);expect(html).not.toContain(athlete.renpho_id);expect(html).not.toContain("Eligibility year");expect(html).toContain("Avery Northstar");expect(html).toContain("PAC ID");expect(html).toMatch(/Jersey Number<\/dt><dd[^>]*>0<\/dd>/);
+  expect(html).not.toContain(athlete.pacific_email);expect(html).not.toContain(athlete.renpho_id);expect(html).not.toContain("Eligibility year");expect(html).toContain("Avery Northstar");expect(html).toContain("PAC ID");expect(html).toContain('aria-label="Jersey Number 0">#0</span>');
  expect(html).not.toContain('role="meter"');expect(html).not.toContain('data-value="0"');expect(html).not.toContain("Pacific n=0");expect(html).not.toContain("Need 5 comparable players");expect(html).not.toContain("Team comparison not available");expect(html).not.toMatch(/<details[^>]*\sopen(?:[ =>])/);
   expect(html).not.toContain("Stats Available");
  });

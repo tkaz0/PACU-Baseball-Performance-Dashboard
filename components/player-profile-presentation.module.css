@@ -1,7 +1,7 @@
 .profile { --profile-section-gap: 26px; container: player-profile / inline-size; }
 .profile :global(.player-identity-card) { padding: 20px 22px; border-radius: 16px; }
 .profile :global(.player-identity-card) h1 { font-size: clamp(26px, 3.2vw, 36px); }
-.profile :global(.player-identity-card) :global(dl:last-child) { padding-top: 12px; }
+.profile :global(.player-identity-card) > dl:last-child { padding-top: 12px; }
 .profile [role="tabpanel"] > * + * { margin-top: var(--profile-section-gap); }
 .profile :global(.performance-metric-card) { gap: 0; padding: 16px; border-radius: 14px; box-shadow: none; }
 .metricTitle { margin: 0; color: var(--text-secondary); font-size: 13px; font-weight: 650; line-height: 1.5; }
@@ -47,6 +47,17 @@
 
 .identityRole { display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:12px 0 0; color:#d6d6dc; font-size:13px; font-weight:650; }
 .identityRole > span { padding:4px 8px; border:1px solid #ffffff22; border-radius:5px; color:#eeeef0; background:#ffffff0a; font-size:12px; font-weight:700; letter-spacing:.04em; }
+.identityMain { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.1fr); align-items:center; gap:24px; margin:20px 0; }
+.identityPlayer { display:flex; align-items:center; gap:18px; min-width:0; }
+.identityPlayer h1 { margin:0; font-weight:900; line-height:1.1; letter-spacing:-.035em; color:white; overflow-wrap:anywhere; }
+.identityHighlights { display:grid; margin:0; min-width:0; border:1px solid #ffffff1f; border-radius:12px; background:#ffffff05; }
+.identityHighlights > div { display:grid; grid-template-rows:subgrid; grid-row:span 3; row-gap:0; min-width:0; padding:13px; border-left:1px solid #ffffff1f; }
+.identityHighlights > div:first-child { border-left:0; }
+.identityHighlights dt { color:#d6d6dc; font-size:12px; font-weight:650; line-height:1.45; overflow-wrap:anywhere; }
+.identityHighlights dd { margin:7px 0; color:white; font-size:clamp(18px,2vw,25px); font-weight:800; line-height:1.2; letter-spacing:-.025em; font-variant-numeric:tabular-nums; }
+.identityHighlights small { display:block; color:#bfc0c6; font-size:12px; line-height:1.55; overflow-wrap:anywhere; }
+@container player-profile (max-width:900px) { .identityMain { grid-template-columns:minmax(0,1fr); gap:18px; } }
+@container player-profile (max-width:420px) { .identityMain { margin:15px 0; } .identityPlayer { gap:14px; } .identityHighlights > div { padding:10px; } .identityHighlights dd { font-size:19px; } }
 .sessionDisciplines { display:grid; gap:22px; min-width:0; align-items:start; }
 .sessionDisciplines > .metricGroup { padding:18px; border:1px solid var(--line-subtle); border-radius:16px; background:color-mix(in srgb,var(--surface-panel) 55%,var(--surface-page)); }
 .sessionDisciplines > .metricGroup .metricGrid { grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr)); }
@@ -62,3 +73,10 @@
 @container player-profile (min-width:850px) {
   .sessionDisciplines[data-two-way="true"] > .metricGroup[id$="-field"] { grid-column:1/-1; }
 }
+
+.identityFacts { display:flex; flex-wrap:wrap; justify-content:space-between; gap:10px 20px; margin:0; border-top:1px solid #ffffff26; padding-top:12px; font-size:12px; }
+.identityFacts > div { display:flex; align-items:baseline; gap:7px; }
+.identityFacts dt { color:#bfc0c6; font-size:12px; }
+.identityFacts dd { margin:0; font-size:12px; font-weight:650; color:white; }
+.identityFacts > div :is(dt,dd) { margin-top:0; font-size:12px; letter-spacing:0; text-transform:none; }
+@container player-profile (max-width:420px) { .identityFacts { gap:8px 14px; } .identityHighlights dd { margin:5px 0; } .identityHighlights small { line-height:1.4; } }

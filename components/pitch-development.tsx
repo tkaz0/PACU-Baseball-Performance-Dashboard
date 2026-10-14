@@ -1,4 +1,6 @@
 "use client";
+import { ChartDisclosure } from "@/components/chart-disclosure";
+import previewStyles from "./chart-disclosure.module.css";
 import { useId, useState } from "react";
 import { StatInfo } from "@/components/stat-info";
 import { pitchArsenalColor } from "@/components/pitch-arsenal-chart";
@@ -49,7 +51,14 @@ export function PitchDevelopment({ groups, context, contactsAvailable=true }: { 
   const [selected,setSelected]=useState(groups[0]?.key??""),[contactMetric,setContactMetric]=useState<"avgEv"|"hardHit">("avgEv");
   if(!groups.length)return null;
   const group=groups.find(g=>g.key===selected)??groups[0],color=pitchArsenalColor(group.pitchType);
-  return <section className={styles.panel} aria-label={`${context==="practice"?"Practice":"In-Game"} pitch development`} data-testid="pitch-development">
+  const points=group.days.filter(day=>day.velocity!==null),latest=points.at(-1);
+  const velocities=points.map(day=>day.velocity!),lo=Math.min(...velocities),hi=Math.max(...velocities),span=Math.max(hi-lo,2);
+  const firstDate=Date.parse(group.days[0].date),lastDate=Date.parse(group.days.at(-1)!.date);
+  return <ChartDisclosure title="Pitch Development" description={`${group.label} · ${group.category} · ${group.days.length} recorded dates`} preview={<>
+    <div className={previewStyles.previewRow}><span>Latest daily average velocity</span><strong>{latest?`${latest.velocity!.toFixed(1)} mph`:"No complete velocity average"}</strong></div>
+    {points.length>0&&<svg viewBox="0 0 320 100" className={previewStyles.plot} role="img" aria-label={`${group.label} daily average velocity, ${points.length} dates. Zoomed scale.`}><line x1="14" x2="306" y1="86" y2="86" stroke="var(--line-subtle)"/>{points.map((day,index)=>{const x=14+(lastDate===firstDate?.5:(Date.parse(day.date)-firstDate)/(lastDate-firstDate))*292,y=78-(day.velocity!-lo)/span*56;return <g key={day.date}>{index>0&&group.days.indexOf(day)===group.days.indexOf(points[index-1])+1&&<line x1={14+(lastDate===firstDate?.5:(Date.parse(points[index-1].date)-firstDate)/(lastDate-firstDate))*292} y1={78-(points[index-1].velocity!-lo)/span*56} x2={x} y2={y} stroke={color} strokeWidth="2.5"/>}<circle cx={x} cy={y} r="4" fill={color}/></g>;})}</svg>}
+    <p className={previewStyles.caption}>{latest?`${dateLabel(latest.date)} · ${latest.velocityCount} readings · Zoomed scale · `:""}Explore velocity, spin{context==="in_game"&&contactsAvailable?" & contact allowed":""} by date.</p>
+  </>}><section className={styles.panel} aria-label={`${context==="practice"?"Practice":"In-Game"} pitch development`} data-testid="pitch-development">
     <header className={styles.heading}><div><h2>Pitch Development<StatInfo metric="pitch_development" label="Pitch Development"/></h2><p>Fall 2026 · Daily averages · {group.category}</p></div>
       <div className={styles.controls}><label>Pitch<select aria-label="Pitch" value={group.key} onChange={e=>setSelected(e.target.value)}>{groups.map(g=><option key={g.key} value={g.key}>{g.label} ({g.category})</option>)}</select></label>
         {context==="in_game"&&contactsAvailable&&<label>Contact Against<select aria-label="Contact Against" value={contactMetric} onChange={e=>setContactMetric(e.target.value as "avgEv"|"hardHit")}><option value="avgEv">Average EV Against</option><option value="hardHit">Hard Hit Against (90+ mph)</option></select></label>}
@@ -60,5 +69,5 @@ export function PitchDevelopment({ groups, context, contactsAvailable=true }: { 
     {context==="in_game"&&!contactsAvailable&&<p role="status" className={styles.note}>Contact-against trends are temporarily unavailable. Velocity and spin remain available.</p>}
     <p className={styles.note}>{group.days.length===1?"One recorded date so far; more dates will show a trend. ":""}Same-day files are combined using each stat’s reading count. Game, intrasquad and practice stay separate. Spin is descriptive; higher is not always better.{context==="in_game"?" Contact uses staff-classified balls against this pitch, with likely fouls left out. These are date totals, not individual game lines.":" Practice contact-against data is not recorded in this view."}</p>
     <details className={styles.details}><summary>Daily Numbers</summary><div className={styles.scroll}><table><caption className="sr-only">{group.label} daily averages, {group.category}</caption><thead><tr><th>Date</th><th>Avg mph</th><th>Readings</th><th>Avg RPM</th><th>Readings</th>{context==="in_game"&&<><th>EV Against</th><th>Hard Hit</th><th>Balls in Play</th></>}</tr></thead><tbody>{group.days.map(d=><tr key={d.date}><th scope="row">{dateLabel(d.date)}</th><td>{d.velocity===null?"—":d.velocity.toFixed(1)}</td><td>{d.velocityCount??"—"}</td><td>{d.spin===null?"—":formatSpin(d.spin)}</td><td>{d.spinCount??"—"}</td>{context==="in_game"&&<><td>{d.avgEv===null?"—":`${d.avgEv.toFixed(1)} mph`}</td><td>{d.hardHit===null?"—":`${d.hardHit.toFixed(1)}%`}</td><td>{d.balls||"—"}</td></>}</tr>)}</tbody></table></div></details>
-  </section>;
+  </section></ChartDisclosure>;
 }

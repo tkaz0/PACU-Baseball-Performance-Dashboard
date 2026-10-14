@@ -16,7 +16,7 @@ const updated = (rows: readonly SharedGameStat[]) => new Date(rows.map(row => ro
 type SheetStat = {metric:string;label:string;display:string;value?:number|null;unit:string;sample?:string|null};
 function StatSheet({title,items,source,eventId=""}:{title:string;items:SheetStat[];source:string;eventId?:string}) {
   if (!items.length) return null;
-  return <section className={styles.statSection} aria-label={title}><h4>{title}</h4><dl className={styles.sheet} style={{"--stat-columns":Math.min(items.length,7)} as CSSProperties}>{items.map(item => <div key={item.metric}><dt>{item.label}<StatInfo metric={item.metric} label={item.label} value={item.value??undefined} source={source} unit={item.unit} period="fall_2026" eventId={eventId}/></dt><dd>{item.display}</dd>{item.sample && <small>{item.sample}</small>}</div>)}</dl></section>;
+  return <section className={styles.statSection} aria-label={title}><h4>{title}</h4><dl className={styles.sheet} style={{"--stat-columns":Math.min(items.length,4)} as CSSProperties}>{items.map(item => <div key={item.metric}><dt>{item.label}<StatInfo metric={item.metric} label={item.label} value={item.value??undefined} source={source} unit={item.unit} period="fall_2026" eventId={eventId}/></dt><dd>{item.display}</dd>{item.sample && <small>{item.sample}</small>}</div>)}</dl></section>;
 }
 function recorded(rows:readonly SharedGameStat[],keys:readonly string[]):SheetStat[] {
   return keys.flatMap(key => {const row=rows.find(row=>row.metric===key);return row?[{metric:key,label:labels[key]??key,value:row.value,unit:row.unit,display:key==="innings_outs"?formatInnings(row.value):row.unit==="%"?`${row.value.toFixed(1)}%`:String(row.value)}]:[];});
@@ -41,6 +41,7 @@ export function AthleteGameStats({stats,comparisons=[],showDetails=true}:{stats:
   const otherQpa=qpa.filter(row=>!["pumps","sb","gdp","qpa_pct","base_hit","ab","rbi"].includes(row.metric));
   const otherPitching=pitching.filter(row=>!pitchingTotals.includes(row.metric)&&!["strike_pct","earned_runs"].includes(row.metric));
   return <section className={styles.panel} aria-label="Fall 2026 game statistics">{!stats.length?<div className={styles.empty}><h2>Game Results Will Appear Here</h2><p>No recorded Fall 2026 results yet. Results appear after the next verified team-sheet update.</p></div>:<>
+    <div className={styles.disciplines}>
     {qpa.length>0&&<section className={styles.discipline} aria-label="Cumulative hitting statistics"><header className={styles.header}><div><h3>Hitting · Fall to Date</h3><p>Sheet changed {updated(qpa)}</p></div><Samples rows={qpa} source="qpa_fall_2026" metric="batting_bb_pct"/></header>
       <StatSheet title="Production" source="qpa_fall_2026" items={production}/>
       <StatSheet title="Rates" source="qpa_fall_2026" items={rateItems(rateKeys)}/>
@@ -55,6 +56,7 @@ export function AthleteGameStats({stats,comparisons=[],showDetails=true}:{stats:
       <p className={styles.note}>{contact[0].contacts!==null?`${contact[0].count} weak · ${contact[1].count} hard · ${contact[0].contacts} classified contacts` : "Both weak and hard counts are needed for contact percentages."}</p>
       {splits.length>0&&<section className={styles.statSection} aria-label="Pitch Splits"><h4>Pitch Splits<StatInfo metric="pitch_splits" label="Pitch Splits"/></h4><div className={styles.tableWrap}><table className={styles.splits}><thead><tr><th scope="col">Pitch Family</th><th scope="col">Pitches</th><th scope="col">Strikes</th><th scope="col">Usage %</th><th scope="col">Strike %</th></tr></thead><tbody>{splits.map(split=><tr key={split.key}><th scope="row">{split.label}</th><td>{split.pitches??"—"}</td><td>{split.strikes??"—"}</td><td>{split.usage===null?"—":`${split.usage.toFixed(1)}%`}</td><td>{split.strikePct===null?"—":`${split.strikePct.toFixed(1)}%`}</td></tr>)}</tbody></table></div></section>}
     </section>}
+    </div>
     {showDetails&&(otherQpa.length>0||otherPitching.length>0)&&<details className={styles.more}><summary>More Stats</summary><StatSheet title="Additional QPA Totals" source="qpa_fall_2026" items={recorded(otherQpa,otherQpa.map(row=>row.metric))}/><StatSheet title="Additional Pitching Totals" source="pitching_fall_2026" eventId={eventId} items={recorded(otherPitching,otherPitching.map(row=>row.metric))}/></details>}
     <p className={styles.footer}>Fall 2026 cumulative totals · Team percentile comparisons are on Overview.</p>
   </>}</section>;

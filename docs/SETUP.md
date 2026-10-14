@@ -522,3 +522,5 @@ October 12 migrations, in order:
 October 13: apply `202610130001_bws_team_plans.sql` before deploying the BWS Team page. It adds the owner-scoped `public.bws_team_plans` table, private revision receipts and the ordinary-session save/read RPCs. The retired draft board's tables and saved data are left unchanged, and `/admin/draft-board` now redirects to `/admin/bws-team`.
 
 Apply `202610130002_bws_series.sql` before deploying the BWS series planner. It replaces only `private.valid_bws_team_plan`.
+
+October 14 profile visual refresh is app-only: no migration, environment variable or source import is required. Existing photos/initials and authorized measurements supply the compact header and expandable chart previews.

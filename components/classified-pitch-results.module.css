@@ -18,6 +18,17 @@
 .tableWrap tbody tr:last-child > * { border-bottom:0; }
 .sourceGroup > div[aria-label] { padding:16px; border-top:1px solid var(--line-subtle); margin:0; }
 .note { margin:0; color:var(--text-secondary); font-size:12px; line-height:1.6; }
+.tableWrap tbody tr:nth-child(even) { background:var(--surface-raised); }
+.tableWrap th,.tableWrap td { padding:11px 13px; }
+.arsenalPreview { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr)); gap:14px; }
+.arsenalPreview > div { min-width:0; }
+.arsenalPreview > div > span { display:flex; align-items:center; gap:6px; color:var(--text-secondary); font-size:12px; font-weight:650; }
+.arsenalPreview i { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.arsenalPreview strong { display:block; margin-top:7px; font-size:20px; font-variant-numeric:tabular-nums; }
+.arsenalPreview small,.arsenalPreview p { display:block; margin:3px 0 0; color:var(--text-secondary); font-size:12px; line-height:1.5; }
+.arsenalPreview > div > div { height:4px; background:var(--line-subtle); border-radius:4px; overflow:hidden; margin-top:9px; }
+.arsenalPreview > div > div > span { display:block; height:100%; border-radius:inherit; }
+.arsenalPreview > p { grid-column:1/-1; }
 @media(max-width:600px) {
   .heading h2 { font-size:19px; }
   .tableWrap { overflow:visible; }

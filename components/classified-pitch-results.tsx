@@ -7,6 +7,8 @@ import { PitchArsenalChart } from "@/components/pitch-arsenal-chart";
 import { PitchSeparationChart } from "@/components/pitch-separation-chart";
 import { StatInfo } from "@/components/stat-info";
 import styles from "./classified-pitch-results.module.css";
+import { ChartDisclosure } from "@/components/chart-disclosure";
+import { pitchArsenalColor } from "@/components/pitch-arsenal-chart";
 
 const dateRange = (first: string | null, last: string | null) => !first || !last ? "Date unavailable" : first === last ? leaderboardTestDate(first) : `${leaderboardTestDate(first)} – ${leaderboardTestDate(last)}`;
 function Average({ pitch, family }: { pitch: FallArsenalPitch; family: "velocity" | "spin" }) {
@@ -35,8 +37,7 @@ export function ClassifiedPitchResults({ readings, pitches, context = "in_game",
           <th scope="row"><strong>{pitchTypeLabel(pitch.pitchType)}</strong><small>{pitch.sessionCount} {pitch.sessionCount === 1 ? "session" : "sessions"}{pitch.count === null ? "" : ` · ${pitch.count} ${pitch.count === 1 ? "pitch" : "pitches"}`}</small><small>{dateRange(pitch.firstDate, pitch.lastDate)}</small></th>
           <Average pitch={pitch} family="velocity"/><Maximum pitch={pitch} family="velocity"/><Average pitch={pitch} family="spin"/><Maximum pitch={pitch} family="spin"/>
         </tr>)}</tbody></table></div>
-        {showChart && <PitchArsenalChart pitches={group} scope="fall"/>}
-        {showChart && !quick && <PitchSeparationChart pitches={group} category={category}/>}
+        {showChart && <ChartDisclosure title="Arsenal Visuals" description={`${category} · Velocity, spin & pitch mix`} preview={<div className={styles.arsenalPreview}>{group.map(pitch => <div key={pitch.source}><span><i style={{background:pitchArsenalColor(pitch.pitchType)}} aria-hidden="true"/>{pitchTypeLabel(pitch.pitchType)}</span><strong>{pitch.averageVelocity === null ? "—" : `${pitch.averageVelocity.toFixed(1)} mph`}</strong><small>{pitch.averageSpin === null ? "Spin not recorded" : `${formatSpin(pitch.averageSpin)} RPM`}{pitch.velocityBasis === "latest" || pitch.spinBasis === "latest" ? " · Latest session*" : " · Fall average"}</small><div aria-hidden="true"><span style={{width:`${Math.min(100,(pitch.averageVelocity ?? 0)/110*100)}%`,background:pitchArsenalColor(pitch.pitchType)}}/></div></div>)}<p>* Latest-session values are labeled in the stat sheet. Speed bars share a 0–110 mph scale.</p></div>}><PitchArsenalChart pitches={group} scope="fall"/>{!quick && <PitchSeparationChart pitches={group} category={category}/>}</ChartDisclosure>}
       </div>;
     })}
     <p className={styles.note}>Fall averages use each session’s matching speed or spin reading count. If counts are incomplete, an available latest-session average is labeled separately. Maxima are the best saved Fall readings. Spin is descriptive; higher is not automatically better.</p>

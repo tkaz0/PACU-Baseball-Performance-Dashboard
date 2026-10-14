@@ -1,5 +1,7 @@
 "use client";
 
+import { ChartDisclosure } from "@/components/chart-disclosure";
+import previewStyles from "./chart-disclosure.module.css";
 import { pitchSourceLabel } from "@/lib/pitch-display";
 import { useId, useState } from "react";
 import type { ProfileTrend } from "@/lib/profile-trends";
@@ -21,8 +23,12 @@ export function ProfileTrendChart({ series, annotations = [] }: { series: Profil
   const x = (date: string) => 55 + (Date.parse(date) - Date.parse(first.date)) / (Date.parse(last.date) - Date.parse(first.date)) * 350;
   const y = (value: number) => 175 - (value - min) / (max - min) * 145;
   const format = (value: number) => trend.key === "height" ? formatHeight(value, trend.unit) : `${formatMetricNumber(value,trend.key,trend.source,String(Number(value.toFixed(2))))} ${trend.unit}`;
-  return <section className="rounded-xl border border-[var(--line-subtle)] bg-[var(--surface-panel)] p-4 sm:p-5" aria-label="Testing progress chart">
-    <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="m-0 text-lg font-bold">Testing Progress</h2><p className="muted mb-0 mt-1 text-xs">{trend.period} · {trend.points.length} test dates · {pitchSourceLabel(trend.source)}</p></div><div><label className="sr-only" htmlFor={id}>Chart measurement</label><select id={id} className="max-w-full text-sm" value={identity(trend)} onChange={e => setSelected(e.target.value)}>{series.map(item => <option key={identity(item)} value={identity(item)}>{item.label}{series.filter(s => s.key === item.key).length > 1 ? ` · ${pitchSourceLabel(item.source)} · ${item.unit}` : ""}</option>)}</select></div></div>
+  return <ChartDisclosure title="Testing Progress" description={`${trend.points.length} test dates · ${pitchSourceLabel(trend.source)}`} preview={<>
+    <div className={previewStyles.previewRow}><span>{trend.label}</span><strong>{format(last.value)}</strong></div>
+    <svg viewBox="0 0 430 110" preserveAspectRatio="none" className={previewStyles.plot} role="img" aria-label={`${trend.label}: ${format(first.value)} to ${format(last.value)}`}><line x1="55" x2="405" y1="92" y2="92" stroke="var(--line-subtle)"/><polyline points={trend.points.map(p => `${x(p.date)},${92 - (175-y(p.value))/145*70}`).join(" ")} fill="none" stroke="var(--accent-readable)" strokeWidth="3" vectorEffect="non-scaling-stroke"/>{trend.points.map(p => <circle key={p.date} cx={x(p.date)} cy={92-(175-y(p.value))/145*70} r="3" fill="var(--accent-readable)"/>)}</svg>
+    <p className={previewStyles.caption}>{dateLabel(first.date)} – {dateLabel(last.date)} · Zoomed scale · {series.length} {series.length === 1 ? "measurement" : "measurements"} to explore</p>
+  </>}>
+    <div><label className="text-xs font-semibold" htmlFor={id}>Chart measurement</label><select id={id} className="mt-1 max-w-full text-sm" value={identity(trend)} onChange={e => setSelected(e.target.value)}>{series.map(item => <option key={identity(item)} value={identity(item)}>{item.label}{series.filter(s => s.key === item.key).length > 1 ? ` · ${pitchSourceLabel(item.source)} · ${item.unit}` : ""}</option>)}</select></div>
     <div className="mt-4 flex flex-wrap items-baseline justify-between gap-2"><p className="m-0 text-sm font-semibold">{trend.label}</p><p className="m-0 text-sm tabular-nums">{format(first.value)} <span className="muted mx-1">→</span> <strong>{format(last.value)}</strong></p></div>
     <svg viewBox="0 0 430 210" className="mt-2 block w-full" style={{ maxHeight: 250 }} role="img" aria-labelledby={`${id}-title ${id}-desc`}>
       <title id={`${id}-title`}>{`${trend.label} by test date`}</title><desc id={`${id}-desc`}>{trend.points.length} recorded tests from {first.date} to {last.date}. {format(first.value)} to {format(last.value)}. Vertical scale is zoomed to the recorded range. Displayed values follow in chart data.</desc>
@@ -34,5 +40,5 @@ export function ProfileTrendChart({ series, annotations = [] }: { series: Profil
     </svg>
     {!!markers.length && <details className="mb-3 rounded-lg border border-[var(--line-subtle)] bg-[var(--surface-raised)] p-3 text-xs"><summary className="cursor-pointer font-semibold text-[var(--accent-readable)]">Coaching Notes in This Chart · {markers.length}</summary><p className="muted mb-2 mt-2">Dashed date markers show coaching context. They do not measure a result or prove what caused a change.</p><ul className="m-0 grid list-none gap-2 p-0">{markers.map(marker => <li key={marker.id} className="min-w-0 border-t border-[var(--line-subtle)] pt-2"><strong>{dateLabel(marker.date)} · {trendAnnotationCategoryLabel(marker.category)}</strong><p className="mb-0 mt-1 break-words leading-5">{marker.note}</p></li>)}</ul></details>}
     <div className="flex flex-wrap justify-between gap-2 text-xs text-[var(--text-secondary)]"><span>{trend.unit} · Zoomed vertical scale · Lines connect recorded tests</span><details><summary className="cursor-pointer font-semibold">Chart Data</summary><table className="mt-2"><caption className="sr-only">{trend.label} chart values</caption><thead><tr><th scope="col">Test Date</th><th scope="col">Result</th></tr></thead><tbody>{trend.points.map(p => <tr key={p.date}><td>{p.date}</td><td>{format(p.value)}</td></tr>)}</tbody></table></details></div>
-  </section>;
+  </ChartDisclosure>;
 }
