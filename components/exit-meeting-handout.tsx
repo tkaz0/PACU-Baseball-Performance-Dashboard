@@ -172,8 +172,10 @@ export function ExitMeetingHandout({ report, meetingDate, talkingPoints, headsho
           {contactQuality.length > 0 && <ValueGrid rows={contactQuality}/>}
           <MixBar rows={launchMix} title="Launch"/><MixBar rows={directionMix} title="Direction"/>
         </Panel>}
-        {showPitching && <Panel title="Pitching" kicker="Fall game sheet · Pitch+ · arsenal">
+        {showPitching && <Panel title="Pitching" kicker="Fall game sheet · week trends">
           <StatTable rows={pitching.filter(r => ["pitching_whip", "pitching_k_bb", "pitching_k9", "pitching_bb9", "pitching_r9", "strike_pct"].includes(r.metricKey ?? "")).slice(0, 6)} weeks={pitchingWeeks} empty="No pitching game stats yet."/>
+        </Panel>}
+        {(grades.length > 0 || arsenal.length > 0 || strikeMix.length > 0 || allowed.length > 0) && <Panel title="Pitch Quality" kicker="Pitch+ · arsenal · strikes · contact against">
           {graded.length > 0 && <><h4>Pitch+ (Team) <small>100 = Pacific average</small></h4><ul className={styles.grades}>{graded.map(g => { const score = Number.parseFloat(g.value); return <li key={g.label} data-band={Number.isFinite(score) ? score >= 110 ? "high" : score <= 90 ? "low" : "mid" : "none"}><b>{g.label.replace(" · Pitch+", "")}</b><strong>{g.value}</strong><small>{g.basis}</small></li>; })}</ul></>}
           {grades.length > 0 && !graded.length && <p className={styles.empty}>Pitch+ needs more in-game pitches and balls in play before a grade shows.</p>}
           {arsenal.map(s => <div key={s.id}><h4>{s.title}</h4><Arsenal rows={s.rows}/></div>)}
