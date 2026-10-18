@@ -27,3 +27,11 @@ it("uses Pacific days, deterministic ties, and never resurrects an earlier valid
  expect(latestDailySnapshots(sameDay).map(s=>s.id)).toEqual(["c","d"]);
  expect(teamGameTrends(sameDay).qpa_fall_2026?.batting_avg).toEqual([{date:"2026-10-03",value:.75}]);
 });
+it("retains reviewed pitching coverage from source periods, not the fetch date",()=>{
+ const pitch=(week:number)=>Object.entries({pitches:10,strikes:6}).map(([metric,value])=>({athleteCode:"SYN-001",metric,value,unit:"count",scope:"pitching_event",eventId:`fall-2026-week-${week}`,playedOn:null}));
+ const valid={id:"week3",source:"pitching_fall_2026" as const,fetched_at:"2026-10-17T12:00:00Z",observations:[...pitch(1),...pitch(2),...pitch(3)]};
+ expect(teamGameTrends([valid]).pitchingWeeks).toEqual({"2026-10-17":3});
+ for(const observations of [[],[...pitch(3),{...pitch(4)[0],playedOn:"2026-10-16"}],[{...pitch(3)[0],eventId:"dated-game"}]]){
+   expect(teamGameTrends([{...valid,observations}]).pitchingWeeks).toEqual({"2026-10-17":null});
+ }
+});

@@ -6,6 +6,8 @@ export type TrendPoint = { date: string; value: number };
 export type TeamGameTrends = Partial<Record<SharedGameStat["source"], Record<string, TrendPoint[]>>> & {
   /** Includes empty/pending versions so an older valid rate cannot replace them. */
   snapshotDates?: Partial<Record<SharedGameStat["source"], string[]>>;
+  /** Actual reviewed weekly coverage, independent of the day staff saved the sheet. */
+  pitchingWeeks?: Record<string, number | null>;
 };
 export type GameSnapshotRow = { id: string; source: SharedGameStat["source"]; fetched_at: string; observations: unknown };
 
@@ -32,6 +34,12 @@ export function teamGameTrends(snapshots: readonly GameSnapshotRow[]): TeamGameT
   for (const snapshot of latestDailySnapshots(snapshots)) {
     const date = pacificDay(snapshot.fetched_at);
     ((result.snapshotDates ??= {})[snapshot.source] ??= []).push(date);
+    if (snapshot.source === "pitching_fall_2026") {
+      const observations = Array.isArray(snapshot.observations) ? snapshot.observations as Observation[] : [];
+      const weeks = observations.map(o => o?.scope === "pitching_event" && o.playedOn === null && typeof o.eventId === "string" ? /^fall-2026-week-([1-5])$/.exec(o.eventId) : null);
+      // Empty, dated or mixed histories cannot establish a weekly baseline.
+      (result.pitchingWeeks ??= {})[date] = weeks.length && weeks.every(Boolean) ? Math.max(...weeks.map(w => Number(w![1]))) : null;
+    }
     if(!Array.isArray(snapshot.observations))continue;
     const rows: SharedGameStat[] = (snapshot.observations as Observation[]).flatMap(o => typeof o?.athleteCode === "string" && typeof o.metric === "string" && typeof o.value === "number" && Number.isFinite(o.value) && (o.unit === "count" || o.unit === "%") && (o.scope === "cumulative_fall" || o.scope === "pitching_event") ? [{
       source: snapshot.source, athlete_id: o.athleteCode, metric: o.metric, value: o.value, unit: o.unit, scope: o.scope,

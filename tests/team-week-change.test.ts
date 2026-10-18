@@ -1,6 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { expect, it } from "vitest";
+import { afterEach, expect, it } from "vitest";
+import { DEFAULT_FALL_BALL_WEEK_DATES, setFallBallWeekDates } from "@/lib/game-weeks";
 import { TeamGameTrendDisplay } from "@/components/team-game-trend";
 import { teamGameTrends, type TeamGameTrends } from "@/lib/game-trends";
 import type { TeamGameMetric } from "@/lib/team-game-stats";
@@ -13,6 +14,35 @@ const history = (key = "batting_avg", before = .3, now = .33): TeamGameTrends =>
   [source]: { [key]: [{ date: "2026-10-05", value: .2 }, { date: "2026-10-09", value: before }, { date: "2026-10-12", value: now }] },
 });
 const at = "2026-10-12T16:00:00Z";
+afterEach(() => setFallBallWeekDates(DEFAULT_FALL_BALL_WEEK_DATES));
+
+it("compares Week 4 with Week 3 even when both pitching updates were saved in the same calendar week", () => {
+  setFallBallWeekDates({ ...DEFAULT_FALL_BALL_WEEK_DATES, 4: "2026-10-16" });
+  const trends: TeamGameTrends = {
+    snapshotDates: { pitching_fall_2026: ["2026-09-28", "2026-10-13", "2026-10-17"] },
+    pitchingWeeks: { "2026-09-28": 2, "2026-10-13": 3, "2026-10-17": 4 },
+    pitching_fall_2026: { pitching_whip: [{ date: "2026-09-28", value: 2 }, { date: "2026-10-13", value: 1.5 }, { date: "2026-10-17", value: 1.2 }] },
+  };
+  const m: TeamGameMetric = { metric: "pitching_whip", label: "WHIP", value: 1.2, unit: "decimal", pending: false };
+  const props = { trends, source: "pitching_fall_2026" as const, metric: m, updatedAt: "2026-10-18T00:00:00Z", compact: true };
+  const change = teamWeekChange(trends, props.source, m, props.updatedAt)!;
+  expect(change).toMatchObject({ previousDate: "2026-10-13", previousWeek: 3, currentWeek: 4, tone: "good", fallback: false });
+  expect(change.percent).toBeCloseTo(-20);
+  const html = renderToStaticMarkup(createElement(TeamGameTrendDisplay, props));
+  expect(html).toContain("vs Week 3 · Oct 10");
+  expect(html).toContain("through Week 4 (Oct 16 games");
+  expect(html).toContain("regardless of when the sheets were saved");
+  // A late Week 3 save after the Week 4 game date still represents Week 3.
+  trends.snapshotDates!.pitching_fall_2026![1] = "2026-10-16";
+  trends.pitchingWeeks!["2026-10-16"] = 3;
+  trends.pitching_fall_2026!.pitching_whip[1].date = "2026-10-16";
+  expect(renderToStaticMarkup(createElement(TeamGameTrendDisplay, props))).toContain("vs Week 3 · Oct 10");
+  // An incomplete latest baseline must not resurrect an older complete week.
+  trends.pitching_fall_2026!.pitching_whip.splice(1, 1);
+  expect(teamWeekChange(trends, props.source, m, props.updatedAt)).toBeNull();
+  trends.pitchingWeeks!["2026-10-16"] = null;
+  expect(teamWeekChange(trends, props.source, m, props.updatedAt)).toBeNull();
+});
 
 it("compares against the final saved rate of the previous Monday–Sunday Pacific week", () => {
   const change = teamWeekChange(history(), source, metric(), at)!;
