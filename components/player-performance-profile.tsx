@@ -32,6 +32,7 @@ import type { ReactNode } from "react";
 import { PacificLogo } from "@/components/pacific-brand";
 import { ProfileTabs, type ProfileTab } from "@/components/profile-tabs";
 import { PlayerOverview } from "@/components/player-overview";
+import type { SheetPitchMix } from "@/lib/pitching-stats";
 import { ClassifiedPitchResults } from "@/components/classified-pitch-results";
 import { fallArsenalPitches } from "@/lib/pitch-arsenal";
 import { ArrowDown, ArrowUp, ArrowUpRight, ChevronDown, DraftingCompass, Target } from "lucide-react";
@@ -52,6 +53,8 @@ export type PlayerPerformanceProfileProps = {
   overviewGameStats?: SharedGameStat[]; gameComparisons?: GameComparison[];
   blastBatSpeedPercentile?: BlastBatSpeedPercentile | null;
   teamAverages?: readonly HittingTeamAverage[]; blastReadings?: readonly Measurement[]; timelineReadings?: readonly Measurement[]; pitchResults?: ReactNode; practicePitchResults?: ReactNode; contactResults?: ReactNode; practiceContactResults?: ReactNode; coachFocus?:ReactNode; goals?:ReactNode; simplified?: boolean; fictional?: boolean; action?: ReactNode; muscleBalance?: ReactNode; movementScreening?: ReactNode; physicalityDetails?: ReactNode; history?: ReactNode; gameStats?: ReactNode; contactAllowed?: ReactNode; pitchGrades?: ReactNode;
+  /** In-game pitch mix from the player's own pitching game-sheet family counts (October 17). */
+  pitchSheetMix?: SheetPitchMix | null;
 };
 function measurementDate(value: string) {
   const date = new Date(`${value.slice(0, 10)}T12:00:00Z`);
@@ -140,7 +143,7 @@ function SessionMeasurements({ quick=false, performance, season, context, discip
     {!quick && <ProfileTrendChart series={profileTrends([...hitting, ...throwing])} annotations={annotations} />}
   </section>;
 }
-export function PlayerPerformanceProfile({ blastBatSpeedPercentile = null, detail, selectedTab, navigationPath, headshot, athlete, performance, season, blastReadings, swingDesignHref, pitchDesignHref, timelineReadings=[], teamAverages=[], pitchResults, practicePitchResults, pitchDevelopment, practicePitchDevelopment, contactResults, practiceContactResults, coachFocus, goals, developmentPlan, trainingBlocks, trendNotes, trendAnnotations=[], fictional = false, simplified = false, action, muscleBalance, movementScreening, physicalityDetails, history, gameStats, contactAllowed, pitchGrades, overviewGameStats = [], gameComparisons = [] }: PlayerPerformanceProfileProps) {
+export function PlayerPerformanceProfile({ blastBatSpeedPercentile = null, detail, selectedTab, navigationPath, headshot, athlete, performance, season, blastReadings, swingDesignHref, pitchDesignHref, timelineReadings=[], teamAverages=[], pitchResults, practicePitchResults, pitchDevelopment, practicePitchDevelopment, contactResults, practiceContactResults, coachFocus, goals, developmentPlan, trainingBlocks, trendNotes, trendAnnotations=[], fictional = false, simplified = false, action, muscleBalance, movementScreening, physicalityDetails, history, gameStats, contactAllowed, pitchGrades, pitchSheetMix = null, overviewGameStats = [], gameComparisons = [] }: PlayerPerformanceProfileProps) {
   const quick = detail === "quick";
   const hasBlast = !!blastReadings?.some(r=>parseBlastSource(r.source));
   const bodyScoreCard = performance.body.find(card => card.metric.key === "body_score" && card.latest);
@@ -155,7 +158,7 @@ export function PlayerPerformanceProfile({ blastBatSpeedPercentile = null, detai
   const classifiedPerformance = withoutUnclassifiedPitchVelocity(performance, arsenalCoverage);
   const displayPerformance = hasBlast ? withoutWeeklyBlastCards(classifiedPerformance) : classifiedPerformance;
   const gameArsenal = arsenal.some(pitch => pitch.category !== "Practice"), practiceArsenal = arsenal.some(pitch => pitch.category === "Practice");
-  const gamePitchResults = profileShowsPitching(selectedSeason) ? gameArsenal ? <ClassifiedPitchResults pitches={arsenal} quick={quick}/> : pitchResults : null;
+  const gamePitchResults = profileShowsPitching(selectedSeason) ? gameArsenal ? <ClassifiedPitchResults pitches={arsenal} quick={quick} sheetMix={pitchSheetMix}/> : pitchResults : null;
   const practiceResults = profileShowsPitching(selectedSeason) ? practiceArsenal ? <ClassifiedPitchResults pitches={arsenal} context="practice" quick={quick}/> : practicePitchResults : null;
   const roleLabel = selectedSeason?.player_type?.trim().toLowerCase() === "two_way" ? "Two-Way Player" : selectedSeason?.player_type?.trim().toLowerCase() === "pitcher" ? "Pitcher" : null;
   const position = [selectedSeason?.primary_position, selectedSeason?.secondary_position].filter((value, index, values) => value && values.indexOf(value) === index).join(" / ");
