@@ -3,7 +3,8 @@ import { leaderboardTestDate } from "@/lib/leaderboards";
 import type { Measurement } from "@/lib/imports/engine";
 import { formatSourceNumber, formatSpin } from "@/lib/measurement-display";
 import { fallArsenalPitches, type FallArsenalPitch } from "@/lib/pitch-arsenal";
-import { PitchArsenalChart } from "@/components/pitch-arsenal-chart";
+import { PitchArsenalChart, SheetMixChart } from "@/components/pitch-arsenal-chart";
+import type { SheetPitchMix } from "@/lib/pitching-stats";
 import { PitchSeparationChart } from "@/components/pitch-separation-chart";
 import { StatInfo } from "@/components/stat-info";
 import styles from "./classified-pitch-results.module.css";
@@ -23,11 +24,14 @@ function Maximum({ pitch, family }: { pitch: FallArsenalPitch; family: "velocity
 }
 
 /** Own-athlete readings supplied by the authorized profile route, never a peer lookup. */
-export function ClassifiedPitchResults({ readings, pitches, context = "in_game", showChart = true, quick = false }: { readings?: readonly Measurement[]; pitches?: readonly FallArsenalPitch[]; context?: "in_game" | "practice"; showChart?: boolean; quick?: boolean }) {
+export function ClassifiedPitchResults({ readings, pitches, context = "in_game", showChart = true, quick = false, sheetMix = null }: { readings?: readonly Measurement[]; pitches?: readonly FallArsenalPitch[]; context?: "in_game" | "practice"; showChart?: boolean; quick?: boolean; sheetMix?: SheetPitchMix | null }) {
   const selected = (pitches ?? fallArsenalPitches(readings ?? [])).filter(pitch => (pitch.category === "Practice" ? "practice" : "in_game") === context);
   if (!selected.length) return null;
+  const inGameMix = context === "in_game" && showChart ? sheetMix : null;
   return <section aria-label={`${context === "practice" ? "Practice" : "In-Game"} pitch arsenal`} className={styles.section}>
     <header className={styles.heading}><div><p>{context === "practice" ? "Practice" : "In-Game"} · Fall 2026</p><h2>Full Pitch Arsenal</h2></div><span>{selected.length} recorded pitch {selected.length === 1 ? "type" : "types"}</span></header>
+    {/* In-game pitch mix comes from the game sheet (every game pitch), shown once above the Full Swing groups. */}
+    {inGameMix && <div className={styles.sheetMix}><SheetMixChart mix={inGameMix}/></div>}
     {(["Game", "Intrasquad", "Practice"] as const).map(category => {
       const group = selected.filter(pitch => pitch.category === category);
       if (!group.length) return null;
@@ -37,7 +41,7 @@ export function ClassifiedPitchResults({ readings, pitches, context = "in_game",
           <th scope="row"><strong>{pitchTypeLabel(pitch.pitchType)}</strong><small>{pitch.sessionCount} {pitch.sessionCount === 1 ? "session" : "sessions"}{pitch.count === null ? "" : ` · ${pitch.count} ${pitch.count === 1 ? "pitch" : "pitches"}`}</small><small>{dateRange(pitch.firstDate, pitch.lastDate)}</small></th>
           <Average pitch={pitch} family="velocity"/><Maximum pitch={pitch} family="velocity"/><Average pitch={pitch} family="spin"/><Maximum pitch={pitch} family="spin"/>
         </tr>)}</tbody></table></div>
-        {showChart && <ChartDisclosure title="Arsenal Visuals" description={`${category} · Velocity, spin & pitch mix`} preview={<div className={styles.arsenalPreview}>{group.map(pitch => <div key={pitch.source}><span><i style={{background:pitchArsenalColor(pitch.pitchType)}} aria-hidden="true"/>{pitchTypeLabel(pitch.pitchType)}</span><strong>{pitch.averageVelocity === null ? "—" : `${pitch.averageVelocity.toFixed(1)} mph`}</strong><small>{pitch.averageSpin === null ? "Spin not recorded" : `${formatSpin(pitch.averageSpin)} RPM`}{pitch.velocityBasis === "latest" || pitch.spinBasis === "latest" ? " · Latest session*" : " · Fall average"}</small><div aria-hidden="true"><span style={{width:`${Math.min(100,(pitch.averageVelocity ?? 0)/110*100)}%`,background:pitchArsenalColor(pitch.pitchType)}}/></div></div>)}<p>* Latest-session values are labeled in the stat sheet. Speed bars share a 0–110 mph scale.</p></div>}><PitchArsenalChart pitches={group} scope="fall"/>{!quick && <PitchSeparationChart pitches={group} category={category}/>}</ChartDisclosure>}
+        {showChart && <ChartDisclosure title="Arsenal Visuals" description={`${category} · Velocity, spin & pitch mix`} preview={<div className={styles.arsenalPreview}>{group.map(pitch => <div key={pitch.source}><span><i style={{background:pitchArsenalColor(pitch.pitchType)}} aria-hidden="true"/>{pitchTypeLabel(pitch.pitchType)}</span><strong>{pitch.averageVelocity === null ? "—" : `${pitch.averageVelocity.toFixed(1)} mph`}</strong><small>{pitch.averageSpin === null ? "Spin not recorded" : `${formatSpin(pitch.averageSpin)} RPM`}{pitch.velocityBasis === "latest" || pitch.spinBasis === "latest" ? " · Latest session*" : " · Fall average"}</small><div aria-hidden="true"><span style={{width:`${Math.min(100,(pitch.averageVelocity ?? 0)/110*100)}%`,background:pitchArsenalColor(pitch.pitchType)}}/></div></div>)}<p>* Latest-session values are labeled in the stat sheet. Speed bars share a 0–110 mph scale.</p></div>}><PitchArsenalChart pitches={group} scope="fall" hideMix={!!inGameMix}/>{!quick && <PitchSeparationChart pitches={group} category={category}/>}</ChartDisclosure>}
       </div>;
     })}
     <p className={styles.note}>Fall averages use each session’s matching speed or spin reading count. If counts are incomplete, an available latest-session average is labeled separately. Maxima are the best saved Fall readings. Spin is descriptive; higher is not automatically better.</p>

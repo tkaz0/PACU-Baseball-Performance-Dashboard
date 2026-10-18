@@ -76,7 +76,7 @@ export default async function PlayerReport({ params }: { params: Promise<{ id: s
     profileShowsHitting(season) ? loadFullSwingContacts(access, athlete.id, "in_game").catch(() => null) : Promise.resolve(null),
     profileShowsPitching(season) ? loadContactsAllowed(access, athlete.id).catch(() => null) : Promise.resolve(null),
   ]);
-  const grades = profileShowsPitching(season) ? await loadOwnPitchGrades(access, { id: athlete.id, code: athlete.athlete_code, name: athleteName(athlete), academicClass: "", position: "", playerType: "", bats: "", throws: "" }, shared.measurements, allowed).catch(() => null) : null;
+  const grades = profileShowsPitching(season) ? await loadOwnPitchGrades(access, { id: athlete.id, code: athlete.athlete_code, name: athleteName(athlete), academicClass: "", position: "", playerType: "", bats: "", throws: "" }, shared.measurements, allowed, gameStats).catch(() => null) : null;
   const squared = contacts ? squaredUpSummary(contacts.filter(c => c.category !== "practice" && c.playedOn >= "2026-09-01" && c.playedOn <= "2026-12-31")) : null;
   const gradeFor = (pitchType: string) => grades?.rows.find(row => row.pitchType === pitchType)?.grade ?? null;
   const today = pacificTestingDate();

@@ -3,7 +3,7 @@ import { requireRenderAccess } from "@/lib/render-access";
 import { canImportPresentedAccess, canReadPresentedAthlete } from "@/lib/access-preview";
 import { loadPitchGradeSource } from "@/lib/analytics-server";
 import { loadContactsAllowed } from "@/lib/contacts-allowed-server";
-import { loadGameStats } from "@/lib/game-server";
+import { loadGameStats, type SharedGameStat } from "@/lib/game-server";
 import { fallArsenalPitches } from "@/lib/pitch-arsenal";
 import { pacificTestingDate } from "@/lib/testing-checklist";
 import { ownPitchGrades, parsePitchGradeBaselines, pitchGrades, playerVisibleBaselines, type PitchGradeBaselines } from "@/lib/pitch-grades";
@@ -42,11 +42,12 @@ async function publishBaselines(access: Access, baselines: PitchGradeBaselines) 
 }
 
 /** A pitcher's own grades from their own arsenal, sheet counts and contact against, versus the published team baselines. */
-export async function loadOwnPitchGrades(access: Access, player: CoachingPlayer, measurements: readonly Measurement[], contacts: readonly AllowedContact[] | null) {
+/** `preloaded` reuses the page's own sheet rows so the Pitching tab reads game stats once. */
+export async function loadOwnPitchGrades(access: Access, player: CoachingPlayer, measurements: readonly Measurement[], contacts: readonly AllowedContact[] | null, preloaded?: readonly SharedGameStat[]) {
   if (!canReadPresentedAthlete(access, player.id)) throw new Error("Pitch grade access denied.");
   const [{ data, error }, stats] = await Promise.all([
     access.supabase.from("pitch_grade_baselines").select("payload,computed_at").eq("id", 1).maybeSingle(),
-    loadGameStats(access, player.id),
+    preloaded !== undefined ? Promise.resolve(preloaded) : loadGameStats(access, player.id),
   ]);
   if (error) throw new Error("Pitch grade baselines could not be loaded.");
   const baselines = parsePitchGradeBaselines(data?.payload);

@@ -40,7 +40,7 @@ export async function loadExitMeetingReport(access: Access, athleteId: string) {
     pitcher ? loadContactsAllowed(access, athleteId).catch(() => null) : Promise.resolve(null),
     loadAthleteGameWeeks(access, athleteId).catch(() => null),
   ]);
-  const pitchGrades = pitcher ? await loadOwnPitchGrades(access, { id: athlete.id, code: athlete.athlete_code, name: `${athlete.preferred_name ?? athlete.first_name} ${athlete.last_name}`, academicClass: "", position: "", playerType: "", bats: "", throws: "" }, performance.measurements, contactsAllowed).catch(() => null) : null;
+  const pitchGrades = pitcher ? await loadOwnPitchGrades(access, { id: athlete.id, code: athlete.athlete_code, name: `${athlete.preferred_name ?? athlete.first_name} ${athlete.last_name}`, academicClass: "", position: "", playerType: "", bats: "", throws: "" }, performance.measurements, contactsAllowed, games).catch(() => null) : null;
   const report = buildExitMeetingReport({ athlete, ...performance, games, comparisons, movement: null, contacts: contacts ?? [], fallSummaries, contactsAllowed, weeks, pitchGrades, generatedAt: new Date().toISOString() }, "meeting");
   const unavailable = [...(pitcher && contactsAllowed === null ? ["Contact Allowed"] : []), ...(pitcher && pitchGrades === null ? ["Pitch+"] : []), ...(weeks === null ? ["Week by Week"] : []), ...(contacts === null ? ["Batted ball quality"] : [])];
   if (unavailable.length) report.notes.push(`Temporarily unavailable in this report: ${unavailable.join(", ")}. Other sections are complete.`);

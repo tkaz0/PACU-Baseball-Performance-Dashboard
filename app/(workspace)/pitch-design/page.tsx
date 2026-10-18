@@ -5,6 +5,8 @@ import { requireRenderAccess } from "@/lib/render-access";
 import { canReadPresentedAthlete } from "@/lib/access-preview";
 import { loadDesignAthleteChoices } from "@/lib/staff-athlete-search-server";
 import { loadAthletePerformance } from "@/lib/performance-server";
+import { loadGameStats } from "@/lib/game-server";
+import { playerSheetPitchMix } from "@/lib/sheet-pitch-mix";
 import { getPlayerPerformance } from "@/lib/player-performance";
 import { seasonDesignNavigation } from "@/lib/design-navigation";
 import { athleteName, UUID_PATTERN, type RosterAthlete } from "@/lib/types";
@@ -46,9 +48,10 @@ export default async function PitchDesignPage({ searchParams }: { searchParams?:
   const season = athlete?.athlete_seasons.find(item => item.season === "2026-27");
   const showPitching = !!athlete && seasonDesignNavigation(season).pitch;
   const content = athlete && showPitching ? await (async () => {
-    const shared = await loadAthletePerformance(access, athlete, { includePercentiles: true });
+    // The player's own game-sheet counts give the in-game pitch mix; a failed read keeps the Full Swing mix.
+    const [shared, games] = await Promise.all([loadAthletePerformance(access, athlete, { includePercentiles: true }), loadGameStats(access, athlete.id).catch(() => [])]);
     const performance = getPlayerPerformance({ readings: shared.measurements, batches: shared.batches, athleteCode: athlete.athlete_code, cohortAthleteCodes: [], percentileOverrides: shared.percentileOverrides });
-    return <PitchDesignDashboard readings={shared.measurements} performance={performance} throws={season?.throws} header={{ name: athleteName(athlete), detail: `${athlete.athlete_code}${season?.throws ? ` · Throws ${season.throws}` : ""}`, actions: <><PrintButton label="Print Scouting Card"/><Link prefetch={false} className="btn btn-secondary no-print" href={`/athletes/${athlete.id}`}>Player Profile <ArrowUpRight size={15} aria-hidden="true"/></Link></> }}/>;
+    return <PitchDesignDashboard sheetMix={playerSheetPitchMix(games)} readings={shared.measurements} performance={performance} throws={season?.throws} header={{ name: athleteName(athlete), detail: `${athlete.athlete_code}${season?.throws ? ` · Throws ${season.throws}` : ""}`, actions: <><PrintButton label="Print Scouting Card"/><Link prefetch={false} className="btn btn-secondary no-print" href={`/athletes/${athlete.id}`}>Player Profile <ArrowUpRight size={15} aria-hidden="true"/></Link></> }}/>;
   })() : null;
   return <>
     <PageHeading section="Team" title="Pitch Design" description="Your arsenal, grip options, and MLB pitchers to study."/>

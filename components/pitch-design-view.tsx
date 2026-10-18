@@ -10,6 +10,7 @@ import { formatHeight } from "@/lib/measurement-display";
 import { leaderboardTestDate } from "@/lib/leaderboards";
 import { PitchArsenalChart, pitchArsenalColor } from "@/components/pitch-arsenal-chart";
 import { PitchSeparationChart } from "@/components/pitch-separation-chart";
+import type { SheetPitchMix } from "@/lib/pitching-stats";
 import styles from "./pitch-design-view.module.css";
 
 const MLB_SOURCE = "https://baseballsavant.mlb.com/leaderboard/pitch-arsenals?type=avg_speed&year=2025&team=&min=500";
@@ -65,7 +66,7 @@ function StudyCard({ match, body }: { match: PitcherStudyMatch; body: PitchDesig
   </article>;
 }
 
-function ContextView({ model, context }: { model: PitchDesignModel; context: PitchDesignModel["contexts"][number] }) {
+function ContextView({ model, context, sheetMix = null }: { model: PitchDesignModel; context: PitchDesignModel["contexts"][number]; sheetMix?: SheetPitchMix | null }) {
   const [gripPitch, setGripPitch] = useState(context.pitches[0].pitchType);
   function chooseGrip(pitch: string) {
     setGripPitch(pitch);
@@ -74,7 +75,7 @@ function ContextView({ model, context }: { model: PitchDesignModel; context: Pit
   }
   return <>
     <section className={styles.section} aria-labelledby="arsenal-title"><header className={styles.sectionHeader}><div><span className={styles.eyebrow}>Your Repertoire</span><h2 id="arsenal-title">Velocity & Spin</h2><p>{categoryLabel(context.category)} · Fall 2026 · Each pitch keeps its own results.</p></div></header>
-      <PitchArsenalChart pitches={context.pitches} scope="fall"/>
+      <PitchArsenalChart pitches={context.pitches} scope="fall" sheetMix={context.category === "Practice" ? null : sheetMix}/>
       <div className={styles.pitchGrid}>{context.pitches.map(pitch => <PitchCard key={pitch.source} pitch={pitch} onGrip={() => chooseGrip(pitch.pitchType)}/>)}</div>
       <p className={styles.note}>Averages combine saved sessions using each metric’s reading count. Missing counts show a labeled latest-session average. Maxima retain the best Fall reading.</p>
     </section>
@@ -89,14 +90,14 @@ function ContextView({ model, context }: { model: PitchDesignModel; context: Pit
 }
 
 export type PitchDesignHeader = { name: string; detail: string; actions?: React.ReactNode };
-export function PitchDesignView({ model, header }: { model: PitchDesignModel; header?: PitchDesignHeader }) {
+export function PitchDesignView({ model, header, sheetMix = null }: { model: PitchDesignModel; header?: PitchDesignHeader; sheetMix?: SheetPitchMix | null }) {
   const [selectedContext, setSelectedContext] = useState<string>(model.contexts[0]?.category ?? "");
   const context = model.contexts.find(item => item.category === selectedContext) ?? model.contexts[0];
   return <div className={styles.page}>
     <section className={styles.hero}><div><span className={styles.eyebrow}>Pitch Design · Fall 2026</span><h2>{header?.name ?? "Your Arsenal"}</h2><p>{header?.detail ?? "Know what you throw. Explore what comes next."}</p><div className={styles.heroMeta}><span>{context ? `${context.pitches.length} recorded pitch ${context.pitches.length === 1 ? "type" : "types"}` : "Classified results coming soon"}</span>{model.throws && <span>{model.throws === "L" ? "Left" : "Right"}-handed</span>}{model.body.height && <span>{formatHeight(model.body.height.value, "in")}</span>}{model.body.weight && <span>{number(model.body.weight.value)} lb</span>}</div></div>{header?.actions ? <div className={styles.heroActions}>{header.actions}</div> : <Target className={styles.heroArt} size={110} strokeWidth={.9} aria-hidden="true"/>}</section>
     {model.contexts.length > 0 ? <>
       {model.contexts.length > 1 && <div className={`${styles.contexts} no-print`} role="group" aria-label="Pitch Design setting">{model.contexts.map(item => <button key={item.category} type="button" aria-pressed={context?.category === item.category} onClick={() => setSelectedContext(item.category)}>{categoryLabel(item.category)}<span>{item.pitches.length} {item.pitches.length === 1 ? "pitch type" : "pitch types"}</span></button>)}</div>}
-      <ContextView key={context.category} model={model} context={context}/>
+      <ContextView key={context.category} model={model} context={context} sheetMix={sheetMix}/>
     </> : <><section className={styles.empty}><Target size={28} aria-hidden="true"/><h2>{model.mixedAthletes ? "Pitch Results Need Review" : "Your Arsenal Starts Here"}</h2><p>{model.mixedAthletes ? "These readings cannot be combined safely. Ask a coach to review the player assignments." : "Saved Full Swing results with confirmed pitch types will build your velocity and spin charts here. You can explore the grip library now."}</p></section><EmptyGripLab/></>}
     <details className={styles.methods}><summary><Info size={16} aria-hidden="true"/>About the Numbers & Study Matches<ChevronDown size={15} aria-hidden="true"/></summary><div>
       <p><strong>Your arsenal:</strong> Saved, classified Full Swing readings from Fall 2026. Game, intrasquad and practice remain separate. Total spin alone does not establish movement. Release, spin axis, active spin and measured break are not inferred.</p>

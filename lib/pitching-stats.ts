@@ -38,3 +38,14 @@ export function pitchingContactRates(rows:readonly SharedGameStat[]):PitchingCon
  const weak=get("weak_contact"),hard=get("hard_contact"),contacts=weak!==null&&hard!==null?weak+hard:null;
  return [["weak_contact_pct","Weak Contact %",weak],["hard_contact_pct","Hard Contact %",hard]].map(([metric,label,count])=>({metric:metric as string,label:label as string,count:count as number|null,contacts,value:contacts!==null&&contacts>0?100*(count as number)/contacts:null,unit:"%"}));
 }
+
+/** Game-sheet pitch mix: every recorded Fall game pitch by family, from the cumulative sheet counts. */
+export type SheetPitchMix = { total: number; families: { key: string; label: string; color: string; pitches: number }[]; unrecorded: number };
+export function sheetPitchMix(splits: readonly PitchSplit[], total: number | null): SheetPitchMix | null {
+  if (total === null || !Number.isSafeInteger(total) || total <= 0) return null;
+  const families = splits.flatMap(s => s.pitches !== null && s.pitches > 0 ? [{ key: s.key, label: s.label, color: s.color, pitches: s.pitches }] : []);
+  const recorded = families.reduce((n, f) => n + f.pitches, 0);
+  // Inconsistent counts (families above the total) are withheld rather than rescaled.
+  if (!families.length || recorded > total) return null;
+  return { total, families, unrecorded: total - recorded };
+}

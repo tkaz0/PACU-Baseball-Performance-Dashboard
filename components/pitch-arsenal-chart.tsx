@@ -2,6 +2,7 @@ import type { ArsenalPitch } from "@/lib/pitch-arsenal";
 import { PITCH_TYPES, pitchTypeLabel } from "@/lib/imports/pitch-assignments";
 import { formatSourceNumber, formatSpin } from "@/lib/measurement-display";
 import { StatInfo } from "@/components/stat-info";
+import type { SheetPitchMix } from "@/lib/pitching-stats";
 import styles from "./pitch-arsenal-chart.module.css";
 
 // Indexed by PITCH_TYPES: fastballs warm, breaking pitches in distinct cool hues, offspeed in greens.
@@ -80,6 +81,23 @@ function ArsenalMix({ pitches, scope }: { pitches: readonly ArsenalPitch[]; scop
   </figure>;
 }
 
-export function PitchArsenalChart({ pitches, scope = "session" }: { pitches: readonly ArsenalPitch[]; scope?: "session" | "fall" }) {
-  return <div className={styles.grid} aria-label="Pitch arsenal visual summary"><ArsenalScatter pitches={pitches} scope={scope}/><ArsenalMix pitches={pitches} scope={scope}/></div>;
+/** Owner request (October 17): pitch mix from the game sheet's family counts, which cover every recorded game pitch. */
+export function SheetMixChart({ mix }: { mix: SheetPitchMix }) {
+  const parts = [...mix.families.map(f => ({ label: f.label, count: f.pitches, color: f.color })), ...(mix.unrecorded ? [{ label: "Family not recorded", count: mix.unrecorded, color: "#7d8692" }] : [])];
+  const circumference = 2 * Math.PI * 68;
+  return <figure className={styles.figure} data-testid="sheet-pitch-mix">
+    <figcaption><h4>Pitch Mix<StatInfo metric="pitch_splits" label="Pitch Mix"/></h4><p>Every Fall game pitch by family · Pitching game sheet</p></figcaption>
+    <div className={styles.mixLayout}><svg viewBox="0 0 220 220" role="img" aria-label={`${mix.total} game pitches by family`}>
+      <circle cx="110" cy="110" r="68" fill="none" stroke="var(--line-subtle)" strokeWidth="23"/>
+      {parts.map((item, index) => { const length = item.count / mix.total * circumference, offset = parts.slice(0, index).reduce((n, p) => n + p.count, 0) / mix.total * circumference;
+        return <circle key={item.label} cx="110" cy="110" r="68" fill="none" stroke={item.color} strokeWidth="23" strokeDasharray={`${length} ${circumference - length}`} strokeDashoffset={-offset} transform="rotate(-90 110 110)"><title>{`${item.label}: ${item.count} of ${mix.total} pitches`}</title></circle>; })}
+      <text x="110" y="105" textAnchor="middle" fill="var(--text-primary)" fontSize="28" fontWeight="800">{mix.total}</text><text x="110" y="124" textAnchor="middle" fill="var(--text-secondary)" fontSize="16">pitches</text>
+    </svg><ul className={styles.mixLegend}>{parts.map(item => <li key={item.label}><span style={{ backgroundColor: item.color }} aria-hidden="true"/><span>{item.label}</span><strong>{item.count} · {(item.count / mix.total * 100).toFixed(0)}%</strong></li>)}</ul></div>
+    <p className={styles.note}>From the pitching sheet&apos;s Fall totals, so it includes pitches Full Swing did not classify. The sheet groups pitches into fastball, breaking ball and changeup families, not exact pitch types.</p>
+  </figure>;
+}
+
+/** With a game-sheet mix (in-game views), it replaces the Full Swing classified-count donut; practice keeps the Full Swing mix. */
+export function PitchArsenalChart({ pitches, scope = "session", sheetMix = null, hideMix = false }: { pitches: readonly ArsenalPitch[]; scope?: "session" | "fall"; sheetMix?: SheetPitchMix | null; hideMix?: boolean }) {
+  return <div className={styles.grid} aria-label="Pitch arsenal visual summary"><ArsenalScatter pitches={pitches} scope={scope}/>{hideMix ? null : sheetMix ? <SheetMixChart mix={sheetMix}/> : <ArsenalMix pitches={pitches} scope={scope}/>}</div>;
 }
