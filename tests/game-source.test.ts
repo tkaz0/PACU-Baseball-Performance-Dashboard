@@ -25,6 +25,34 @@ describe("source-grounded Fall game adapters",()=>{
     const f=fixture(true);f.set(3,20);f.snapshot.cells.push({row:2,column:26,entered:"K% RK"},{row,column,effective:1});
     expect(f.run().issues.some(i=>i.code==="unreviewed_columns")).toBe(true);
   });
+  it("ignores only the owner-reviewed AA summary formulas and footer note",()=>{
+    const f=fixture(true);f.set(3,20);
+    const before=f.run().observations;
+    f.snapshot.cells.push({row:2,column:26,entered:"K% RK"},
+      {row:35,column:27,formula:"=SUM(S3:S33)",effective:2},
+      {row:182,column:27,formula:"=SUM(S150:S180)",error:"DIVIDE_BY_ZERO"},
+      {row:183,column:27,entered:"Fictional summary note",effective:"Fictional summary note"});
+    const p=f.run();expect(p.canImport).toBe(true);expect(p.observations).toEqual(before);
+  });
+  it.each([
+    {row:34,column:27,formula:"=SUM(S3:S33)"},
+    {row:36,column:27,formula:"=SUM(S3:S33)"},
+    {row:181,column:27,formula:"=SUM(S150:S180)"},
+    {row:184,column:27,entered:"Fictional note"},
+    {row:35,column:27,entered:2},
+    {row:182,column:27,entered:"2"},
+    {row:183,column:27,entered:2},
+    {row:183,column:27,entered:"2"},
+    {row:183,column:27,formula:"=SUM(S150:S180)"},
+    {row:35,column:27,effective:2},
+  ])("keeps unreviewed AA neighbors and raw inputs blocked: %j",cell=>{
+    const f=fixture(true);f.set(3,20);f.snapshot.cells.push({row:2,column:26,entered:"K% RK"},cell);
+    expect(f.run().issues.some(i=>i.code==="unreviewed_columns")).toBe(true);
+  });
+  it("requires the reviewed summary header for the AA footer exceptions",()=>{
+    const f=fixture(true);f.set(3,20);f.snapshot.cells.push({row:35,column:27,formula:"=SUM(S3:S33)"});
+    expect(f.run().issues.some(i=>i.code==="unreviewed_columns")).toBe(true);
+  });
   it("ignores owner-reviewed unheaded AE formulas only within the top summary",()=>{
     const f=fixture(true);f.set(3,20);
     f.snapshot.cells.push({row:2,column:26,entered:"K% RK"},{row:3,column:31,formula:"=R3+S3",effective:2},{row:33,column:31,formula:"=R33+S33",effective:3});

@@ -17,6 +17,8 @@ October 12 owner-reviewed pitching summary layout: the top summary's Z3:AC33 con
 
 October 13 owner-reviewed addition: ignore derived formulas in AE3:AE33 while AE2 stays blank and Z2 retains `K% RK`. Entered AE values, a new AE header, AD content, or formulas outside those exact summary rows still require review. Import only the raw reviewed weekly blocks; captures and source hashes remain unchanged.
 
+October 17 owner-reviewed addition: AA35 and AA182 are summary formulas, and AA183 is a text note. Ignore only formulas at the first two cells and nonnumeric text at the third, with the existing `K% RK` summary header still required. Neighboring cells, entered counts, effective-only values and changed cell types remain blocked for review. Preserve these cells in captures and hashes; never import them as weekly observations. The owner identified Week 4 as October 16; retain `fall-2026-week-4` with null `playedOn` and record the calendar date separately in Fall Ball Weeks.
+
 The owner also confirmed Week 3 is separate October 10 totals and X/Y still mean weak/hard contact. Both headers are blank at X112:Y112; only this exact reviewed Week 3 block accepts that blank pair. Changed text, formulas/errors/effective-only header content, other weeks and incomplete coverage still require review. Original source cells remain unchanged.
 
 ## Weekly trend badges
