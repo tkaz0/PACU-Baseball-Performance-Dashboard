@@ -51,6 +51,8 @@ export type PlayerPerformanceProfileProps = {
   pitchDevelopment?: ReactNode; practicePitchDevelopment?: ReactNode;
   /** Shown at the top of the Game Stats, Hitting and Pitching tabs (data-freshness banners). */
   tabNotice?: ReactNode;
+  /** Overview timeline of test days, game weeks and Fall bests. */
+  fallStory?: ReactNode;
   athlete: RosterAthlete; performance: ReturnType<typeof getPlayerPerformance>; season?: AthleteSeason | null;
   overviewGameStats?: SharedGameStat[]; gameComparisons?: GameComparison[];
   blastBatSpeedPercentile?: BlastBatSpeedPercentile | null;
@@ -145,7 +147,7 @@ function SessionMeasurements({ quick=false, performance, season, context, discip
     {!quick && <ProfileTrendChart series={profileTrends([...hitting, ...throwing])} annotations={annotations} />}
   </section>;
 }
-export function PlayerPerformanceProfile({ tabNotice, blastBatSpeedPercentile = null, detail, selectedTab, navigationPath, headshot, athlete, performance, season, blastReadings, swingDesignHref, pitchDesignHref, timelineReadings=[], teamAverages=[], pitchResults, practicePitchResults, pitchDevelopment, practicePitchDevelopment, contactResults, practiceContactResults, coachFocus, goals, developmentPlan, trainingBlocks, trendNotes, trendAnnotations=[], fictional = false, simplified = false, action, muscleBalance, movementScreening, physicalityDetails, history, gameStats, contactAllowed, pitchGrades, pitchSheetMix = null, overviewGameStats = [], gameComparisons = [] }: PlayerPerformanceProfileProps) {
+export function PlayerPerformanceProfile({ fallStory, tabNotice, blastBatSpeedPercentile = null, detail, selectedTab, navigationPath, headshot, athlete, performance, season, blastReadings, swingDesignHref, pitchDesignHref, timelineReadings=[], teamAverages=[], pitchResults, practicePitchResults, pitchDevelopment, practicePitchDevelopment, contactResults, practiceContactResults, coachFocus, goals, developmentPlan, trainingBlocks, trendNotes, trendAnnotations=[], fictional = false, simplified = false, action, muscleBalance, movementScreening, physicalityDetails, history, gameStats, contactAllowed, pitchGrades, pitchSheetMix = null, overviewGameStats = [], gameComparisons = [] }: PlayerPerformanceProfileProps) {
   const quick = detail === "quick";
   const hasBlast = !!blastReadings?.some(r=>parseBlastSource(r.source));
   const bodyScoreCard = performance.body.find(card => card.metric.key === "body_score" && card.latest);
@@ -172,7 +174,7 @@ export function PlayerPerformanceProfile({ tabNotice, blastBatSpeedPercentile = 
   const newerReport = latestBlast && latestBlast.end > (lastTested ?? "") ? latestBlast : null;
   const headerResults = profileHeaderResults(displayPerformance, selectedSeason, arsenal);
   const tabs: ProfileTab[] = [
-    { id: "overview", label: "Overview", content: selectedTab && selectedTab !== "overview" ? null : <><PlayerOverview quick={quick} beforeMethods={!quick && layout.showHitting ? <PracticeGameBridge performance={performance} blastReadings={blastReadings}/> : null} teamAverages={teamAverages} twoWay={selectedSeason?.player_type?.trim().toLowerCase() === "two_way"} showMethods={!simplified} cards={[...cards, ...(bodyScoreCard ? [bodyScoreCard] : [])]} gameStats={overviewGameStats} gameComparisons={gameComparisons} />{developmentPlan}{coachFocus}{goals}</> },
+    { id: "overview", label: "Overview", content: selectedTab && selectedTab !== "overview" ? null : <>{fallStory}<PlayerOverview quick={quick} beforeMethods={!quick && layout.showHitting ? <PracticeGameBridge performance={performance} blastReadings={blastReadings}/> : null} teamAverages={teamAverages} twoWay={selectedSeason?.player_type?.trim().toLowerCase() === "two_way"} showMethods={!simplified} cards={[...cards, ...(bodyScoreCard ? [bodyScoreCard] : [])]} gameStats={overviewGameStats} gameComparisons={gameComparisons} />{developmentPlan}{coachFocus}{goals}</> },
     { id: "game-stats", label: "Game Stats", content: selectedTab && selectedTab !== "game-stats" ? null : gameStats ? <section aria-label="Cumulative game statistics" className="space-y-4"><h2 className="m-0 text-xl font-bold">Cumulative Game Stats · Fall 2026</h2>{tabNotice}{gameStats}</section> : <p className={presentation.emptyState}>No game stats recorded yet.</p> },
     ...(layout.showHitting ? [{ id: "hitting", label: "Hitting", content: selectedTab && selectedTab !== "hitting" ? null : <>{tabNotice}<SessionMeasurements quick={quick} annotations={trendAnnotations} teamAverages={teamAverages} performance={classifiedPerformance} season={selectedSeason} context="in_game" discipline="hitting" />{contactResults}</> }] : []),
     ...(profileShowsPitching(selectedSeason) ? [{ id: "pitching", label: "Pitching", content: selectedTab && selectedTab !== "pitching" ? null : <>{tabNotice}{gamePitchResults}{pitchDevelopment}{pitchGrades}{contactAllowed}<SessionMeasurements quick={quick} annotations={trendAnnotations} performance={classifiedPerformance} season={selectedSeason} context="in_game" discipline="pitching" hasArsenal={gameArsenal} /></> }] : []),

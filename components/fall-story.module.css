@@ -1,0 +1,22 @@
+.story { padding: clamp(14px, 2vw, 20px); border: 1px solid var(--line-subtle); border-radius: var(--radius-card, 14px); background: var(--surface-panel); }
+.story header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+.story h2 { margin: 0; font-family: var(--font-display, inherit); font-size: 20px; font-weight: 800; text-transform: uppercase; }
+.story header p { margin: 0; color: var(--text-secondary); font-size: 12px; }
+.track { position: relative; height: 70px; margin: 14px 10px 4px; }
+.rail { position: absolute; top: 34px; left: 0; right: 0; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--text-secondary) 22%, transparent); }
+.month { position: absolute; top: 52px; transform: translateX(-50%); color: var(--text-secondary); font-size: 12px; }
+.week { position: absolute; top: 4px; transform: translateX(-50%); padding: 1px 5px; border-radius: 5px; background: color-mix(in srgb, var(--accent-readable) 14%, transparent); color: var(--accent-readable); font-size: 12px; font-weight: 800; white-space: nowrap; }
+.week::after { content: ""; position: absolute; left: 50%; top: 100%; width: 1px; height: 10px; background: color-mix(in srgb, var(--accent-readable) 50%, transparent); }
+.day { position: absolute; top: 30px; width: 12px; height: 12px; margin-left: -6px; border-radius: 999px; box-shadow: 0 0 0 2px var(--surface-panel); }
+.body { background: #8a8f98; } .testing { background: #d99a1e; } .practice { background: #367ea3; } .game { background: #c8102e; }
+.pinMark { position: absolute; top: 12px; transform: translateX(-50%); color: #d4a72c; font-size: 14px; line-height: 1; }
+.today { position: absolute; top: 52px; transform: translateX(-100%); color: var(--text-primary); font-size: 12px; font-weight: 700; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--text-secondary); font-size: 12px; }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 999px; }
+.legend b { color: var(--accent-readable); }
+.pins { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+.pins li { display: flex; gap: 8px; padding: 8px 10px; border: 1px solid var(--line-subtle); border-radius: 10px; background: var(--surface-raised); font-size: 13px; }
+.pins small { display: block; color: var(--text-secondary); font-size: 12px; }
+.star { color: #d4a72c; }
+.more { margin: 8px 0 0; color: var(--text-secondary); font-size: 12px; }

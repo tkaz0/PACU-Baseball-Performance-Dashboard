@@ -52,6 +52,7 @@ import { profileMeasurementVisible, profileShowsHitting, profileShowsPitching } 
 import { loadFallBallWeeks } from "@/lib/fall-ball-weeks-server";
 import { DataFreshness } from "@/components/data-freshness";
 import { FullSwingFreshness } from "@/components/full-swing-freshness";
+import { FallStory } from "@/components/fall-story";
 import { weeksAfterUpdate } from "@/lib/data-freshness";
 import { teamGameSummary } from "@/lib/team-game-stats";
 import { loadMissingFullSwingWeeks } from "@/lib/full-swing-week-gaps-server";
@@ -123,7 +124,7 @@ export default async function Profile({ params, searchParams }: { params: Promis
   return <>
     <AccessPreviewNotice status={query?.preview} isPreview={!!access.preview} />
     <div className="profile-toolbar">{staff ? <Link href="/roster" className="profile-back"><ArrowLeft size={15} />Team Roster</Link> : <span/>}<div className="profile-toolbar-actions">{canImportPresentedAccess(access) && <Link href="/imports" className="btn btn-secondary" title="Import Results"><Upload size={15} aria-hidden="true"/><span className="profile-toolbar-label">Import Results</span></Link>}<Link prefetch={false} href={`/athletes/${athlete.id}/report`} className="btn btn-secondary" title="Player Report"><FileText size={15} aria-hidden="true"/><span className="profile-toolbar-label">Player Report</span></Link></div></div>
-    <PlayerPerformanceProfile tabNotice={tabNotice} blastBatSpeedPercentile={blastBatSpeedPercentile} detail={detail} selectedTab={selectedTab} navigationPath={`/athletes/${athlete.id}`}
+    <PlayerPerformanceProfile fallStory={!selectedTab || selectedTab === "overview" ? <FallStory readings={readings} weekDates={fallBallWeekDates()} today={today}/> : undefined} tabNotice={tabNotice} blastBatSpeedPercentile={blastBatSpeedPercentile} detail={detail} selectedTab={selectedTab} navigationPath={`/athletes/${athlete.id}`}
       headshot={headshot}
       pitchDevelopment={selectedTab === "pitching" ? <PitchDevelopment groups={pitchDevelopmentGroups} context="in_game" contactsAvailable={allowed !== null}/> : undefined}
       practicePitchDevelopment={selectedTab === "practice" ? <PitchDevelopment groups={pitchDevelopmentGroups} context="practice"/> : undefined}

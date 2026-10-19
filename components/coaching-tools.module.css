@@ -125,3 +125,10 @@
 .tally { display:block; margin-top:3px; color:var(--accent-readable); font-size:12px; font-weight:800; }
 .tallyTie { display:block; margin-top:3px; color:var(--text-secondary); font-size:12px; font-weight:600; }
 @media(max-width:700px){.playerIdentity{flex-direction:column;align-items:flex-start;gap:8px}.playerB .playerIdentity{flex-direction:column;align-items:flex-end}}
+.progressPlayer { display:flex; align-items:center; gap:10px; min-width:0; }
+.dumbbell { position:relative; height:14px; border-radius:7px; background:color-mix(in srgb,var(--surface-raised) 80%,transparent); }
+.dumbbellLine { position:absolute; top:5px; height:4px; border-radius:2px; background:currentColor; opacity:.55; }
+.dumbbellPrev,.dumbbellLatest { position:absolute; top:1px; width:12px; height:12px; margin-left:-6px; border-radius:999px; }
+.dumbbellPrev { border:2px solid currentColor; background:var(--surface-panel); }
+.dumbbellLatest { background:currentColor; box-shadow:0 0 0 2px var(--surface-panel); }
+.dumbbell[data-steady] .dumbbellLine { opacity:.25; }

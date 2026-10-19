@@ -5,8 +5,12 @@
 .table th a { color: inherit; }
 .table th a:hover { text-decoration: underline; }
 .score { display: inline-block; min-width: 36px; padding: 2px 6px; border-radius: 6px; font-variant-numeric: tabular-nums; font-weight: 800; text-align: center; background: var(--surface-raised); }
-.score[data-band="high"] { background: color-mix(in srgb, #c8102e 22%, transparent); }
-.score[data-band="low"] { background: color-mix(in srgb, #367ea3 22%, transparent); }
+.score { background: color-mix(in srgb, var(--heat-color, #8a8f98) var(--heat, 0%), var(--surface-raised)); }
 .na { color: var(--text-secondary); font-size: 12px; }
 .sub { display: block; color: var(--text-secondary); font-size: 12px; }
 .note { margin: 10px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+.pitcher { vertical-align: top; text-align: left; }
+.pitcher a { display: flex; align-items: center; gap: 10px; color: var(--text-primary) !important; }
+.pitcher small { display: block; color: var(--text-secondary); font-size: 12px; font-weight: 400; }
+.groupStart > * { border-top: 2px solid var(--line-strong, var(--line-subtle)) !important; }
+.pitchChip { display: inline-block; padding: 2px 8px; border: 1px solid var(--line-subtle); border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; }
