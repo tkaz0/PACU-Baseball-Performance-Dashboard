@@ -66,7 +66,7 @@ export function GraphicsStudio({staff,players,ownAthleteId,fixture,initialAthlet
  const availableMetrics=template==="comparison"?comparableGraphicsMetrics(player?.metrics??[],second):(player?.metrics??[]).filter(metric=>template!=="percentiles"||metric.percentile!==null);
  const groups=graphicsMetricGroups(availableMetrics);
  // Default to the player's game stats when they have them (more shareable than body numbers), else the first group.
- const defaultGroup=groups.find(group=>/qpa|pitching_fall|game/i.test(`${group.source} ${group.label}`))??groups.find(group=>/in.?game|intrasquad/i.test(`${group.label} ${group.context}`))??groups[0];
+ const defaultGroup=groups.find(group=>/^(QPA|Pitching) · Fall 2026$/.test(group.source))??groups.find(group=>/^Full Swing · (Game|Intrasquad)/i.test(group.source))??groups[0];
  const selectedGroup=groups.find(group=>group.key===groupKey)??defaultGroup;
  const metrics=selectedGraphicsMetrics(player?{...player,metrics:availableMetrics}:null,selectedGroup?.key??"",metricKeys,template);
  const metricChoices=availableMetrics.filter(metric=>selectedGroup?.key===JSON.stringify([metric.category,metric.source,metric.context]));
