@@ -42,10 +42,10 @@ function useGraphicsResource<T>(enabled:boolean,body:object,retry:number,fixture
 function composePreview(card:ReturnType<typeof buildGraphicsCard>,options:Parameters<typeof renderGraphics>[1]){try{return {svg:card?renderGraphics(card,options):null,error:""};}catch(reason){return {svg:null,error:reason instanceof Error?reason.message:"Choose a taller format or fewer stats for this graphic."};}}
 
 type StudioFixture={player?:GraphicsPlayerData;second?:GraphicsPlayerData;boards?:GraphicsLeaderboard[];weeks?:GraphicsWeek[]};
-export function GraphicsStudio({staff,players,ownAthleteId,fixture}:{staff:boolean;players:StaffAthleteChoice[];ownAthleteId:string|null;fixture?:StudioFixture}){
+export function GraphicsStudio({staff,players,ownAthleteId,fixture,initialAthleteId}:{staff:boolean;players:StaffAthleteChoice[];ownAthleteId:string|null;fixture?:StudioFixture;initialAthleteId?:string}){
  const [template,setTemplate]=useState<GraphicsTemplate>("player");
  const [format,setFormat]=useState<GraphicsFormat>("portrait");const [theme,setTheme]=useState<GraphicsTheme>("black");
- const [selectedId,setSelectedId]=useState(fixture?.player?.player.id??ownAthleteId??"");
+ const [selectedId,setSelectedId]=useState(fixture?.player?.player.id??initialAthleteId??ownAthleteId??"");
  const [secondId,setSecondId]=useState(fixture?.second?.player.id??"");
  const [retry,setRetry]=useState(0);
  const playerResult=useGraphicsResource<{data:GraphicsPlayerData}>(!!selectedId,{kind:"player",athleteId:selectedId},retry,fixture?.player?{data:fixture.player}:undefined);

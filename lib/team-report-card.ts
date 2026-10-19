@@ -1,4 +1,4 @@
-import { benchmarkGrade, statBenchmark, GRADE_LABELS } from "@/lib/stat-benchmarks";
+import { benchmarkGrade, benchmarkNumber, statBenchmark, GRADE_LABELS } from "@/lib/stat-benchmarks";
 import { formatTeamGameMetric, type TeamGameMetric, type TeamGameSummary } from "@/lib/team-game-stats";
 
 export const REPORT_CARD_AREAS = [
@@ -14,7 +14,7 @@ export const REPORT_CARD_AREAS = [
 ] as const;
 const LETTERS = ["F", "D", "C", "B", "A"] as const;
 
-export type ReportCardArea = { key: string; label: string; metric: string; statLabel: string; value: string; grade: (typeof LETTERS)[number]; band: (typeof GRADE_LABELS)[number]; level: number; sample: string | null };
+export type ReportCardArea = { key: string; label: string; metric: string; statLabel: string; value: string; grade: (typeof LETTERS)[number]; band: (typeof GRADE_LABELS)[number]; level: number; sample: string | null; next: { grade: (typeof LETTERS)[number]; target: string; direction: "higher" | "lower" } | null };
 
 /**
  * Pooled Pacific team rates graded against the published NWC team-season distribution (lib/nwc-team-history.json):
@@ -28,7 +28,11 @@ export function teamReportCard(batting: TeamGameSummary | null, pitching: TeamGa
     const benchmark = statBenchmark(area.metric, { scope: "team", unit: rate.unit });
     if (!benchmark || benchmark.direction === "neutral") return [];
     const level = benchmarkGrade(rate.value, benchmark);
+    // The NWC cutoff the team rate must pass for the next letter (same cutoffs as the grade).
+    const index = benchmark.cuts.filter(c => rate.value! >= c).length;
+    const cut = level >= 4 || benchmark.cuts.every(c => c === benchmark.cuts[0]) ? undefined : benchmark.direction === "lower" ? benchmark.cuts[index - 1] : benchmark.cuts[index];
+    const next = cut === undefined ? null : { grade: LETTERS[level + 1], target: benchmarkNumber(cut, area.metric, rate.unit), direction: benchmark.direction as "higher" | "lower" };
     return [{ key: area.key, label: area.label, metric: area.metric, statLabel: rate.label, value: formatTeamGameMetric(rate), grade: LETTERS[level], band: GRADE_LABELS[level], level,
-      sample: rate.opportunities != null && rate.opportunityLabel ? `${rate.opportunities.toLocaleString("en-US")} ${rate.opportunityLabel}` : null }];
+      sample: rate.opportunities != null && rate.opportunityLabel ? `${rate.opportunities.toLocaleString("en-US")} ${rate.opportunityLabel}` : null, next }];
   });
 }

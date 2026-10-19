@@ -4,6 +4,7 @@ import type { CoachingPlayer } from "@/lib/coaching-tools";
 import type { SharedGameStat } from "@/lib/game-server";
 import { commandFocus, powerDevelopment, POWER_MIN_BALLS, type PowerContact } from "@/lib/development-focus";
 import { CommandScatter } from "@/components/command-scatter";
+import { PitcherWorkload } from "@/components/pitcher-workload";
 import styles from "./development-focus.module.css";
 
 const one = (v: number | null, suffix = "") => v === null ? "—" : `${v.toFixed(1)}${suffix}`;
@@ -28,6 +29,7 @@ export function DevelopmentFocus({ players, stats, contacts, squaredAvailable, w
           <td className="text-right tabular-nums">{row.fps ?? "—"}</td><td className="text-right tabular-nums">{row.hbp ?? "—"}</td></tr>)}</tbody></table></div> : <p className="muted">{qualified && command.rows.length ? `No pitchers have ${minimumOuts / 3}+ IP yet.` : "No complete pitching lines yet."}</p>}
       <p className={styles.note}>Cumulative Fall pitching sheet totals. Strike % is strikes ÷ pitches; family Strike % uses that family&apos;s pitches. FPS is the sheet&apos;s first-pitch strike count, shown as a count because first-pitch opportunities are not recorded. K/BB is blank with zero walks. Small innings totals swing quickly.{qualified && command.rows.length > shown.length ? ` ${command.rows.length - shown.length} ${command.rows.length - shown.length === 1 ? "pitcher" : "pitchers"} below ${minimumOuts / 3} IP ${command.rows.length - shown.length === 1 ? "is" : "are"} hidden; the team rate still includes them.` : ""}</p>
     </section>
+    <PitcherWorkload players={players} stats={stats}/>
     <section className={styles.panel} aria-label="Power development" data-testid="power-development">
       <header><h2>Power Development</h2><p>Game power (ISO, SLG) beside in-game Full Swing contact. Profiles compare each hitter with team medians among hitters with {POWER_MIN_BALLS}+ balls in play: hard hit {one(power.medians.hard, "%")}, in the air {one(power.medians.air, "%")}{power.medians.squared !== null ? `, Squared Up ${one(power.medians.squared, "%")}` : ""}.</p></header>
       {power.rows.length ? <div className="table-wrap" role="region" aria-label="Hitter power statistics" tabIndex={0}><table><thead><tr><th>Hitter</th><th className="text-right">ISO<StatInfo metric="batting_est_iso" label="ISO"/></th><th className="text-right">SLG</th><th className="text-right">Balls</th><th className="text-right">Max EV</th><th className="text-right">Avg EV</th><th className="text-right">Hard Hit</th><th className="text-right">In the Air</th><th className="text-right">Squared Up<StatInfo metric="squared_up" label="Squared Up"/></th><th>Contact Profile</th></tr></thead>

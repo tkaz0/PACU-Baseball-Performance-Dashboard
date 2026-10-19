@@ -21,3 +21,10 @@
 .detail button { min-height:36px; padding:8px 12px; border-radius:7px; font-size:12px; font-weight:700; color:var(--text-secondary); }
 .detail button[aria-pressed="true"] { background:var(--surface-raised); color:var(--text-primary); box-shadow:inset 0 -2px var(--accent-readable); }
 .detail button:focus-visible { outline:2px solid var(--accent-readable); outline-offset:2px; }
+
+/* Sticky tab bar so switching tabs never needs a scroll back up (owner request, October 19). */
+.toolbar { position: sticky; top: 8px; z-index: 7; margin-bottom: 10px; padding: 4px 0; background: color-mix(in srgb, var(--surface-page) 82%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-radius: 16px; }
+@media (min-width: 1024px) { .toolbar { top: 84px; } }
+@media print { .toolbar { position: static; } }
+.controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px 16px; margin-bottom: 20px; }
+.controls:empty { display: none; }

@@ -35,7 +35,7 @@ import { WeeklyGameTrend } from "@/components/weekly-game-trend";
 import { RenphoMuscleBalance } from "@/components/renpho-muscle-balance";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ChevronDown, FileText, Upload } from "lucide-react";
+import { ArrowLeft, ChevronDown, FileText, Upload, Image as ImageIcon } from "lucide-react";
 import { requireRenderAccess as requireAccess } from "@/lib/render-access";
 import { display, UUID_PATTERN, type RosterAthlete } from "@/lib/types";
 import { canImportPresentedAccess, canReadPresentedAthlete } from "@/lib/access-preview";
@@ -123,7 +123,7 @@ export default async function Profile({ params, searchParams }: { params: Promis
     ? buildPitchDevelopment(shared.measurements, allowed, athlete.athlete_code, developmentContext, today) : [];
   return <>
     <AccessPreviewNotice status={query?.preview} isPreview={!!access.preview} />
-    <div className="profile-toolbar">{staff ? <Link href="/roster" className="profile-back"><ArrowLeft size={15} />Team Roster</Link> : <span/>}<div className="profile-toolbar-actions">{canImportPresentedAccess(access) && <Link href="/imports" className="btn btn-secondary" title="Import Results"><Upload size={15} aria-hidden="true"/><span className="profile-toolbar-label">Import Results</span></Link>}<Link prefetch={false} href={`/athletes/${athlete.id}/report`} className="btn btn-secondary" title="Player Report"><FileText size={15} aria-hidden="true"/><span className="profile-toolbar-label">Player Report</span></Link></div></div>
+    <div className="profile-toolbar">{staff ? <Link href="/roster" className="profile-back"><ArrowLeft size={15} />Team Roster</Link> : <span/>}<div className="profile-toolbar-actions">{canImportPresentedAccess(access) && <Link href="/imports" className="btn btn-secondary" title="Import Results"><Upload size={15} aria-hidden="true"/><span className="profile-toolbar-label">Import Results</span></Link>}<Link prefetch={false} href={`/graphics?athlete=${athlete.id}`} className="btn btn-secondary" title="Make Graphic"><ImageIcon size={15} aria-hidden="true"/><span className="profile-toolbar-label">Make Graphic</span></Link><Link prefetch={false} href={`/athletes/${athlete.id}/report`} className="btn btn-secondary" title="Player Report"><FileText size={15} aria-hidden="true"/><span className="profile-toolbar-label">Player Report</span></Link></div></div>
     <PlayerPerformanceProfile fallStory={!selectedTab || selectedTab === "overview" ? <FallStory readings={readings} weekDates={fallBallWeekDates()} today={today}/> : undefined} tabNotice={tabNotice} blastBatSpeedPercentile={blastBatSpeedPercentile} detail={detail} selectedTab={selectedTab} navigationPath={`/athletes/${athlete.id}`}
       headshot={headshot}
       pitchDevelopment={selectedTab === "pitching" ? <PitchDevelopment groups={pitchDevelopmentGroups} context="in_game" contactsAvailable={allowed !== null}/> : undefined}

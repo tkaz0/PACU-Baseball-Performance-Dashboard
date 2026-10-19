@@ -29,6 +29,7 @@ export function TeamReportCard({ areas, compact = false, href, id }: { areas: re
       <ul className={styles.grades}>{areas.map(area => <li key={area.key} data-grade={area.grade} data-area={area.key}>
         <span className={styles.letter}>{area.grade}</span>
         <span className={styles.detail}><strong>{area.label}<StatInfo metric={area.metric} label={area.statLabel} scope="team"/></strong><small>{area.statLabel} {area.value} · {area.band}{area.sample ? ` · ${area.sample}` : ""}</small>
+          {area.next && !compact && <span className={styles.next}>For {/^[AEF]/.test(area.next.grade) ? "an" : "a"} {area.next.grade}: {area.statLabel} {area.next.direction === "lower" ? "under" : "at least"} {area.next.target}</span>}
           <span className={styles.fifths} role="img" aria-label={`${FIFTH_NAMES[area.level]} of NWC team-seasons`}>{[0, 1, 2, 3, 4].map(level => <i key={level} data-on={level === area.level || undefined} />)}</span></span>
       </li>)}</ul>
       {!compact && areas.length >= 3 && <Radar areas={[...areas]}/>}
