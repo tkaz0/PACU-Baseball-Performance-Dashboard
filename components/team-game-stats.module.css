@@ -27,10 +27,6 @@
 @media (max-width: 600px) { .card { padding: 11px !important; } .reference { font-size: 12px; } }
 
 /* Five headline batting numbers; four pitching numbers. Detail stays one click away. */
-.jumpNav { display: flex; gap: 8px; flex-wrap: wrap; }
-.jumpNav a { display: inline-flex; align-items: center; min-height: 44px; padding: 10px 17px; border: 1px solid var(--line-subtle); border-radius: 10px; color: var(--text-primary); background: var(--surface-panel); font-size: 13px; font-weight: 700; text-decoration: none; }
-.jumpNav a:hover { border-color: var(--accent-readable); color: var(--accent-readable); }
-.jumpNav a:focus-visible { outline: 2px solid var(--accent-readable); outline-offset: 3px; }
 .page > section { scroll-margin-top: 90px; }
 .page > details { scroll-margin-top: 90px; }
 .grid { grid-template-columns: repeat(3,minmax(0,1fr)); }

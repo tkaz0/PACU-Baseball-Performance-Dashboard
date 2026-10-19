@@ -6,7 +6,7 @@ import { leaderboardMetricLabel, pitchLeaderboardLabel, isPitchLeaderboardMetric
 import { isFallBestMetric, isTimedMetric, type PlayerPerformancePeriod } from "@/lib/player-performance";
 import { formatHeight, formatMetricNumber } from "@/lib/measurement-display";
 import styles from "./leaderboard.module.css";
-import { LeaderboardAverage } from "@/components/leaderboard-average";
+import { LeaderboardAverage, leaderboardReferenceMean } from "@/components/leaderboard-average";
 
 const fallAverageKeys = new Set(["avg_exit_velocity", "avg_bat_speed", "avg_pitch_velocity", "classified_avg_velocity", "classified_avg_spin"]);
 
@@ -28,9 +28,9 @@ function ResultContext({ row, metric }: { row: LeaderboardRow; metric: Leaderboa
 
 const MEDAL = ["gold", "silver", "bronze"] as const;
 /** Only full-team medal ranks receive a podium; every player tied at a medal rank stays visible. */
-function Podium({ rows, metric, unit, headshots, tiedRanks }: { rows: LeaderboardRow[]; metric: LeaderboardMetricDefinition; unit: string; headshots: Readonly<Record<string, string>>; tiedRanks: ReadonlySet<number> }) {
+function Podium({ rows, metric, unit, headshots, tiedRanks, ownId }: { rows: LeaderboardRow[]; metric: LeaderboardMetricDefinition; unit: string; headshots: Readonly<Record<string, string>>; tiedRanks: ReadonlySet<number>; ownId?: string | null }) {
   const staggered = rows.length === 3 && rows.every((row, index) => row.rank === index + 1);
-  return <ol className={styles.podium} data-staggered={staggered} aria-label={`Top ${rows.length} on ${leaderboardMetricLabel(metric)}`}>{rows.map(row => <li key={row.athleteCode} data-place={row.rank} data-medal={MEDAL[row.rank - 1]}>
+  return <ol className={styles.podium} data-staggered={staggered} aria-label={`Top ${rows.length} on ${leaderboardMetricLabel(metric)}`}>{rows.map(row => <li key={row.athleteCode} data-place={row.rank} data-medal={MEDAL[row.rank - 1]} data-own={(!!ownId && row.profileId === ownId) || undefined}>
     <span className={styles.podiumRank} aria-label={`${tiedRanks.has(row.rank) ? "Tied for rank" : "Rank"} ${row.rank}`}>{row.rank}</span>
     <PlayerAvatar name={row.name} path={headshots[row.athleteCode]} size={row.rank === 1 ? 64 : 52} eager className={styles.podiumPhoto}/>
     <span className={styles.podiumName}>{row.profileId ? <Link href={`/athletes/${row.profileId}`} prefetch={false}>{row.name}</Link> : row.name}</span>
@@ -41,22 +41,22 @@ function Podium({ rows, metric, unit, headshots, tiedRanks }: { rows: Leaderboar
   </li>)}</ol>;
 }
 
-function RankingTable({ rows, metric, unit, continued = false, tiedRanks, barMax, headshots = {}, eager = false }: { rows: LeaderboardRow[]; metric: LeaderboardMetricDefinition; unit: string; continued?: boolean; tiedRanks: ReadonlySet<number>; barMax?: number; headshots?: Readonly<Record<string, string>>; eager?: boolean }) {
+function RankingTable({ rows, metric, unit, continued = false, tiedRanks, barMax, barMean = null, headshots = {}, eager = false, ownId }: { rows: LeaderboardRow[]; metric: LeaderboardMetricDefinition; unit: string; continued?: boolean; tiedRanks: ReadonlySet<number>; barMax?: number; barMean?: number | null; headshots?: Readonly<Record<string, string>>; eager?: boolean; ownId?: string | null }) {
   return <div className={styles.tableWrap}><table>
     <caption className="sr-only">{leaderboardMetricLabel(metric)} team results{continued ? ", continued" : ""}; recorded in {unit}</caption>
     <thead><tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col">Result</th></tr></thead>
-    <tbody>{rows.map(row => <tr key={row.athleteCode} className={row.rank === 1 ? styles.leading : undefined}>
+    <tbody>{rows.map(row => <tr key={row.athleteCode} className={[row.rank === 1 ? styles.leading : "", ownId && row.profileId === ownId ? styles.own : ""].filter(Boolean).join(" ") || undefined} aria-current={ownId && row.profileId === ownId ? "true" : undefined}>
       <td><span aria-label={`${tiedRanks.has(row.rank) ? "Tied for rank" : "Rank"} ${row.rank}`} title={tiedRanks.has(row.rank) ? `Tied for rank ${row.rank}` : undefined} className={`${styles.rank} ${row.rank === 1 ? styles.first : ""}`}>{row.rank}</span></td>
       <th scope="row"><div className={styles.playerCell}><PlayerAvatar name={row.name} path={headshots[row.athleteCode]} size={34} eager={eager}/><div className="min-w-0 flex-1"><span className={styles.player}>{row.profileId ? <Link href={`/athletes/${row.profileId}`} prefetch={false}>{row.name}</Link> : row.name}</span>
         <span className={styles.playerMeta}>{row.jerseyNumber !== null ? `#${row.jerseyNumber}` : row.athleteCode}{row.position ? ` · ${row.position}` : ""}<span className={styles.date}><time dateTime={row.measuredAt}>{leaderboardTestDate(row.measuredAt)}</time></span></span>
-        {barMax !== undefined && <span aria-hidden="true" className={styles.barTrack}><span className={unit === "rpm" ? styles.spinBar : styles.valueBar} style={{ width: `${barMax > 0 ? Math.max(0, Math.min(100, row.value / barMax * 100)) : 0}%` }} /></span>}
+        {barMax !== undefined && <span aria-hidden="true" className={styles.barTrack}><span className={unit === "rpm" ? styles.spinBar : styles.valueBar} style={{ width: `${barMax > 0 ? Math.max(0, Math.min(100, row.value / barMax * 100)) : 0}%` }} />{barMean !== null && barMax > 0 && <span className={styles.barMean} style={{ left: `${Math.max(0, Math.min(100, barMean / barMax * 100))}%` }} />}</span>}
       </div></div></th>
       <td className={styles.result}><ResultValue row={row} metric={metric} unit={unit} /><ResultContext row={row} metric={metric}/></td>
     </tr>)}</tbody>
   </table></div>;
 }
 
-export function LeaderboardResults({ rows, teamRows = rows, metric, unit, source, period, headshots = {} }: { rows: LeaderboardRow[]; teamRows?: LeaderboardRow[]; headshots?: Readonly<Record<string, string>>; metric: LeaderboardMetricDefinition; unit: string; source?: string; period?: PlayerPerformancePeriod }) {
+export function LeaderboardResults({ rows, teamRows = rows, metric, unit, source, period, headshots = {}, ownId = null }: { rows: LeaderboardRow[]; teamRows?: LeaderboardRow[]; headshots?: Readonly<Record<string, string>>; ownId?: string | null; metric: LeaderboardMetricDefinition; unit: string; source?: string; period?: PlayerPerformancePeriod }) {
   // The extended leaderboard response is deployed with the Fall-best database migration.
   // Keep the heading accurate while an older database response is still active.
   const fallBestActive = isFallBestMetric(metric.key) && rows.length > 0 && "sampleCount" in rows[0];
@@ -64,6 +64,9 @@ export function LeaderboardResults({ rows, teamRows = rows, metric, unit, source
   const mixedAverages = fallAverageActive && rows.some(row => !row.derived);
   const showBars = isPitchLeaderboardMetric(metric.key) || (metric.group === "hitting" && !isTimedMetric(metric.key)) || metric.key === "infield_velocity" || metric.key === "outfield_velocity";
   const barMax = showBars ? Math.max(0, ...teamRows.map(row => row.value)) : undefined;
+  const swingWeights = source && isBlastFallSource(source) ? teamRows.map(row => row.sampleCount) : undefined;
+  const barMean = barMax !== undefined ? leaderboardReferenceMean(teamRows.map(row => row.value), swingWeights) : null;
+  const own = ownId ? teamRows.find(row => row.profileId === ownId) : undefined;
   const rankCounts = new Map<number, number>();
   for (const row of teamRows) rankCounts.set(row.rank, (rankCounts.get(row.rank) ?? 0) + 1);
   const tiedRanks = new Set([...rankCounts].filter(([, count]) => count > 1).map(([rank]) => rank));
@@ -76,11 +79,12 @@ export function LeaderboardResults({ rows, teamRows = rows, metric, unit, source
       <h2>{isPitchLeaderboardMetric(metric.key) && source ? pitchLeaderboardLabel(metric, source) : leaderboardMetricLabel(metric)}<StatInfo metric={metric.key} label={isPitchLeaderboardMetric(metric.key) && source ? pitchLeaderboardLabel(metric, source) : leaderboardMetricLabel(metric)} cohort={teamRows.map(row=>row.value)} source={source} unit={unit} period={period} /></h2>
       <p title={isTimedMetric(metric.key) ? "Fastest comparable Fall trial per athlete; equal values share a rank." : fallBestActive ? "Best recorded Fall result within this source and session type; equal values share a rank." : fallAverageActive ? "Reading-count-weighted average across saved Fall sessions when every session has a verified count; otherwise the latest session." : metric.direction === "neutral" ? "Numerical comparisons, not a health or performance rating." : "Latest comparable result per athlete; equal values share a rank."}>{fallBestActive ? `Fall Best · ${leaderboardOrderLabel(metric)}` : fallAverageActive ? `Fall Average · ${leaderboardOrderLabel(metric)}` : leaderboardOrderLabel(metric)}</p>
       {mixedAverages && <p className={styles.contextNote}>Latest-session results are marked below.</p>}
+      {own && <p className={styles.ownRank}>You · #{own.rank} of {teamRows.length}</p>}
     </header>
-    <LeaderboardAverage basis={isFallBestMetric(metric.key) || isTimedMetric(metric.key) ? "best" : fallAverageKeys.has(metric.key) ? "average" : "result"} values={teamRows.map(row => row.value)} swingWeights={source && isBlastFallSource(source) ? teamRows.map(row => row.sampleCount) : undefined} label={leaderboardMetricLabel(metric)} format={value => metric.key === "height" ? formatHeight(value, unit) ?? String(value) : `${formatMetricNumber(value, metric.key, source, value.toLocaleString("en-US", { maximumFractionDigits: unit === "s" ? 2 : 1 }))}${unit === "ratio" ? "" : unit === "%" ? "%" : ` ${unit === "score" ? "pts" : unit}`}`} />
-    {rows.length ? <>{podiumRows.length > 0 && <Podium rows={podiumRows} metric={metric} unit={unit} headshots={headshots} tiedRanks={tiedRanks}/>}
-      {rest.length > 0 && <RankingTable rows={rest.slice(0, 5)} metric={metric} unit={unit} tiedRanks={tiedRanks} barMax={barMax} headshots={headshots} eager />}
-      {rest.length > 5 && <details className={styles.more}><summary>Show {rest.length - 5} More</summary><RankingTable rows={rest.slice(5)} metric={metric} unit={unit} tiedRanks={tiedRanks} barMax={barMax} headshots={headshots} continued /></details>}
+    <LeaderboardAverage basis={isFallBestMetric(metric.key) || isTimedMetric(metric.key) ? "best" : fallAverageKeys.has(metric.key) ? "average" : "result"} values={teamRows.map(row => row.value)} swingWeights={swingWeights} label={leaderboardMetricLabel(metric)} format={value => metric.key === "height" ? formatHeight(value, unit) ?? String(value) : `${formatMetricNumber(value, metric.key, source, value.toLocaleString("en-US", { maximumFractionDigits: unit === "s" ? 2 : 1 }))}${unit === "ratio" ? "" : unit === "%" ? "%" : ` ${unit === "score" ? "pts" : unit}`}`} />
+    {rows.length ? <>{podiumRows.length > 0 && <Podium rows={podiumRows} metric={metric} unit={unit} headshots={headshots} tiedRanks={tiedRanks} ownId={ownId}/>}
+      {rest.length > 0 && <RankingTable rows={rest.slice(0, 5)} metric={metric} unit={unit} tiedRanks={tiedRanks} barMax={barMax} barMean={barMean} headshots={headshots} eager ownId={ownId} />}
+      {rest.length > 5 && <details className={styles.more}><summary>Show {rest.length - 5} More</summary><RankingTable rows={rest.slice(5)} metric={metric} unit={unit} tiedRanks={tiedRanks} barMax={barMax} barMean={barMean} headshots={headshots} continued ownId={ownId} /></details>}
     </>
       : <p className="muted m-0 p-6 text-sm">{teamRows.length ? "No matching players on this board." : "Results will appear after testing data is added."}</p>}
   </section>;

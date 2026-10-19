@@ -6,6 +6,10 @@ function weightedAverage(values: readonly number[], weights?: readonly (number |
   const total = (weights as number[]).reduce((sum, w) => sum + w, 0);
   return { mean: values.reduce((sum, v, i) => sum + v * (weights[i] as number), 0) / total, count: values.length, swings: total };
 }
+/** The same reference the Team Average line shows: swing-weighted when every count is known, else the plain mean. */
+export function leaderboardReferenceMean(values: readonly number[], swingWeights?: readonly (number | null | undefined)[]): number | null {
+  return weightedAverage(values, swingWeights)?.mean ?? leaderboardAverage([...values])?.mean ?? null;
+}
 export function LeaderboardAverage({ values, format, label, basis = "result", game = false, swingWeights }: { values: number[]; format: (value: number) => string; label: string; basis?: "result" | "best" | "average"; game?: boolean; swingWeights?: readonly (number | null | undefined)[] }) {
   // Blast Fall averages match the profile team average: every swing counts once.
   const weighted = weightedAverage(values, swingWeights);

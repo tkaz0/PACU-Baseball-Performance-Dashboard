@@ -1,0 +1,8 @@
+.nav { position: sticky; top: 8px; z-index: 8; display: flex; gap: 6px; overflow-x: auto; width: max-content; max-width: 100%; margin: 0 0 16px; padding: 5px; border: 1px solid var(--line-subtle); border-radius: 12px; background: color-mix(in srgb, var(--surface-panel) 88%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: 0 8px 20px -16px #000; scrollbar-width: none; }
+.nav::-webkit-scrollbar { display: none; }
+.nav a { flex: 0 0 auto; padding: 8px 14px; border-radius: 8px; color: var(--text-secondary); font-size: 13px; font-weight: 700; text-decoration: none; white-space: nowrap; }
+.nav a:hover { color: var(--text-primary); }
+.nav a[aria-current] { background: var(--accent-readable); color: #fff; }
+.nav a:focus-visible { outline: 2px solid var(--accent-readable); outline-offset: 2px; }
+@media (min-width: 1024px) { .nav { top: 88px; } }
+@media (max-width: 700px) { .nav { width: auto; } }

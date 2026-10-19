@@ -5,6 +5,8 @@ import { TEAM_HISTORY_SPAN } from "@/lib/stat-benchmarks";
 import type { ReportCardArea } from "@/lib/team-report-card";
 import styles from "./team-report-card.module.css";
 
+const FIFTH_NAMES = ["Bottom fifth", "Fourth fifth", "Middle fifth", "Second fifth", "Top fifth"];
+
 function Radar({ areas }: { areas: ReportCardArea[] }) {
   const cx = 150, cy = 140, radius = 92;
   const polar = (index: number, value: number) => { const angle = -Math.PI / 2 + index * 2 * Math.PI / areas.length; return [cx + Math.cos(angle) * radius * value, cy + Math.sin(angle) * radius * value] as const; };
@@ -18,15 +20,16 @@ function Radar({ areas }: { areas: ReportCardArea[] }) {
   </svg>;
 }
 
-export function TeamReportCard({ areas, compact = false, href }: { areas: readonly ReportCardArea[]; compact?: boolean; href?: string }) {
+export function TeamReportCard({ areas, compact = false, href, id }: { areas: readonly ReportCardArea[]; compact?: boolean; href?: string; id?: string }) {
   if (!areas.length) return null;
   const strengths = areas.filter(a => a.level >= 3), focus = areas.filter(a => a.level <= 1);
-  return <section className={styles.panel} aria-label="Team report card" data-testid="team-report-card">
+  return <section id={id} className={styles.panel} aria-label="Team report card" data-testid="team-report-card">
     <header className={styles.header}><div><p className={styles.eyebrow}>Fall 2026 · vs NWC teams {TEAM_HISTORY_SPAN}</p><h2>Team Report Card</h2></div>{href && <Link prefetch={false} href={href} className={styles.link}>Full report card<ArrowRight size={14}/></Link>}</header>
     <div className={compact ? styles.compact : styles.layout}>
       <ul className={styles.grades}>{areas.map(area => <li key={area.key} data-grade={area.grade} data-area={area.key}>
         <span className={styles.letter}>{area.grade}</span>
-        <span className={styles.detail}><strong>{area.label}<StatInfo metric={area.metric} label={area.statLabel} scope="team"/></strong><small>{area.statLabel} {area.value} · {area.band}{area.sample ? ` · ${area.sample}` : ""}</small></span>
+        <span className={styles.detail}><strong>{area.label}<StatInfo metric={area.metric} label={area.statLabel} scope="team"/></strong><small>{area.statLabel} {area.value} · {area.band}{area.sample ? ` · ${area.sample}` : ""}</small>
+          <span className={styles.fifths} role="img" aria-label={`${FIFTH_NAMES[area.level]} of NWC team-seasons`}>{[0, 1, 2, 3, 4].map(level => <i key={level} data-on={level === area.level || undefined} />)}</span></span>
       </li>)}</ul>
       {!compact && areas.length >= 3 && <Radar areas={[...areas]}/>}
     </div>

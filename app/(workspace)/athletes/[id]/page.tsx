@@ -50,6 +50,12 @@ import { PlayerPerformanceProfile } from "@/components/player-performance-profil
 import { loadAthleteHeadshot } from "@/lib/headshots-server";
 import { profileMeasurementVisible, profileShowsHitting, profileShowsPitching } from "@/lib/player-profile-layout";
 import { loadFallBallWeeks } from "@/lib/fall-ball-weeks-server";
+import { DataFreshness } from "@/components/data-freshness";
+import { FullSwingFreshness } from "@/components/full-swing-freshness";
+import { weeksAfterUpdate } from "@/lib/data-freshness";
+import { teamGameSummary } from "@/lib/team-game-stats";
+import { loadMissingFullSwingWeeks } from "@/lib/full-swing-week-gaps-server";
+import { fallBallWeekDates } from "@/lib/game-weeks";
 
 export default async function Profile({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ preview?: string; focus?: string; goal?: string; tab?: string | string[]; detail?: string | string[] }> }) {
   const access = await requireAccess();
@@ -76,6 +82,7 @@ export default async function Profile({ params, searchParams }: { params: Promis
   // Independent readers start together after the exact player passes live authorization.
   // Week dates count Fall Ball weeks for qualified badges and name the weekly columns.
   await loadFallBallWeeks(access);
+  const fullSwingGaps = canImportPresentedAccess(access) && (selectedTab === "hitting" || selectedTab === "pitching") ? loadMissingFullSwingWeeks(access).catch(() => null) : null;
   const sharedPromise = loadAthletePerformance(access,athlete);
   const allowedPromise = selectedTab === "pitching" && profileShowsPitching(season) ? loadContactsAllowed(access, athlete.id).catch(() => null) : Promise.resolve(null);
   const weeksPromise = selectedTab === "game-stats" ? loadAthleteGameWeeks(access, athlete.id).catch(() => null) : Promise.resolve(null);
@@ -98,6 +105,9 @@ export default async function Profile({ params, searchParams }: { params: Promis
     showHitting && selectedTab === "practice" ? loadBlastBatSpeedPercentile(access,athlete.id).catch(()=>null) : Promise.resolve(null),
   ]);
   const pitchingSheetMix = selectedTab === "pitching" ? playerSheetPitchMix(gameStats) : null;
+  const sheetNotice = (source: "qpa_fall_2026" | "pitching_fall_2026", name: string) => { const updated = teamGameSummary(gameStats, source).updatedAt; return <DataFreshness key={source} source={name} weeks={weeksAfterUpdate(updated, fallBallWeekDates(), today)} updatedAt={updated}/>; };
+  const tabNotice = selectedTab === "game-stats" ? <>{sheetNotice("qpa_fall_2026", "the hitting sheet")}{sheetNotice("pitching_fall_2026", "the pitching sheet")}</>
+    : <>{selectedTab === "pitching" && sheetNotice("pitching_fall_2026", "the pitching sheet")}{fullSwingGaps && <Suspense fallback={null}><FullSwingFreshness missing={fullSwingGaps}/></Suspense>}</>;
   const performance = getPlayerPerformance({ readings:shared.measurements, batches:shared.batches, athleteCode:athlete.athlete_code, cohortAthleteCodes:[], percentileOverrides:shared.percentileOverrides, fallSummaries });
   const readings = shared.measurements.filter(reading => {
     if (!profileMeasurementVisible(reading, season)) return false;
@@ -113,7 +123,7 @@ export default async function Profile({ params, searchParams }: { params: Promis
   return <>
     <AccessPreviewNotice status={query?.preview} isPreview={!!access.preview} />
     <div className="profile-toolbar">{staff ? <Link href="/roster" className="profile-back"><ArrowLeft size={15} />Team Roster</Link> : <span/>}<div className="profile-toolbar-actions">{canImportPresentedAccess(access) && <Link href="/imports" className="btn btn-secondary" title="Import Results"><Upload size={15} aria-hidden="true"/><span className="profile-toolbar-label">Import Results</span></Link>}<Link prefetch={false} href={`/athletes/${athlete.id}/report`} className="btn btn-secondary" title="Player Report"><FileText size={15} aria-hidden="true"/><span className="profile-toolbar-label">Player Report</span></Link></div></div>
-    <PlayerPerformanceProfile blastBatSpeedPercentile={blastBatSpeedPercentile} detail={detail} selectedTab={selectedTab} navigationPath={`/athletes/${athlete.id}`}
+    <PlayerPerformanceProfile tabNotice={tabNotice} blastBatSpeedPercentile={blastBatSpeedPercentile} detail={detail} selectedTab={selectedTab} navigationPath={`/athletes/${athlete.id}`}
       headshot={headshot}
       pitchDevelopment={selectedTab === "pitching" ? <PitchDevelopment groups={pitchDevelopmentGroups} context="in_game" contactsAvailable={allowed !== null}/> : undefined}
       practicePitchDevelopment={selectedTab === "practice" ? <PitchDevelopment groups={pitchDevelopmentGroups} context="practice"/> : undefined}

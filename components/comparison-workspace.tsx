@@ -7,7 +7,7 @@ import { PlayerComparison } from "@/components/player-comparison";
 import { GroupComparison } from "@/components/group-comparison";
 import styles from "./group-comparison.module.css";
 
-export function ComparisonWorkspace({ data, today }: { data: CoachingData; today: string }) {
+export function ComparisonWorkspace({ data, today, headshots = {} }: { data: CoachingData; today: string; headshots?: Readonly<Record<string, string>> }) {
  const [mode, setMode] = useState<"group" | "pair">("group");
  return <div className={styles.workspace}>
   <div className={styles.modeBar}>
@@ -18,6 +18,6 @@ export function ComparisonWorkspace({ data, today }: { data: CoachingData; today
    <span className={styles.season}>Fall 2026</span>
   </div>
   <div hidden={mode !== "group"}><GroupComparison data={data} today={today}/></div>
-  <div hidden={mode !== "pair"}><PlayerComparison data={data} today={today}/></div>
+  <div hidden={mode !== "pair"}><PlayerComparison data={data} today={today} headshots={headshots}/></div>
  </div>;
 }

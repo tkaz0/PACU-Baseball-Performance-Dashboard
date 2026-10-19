@@ -22,3 +22,10 @@ li[data-grade="F"] .letter { background: #367ea3; }
 .note { margin: 12px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
 .header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px; }
 .link { display: inline-flex; align-items: center; gap: 4px; color: var(--accent-readable); font-size: 13px; font-weight: 700; text-decoration: none; }
+.grades li { --grade: #8a8f98; background: linear-gradient(100deg, color-mix(in srgb, var(--grade) 12%, var(--surface-raised)), var(--surface-raised) 55%); border-color: color-mix(in srgb, var(--grade) 30%, var(--line-subtle)); }
+.grades li[data-grade="A"] { --grade: #c8102e; } .grades li[data-grade="B"] { --grade: #e0706f; } .grades li[data-grade="D"] { --grade: #6f9fc4; } .grades li[data-grade="F"] { --grade: #367ea3; }
+.grades li .letter { background: var(--grade); }
+.detail { flex: 1; }
+.fifths { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; max-width: 180px; margin-top: 6px; }
+.fifths i { height: 5px; border-radius: 3px; background: color-mix(in srgb, var(--text-secondary) 22%, transparent); }
+.fifths i[data-on] { background: var(--grade); box-shadow: 0 0 0 1px color-mix(in srgb, var(--grade) 40%, transparent); }

@@ -15,12 +15,18 @@ import { teamGameSummary } from "@/lib/team-game-stats";
 import { PageHeading } from "@/components/page-heading";
 import { TEAM_HISTORY_SPAN } from "@/lib/stat-benchmarks";
 import { loadFallBallWeeks } from "@/lib/fall-ball-weeks-server";
+import { SectionNav } from "@/components/section-nav";
+import { DataFreshness } from "@/components/data-freshness";
+import { weeksAfterUpdate } from "@/lib/data-freshness";
+import { pacificTestingDate } from "@/lib/testing-checklist";
+
+const SECTIONS = [{ id: "team-report-card", label: "Report Card" }, { id: "team-batting", label: "Hitting" }, { id: "team-pitching", label: "Pitching" }, { id: "player-breakdown", label: "Players" }] as const;
 
 export default async function GameStatsPage() {
   const access = await requireAccess();
   if (canImportPresentedAccess(access)) {
     // Week dates name the "vs Week N" change badges.
-    await loadFallBallWeeks(access);
+    const weekDates = await loadFallBallWeeks(access);
     const trends=loadTeamGameTrends(access).catch(()=>({}));
     const stats = await loadGameStats(access);
     const ids = [...new Set(stats.map(row => row.athlete_id))];
@@ -30,7 +36,8 @@ export default async function GameStatsPage() {
       if (error) throw new Error("Game roster could not be loaded.");
       names = new Map((data ?? []).map(a => [a.id, `${a.first_name} ${a.last_name}`]));
     }
-    return <><PageHeading section="Team" title="Team Game Stats" description="Fall 2026 · Cumulative hitting and pitching."><Link href="/game-stats/review" className="btn btn-secondary">Data Review</Link><Link href="/game-stats/weeks" className="btn btn-secondary">Fall Ball Weeks</Link></PageHeading><div className="mb-5"><ScaleLegend low="Poor" high="Elite" note={`Bands compare the team with Northwest Conference team-seasons from ${TEAM_HISTORY_SPAN}. Red marks the top band, as on Baseball Savant.`}/></div><TeamReportCard areas={teamReportCard(teamGameSummary(stats,"qpa_fall_2026"),teamGameSummary(stats,"pitching_fall_2026"))}/><TeamGameStats stats={stats} names={names} streamedTrend={(source,metric,updatedAt,compact)=><Suspense fallback={null}><TeamGameTrend trends={trends} source={source} metric={metric} updatedAt={updatedAt} compact={compact}/></Suspense>}/></>;
+    const batting = teamGameSummary(stats, "qpa_fall_2026"), pitching = teamGameSummary(stats, "pitching_fall_2026"), today = pacificTestingDate();
+    return <><PageHeading section="Team" title="Team Game Stats" description="Fall 2026 · Cumulative hitting and pitching."><Link href="/game-stats/review" className="btn btn-secondary">Data Review</Link><Link href="/game-stats/weeks" className="btn btn-secondary">Fall Ball Weeks</Link></PageHeading><div className="mb-5"><ScaleLegend low="Poor" high="Elite" note={`Bands compare the team with Northwest Conference team-seasons from ${TEAM_HISTORY_SPAN}. Red marks the top band, as on Baseball Savant.`}/></div><DataFreshness source="the hitting sheet" weeks={weeksAfterUpdate(batting.updatedAt, weekDates, today)} updatedAt={batting.updatedAt}>Hitting rates and change badges stop at the last update.</DataFreshness><DataFreshness source="the pitching sheet" weeks={weeksAfterUpdate(pitching.updatedAt, weekDates, today)} updatedAt={pitching.updatedAt}>Pitching rates and change badges stop at the last update.</DataFreshness><SectionNav label="Team stats sections" items={ids.length ? SECTIONS : SECTIONS.slice(0, 3)}/><TeamReportCard id="team-report-card" areas={teamReportCard(batting,pitching)}/><TeamGameStats stats={stats} names={names} streamedTrend={(source,metric,updatedAt,compact)=><Suspense fallback={null}><TeamGameTrend trends={trends} source={source} metric={metric} updatedAt={updatedAt} compact={compact}/></Suspense>}/></>;
   }
 
   // Player View follows the presented athlete even when the real account is an Admin.

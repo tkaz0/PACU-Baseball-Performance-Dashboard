@@ -65,7 +65,8 @@
 .more summary::-webkit-details-marker { display: none; }
 .more summary::after { content: '+'; margin-left: 8px; font-size: 15px; }
 .more[open] summary::after { content: '−'; }
-.barTrack { display: block; height: 4px; margin-top: 6px; border-radius: 9px; background: var(--line-subtle); overflow: hidden; }
+.barTrack { position: relative; display: block; height: 4px; margin-top: 6px; border-radius: 9px; background: var(--line-subtle); }
+.barMean { position: absolute; top: -3px; width: 2px; height: 10px; margin-left: -1px; border-radius: 1px; background: var(--text-primary); opacity: .55; }
 .valueBar, .spinBar { display: block; height: 100%; border-radius: inherit; background: var(--accent-readable); }
 .spinBar { background: #5286cf; }
 @media (min-width: 1640px) { .board .grid:not(.gameGrid):not(.pitchGrid) { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
@@ -124,3 +125,7 @@
 .podiumValue .unit, .podiumValue span + span { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
 .podiumMeta { font-size: 12px; color: var(--text-secondary); }
 @media (max-width: 480px) { .podium { padding: 0 8px; gap: 6px; } .podiumValue { font-size: 17px; } .podium li[data-place="1"] .podiumValue { font-size: 20px; } }
+
+.own { background: color-mix(in srgb, var(--accent-readable) 12%, var(--surface-panel)); box-shadow: inset 3px 0 0 var(--accent-readable); }
+.podium li[data-own] { outline: 2px solid var(--accent-readable); outline-offset: -2px; }
+.ownRank { display: inline-flex; width: max-content; margin: 6px 0 0; padding: 3px 9px; border-radius: 999px; background: var(--accent-readable); color: #fff; font-size: 12px; font-weight: 800; }

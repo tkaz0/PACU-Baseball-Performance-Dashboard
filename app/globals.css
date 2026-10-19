@@ -260,6 +260,8 @@ tbody tr:hover { background: #fcfcfd; }
 .profile-section-nav a:hover { text-decoration: underline; }
 .profile-section-nav a > span { border-radius: 3px; padding: 3px 6px; background: #f2eeeb; color: #706962; font-size: 12px; font-weight: 600; }
 #performance, #season-details, #performance-history { scroll-margin-top: 24px; }
+#team-report-card, #team-batting, #team-pitching, #player-breakdown { scroll-margin-top: 72px; }
+@media (min-width: 1024px) { #team-report-card, #team-batting, #team-pitching, #player-breakdown { scroll-margin-top: 150px; } }
 #performance { margin-bottom: 27px; }
 .workspace-shell .roster-detail-panel { border: 1px solid #dededb; border-radius: 8px; }
 .renpho-summary { border: 1px solid #e2d5d1; border-top: 3px solid #990000; border-radius: 6px; padding: 23px; margin: 23px 0; background: #faf8f6; }

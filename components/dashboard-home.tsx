@@ -117,7 +117,7 @@ export function DashboardHome({ dataAlerts, playerWeek, leaderboardsSlot, spotli
     </header>
     {summary && <div className={styles.freshness} aria-label="Dashboard update dates"><span><span className={styles.statusDot}/>{latestUpdate ? <>Latest Update <strong>{date(latestUpdate.date, true)}</strong></> : "Awaiting Fall results"}</span><span><Clock3 size={13} aria-hidden="true"/>Game Stats <strong>{latestGameUpdate ? date(latestGameUpdate, true) : "Awaiting results"}</strong></span></div>}
     {summary && staff && (coachingPulse ?? (summary.coachDigest && <CoachThisWeek digest={summary.coachDigest} reviewCount={[...summary.batting.rates, ...summary.pitching.rates].filter(rate => rate.pending && rate.pendingReason !== "missing").length}/>))}
-    {staff && dataAlerts}
+    {dataAlerts}
     {!staff && playerWeek}
     {spotlight}
     {staff && trending}

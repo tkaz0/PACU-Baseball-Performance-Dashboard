@@ -18,7 +18,7 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
     // Confirmed Fall Ball game dates set the optional qualified minimum, the same count badges use.
     const [rows] = await Promise.all([loadGameLeaderboards(access), loadFallBallWeeks(access)]);
     const weeks = fallBallWeeksPlayed(pacificTestingDate());
-    return <><PageHeading section="Team" title="Leaderboards" description="Fall 2026 · Team game rankings."/><GameLeaderboard rows={rows} discipline={query.discipline==="pitching"?"pitching":"hitting"} qualified={query.qualified==="1"} weeks={weeks} staff={canImportPresentedAccess(access)}/></>;
+    return <><PageHeading section="Team" title="Leaderboards" description="Fall 2026 · Team game rankings."/><GameLeaderboard rows={rows} discipline={query.discipline==="pitching"?"pitching":"hitting"} qualified={query.qualified==="1"} weeks={weeks} staff={canImportPresentedAccess(access)} ownId={canImportPresentedAccess(access) ? null : access.athleteId}/></>;
   }
   const group = LEADERBOARD_GROUPS.find(group => group === query.group) ?? "physicality";
   const session = query.session === "practice" || (group === "throwing" && query.session !== "in_game") ? "practice" : "in_game";
@@ -35,5 +35,5 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
   const panels = selected.map((comparison, index) => { const result = results[index]; return { comparison, rows: result instanceof Error ? [] : result }; });
   const position = query.pos === "pitchers" || query.pos === "position" ? query.pos : "all";
   const search = typeof query.q === "string" ? query.q.trim().slice(0, 60) : "";
-  return <><PageHeading section="Team" title="Leaderboards" description="Fall 2026 · Recorded team results." />{failed.length > 0 && <p role="status" className="notice mb-4 text-sm">{failed.length === 1 ? "One leaderboard is" : `${failed.length} leaderboards are`} temporarily unavailable. Refresh to try again.</p>}<LeaderboardBoard staff={canImportPresentedAccess(access)} group={group} panels={panels} session={session} pitches={pitchSelection.pitches} selectedPitch={pitchSelection.selectedPitch} position={position} search={search} headshots={panels.some(panel => panel.rows.length) ? Object.fromEntries(await loadTeamHeadshots(access)) : {}} /></>;
+  return <><PageHeading section="Team" title="Leaderboards" description="Fall 2026 · Recorded team results." />{failed.length > 0 && <p role="status" className="notice mb-4 text-sm">{failed.length === 1 ? "One leaderboard is" : `${failed.length} leaderboards are`} temporarily unavailable. Refresh to try again.</p>}<LeaderboardBoard ownId={canImportPresentedAccess(access) ? null : access.athleteId} staff={canImportPresentedAccess(access)} group={group} panels={panels} session={session} pitches={pitchSelection.pitches} selectedPitch={pitchSelection.selectedPitch} position={position} search={search} headshots={panels.some(panel => panel.rows.length) ? Object.fromEntries(await loadTeamHeadshots(access)) : {}} /></>;
 }

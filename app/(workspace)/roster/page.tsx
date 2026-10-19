@@ -8,6 +8,9 @@ import { matchesStaffAthlete, staffAthleteChoice } from "@/lib/staff-athlete-sea
 import { AccessPreviewNotice } from "@/components/access-preview-notice";
 import styles from "@/components/roster-presentation.module.css";
 import { loadTeamHeadshots } from "@/lib/headshots-server";
+import { RosterCards } from "@/components/roster-cards";
+import { loadRosterCardStats } from "@/lib/roster-card-stats";
+import { LayoutGrid, List } from "lucide-react";
 const POSITION_FILTERS = [
   { key: "all", label: "All Positions", match: () => true },
   { key: "pitchers", label: "Pitchers", match: (p: string) => p === "P" },
@@ -18,12 +21,18 @@ const POSITION_FILTERS = [
 const SORTS = [{ key: "name", label: "Last Name" }, { key: "jersey", label: "Jersey #" }, { key: "position", label: "Position" }, { key: "class", label: "Class" }] as const;
 const POSITION_ORDER = ["P", "C", "1B", "2B", "3B", "SS", "IF", "LF", "CF", "RF", "OF", ""];
 const CLASS_ORDER = ["freshman", "sophomore", "junior", "senior", "graduate", ""];
-export default async function Roster({ searchParams }: { searchParams: Promise<{ season?: string; q?: string; preview?: string; pos?: string; sort?: string }> }) {
+export default async function Roster({ searchParams }: { searchParams: Promise<{ season?: string; q?: string; preview?: string; pos?: string; sort?: string; view?: string }> }) {
   const access = await requireAccess();
   const { supabase, roles, athleteId, preview } = access;
   if (!roles.includes("admin") && !roles.includes("coach")) redirect(athleteId ? `/athletes/${athleteId}` : "/overview");
   const params = await searchParams;
-  const { data, error } = await supabase.from("athletes").select("id,athlete_code,first_name,preferred_name,last_name,athlete_seasons(season,jersey_number,primary_position,academic_class)").order("last_name").limit(1000);
+  const view = params.view === "list" ? "list" : "cards";
+  const [{ data, error }, headshots, cardStats] = await Promise.all([
+    supabase.from("athletes").select("id,athlete_code,first_name,preferred_name,last_name,athlete_seasons(season,jersey_number,primary_position,academic_class)").order("last_name").limit(1000),
+    loadTeamHeadshots(access),
+    // Optional: cards still render without the headline game stat if the staff reader fails.
+    view === "cards" ? loadRosterCardStats().catch(() => ({})) : Promise.resolve({}),
+  ]);
   if (error) throw new Error("Unable to load the roster.");
   const all = (data ?? []) as RosterTableAthlete[];
   const seasons = [...new Set(all.flatMap(a => a.athlete_seasons.map(s => s.season)))].sort().reverse();
@@ -41,7 +50,8 @@ export default async function Roster({ searchParams }: { searchParams: Promise<{
       if (sort === "class") return CLASS_ORDER.indexOf(x?.academic_class?.toLowerCase() ?? "") - CLASS_ORDER.indexOf(y?.academic_class?.toLowerCase() ?? "") || a.last_name.localeCompare(b.last_name);
       return 0; });
   const filtered = !!query || pos !== "all";
-  const resetHref = `/roster?${new URLSearchParams({ ...(season ? { season } : {}), sort }).toString()}`;
+  const resetHref = `/roster?${new URLSearchParams({ ...(season ? { season } : {}), sort, ...(view === "list" ? { view } : {}) }).toString()}`;
+  const viewHref = (next: string) => `/roster?${new URLSearchParams({ ...(season ? { season } : {}), ...(params.q ? { q: params.q } : {}), ...(pos !== "all" ? { pos } : {}), sort, ...(next === "list" ? { view: next } : {}) }).toString()}`;
   return <><AccessPreviewNotice status={params.preview} isPreview={!!preview} />
     <RosterHeader season={season} count={seasonal.length}>{roles.includes("admin") && <Link href="/admin/import" className="btn btn-secondary">Import Roster</Link>}</RosterHeader>
     <form key={`${season}:${query}:${pos}:${sort}`} className={`panel ${styles.toolbar}`} method="get">
@@ -49,11 +59,13 @@ export default async function Roster({ searchParams }: { searchParams: Promise<{
       <label className={styles.season}>Season<select name="season" defaultValue={season}>{!seasons.length && <option value="">No seasons yet</option>}{seasons.map(s => <option key={s}>{s}</option>)}</select></label>
       <label className={styles.season}>Position<select name="pos" defaultValue={pos}>{POSITION_FILTERS.map(f => <option key={f.key} value={f.key}>{f.label}</option>)}</select></label>
       <label className={styles.season}>Sort By<select name="sort" defaultValue={sort}>{SORTS.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}</select></label>
+      {view === "list" && <input type="hidden" name="view" value="list" />}
       <button className="btn btn-secondary">Apply</button>
       {filtered && <Link className="btn btn-secondary" href={resetHref}>Clear filters</Link>}
+      <span className={styles.views} role="group" aria-label="Roster layout"><Link href={viewHref("cards")} aria-current={view === "cards" ? "page" : undefined} aria-label="Card view"><LayoutGrid size={16} aria-hidden="true" /></Link><Link href={viewHref("list")} aria-current={view === "list" ? "page" : undefined} aria-label="List view"><List size={16} aria-hidden="true" /></Link></span>
       <p className={styles.count}><strong>{athletes.length}</strong>{athletes.length !== seasonal.length ? ` of ${seasonal.length}` : ""} {athletes.length === 1 ? "player" : "players"}</p>
     </form>
-    <RosterTable athletes={athletes} season={season} filtered={filtered} resetHref={resetHref} headshots={Object.fromEntries(await loadTeamHeadshots(access))} />
+    {view === "cards" && athletes.length ? <RosterCards athletes={athletes} season={season} headshots={Object.fromEntries(headshots)} stats={cardStats} /> : <RosterTable athletes={athletes} season={season} filtered={filtered} resetHref={resetHref} headshots={Object.fromEntries(headshots)} />}
     {all.length === 1000 && <p className="notice mt-4">Showing the first 1,000 identities. Narrow your search to find a player.</p>}
   </>;
 }

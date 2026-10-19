@@ -115,3 +115,13 @@
 @media(max-width:700px){.arsenalHeading{display:block}.arsenalHeading>p{margin-top:8px}.arsenalHeading h2{font-size:23px}.arsenalPlayerHead,.arsenalRow{grid-template-columns:minmax(0,1fr) minmax(90px,.7fr) minmax(0,1fr);gap:4px;padding-left:5px;padding-right:5px}.arsenalValue{padding:8px 4px}.arsenalValue>strong{font-size:17px}.arsenalValue .meta{font-size:12px}.arsenalRow h4{font-size:12px}.arsenalRow .compareNote{font-size:12px}.arsenalPitch>header{padding:12px}.arsenalPlayerHead{font-size:12px}}
 @media(max-width:390px){.arsenalValue>strong{font-size:15px}.arsenalPlayerHead,.arsenalRow{grid-template-columns:minmax(0,1fr) 80px minmax(0,1fr)}.arsenalPitch>header span{font-size:12px}}
 .diverging[data-steady] span { opacity: .35; }
+.playerIdentity { display:flex; align-items:center; gap:12px; margin-top:12px; min-width:0; }
+.playerIdentity .name { margin-top:0; font-size:15px; }
+.playerB .playerIdentity { flex-direction:row-reverse; text-align:right; }
+.mirrorTrack { display:flex; height:5px; margin:8px auto 0; max-width:160px; border-radius:4px; background:color-mix(in srgb,var(--text-secondary) 16%,transparent); overflow:hidden; }
+.mirrorA { justify-content:flex-end; }
+.mirrorFill,.mirrorLead { display:block; height:100%; border-radius:inherit; background:color-mix(in srgb,var(--text-secondary) 55%,transparent); }
+.mirrorLead { background:var(--accent-readable); }
+.tally { display:block; margin-top:3px; color:var(--accent-readable); font-size:12px; font-weight:800; }
+.tallyTie { display:block; margin-top:3px; color:var(--text-secondary); font-size:12px; font-weight:600; }
+@media(max-width:700px){.playerIdentity{flex-direction:column;align-items:flex-start;gap:8px}.playerB .playerIdentity{flex-direction:column;align-items:flex-end}}

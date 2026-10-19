@@ -53,7 +53,7 @@ export default async function Overview({searchParams}:{searchParams:Promise<{pre
     spotlight={canSeeBoards?<Suspense fallback={<SkeletonCards count={2} tall label="Loading Players of the Week"/>}><StreamedSpotlight weeks={weeksPromise} photos={photosPromise} staff={staff}/></Suspense>:undefined}
     trending={staff?<Suspense fallback={<SkeletonPanel rows={3} label="Loading Trending Up"/>}><StreamedTrending weeks={weeksPromise}/></Suspense>:undefined}
     leaderboardsSlot={<Suspense fallback={<HomeLeaderboardPlaceholder/>}><StreamedLeaderboards boards={leaderboardsPromise} photos={photosPromise}/></Suspense>}
-    dataAlerts={staff?<Suspense fallback={null}><HomeDataAlerts missing={loadFallBallWeeks(access).then(()=>loadMissingFullSwingWeeks(access)).catch(()=>null)}/></Suspense>:undefined}
+    dataAlerts={staff||summary?<Suspense fallback={null}><HomeDataAlerts missing={staff?loadFallBallWeeks(access).then(()=>loadMissingFullSwingWeeks(access)).catch(()=>null):Promise.resolve(null)} hittingUpdatedAt={summary?.batting.updatedAt} pitchingUpdatedAt={summary?.pitching.updatedAt}/></Suspense>:undefined}
     playerWeek={ownTrends&&summary?<Suspense fallback={null}><PlayerWeek trends={trendsPromise} activity={activityPromise} batting={summary.batting} pitching={summary.pitching}/></Suspense>:undefined}
     staff={staff} athleteId={access.athleteId} summary={summary} sourceStatus={sourceStatus} visit={visit} designNavigation={designNavigation}/></>;
 }

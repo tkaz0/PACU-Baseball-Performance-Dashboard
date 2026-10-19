@@ -1,0 +1,4 @@
+.banner { display: flex; align-items: flex-start; gap: 9px; margin: 0 0 14px; padding: 9px 12px; border: 1px solid color-mix(in srgb, #d99a1e 45%, var(--line-subtle)); border-radius: 10px; background: color-mix(in srgb, #d99a1e 10%, var(--surface-panel)); color: var(--text-primary); font-size: 13px; line-height: 1.45; }
+.banner svg { flex: 0 0 auto; margin-top: 2px; color: #d99a1e; }
+.banner strong { font-weight: 700; }
+.banner a { color: var(--accent-readable); font-weight: 700; }
