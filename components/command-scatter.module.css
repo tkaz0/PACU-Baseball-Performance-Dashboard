@@ -9,3 +9,4 @@
 .below circle { fill: color-mix(in srgb, #367ea3 55%, transparent); stroke: #367ea3; }
 .label { fill: var(--text-primary); font-size: 12px; font-weight: 600; }
 .caption { margin-top: 6px; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+.chart circle[data-off] { stroke-dasharray: 2 2; }
