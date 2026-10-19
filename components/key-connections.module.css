@@ -1,0 +1,27 @@
+.panel { margin-bottom: 20px; padding: clamp(16px, 2.2vw, 24px); }
+.header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 20px; margin-bottom: 14px; }
+.header h2 { margin: 2px 0 0; font-family: var(--font-display, inherit); font-size: 26px; font-weight: 800; line-height: 1; text-transform: uppercase; }
+.eyebrow { margin: 0; color: var(--accent-readable); font-size: 12px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; }
+.legend { max-width: 420px; margin: 0; color: var(--text-secondary); font-size: 12px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+.card { display: flex; flex-direction: column; gap: 6px; padding: 14px; border: 1px solid var(--line-subtle); border-radius: 12px; background: var(--surface-raised); }
+.card[data-status="watch"] { border-style: dashed; }
+.top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.top h3 { margin: 0; font-size: 14px; font-weight: 800; }
+.status { flex: 0 0 auto; padding: 2px 7px; border-radius: 999px; background: color-mix(in srgb, var(--accent-readable) 12%, transparent); color: var(--accent-readable); font-size: 12px; font-weight: 700; }
+.card[data-status="watch"] .status { background: color-mix(in srgb, var(--text-secondary) 14%, transparent); color: var(--text-secondary); }
+.why { margin: 0; color: var(--text-secondary); font-size: 12px; line-height: 1.45; }
+.numbers { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; }
+.r { font-family: var(--font-display, inherit); font-size: 32px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.card[data-sign="pos"] .r { color: #c8102e; }
+.card[data-sign="neg"] .r { color: #367ea3; }
+.meta { color: var(--text-secondary); font-size: 12px; }
+.meta b { color: var(--text-primary); }
+.change { white-space: nowrap; }
+.trend { display: block; width: 120px; height: 36px; overflow: visible; }
+.zero { stroke: var(--line-subtle); stroke-dasharray: 3 3; }
+.line { stroke: var(--accent-readable); stroke-width: 2; }
+.dot { fill: var(--accent-readable); }
+.trendEmpty { color: var(--text-secondary); font-size: 12px; }
+.link { display: inline-flex; align-items: center; gap: 4px; margin-top: auto; color: var(--accent-readable); font-size: 13px; font-weight: 700; text-decoration: none; }
+.note { margin: 12px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }

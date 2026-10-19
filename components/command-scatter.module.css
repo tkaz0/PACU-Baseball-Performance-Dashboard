@@ -1,0 +1,11 @@
+.figure { margin: 4px 0 16px; }
+.chart { display: block; width: 100%; max-width: 760px; height: auto; overflow: visible; }
+.grid { stroke: var(--line-subtle); }
+.tick { fill: var(--text-secondary); font-size: 12px; }
+.axis { fill: var(--text-secondary); font-size: 12px; font-weight: 700; }
+.team { stroke: var(--text-secondary); stroke-dasharray: 5 4; stroke-width: 1.5; }
+.teamLabel { fill: var(--text-secondary); font-size: 12px; font-weight: 700; }
+.above circle { fill: color-mix(in srgb, #c8102e 70%, transparent); stroke: #c8102e; }
+.below circle { fill: color-mix(in srgb, #367ea3 55%, transparent); stroke: #367ea3; }
+.label { fill: var(--text-primary); font-size: 12px; font-weight: 600; }
+.caption { margin-top: 6px; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }

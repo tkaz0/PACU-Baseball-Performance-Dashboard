@@ -3,6 +3,7 @@ import { StatInfo } from "@/components/stat-info";
 import type { CoachingPlayer } from "@/lib/coaching-tools";
 import type { SharedGameStat } from "@/lib/game-server";
 import { commandFocus, powerDevelopment, POWER_MIN_BALLS, type PowerContact } from "@/lib/development-focus";
+import { CommandScatter } from "@/components/command-scatter";
 import styles from "./development-focus.module.css";
 
 const one = (v: number | null, suffix = "") => v === null ? "—" : `${v.toFixed(1)}${suffix}`;
@@ -17,6 +18,7 @@ export function DevelopmentFocus({ players, stats, contacts, squaredAvailable, w
     <section className={styles.panel} aria-label="Command focus" data-testid="command-focus">
       <header><h2>Command Focus</h2><p>Pitchers sorted by walks per nine, most first. Team BB/9: <strong>{command.teamBb9 === null ? "—" : command.teamBb9.toFixed(2)}</strong>. Highlighted rows walk more than the team rate.</p>
         <nav aria-label="Qualified pitchers" className="leaderboard-navigation mb-3" data-testid="command-qualified">{([false, true] as const).map(value => <Link key={String(value)} prefetch={false} href={value ? "/development-focus?qualified=1" : "/development-focus"} aria-current={qualified === value ? "page" : undefined}>{value ? `Qualified (${minimumOuts / 3} IP+)` : "Everyone"}</Link>)}</nav></header>
+      <CommandScatter rows={shown} teamBb9={command.teamBb9}/>
       {shown.length ? <div className="table-wrap" role="region" aria-label="Pitcher command statistics" tabIndex={0}><table><thead><tr><th>Pitcher</th><th className="text-right">IP</th><th className="text-right">BB</th><th className="text-right">BB/9<StatInfo metric="pitching_bb9" label="BB/9"/></th><th className="text-right">Strike %</th><th className="text-right">K/BB</th><th className="text-right">FB Strike %</th><th className="text-right">BRK Strike %</th><th className="text-right">CH Strike %</th><th className="text-right">FPS<StatInfo metric="fps" label="FPS"/></th><th className="text-right">HBP</th></tr></thead>
         <tbody>{shown.map(row => <tr key={row.player.id} data-command={row.player.code} className={row.aboveTeam ? styles.flag : undefined}>
           <th scope="row">{name(row.player)}</th><td className="text-right tabular-nums">{row.innings}</td><td className="text-right tabular-nums">{row.walks}</td>

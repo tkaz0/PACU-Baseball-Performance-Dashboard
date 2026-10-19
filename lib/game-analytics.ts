@@ -12,7 +12,9 @@ export function qpaAnalytics(stats:readonly SharedGameStat[]):AnalyticsReading[]
  for(const row of stats.filter(r=>r.source==="qpa_fall_2026")){const group=groups.get(row.athlete_id)??[];group.push(row);groups.set(row.athlete_id,group);}
  const result:AnalyticsReading[]=[];
  for(const [athleteId,rows] of groups){if(new Set(rows.map(r=>r.snapshot_id)).size!==1)continue;
-  const first=rows[0],base={athleteId,date:pacificDate(first.fetched_at),importedAt:first.fetched_at,source:"QPA · Fall cumulative (snapshot date)"};
+  const pa=rows.find(r=>r.metric==="pa")?.value;
+  // PA travels with each reading so sample minimums (e.g. Key Connections) can use it.
+  const first=rows[0],base={athleteId,date:pacificDate(first.fetched_at),importedAt:first.fetched_at,source:"QPA · Fall cumulative (snapshot date)",...(Number.isFinite(pa)?{opportunities:pa}:{})};
   for(const row of rows)if(metrics[row.metric])result.push({...base,id:JSON.stringify([row.snapshot_id,athleteId,row.metric]),metric:`qpa_game_${row.metric}`,label:metrics[row.metric],unit:row.unit,value:row.value});
   for(const rate of [...battingRates(rows),...battingPowerRates(rows)].filter(rate=>["batting_ops","batting_avg","batting_bb_pct","batting_k_pct","batting_hh_pct"].includes(rate.metric)))result.push({...base,id:JSON.stringify([first.snapshot_id,athleteId,rate.metric]),metric:rate.metric,label:`Game ${rate.label}`,unit:rate.unit,value:rate.value});
  }
@@ -30,7 +32,8 @@ export function pitchingAnalytics(stats:readonly SharedGameStat[]):AnalyticsRead
   const rows=cumulativePitching(sourceRows);if(!rows.length)continue;
   if(new Set(rows.map(r=>r.snapshot_id)).size!==1||new Set(rows.map(r=>r.metric)).size!==rows.length||new Set(rows.map(r=>r.played_on)).size!==1||rows.some(r=>!Number.isFinite(r.value)||r.value<0))continue;
   const first=rows[0];
-  const base={athleteId:first.athlete_id,date:first.played_on??pacificDate(first.fetched_at),importedAt:first.fetched_at,source:"Pitching · Fall 2026 cumulative (snapshot date)"};
+  const outs=rows.find(r=>r.metric==="innings_outs")?.value;
+  const base={athleteId:first.athlete_id,date:first.played_on??pacificDate(first.fetched_at),importedAt:first.fetched_at,source:"Pitching · Fall 2026 cumulative (snapshot date)",...(Number.isFinite(outs)?{opportunities:outs}:{})};
   const add=(metric:string,label:string,unit:string,value:number)=>result.push({...base,id:JSON.stringify([first.snapshot_id,first.athlete_id,first.event_id,metric]),metric,label:`Pitching ${label}`,unit,value});
   for(const row of rows)if(["strike_pct","k","bb_outcome","r","h","pitches"].includes(row.metric))add(row.metric,({strike_pct:"Strike %",k:"Strikeouts",bb_outcome:"Walks",r:"Runs Allowed",h:"Hits Allowed",pitches:"Pitches"}[row.metric]!),row.unit,row.value);
   for(const r of [...pitchingExtraRates(rows),...pitchingRates(rows),...pitchingContactRates(rows)])if(r.value!==null)add(r.metric,r.label,r.unit,r.value);
