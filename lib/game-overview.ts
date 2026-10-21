@@ -10,6 +10,8 @@ export type GameOverviewMetric = {
   metric: string; label: string; source: string; eventId: string; value: number; unit: string;
   updatedAt: string; playedOn: string | null; opportunities: number | null;
   comparison: GameComparison | null; direction: "higher" | "lower" | "neutral"; insightEligible: boolean;
+  /** Set when the player is below the qualified minimum (e.g. "8 PA"); their percentile is withheld. */
+  notQualified?: string;
 };
 const battingOrder = ["batting_production_plus", "batting_ops","batting_est_slg", "batting_est_iso", "batting_est_wobacon","batting_avg", "batting_obp", "qpa_pct", "batting_hh_pct", "batting_hr_pct", "batting_bb_pct", "batting_k_pct", "batting_8plus_pct", "pumps", "sb", "gdp", "batting_sb_per_pa"];
 const insightRates = new Set([...battingOrder.slice(0,5),"batting_avg","batting_obp","qpa_pct","batting_hh_pct","batting_hr_pct","batting_bb_pct","batting_k_pct","batting_8plus_pct"]);
@@ -27,7 +29,8 @@ export function gameOverviewMetrics(stats: readonly SharedGameStat[], comparison
       const matches = comparisons.filter(c => c.source === source && c.metric === metric && c.eventId === eventId);
       const c = matches.length === 1 ? matches[0] : null;
       const comparison = c && c.snapshotId === rows[0].snapshot_id && Number.isFinite(c.value) && Math.abs(c.value - reading.value) < 1e-10 && Number.isSafeInteger(c.sampleSize) && c.sampleSize >= 5 && c.percentile !== null && Number.isFinite(c.percentile) && c.percentile >= 0 && c.percentile <= 100 ? c : null;
-      output.push({ metric, source, eventId, value: reading.value, unit: reading.unit,
+      const notQualified = c && c.qualified === false && c.snapshotId === rows[0].snapshot_id && Number.isFinite(c.value) && Math.abs(c.value - reading.value) < 1e-10 ? c.qualifiedMinimum ?? "the minimum" : undefined;
+      output.push({ ...(notQualified ? { notQualified } : {}), metric, source, eventId, value: reading.value, unit: reading.unit,
         label: qpa ? GAME_METRIC_LABELS[metric] ?? "SB/PA" : ({ pitching_whip:"WHIP",pitching_k_bb:"K/BB",pitching_k9:"K/9",pitching_bb9:"BB/9",pitching_r9:"Runs/9",weak_contact_pct:"Weak Contact %",hard_contact_pct:"Hard Contact %",strike_pct: "Strike %", k: "Strikeouts", bb_outcome: "Walks Allowed" }[metric] ?? metric),
         updatedAt: rows.map(r => r.fetched_at).sort().at(-1)!, playedOn: rows[0].played_on,
         opportunities: gameOpportunities(rows, source, metric, eventId || null), comparison,

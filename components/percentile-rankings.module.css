@@ -15,3 +15,4 @@
 .value { min-width: 64px; color: var(--text-primary); font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .note { margin: 14px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
 @media (max-width: 560px) { .row { grid-template-columns: minmax(0, 1fr) auto; row-gap: 6px; } .track { grid-column: 1 / -1; grid-row: 2; margin: 0 13px 6px; } .value { grid-row: 1; grid-column: 2; } }
+.notQualified { display: flex; align-items: center; min-height: 22px; padding: 0 10px; border: 1px dashed var(--line-subtle); border-radius: 999px; color: var(--text-secondary); font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

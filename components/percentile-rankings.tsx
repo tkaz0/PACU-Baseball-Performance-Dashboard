@@ -8,7 +8,7 @@ import { isTimedMetric, type PlayerMetricCard } from "@/lib/player-performance";
 import { StatInfo } from "@/components/stat-info";
 import styles from "./percentile-rankings.module.css";
 
-export type RankingRow = { key: string; label: string; value: string; percentile: number; sampleSize: number; metric: string; game: boolean; guide: { value: number; unit: string; source: string; eventId?: string } };
+export type RankingRow = { key: string; label: string; value: string; percentile: number; sampleSize: number; notQualified?: string; metric: string; game: boolean; guide: { value: number; unit: string; source: string; eventId?: string } };
 
 /**
  * Savant-style list of every directional result that already has a verified team percentile
@@ -16,7 +16,7 @@ export type RankingRow = { key: string; label: string; value: string; percentile
  * No new percentiles are calculated here.
  */
 /** Shared by the rankings list, skill radars and award badges: only verified, directional, n>=5 results. */
-export function percentileRankingGroups(inputCards: readonly PlayerMetricCard[], games: readonly GameOverviewMetric[]) {
+export function percentileRankingGroups(inputCards: readonly PlayerMetricCard[], games: readonly GameOverviewMetric[], { notQualified = false }: { notQualified?: boolean } = {}) {
   // Each source/unit keeps its own card and cohort (e.g. In-Game and Practice bat speed).
   const cards = [...new Map(inputCards.flatMap(card => card.sourceCards?.length ? card.sourceCards : [card])
     .map(card => [JSON.stringify([card.metric.key, card.latest?.source, card.latest?.unit, card.latest?.period]), card])).values()];
@@ -29,6 +29,8 @@ export function percentileRankingGroups(inputCards: readonly PlayerMetricCard[],
   const gameRow = (item: GameOverviewMetric): RankingRow[] => {
     const c = item.comparison;
     // Counting stats depend on playing time, so only rates are ranked here.
+    // Only the visible list shows Not qualified rows; radars and badges keep verified percentiles only.
+    if (notQualified && item.notQualified && item.direction !== "neutral" && item.unit !== "count") return [{ key: `game:${item.source}:${item.eventId}:${item.metric}`, label: item.label, value: gameValue(item.value, item.unit), percentile: 0, sampleSize: 0, notQualified: item.notQualified, metric: item.metric, game: true, guide: { value: item.value, unit: item.unit, source: item.source, eventId: item.eventId } }];
     if (!c || c.percentile === null || !Number.isFinite(c.percentile) || c.sampleSize < 5 || item.direction === "neutral" || item.unit === "count") return [];
     return [{ key: `game:${item.source}:${item.eventId}:${item.metric}`, label: item.label, value: gameValue(item.value, item.unit), percentile: c.percentile, sampleSize: c.sampleSize, metric: item.metric, game: true, guide: { value: item.value, unit: item.unit, source: item.source, eventId: item.eventId } }];
   };
@@ -45,7 +47,7 @@ export function percentileRankingGroups(inputCards: readonly PlayerMetricCard[],
 }
 
 export function PercentileRankings({ cards, games }: { cards: readonly PlayerMetricCard[]; games: readonly GameOverviewMetric[] }) {
-  const groups = percentileRankingGroups(cards, games);
+  const groups = percentileRankingGroups(cards, games, { notQualified: true });
   if (!groups.length) return null;
   return <section className={styles.panel} aria-label="Percentile rankings" data-testid="percentile-rankings">
     <header className={styles.header}>
@@ -57,14 +59,15 @@ export function PercentileRankings({ cards, games }: { cards: readonly PlayerMet
         <h3>{group.title}</h3>
         <ul>{group.rows.map(row => <li key={row.key} className={styles.row} {...(row.game ? { "data-ranking-game-metric": row.metric } : { "data-ranking-metric": row.metric })}>
           <span className={styles.label}>{row.label}<StatInfo metric={row.metric} label={row.label} value={row.guide.value} unit={row.guide.unit} source={row.guide.source} period="fall_2026" eventId={row.guide.eventId} percentile={row.percentile}/></span>
-          <span className={styles.track} role="img" aria-label={`${row.label}: ${ordinal(row.percentile)} percentile of ${row.sampleSize} players`}>
+          {row.notQualified ? <span className={styles.notQualified} title={`Percentiles rank players with at least ${row.notQualified} so far`}>Not qualified · needs {row.notQualified}</span>
+          : <span className={styles.track} role="img" aria-label={`${row.label}: ${ordinal(row.percentile)} percentile of ${row.sampleSize} ${row.game ? "qualified " : ""}players`}>
             <span className={styles.fill} style={{ width: `${row.percentile}%`, background: percentileColor(row.percentile).backgroundColor }} />
             <span className={styles.bubble} style={{ left: `${row.percentile}%`, ...percentileColor(row.percentile) }}>{Math.round(row.percentile)}</span>
-          </span>
+          </span>}
           <span className={styles.value}>{row.value}</span>
         </li>)}</ul>
       </div>)}
     </div>
-    <p className={styles.note}>Each bar ranks this player against Pacific teammates with the same stat, source and period (at least five players). Body size and spin are descriptive positions and are not graded here.</p>
+    <p className={styles.note}>Each bar ranks this player against Pacific teammates with the same stat, source and period (at least five players). Game stats rank only qualified players: 2 PA or 1 IP per Fall Ball week so far. Body size and spin are descriptive positions and are not graded here.</p>
   </section>;
 }

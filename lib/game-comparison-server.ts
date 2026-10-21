@@ -3,6 +3,10 @@ import "server-only";
 import type { requireAccess } from "@/lib/auth";
 import { canReadPresentedAthlete } from "@/lib/access-preview";
 import { UUID_PATTERN } from "@/lib/types";
+import { qualifiedGameComparisons } from "@/lib/qualified-percentiles";
+import { fallBallWeeksPlayed } from "@/lib/game-qualification";
+import { loadFallBallWeeks } from "@/lib/fall-ball-weeks-server";
+import { pacificTestingDate } from "@/lib/testing-checklist";
 import { GAME_METRIC_COLUMNS } from "@/lib/game-import";
 import { GAME_LEADERBOARD_METRICS, PITCHING_LEADERBOARD_METRICS, type GameComparison, type GameLeaderboardRow } from "@/lib/game-metrics";
 type Access=Awaited<ReturnType<typeof requireAccess>>;
@@ -15,6 +19,11 @@ function base(item:unknown):Record<string,unknown>{
 }
 export async function loadGameComparisons(access:Access,athleteId:string):Promise<GameComparison[]>{
  if(!UUID_PATTERN.test(athleteId)||!canReadPresentedAthlete(access,athleteId))throw Error("Game comparison access denied.");
+ const [raw,board]=await Promise.all([loadRawGameComparisons(access,athleteId),loadGameLeaderboards(access).catch(()=>null),loadFallBallWeeks(access)]);
+ // Percentiles rank qualified players only; if the team board can't load, withhold game percentiles rather than show inclusive ones.
+ return board?qualifiedGameComparisons(raw,board,athleteId,fallBallWeeksPlayed(pacificTestingDate())):raw.map(c=>({...c,percentile:null}));
+}
+async function loadRawGameComparisons(access:Access,athleteId:string):Promise<GameComparison[]>{
  const {data,error}=await access.supabase.rpc("game_comparisons",{p_athlete_id:athleteId});if(error||!Array.isArray(data)||data.length>10000)return fail();
  const seen=new Set<string>();return data.map(item=>{const r=base(item);if(!fields(r,["source","metric","eventId","value","percentile","sampleSize","snapshotId"])||typeof r.snapshotId!=="string"||!UUID_PATTERN.test(r.snapshotId))return fail();const k=JSON.stringify([r.source,r.eventId,r.metric]);if(seen.has(k))return fail();seen.add(k);return r as GameComparison;});
 }
