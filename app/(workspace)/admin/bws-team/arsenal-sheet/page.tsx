@@ -7,11 +7,10 @@ import { PacificLogo } from "@/components/pacific-brand";
 import { pacificTestingDate } from "@/lib/testing-checklist";
 import styles from "./arsenal-sheet.module.css";
 
-export const metadata = { title: "BWS Arsenal Sheet" };
+export const metadata = { title: "BWS Pitch Mix Sheet" };
 const ip = (outs: number | null) => outs === null ? "—" : `${Math.floor(outs / 3)}.${outs % 3}`;
-const one = (v: number | null) => v === null ? "—" : v.toFixed(1);
 
-/** Printable dugout sheet of the other team's pitchers: pitch-family mix, strike rates and classified arsenal. */
+/** Printable dugout sheet of the other team's pitchers: pitch-family mix and strike rates from the pitching sheet. */
 export default async function BwsArsenalSheetPage() {
   const access = await requireAdminWorkspaceAccess();
   const pitchers = await loadBwsArsenalSheet(access);
@@ -20,7 +19,7 @@ export default async function BwsArsenalSheetPage() {
     <div className={`${styles.toolbar} no-print`}><Link href="/admin/bws-team" className="btn btn-secondary"><ArrowLeft size={15} aria-hidden="true"/>BWS Team</Link><PrintButton label="Print Sheet"/></div>
     <header className={styles.header}>
       <PacificLogo variant="athletics" tone="light" decorative className={styles.logo}/>
-      <div><h1>Opposing Pitchers · Arsenal</h1><p>Boxer World Series · {today} · {pitchers.length} arms · Fall 2026 game sheet + Full Swing</p></div>
+      <div><h1>Opposing Pitchers · Pitch Mix</h1><p>Boxer World Series · {today} · {pitchers.length} arms · Fall 2026 pitching sheet</p></div>
     </header>
     {!pitchers.length ? <p className={styles.empty}>No opposing pitchers with saved results. Check your BWS roster and Scouting hides.</p> :
     <div className={styles.grid}>{pitchers.map(p => <section key={p.id} className={styles.card} aria-label={p.name}>
@@ -37,11 +36,7 @@ export default async function BwsArsenalSheetPage() {
         <ul className={styles.mixLegend}>{p.mix.families.map(f => { const s = p.familyStrike.find(x => x.label === f.label); return <li key={f.key}><i style={{ background: f.color }}/>{f.label.replace(" Family", "")} <b>{Math.round(100 * f.pitches / p.mix!.total)}%</b>{s?.strikePct != null && <> · {s.strikePct.toFixed(0)}% strikes</>}</li>; })}</ul>
         <p className={styles.small}>{p.mix.total} game pitches{p.mix.unrecorded ? ` · ${p.mix.unrecorded} family not recorded` : ""}</p>
       </> : <p className={styles.small}>No game-sheet pitch mix yet.</p>}
-      {p.arsenal.length > 0 ? <table className={styles.table}>
-        <thead><tr><th>Pitch{p.arsenalContext === "Practice" ? " (practice)" : ""}</th><th>Avg</th><th>Max</th><th>Spin</th></tr></thead>
-        <tbody>{p.arsenal.map(a => <tr key={a.label}><td>{a.label}{a.count ? <small> {a.count}</small> : null}</td><td>{one(a.avgVelocity)}</td><td>{one(a.maxVelocity)}</td><td>{a.avgSpin === null ? "—" : Math.round(a.avgSpin).toLocaleString("en-US")}</td></tr>)}</tbody>
-      </table> : <p className={styles.small}>No classified Full Swing pitches saved.</p>}
     </section>)}</div>}
-    <p className={styles.footnote}>Mix and strike rates: cumulative Fall pitching sheet (fastball / breaking ball / changeup families). Velocity (mph) and spin (rpm): staff-classified Full Swing pitches, in-game unless marked practice; small numbers are classified pitch counts. Recorded Fall results, not predictions.</p>
+    <p className={styles.footnote}>Mix and strike rates: cumulative Fall pitching sheet (fastball / breaking ball / changeup families). Recorded Fall results, not predictions.</p>
   </div>;
 }
