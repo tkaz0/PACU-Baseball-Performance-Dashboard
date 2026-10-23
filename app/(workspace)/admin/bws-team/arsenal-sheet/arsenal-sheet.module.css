@@ -1,0 +1,32 @@
+.page { --ink: #111318; --muted: #5b5f69; --line: #d9dbe0; --paper: #fff; max-width: 1100px; margin: 0 auto; padding: 20px; border-radius: 14px; background: var(--paper); color: var(--ink); }
+.toolbar { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+.header { display: flex; align-items: center; gap: 14px; padding-bottom: 10px; margin-bottom: 12px; border-bottom: 3px solid #c8102e; }
+.logo { width: 46px; height: auto; }
+.header h1 { margin: 0; font-family: var(--font-display, inherit); font-size: 26px; font-weight: 800; text-transform: uppercase; line-height: 1; color: var(--ink); }
+.header p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); gap: 10px; }
+.card { padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; break-inside: avoid; page-break-inside: avoid; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.top h2 { margin: 0; font-family: var(--font-display, inherit); font-size: 19px; font-weight: 800; color: var(--ink); }
+.hand { padding: 1px 8px; border-radius: 999px; background: #e9eaee; font-size: 12px; font-weight: 800; }
+.hand[data-hand="L"] { background: #c8102e; color: #fff; }
+.meta { margin: 2px 0 6px; color: var(--muted); font-size: 12px; }
+.mixBar { display: flex; height: 18px; overflow: hidden; border-radius: 5px; background: #eceef1; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.mixBar span { display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; font-weight: 800; }
+.unrecorded { background: repeating-linear-gradient(45deg, #c6c9cf 0 4px, #e3e5e9 4px 8px); }
+.mixLegend { display: flex; flex-wrap: wrap; gap: 2px 12px; margin: 5px 0 0; padding: 0; list-style: none; font-size: 12px; }
+.mixLegend i { display: inline-block; width: 9px; height: 9px; margin-right: 4px; border-radius: 2px; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.small { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+.table { width: 100%; margin-top: 6px; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+.table th { padding: 3px 4px; border-bottom: 1px solid var(--line); color: var(--muted); font-weight: 700; text-align: right; text-transform: none; letter-spacing: 0; background: none; }
+.table th:first-child, .table td:first-child { text-align: left; }
+.table td { padding: 3px 4px; border-bottom: 1px solid #eef0f2; text-align: right; color: var(--ink); }
+.table td small { color: var(--muted); }
+.footnote, .empty { margin: 12px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+@media print {
+  @page { size: letter landscape; margin: 0.35in; }
+  .page { max-width: none; padding: 0; border-radius: 0; }
+  .grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .card { padding: 6px 8px; }
+  .top h2 { font-size: 15px; }
+}
