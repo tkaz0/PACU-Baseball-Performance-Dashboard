@@ -30,3 +30,14 @@
   .card { padding: 6px 8px; }
   .top h2 { font-size: 15px; }
 }
+.actions { display: inline-flex; gap: 8px; }
+.hand[data-hand="S"] { background: #367ea3; color: #fff; }
+.headline { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; margin: 2px 0 4px; }
+.headline b { font-family: var(--font-display, inherit); font-size: 26px; line-height: 1; color: var(--ink); }
+.headline > span:not(.tags) { color: var(--muted); font-size: 12px; font-weight: 700; }
+.tags { display: inline-flex; flex-wrap: wrap; gap: 4px; margin-left: auto; }
+.tags i { padding: 1px 7px; border-radius: 999px; background: #fbe4e7; color: #a00d25; font-size: 12px; font-style: normal; font-weight: 800; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.statGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px 6px; margin: 0; font-variant-numeric: tabular-nums; }
+.statGrid div { padding: 3px 0; border-top: 1px solid #eef0f2; }
+.statGrid dt { color: var(--muted); font-size: 12px; }
+.statGrid dd { margin: 0; color: var(--ink); font-size: 13px; font-weight: 700; }

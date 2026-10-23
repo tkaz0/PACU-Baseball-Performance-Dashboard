@@ -16,7 +16,7 @@ export default async function BwsArsenalSheetPage() {
   const pitchers = await loadBwsArsenalSheet(access);
   const today = new Date(`${pacificTestingDate()}T12:00:00Z`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
   return <div className={styles.page}>
-    <div className={`${styles.toolbar} no-print`}><Link href="/admin/bws-team" className="btn btn-secondary"><ArrowLeft size={15} aria-hidden="true"/>BWS Team</Link><PrintButton label="Print Sheet"/></div>
+    <div className={`${styles.toolbar} no-print`}><Link href="/admin/bws-team" className="btn btn-secondary"><ArrowLeft size={15} aria-hidden="true"/>BWS Team</Link><span className={styles.actions}><Link href="/admin/bws-team/hitter-sheet" className="btn btn-secondary">Hitters Sheet</Link><PrintButton label="Print Sheet"/></span></div>
     <header className={styles.header}>
       <PacificLogo variant="athletics" tone="light" decorative className={styles.logo}/>
       <div><h1>Opposing Pitchers · Pitch Mix</h1><p>Boxer World Series · {today} · {pitchers.length} arms · Fall 2026 pitching sheet</p></div>
