@@ -17,7 +17,7 @@ export function BwsSheetPdfButton(props: Props) {
       const { jsPDF } = await import("jspdf");
       const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "letter" });
       const W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight(), M = 24, cols = 4, gap = 8;
-      const cardW = (W - 2 * M - gap * (cols - 1)) / cols, cardH = props.kind === "pitchers" ? 118 : 128;
+      const cardW = (W - 2 * M - gap * (cols - 1)) / cols, cardH = props.kind === "pitchers" ? 130 : 128;
       const header = () => {
         doc.setFillColor(200, 16, 46); doc.rect(M, M + 30, W - 2 * M, 2.5, "F");
         doc.setTextColor(17, 19, 24); doc.setFont("helvetica", "bold"); doc.setFontSize(17); doc.text(props.title.toUpperCase(), M, M + 14);
@@ -42,7 +42,8 @@ export function BwsSheetPdfButton(props: Props) {
         if (props.kind === "pitchers") {
           const p = item as SheetPitcher;
           cy += 11; doc.text(`${ip(p.outs)} IP${p.academicClass ? ` · ${p.academicClass}` : ""}${p.manualFrom ? " · from sheet, not synced" : ""}`, x + pad, cy, { maxWidth: cardW - 2 * pad });
-          cy += 10; doc.text(p.line.map(l => `${l.label} ${l.value}`).join(" · "), x + pad, cy, { maxWidth: cardW - 2 * pad });
+          // Two short lines so the rates never wrap into the mix bar.
+          for (let i = 0; i < p.line.length; i += 2) { cy += 10; doc.text(p.line.slice(i, i + 2).map(l => `${l.label} ${l.value}`).join("   ·   "), x + pad, cy); }
           cy += 8;
           if (p.mix) {
             const barW = cardW - 2 * pad; let bx = x + pad;
