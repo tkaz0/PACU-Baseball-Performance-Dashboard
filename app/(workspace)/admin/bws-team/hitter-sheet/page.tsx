@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { requireAdminWorkspaceAccess } from "@/lib/auth";
 import { loadBwsHitterSheet } from "@/lib/bws-arsenal-sheet-server";
 import { PrintButton } from "@/components/print-button";
+import { BwsSheetPdfButton } from "@/components/bws-sheet-pdf";
 import { PacificLogo } from "@/components/pacific-brand";
 import { pacificTestingDate } from "@/lib/testing-checklist";
 import styles from "../arsenal-sheet/arsenal-sheet.module.css";
@@ -20,7 +21,7 @@ export default async function BwsHitterSheetPage() {
   const hitters = await loadBwsHitterSheet(access);
   const today = new Date(`${pacificTestingDate()}T12:00:00Z`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
   return <div className={styles.page}>
-    <div className={`${styles.toolbar} no-print`}><Link href="/admin/bws-team" className="btn btn-secondary"><ArrowLeft size={15} aria-hidden="true"/>BWS Team</Link><span className={styles.actions}><Link href="/admin/bws-team/arsenal-sheet" className="btn btn-secondary">Pitchers Sheet</Link><PrintButton label="Print Sheet"/></span></div>
+    <div className={`${styles.toolbar} no-print`}><Link href="/admin/bws-team" className="btn btn-secondary"><ArrowLeft size={15} aria-hidden="true"/>BWS Team</Link><span className={styles.actions}><Link href="/admin/bws-team/arsenal-sheet" className="btn btn-secondary">Pitchers Sheet</Link><BwsSheetPdfButton kind="hitters" hitters={hitters} title="Opposing Hitters · Scouting" subtitle={`Boxer World Series · ${today} · ${hitters.length} hitters · Fall 2026 QPA sheet · best OPS first`} footnote={'Cumulative Fall QPA sheet results; SLG/ISO count doubles and triples as doubles. Cues use simple planning cutoffs: Power ISO .200+, Patient BB% 12+, Strikes out K% 25+, Tough to K K% under 10, Runs 2+ SB. Recorded Fall results, not predictions.'} fileName={`bws-opposing-hitters-${pacificTestingDate()}.pdf`}/><PrintButton label="Print"/></span></div>
     <header className={styles.header}>
       <PacificLogo variant="athletics" tone="light" decorative className={styles.logo}/>
       <div><h1>Opposing Hitters · Scouting</h1><p>Boxer World Series · {today} · {hitters.length} hitters · Fall 2026 QPA sheet · best OPS first</p></div>

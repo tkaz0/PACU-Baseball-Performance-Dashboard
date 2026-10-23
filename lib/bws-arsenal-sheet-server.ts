@@ -9,12 +9,26 @@ import { playerSheetPitchMix } from "@/lib/sheet-pitch-mix";
 import { PITCHING_CUMULATIVE } from "@/lib/pitching-cumulative";
 import { gameValue } from "@/lib/game-metrics";
 import type { SheetPitchMix } from "@/lib/pitching-stats";
+import type { BwsSheetPitcher } from "@/lib/bws-team";
+
+const FAMILIES = [["fb", "fbStrikes", "Fastball Family", "#ef4444"], ["bb", "bbStrikes", "Breaking Ball", "#3b82f6"], ["ch", "chStrikes", "Changeup", "#f59e0b"]] as const;
+/** Card from an owner-confirmed sheet summary line: same mix, strike and rate definitions as synced stats. */
+function manualCard(x: BwsSheetPitcher): Pick<SheetPitcher, "outs" | "mix" | "familyStrike" | "line"> {
+  const families = FAMILIES.flatMap(([key, , label, color]) => x[key] > 0 ? [{ key, label, color, pitches: x[key] }] : []);
+  const used = families.reduce((t, f) => t + f.pitches, 0);
+  const per9 = (n: number) => x.outs > 0 ? (27 * n / x.outs).toFixed(2) : "—";
+  return { outs: x.outs, mix: x.pitches > 0 && families.length ? { total: x.pitches, families, unrecorded: x.pitches - used } : null,
+    familyStrike: FAMILIES.flatMap(([key, strikes, label]) => x[key] > 0 ? [{ label, pitches: x[key], strikePct: 100 * x[strikes] / x[key] }] : []),
+    line: [{ label: "Strike %", value: x.pitches > 0 ? `${(100 * x.strikes / x.pitches).toFixed(1)}%` : "—" }, ...(x.outs > 0 ? [{ label: "WHIP", value: (3 * (x.hits + x.walks) / x.outs).toFixed(2) }, { label: "K/9", value: per9(x.strikeouts) }, { label: "BB/9", value: per9(x.walks) }] : [])] };
+}
 
 type Access = Awaited<ReturnType<typeof requireAdminWorkspaceAccess>>;
 export type SheetPitcher = {
   id: string; name: string; throws: string; academicClass: string; outs: number | null;
   mix: SheetPitchMix | null; familyStrike: { label: string; strikePct: number | null; pitches: number | null }[];
   line: { label: string; value: string }[];
+  /** Set when the card comes from an owner-confirmed pitching-sheet line that is not synced yet. */
+  manualFrom?: string;
 };
 
 /**
@@ -24,7 +38,8 @@ export type SheetPitcher = {
  */
 export async function loadBwsArsenalSheet(access: Access): Promise<SheetPitcher[]> {
   const [plan, data, games] = await Promise.all([loadBwsTeamPlan(access), loadTopPerformersData(), loadGameStats(access)]);
-  const mine = new Set((plan?.document.players ?? []).flatMap(p => p.athleteId ? [p.athleteId] : [])), hidden = new Set(plan?.document.series.hidden ?? []);
+  const mine = new Set((plan?.document.players ?? []).flatMap(p => p.athleteId ? [p.athleteId] : [])), hidden = new Set([...(plan?.document.series.hidden ?? []), ...(plan?.document.series.hiddenPitchers ?? [])]);
+  const manual = new Map((plan?.document.series.sheetPitchers ?? []).map(x => [x.athleteId, x]));
   const pitches = (p: typeof data.players[number]) => ["pitcher", "two_way"].includes(p.playerType.trim().toLowerCase()) || [p.position, p.secondaryPosition].some(x => x?.trim().toUpperCase() === "P");
   const rows: SheetPitcher[] = [];
   for (const player of data.players.filter(p => pitches(p) && !mine.has(p.id) && !hidden.has(p.id))) {
@@ -33,6 +48,9 @@ export async function loadBwsArsenalSheet(access: Access): Promise<SheetPitcher[
     const outs = cumulative.find(r => r.metric === "innings_outs")?.value ?? null;
     const stat = (metric: string, label: string) => { const g = data.games.filter(x => x.athleteId === player.id && x.source === "pitching_fall_2026" && x.eventId === PITCHING_CUMULATIVE && x.metric === metric); return g.length === 1 ? [{ label, value: gameValue(g[0].value, g[0].unit) }] : []; };
     const mix = playerSheetPitchMix(own);
+    const confirmed = manual.get(player.id);
+    // Saved game stats always win; the owner-confirmed sheet line is used only while the player has none.
+    if (!own.length && confirmed) { rows.push({ id: player.id, name: player.name, throws: player.throws, academicClass: player.academicClass, ...manualCard(confirmed), manualFrom: confirmed.enteredOn }); continue; }
     if (!mix && outs === null) continue;
     rows.push({ id: player.id, name: player.name, throws: player.throws, academicClass: player.academicClass, outs, mix,
       familyStrike: pitchSplits(cumulative).filter(s => s.pitches !== null && s.pitches > 0).map(s => ({ label: s.label, strikePct: s.strikePct, pitches: s.pitches })),

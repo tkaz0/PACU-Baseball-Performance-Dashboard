@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { requireAdminWorkspaceAccess } from "@/lib/auth";
 import { loadBwsArsenalSheet } from "@/lib/bws-arsenal-sheet-server";
 import { PrintButton } from "@/components/print-button";
+import { BwsSheetPdfButton } from "@/components/bws-sheet-pdf";
 import { PacificLogo } from "@/components/pacific-brand";
 import { pacificTestingDate } from "@/lib/testing-checklist";
 import styles from "./arsenal-sheet.module.css";
@@ -16,7 +17,7 @@ export default async function BwsArsenalSheetPage() {
   const pitchers = await loadBwsArsenalSheet(access);
   const today = new Date(`${pacificTestingDate()}T12:00:00Z`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
   return <div className={styles.page}>
-    <div className={`${styles.toolbar} no-print`}><Link href="/admin/bws-team" className="btn btn-secondary"><ArrowLeft size={15} aria-hidden="true"/>BWS Team</Link><span className={styles.actions}><Link href="/admin/bws-team/hitter-sheet" className="btn btn-secondary">Hitters Sheet</Link><PrintButton label="Print Sheet"/></span></div>
+    <div className={`${styles.toolbar} no-print`}><Link href="/admin/bws-team" className="btn btn-secondary"><ArrowLeft size={15} aria-hidden="true"/>BWS Team</Link><span className={styles.actions}><Link href="/admin/bws-team/hitter-sheet" className="btn btn-secondary">Hitters Sheet</Link><BwsSheetPdfButton kind="pitchers" pitchers={pitchers} title="Opposing Pitchers · Pitch Mix" subtitle={`Boxer World Series · ${today} · ${pitchers.length} arms · Fall 2026 pitching sheet`} footnote={'Mix and strike rates: cumulative Fall pitching sheet (fastball / breaking ball / changeup families). Recorded Fall results, not predictions.'} fileName={`bws-opposing-pitchers-${pacificTestingDate()}.pdf`}/><PrintButton label="Print"/></span></div>
     <header className={styles.header}>
       <PacificLogo variant="athletics" tone="light" decorative className={styles.logo}/>
       <div><h1>Opposing Pitchers · Pitch Mix</h1><p>Boxer World Series · {today} · {pitchers.length} arms · Fall 2026 pitching sheet</p></div>
@@ -27,6 +28,7 @@ export default async function BwsArsenalSheetPage() {
         <h2>{p.name}</h2>
         <span className={styles.hand} data-hand={p.throws || undefined}>{p.throws ? `${p.throws}HP` : "—"}</span>
       </div>
+      {p.manualFrom && <p className={styles.small}>From the pitching sheet · not synced yet</p>}
       <p className={styles.meta}>{ip(p.outs)} IP{p.academicClass ? ` · ${p.academicClass}` : ""}{p.line.length ? " · " : ""}{p.line.map(l => `${l.label} ${l.value}`).join(" · ")}</p>
       {p.mix ? <>
         <div className={styles.mixBar} role="img" aria-label={`Pitch mix: ${p.mix.families.map(f => `${f.label} ${Math.round(100 * f.pitches / p.mix!.total)}%`).join(", ")}`}>
