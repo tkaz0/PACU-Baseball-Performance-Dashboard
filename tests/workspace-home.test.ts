@@ -41,7 +41,7 @@ describe("role-aware dashboard landing", () => {
     expect(fake.home).toHaveBeenCalledWith(current);expect(fake.leaderboards).toHaveBeenCalledWith(current);expect(html).toContain(role==="player"?"My Dashboard":"Team Dashboard");
     expect(fake.navigation).toHaveBeenCalledWith(current);
     expect(fake.due).not.toHaveBeenCalled(); // Coach focus is hidden for now.
-    expect(fake.status).toHaveBeenCalledTimes(role==="player"?0:1);
+    expect(fake.status).not.toHaveBeenCalled(); // Source checks live under Data & Testing, not Home (October 27).
     expect(fake.rpc).not.toHaveBeenCalled(); // Weekly plans are hidden for now.
     // Staff use the sidebar for tools; only players keep Home shortcut tiles.
     expect(html.includes('aria-label="Home shortcuts"')).toBe(role==="player");expect(html).not.toContain('href="/imports"');expect(html.includes('href="/swing-design"')).toBe(role==="player");expect(html).not.toContain('href="/pitch-design"');expect(fake.from).not.toHaveBeenCalled();

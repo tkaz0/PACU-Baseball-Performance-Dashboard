@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { DetailSection } from "@/components/detail-section";
 import { TeamReportCard } from "@/components/team-report-card";
 import { teamReportCard } from "@/lib/team-report-card";
 import { Sparkline } from "@/components/charts/sparkline";
@@ -9,7 +8,7 @@ import { PlayerAvatar } from "@/components/player-avatar";
 import { SkeletonCards } from "@/components/skeleton";
 import { countLabel } from "@/lib/game-opportunities";
 import Link from "next/link";
-import { ArrowUpRight, ArrowRight, Activity, Upload, UsersRound, ChartNoAxesCombined, Trophy, Clock3, Crosshair, UserRound, ClipboardCheck, FolderOpen, FileChartColumn, Check, DraftingCompass, Target } from "lucide-react";
+import { ArrowUpRight, ArrowRight, Activity, Upload, UsersRound, ChartNoAxesCombined, Trophy, Crosshair, UserRound, ClipboardCheck, FolderOpen, FileChartColumn, DraftingCompass, Target } from "lucide-react";
 import { PacificLogo } from "@/components/pacific-brand";
 import { StatInfo } from "@/components/stat-info";
 import { formatTeamGameMetric, teamGameMetricStatus, type TeamGameMetric, type TeamGameSummary } from "@/lib/team-game-stats";
@@ -19,13 +18,8 @@ import type { DesignNavigation } from "@/lib/design-navigation";
 import type { coachUpdateDigest } from "@/lib/coach-update-digest";
 import type { HomeLeaderboard, HomeRank } from "@/lib/home-leaderboards";
 import styles from "./dashboard-home.module.css";
-import { DashboardVisit } from "@/components/dashboard-visit";
-import type { DashboardVisitWindow } from "@/lib/personal-dashboard-server";
 import type { VisitDigest } from "@/lib/dashboard-visit-digest";
-import { WEEKLY_SOURCES, type WeeklySourceStatus as WeeklySourceStatusRow } from "@/lib/weekly-source-contract";
-import { WeeklySourceStatus } from "@/components/weekly-source-status";
 
-const date = (value: string, withYear = false) => new Date(value.length === 10 ? `${value}T12:00:00Z` : value).toLocaleDateString("en-US", { month: "short", day: "numeric", ...(withYear ? { year: "numeric" as const } : {}), timeZone: value.length === 10 ? "UTC" : "America/Los_Angeles" });
 const opportunity = (metric: TeamGameMetric) => metric.pending ? teamGameMetricStatus(metric) : metric.opportunities === undefined ? "No chances recorded yet" : metric.opportunityLabel === "outs" ? `${formatInnings(metric.opportunities)} IP` : countLabel(metric.opportunities,metric.opportunityLabel??"");
 
 function GameSnapshot({ summary, kind, trends = {}, streamedTrend }: { summary: TeamGameSummary; kind: "Hitting" | "Pitching"; trends?: Record<string, TrendPoint[]>; streamedTrend?: (metric: TeamGameMetric) => ReactNode }) {
@@ -41,7 +35,7 @@ function GameSnapshot({ summary, kind, trends = {}, streamedTrend }: { summary: 
       })}</dl>
       {kind === "Hitting" ? <p className={styles.chartCaption}>Doubles and triples count as doubles · recorded results, not expected stats.</p> : contactComplete ? <div className={styles.contactSplit}><div><span>Contact Allowed</span><small>{weak.opportunities} classified contacts</small></div><div className={styles.contactTrack} role="img" aria-label={`Weak contact ${weak.value!.toFixed(1)} percent; hard contact ${hard.value!.toFixed(1)} percent`}><span style={{ width: `${weak.value}%` }}/><span style={{ width: `${hard.value}%` }}/></div><div className={styles.contactLegend}><span><i/>{weak.value!.toFixed(1)}% weak</span><span><i/>{hard.value!.toFixed(1)}% hard</span></div></div> : <p className={styles.chartCaption}>Recorded results; not adjusted for defense or luck.</p>}
     </>}
-    <div className={styles.cardFoot}><span>{summary.players ? `${summary.players} ${summary.players === 1 ? "player" : "players"} recorded` : "Awaiting results"}</span>{summary.updatedAt && <time dateTime={summary.updatedAt} title="This is when the saved sheet numbers last changed.">Sheet changed {date(summary.updatedAt)}</time>}</div>
+    <div className={styles.cardFoot}><span>{summary.players ? `${summary.players} ${summary.players === 1 ? "player" : "players"} recorded` : "Awaiting results"}</span></div>
   </section>;
 }
 
@@ -63,7 +57,7 @@ function HomeRankCard({ board, headshots }: { board: HomeLeaderboard; headshots?
   return <article className={styles.rankCard} aria-label={`${board.title} team leaderboard`}>
     <div className={styles.rankCardHead}><div><p className={styles.kicker}>{board.category}</p><h3>{board.title}{board.metric&&<StatInfo metric={board.metric} label={board.title} source={board.source} unit={board.unit} period={board.period} eventId={board.eventId}/>}</h3></div><Trophy size={17} aria-hidden="true"/></div>
     <RankRows rows={board.rows.slice(0, 3)} maximum={maximum} headshots={headshots} reference={board.metric === "batting_production_plus" ? 100 : undefined}/>
-    <div className={styles.rankMeta}><span>{board.total} {board.total === 1 ? "player" : "players"}{board.metric === "batting_production_plus" ? " · Tick = team average (100)" : maximum > 0 ? " · Bars start at zero" : ""}</span>{board.yourRank !== null && <span>You: <strong>#{board.yourRank}</strong></span>}</div>
+    <div className={styles.rankMeta}><span>{board.total} {board.total === 1 ? "player" : "players"}{board.metric === "batting_production_plus" ? " · Tick = team average" : ""}</span>{board.yourRank !== null && <span>You: <strong>#{board.yourRank}</strong></span>}</div>
     <Link prefetch={false} href={board.href} className={styles.rankFooter}>Full Leaderboard<ArrowUpRight size={14} aria-hidden="true"/></Link>
   </article>;
 }
@@ -78,21 +72,7 @@ export function CoachThisWeek({ digest, reviewCount }: { digest: ReturnType<type
     </div>
   </section>;
 }
-function ResultsCoverage({ summary, staff, profile }: { summary: HomeSummary; staff: boolean; profile: string | null }) {
-  const coverage = summary.coverage.filter(area => staff || area.eligiblePlayers > 0);
-  const savedAreas = coverage.filter(area => area.players > 0).length;
-  const numerator = staff ? summary.playersWithResults : savedAreas, denominator = staff ? summary.players : coverage.length;
-  const fraction = denominator > 0 ? Math.min(1, numerator / denominator) : 0;
-  return <section className={styles.panel} aria-label={staff ? "Fall roster coverage" : "Your latest testing"}>
-    <div className={styles.sectionTitle}><div><p className={styles.kicker}>{staff ? "Team Development" : "Your Development"}</p><h2>{staff ? "Saved Fall Results" : "Your Results"}</h2></div><Crosshair size={20} className={styles.subtleIcon}/></div>
-    <div className={styles.coverageBody}><div className={styles.coverageRing} role="img" aria-label={`${numerator} of ${denominator} ${staff ? "players with results" : "areas with results"}`}><svg viewBox="0 0 100 100" aria-hidden="true"><circle className={styles.ringTrack} cx="50" cy="50" r="42"/><circle className={styles.ringValue} cx="50" cy="50" r="42" pathLength="100" strokeDasharray={`${fraction * 100} 100`}/></svg><span><strong>{numerator}<small>/{denominator}</small></strong><small>{staff ? "players" : "areas"}</small></span></div>
-      <div className={styles.coverageList}>{coverage.map(area => <div className={styles.coverageRow} key={area.key}><div><strong>{area.label}{staff && area.positionOnly && <small>Position Players · Includes Two-Way</small>}</strong><span>{staff ? `${area.players} / ${area.eligiblePlayers}` : area.players > 0 ? <Check size={14} aria-label="Results available"/> : "Not yet"}</span></div>{staff ? <meter min={0} max={Math.max(1, area.eligiblePlayers)} value={area.players} aria-label={`${area.label}: ${area.players} of ${area.eligiblePlayers} ${area.positionOnly ? "position players" : "players"} with results`}/> : <small>{area.lastTested ? `Last tested ${date(area.lastTested)}` : "Awaiting results"}</small>}</div>)}</div>
-    </div><div className={styles.panelFoot}><span>{staff ? "Any saved test or game result · not checklist completion" : "Fall 2026 saved results"}</span><Link prefetch={false} href={staff ? "/testing/coverage" : profile ?? "/settings"}>{staff ? "Checklist Coverage" : "My Results"}<ArrowRight size={14}/></Link></div>
-  </section>;
-}
-
-export function DashboardHome({ dataAlerts, playerWeek, leaderboardsSlot, spotlight, trending, staff, athleteId, summary, designNavigation, leaderboards = [], sourceStatus = [], visit, headshots = {}, gameTrends = {}, streamedTrend, coachingPulse, activity }: { dataAlerts?:ReactNode; playerWeek?:ReactNode; leaderboardsSlot?:ReactNode; spotlight?:ReactNode; trending?:ReactNode; coachingPulse?:ReactNode; activity?:ReactNode; streamedTrend?: (source: "qpa_fall_2026" | "pitching_fall_2026", metric: TeamGameMetric, updatedAt: string | null) => ReactNode; gameTrends?: TeamGameTrends; headshots?: Readonly<Record<string, string>>; visit?:DashboardVisitWindow; staff: boolean; athleteId: string | null; designNavigation?: DesignNavigation; summary: (HomeSummary & { visitDigest?:VisitDigest; coachDigest?: ReturnType<typeof coachUpdateDigest> }) | null; leaderboards?: HomeLeaderboard[]; sourceStatus?:WeeklySourceStatusRow[] }) {
-  const sourceAttention = WEEKLY_SOURCES.filter(source => sourceStatus.find(status => status.source === source.key)?.outcome !== "completed").length;
+export function DashboardHome({ playerWeek, leaderboardsSlot, spotlight, trending, staff, athleteId, summary, designNavigation, leaderboards = [], headshots = {}, gameTrends = {}, streamedTrend }: { playerWeek?:ReactNode; leaderboardsSlot?:ReactNode; spotlight?:ReactNode; trending?:ReactNode; streamedTrend?: (source: "qpa_fall_2026" | "pitching_fall_2026", metric: TeamGameMetric, updatedAt: string | null) => ReactNode; gameTrends?: TeamGameTrends; headshots?: Readonly<Record<string, string>>; staff: boolean; athleteId: string | null; designNavigation?: DesignNavigation; summary: (HomeSummary & { visitDigest?:VisitDigest; coachDigest?: ReturnType<typeof coachUpdateDigest> }) | null; leaderboards?: HomeLeaderboard[] }) {
   const profile = athleteId ? `/athletes/${athleteId}` : null;
   const actions = [...(staff ? [
     { href: "/roster", title: "Roster", detail: "Player profiles", icon: UsersRound },
@@ -108,16 +88,11 @@ export function DashboardHome({ dataAlerts, playerWeek, leaderboardsSlot, spotli
     ...(staff || (profile && designNavigation?.swing) ? [{ href: "/swing-design", title: "Swing Design", detail: "Explore hitting practice", icon: DraftingCompass }] : []),
     ...(staff || (profile && designNavigation?.pitch) ? [{ href: "/pitch-design", title: "Pitch Design", detail: "Explore your arsenal", icon: Target }] : []),
   ];
-  const latestUpdate = summary?.updates[0];
-  const latestGameUpdate = [summary?.batting.updatedAt, summary?.pitching.updatedAt].filter((value): value is string => !!value).sort().at(-1);
   return <div className={styles.home}>
     <header className={styles.welcome}>
       <div className={styles.welcomeTitle}><div className={styles.homeMark}><span className={styles.markOnDark}><PacificLogo variant="university" tone="dark" decorative/></span><span className={styles.markOnLight}><PacificLogo variant="university" tone="light" decorative/></span></div><div><p className={styles.kicker}>Boxer Baseball <span>/</span> Fall 2026</p><h1>{staff ? "Team Dashboard" : "My Dashboard"}</h1><p>{staff ? "Your team, at a glance." : "Your work. Your progress. Your next step."}</p></div></div>
       <Link prefetch={false} href={staff ? "/roster" : profile ?? "/settings"} className={styles.heroAction}>{staff ? "Explore Roster" : profile ? "Open My Profile" : "Account Settings"}<ArrowUpRight size={17}/></Link>
     </header>
-    {summary && <div className={styles.freshness} aria-label="Dashboard update dates"><span><span className={styles.statusDot}/>{latestUpdate ? <>Latest Update <strong>{date(latestUpdate.date, true)}</strong></> : "Awaiting Fall results"}</span><span><Clock3 size={13} aria-hidden="true"/>Game Stats <strong>{latestGameUpdate ? date(latestGameUpdate, true) : "Awaiting results"}</strong></span></div>}
-    {summary && staff && (coachingPulse ?? (summary.coachDigest && <CoachThisWeek digest={summary.coachDigest} reviewCount={[...summary.batting.rates, ...summary.pitching.rates].filter(rate => rate.pending && rate.pendingReason !== "missing").length}/>))}
-    {dataAlerts}
     {!staff && playerWeek}
     {spotlight}
     {staff && trending}
@@ -128,14 +103,6 @@ export function DashboardHome({ dataAlerts, playerWeek, leaderboardsSlot, spotli
         <div className={styles.leadersColumn}>
       <section aria-label="Featured team leaderboards"><div className={styles.blockHeading}><div><p className={styles.kicker}>Around the Team</p><h2>Performance Leaders</h2></div><Link prefetch={false} href="/leaderboards" className={styles.panelLink}>All Leaderboards<ArrowRight size={15}/></Link></div>{leaderboardsSlot ?? <HomeLeaderboardCards leaderboards={leaderboards} headshots={headshots}/>}</section>
         </div>
-      <DetailSection title={staff ? "Data & Testing" : "My Activity & Testing"} description={staff ? `${sourceAttention ? `${sourceAttention} sources need attention · ` : ""}Source checks, testing coverage and recent updates` : "Testing dates and recent updates"}>
-      {activity ?? (summary.visitDigest && visit && <DashboardVisit visit={visit} digest={summary.visitDigest} staff={staff} athleteId={athleteId}/>)}
-        <div className={styles.attention} aria-label="Needs attention">
-        {staff && <WeeklySourceStatus statuses={sourceStatus}/>}
-        <ResultsCoverage summary={summary} staff={staff} profile={profile}/>
-        <section className={styles.panel} aria-label="Recent data updates"><div className={styles.sectionTitle}><div><p className={styles.kicker}>Fresh from the Field</p><h2>Recent Updates</h2></div><Clock3 size={20} className={styles.subtleIcon}/></div>{summary.updates.length ? <ol className={styles.updates}>{summary.updates.slice(0, 3).map(update => <li key={update.key}><span className={styles.updateDot}/><div><strong>{update.label}</strong><span>{update.kind} to the dashboard</span></div><time dateTime={update.date}>{date(update.date)}</time></li>)}</ol> : <p className={styles.empty}>Updates appear when Fall measurements or game stats are saved.</p>}<div className={styles.panelFoot}><span>Most recent activity</span><Link prefetch={false} href={staff ? "/testing/changes" : profile ?? "/settings"}>{staff ? "See What Changed" : "Open My Profile"}<ArrowRight size={14}/></Link></div></section>
-        </div>
-      </DetailSection>
     </>}
   </div>;
 }

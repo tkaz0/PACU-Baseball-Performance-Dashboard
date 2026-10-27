@@ -1,10 +1,7 @@
 import { Suspense } from "react";
-import { HomeActivityPlaceholder, HomeCoachingPulse, HomeVisitActivity } from "@/components/home-activity";
 import { TeamGameTrend } from "@/components/team-game-trend";
 import { PlayerWeek } from "@/components/player-week";
-import { HomeDataAlerts } from "@/components/home-data-alerts";
 import { SkeletonCards, SkeletonPanel } from "@/components/skeleton";
-import { loadMissingFullSwingWeeks } from "@/lib/full-swing-week-gaps-server";
 import { loadOwnGameTrends, loadTeamGameTrends } from "@/lib/game-trends-server";
 import { requireRenderAccess as requireAccess } from "@/lib/render-access";
 import { canImportPresentedAccess } from "@/lib/access-preview";
@@ -14,7 +11,6 @@ import { loadTeamHeadshots } from "@/lib/headshots-server";
 import { loadHomeSnapshot, loadHomeActivity } from "@/lib/home-server";
 import { loadHomeLeaderboards } from "@/lib/home-leaderboards-server";
 import { loadDashboardVisit } from "@/lib/personal-dashboard-server";
-import { loadWeeklySourceStatus } from "@/lib/weekly-source-checks";
 import { HomeSpotlight } from "@/components/home-spotlight";
 import { HomeTrending } from "@/components/home-trending";
 import { trendingPlayers } from "@/lib/home-trending";
@@ -42,20 +38,18 @@ export default async function Overview({searchParams}:{searchParams:Promise<{pre
   const canSeeBoards=staff || (access.roles.includes("player") && !!access.athleteId);
   const weeksPromise=canSeeBoards?loadGameWeeks(access).catch(()=>null):Promise.resolve(null);
   const photosPromise=canSeeBoards?loadTeamHeadshots(access).catch(()=>new Map<string,string>()):Promise.resolve(new Map<string,string>());
-  const [params,summary,sourceStatus,designNavigation,visit]=await Promise.all([
+  // Home is viewer-facing: update dates, source checks, testing follow-ups and coverage live under Data & Testing.
+  const [params,summary,designNavigation]=await Promise.all([
     searchParams.then(async value=>{await loadFallBallWeeks(access);return value;}),settle("results summary",failed,loadHomeSnapshot(access),null),
-    staff?settle("source status",failed,loadWeeklySourceStatus(access),[]):Promise.resolve([]),settle("design links",failed,loadDesignNavigation(access),undefined),visitPromise,
+    settle("design links",failed,loadDesignNavigation(access),undefined),
   ]);
   return <><AccessPreviewNotice status={params.preview} isPreview={!!access.preview}/>{failed.length>0&&<p role="status" className="muted mb-4 text-sm">Some Home sections are temporarily unavailable ({failed.join(", ")}). Refresh to try again.</p>}<DashboardHome
-    coachingPulse={staff&&summary?<Suspense fallback={<HomeActivityPlaceholder coaching/>}><HomeCoachingPulse activity={activityPromise} reviewCount={[...summary.batting.rates,...summary.pitching.rates].filter(rate=>rate.pending&&rate.pendingReason!=="missing").length}/></Suspense>:undefined}
-    activity={summary?<Suspense fallback={<HomeActivityPlaceholder/>}><HomeVisitActivity activity={activityPromise} visit={visit} staff={staff} athleteId={access.athleteId}/></Suspense>:undefined}
     streamedTrend={staff||ownTrends?(source,metric,updatedAt)=><Suspense fallback={null}><TeamGameTrend trends={trendsPromise} source={source} metric={metric} updatedAt={updatedAt}/></Suspense>:undefined}
     spotlight={canSeeBoards?<Suspense fallback={<SkeletonCards count={2} tall label="Loading Players of the Week"/>}><StreamedSpotlight weeks={weeksPromise} photos={photosPromise} staff={staff}/></Suspense>:undefined}
     trending={staff?<Suspense fallback={<SkeletonPanel rows={3} label="Loading Trending Up"/>}><StreamedTrending weeks={weeksPromise}/></Suspense>:undefined}
     leaderboardsSlot={<Suspense fallback={<HomeLeaderboardPlaceholder/>}><StreamedLeaderboards boards={leaderboardsPromise} photos={photosPromise}/></Suspense>}
-    dataAlerts={staff||summary?<Suspense fallback={null}><HomeDataAlerts missing={staff?loadFallBallWeeks(access).then(()=>loadMissingFullSwingWeeks(access)).catch(()=>null):Promise.resolve(null)} hittingUpdatedAt={summary?.batting.updatedAt} pitchingUpdatedAt={summary?.pitching.updatedAt}/></Suspense>:undefined}
     playerWeek={ownTrends&&summary?<Suspense fallback={null}><PlayerWeek trends={trendsPromise} activity={activityPromise} batting={summary.batting} pitching={summary.pitching}/></Suspense>:undefined}
-    staff={staff} athleteId={access.athleteId} summary={summary} sourceStatus={sourceStatus} visit={visit} designNavigation={designNavigation}/></>;
+    staff={staff} athleteId={access.athleteId} summary={summary} designNavigation={designNavigation}/></>;
 }
 
 async function StreamedTrending({weeks}:{weeks:ReturnType<typeof loadGameWeeks>|Promise<null>}){
