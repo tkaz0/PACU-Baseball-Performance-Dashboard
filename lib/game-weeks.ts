@@ -68,7 +68,34 @@ const row = (source: SharedGameStat["source"], snapshot: GameSnapshotRow, code: 
  * of consecutive update batches (versions saved within two days of each other are one batch).
  * A player whose count went down between versions is withheld for that week, never clipped to zero.
  */
-export function gameWeeks(snapshots: readonly GameSnapshotRow[]): { hitting: GameWeek[]; pitching: GameWeek[] } {
+/** Owner request (October 27): Boxer World Series results (October 23 on) are not a Fall Ball week; they feed BWS awards. */
+export const BWS_START = "2026-10-23";
+export type GameWeekSet = { hitting: GameWeek[]; pitching: GameWeek[]; bws: { hitting: GameWeek | null; pitching: GameWeek | null } };
+type CountMap = Map<string, Map<string, { value: number; unit: "count" | "%" }>>;
+/** Added counts between two cumulative QPA versions; a player whose count went down is withheld, never clipped. */
+function addedCounts(snapshot: GameSnapshotRow, players: CountMap, previous: CountMap | null) {
+  const rows: SharedGameStat[] = [];
+  let withheld = 0;
+  for (const [code, metrics] of players) {
+    const before = previous?.get(code);
+    const delta = new Map<string, number>();
+    let decreased = false;
+    for (const [metric, item] of metrics) {
+      if (item.unit !== "count") continue;
+      const change = item.value - (before?.get(metric)?.value ?? 0);
+      if (change < 0) decreased = true;
+      delta.set(metric, change);
+    }
+    if (decreased) { withheld++; continue; }
+    const pa = delta.get("pa") ?? 0, qpa = delta.get("qpa");
+    if (!(pa > 0)) continue;
+    let i = 0;
+    for (const [metric, value] of delta) rows.push(row("qpa_fall_2026", snapshot, code, metric, value, "count", "cumulative_fall", null, i++));
+    if (qpa !== undefined) rows.push(row("qpa_fall_2026", snapshot, code, "qpa_pct", 100 * qpa / pa, "%", "cumulative_fall", null, i));
+  }
+  return { rows, withheld };
+}
+export function gameWeeks(snapshots: readonly GameSnapshotRow[]): GameWeekSet {
   const daily = latestDailySnapshots(snapshots.filter(s => Array.isArray(s.observations))) as GameSnapshotRow[];
   const pitchingLatest = daily.filter(s => s.source === "pitching_fall_2026").at(-1);
   const pitching: GameWeek[] = [];
@@ -85,36 +112,35 @@ export function gameWeeks(snapshots: readonly GameSnapshotRow[]): { hitting: Gam
   const batches: { first: string; last: string; snapshot: GameSnapshotRow }[] = [];
   for (const snapshot of daily.filter(s => s.source === "qpa_fall_2026")) {
     const day = pacificDay(snapshot.fetched_at), batch = batches.at(-1);
-    if (batch && dayGap(batch.last, day) <= 2) { batch.last = day; batch.snapshot = snapshot; } else batches.push({ first: day, last: day, snapshot });
+    // A batch never spans the start of the BWS, so Fall Ball and BWS counts stay separate.
+    if (batch && dayGap(batch.last, day) <= 2 && (batch.last < BWS_START) === (day < BWS_START)) { batch.last = day; batch.snapshot = snapshot; } else batches.push({ first: day, last: day, snapshot });
   }
   const hitting: GameWeek[] = [];
-  let previous: Map<string, Map<string, { value: number; unit: "count" | "%" }>> | null = null;
-  for (const [index, batch] of batches.entries()) {
+  let previous: CountMap | null = null, beforeBws: CountMap | null = null, bwsHitting: GameWeek | null = null, fallValid = true;
+  const fall = batches.filter(batch => batch.last < BWS_START), bws = batches.filter(batch => batch.first >= BWS_START);
+  for (const [index, batch] of fall.entries()) {
     const { players, invalid } = counts(batch.snapshot, "cumulative_fall", null);
-    if (invalid) { previous = null; continue; }
-    const rows: SharedGameStat[] = [];
-    let withheld = 0;
-    for (const [code, metrics] of players) {
-      const before = previous?.get(code);
-      const delta = new Map<string, number>();
-      let decreased = false;
-      for (const [metric, item] of metrics) {
-        if (item.unit !== "count") continue;
-        const change = item.value - (before?.get(metric)?.value ?? 0);
-        if (change < 0) decreased = true;
-        delta.set(metric, change);
-      }
-      if (decreased) { withheld++; continue; }
-      const pa = delta.get("pa") ?? 0, qpa = delta.get("qpa");
-      if (!(pa > 0)) continue;
-      let i = 0;
-      for (const [metric, value] of delta) rows.push(row("qpa_fall_2026", batch.snapshot, code, metric, value, "count", "cumulative_fall", null, i++));
-      if (qpa !== undefined) rows.push(row("qpa_fall_2026", batch.snapshot, code, "qpa_pct", 100 * qpa / pa, "%", "cumulative_fall", null, i));
-    }
+    if (invalid) { previous = null; fallValid = false; continue; }
+    fallValid = true;
+    const { rows, withheld } = addedCounts(batch.snapshot, players, previous);
     // Without a valid earlier version, a later batch would count the whole Fall as one week.
     if (index === 0 || previous) hitting.push({ week: index + 1, source: "qpa_fall_2026", label: `Week ${index + 1}`,
       detail: fallBallWeekDate(index + 1) ?? `Sheet changes saved ${batch.first === batch.last ? shortDate(batch.first) : `${shortDate(batch.first)}–${shortDate(batch.last)}`}`, rows, withheld });
     previous = players;
   }
-  return { hitting, pitching };
+  beforeBws = fallValid ? previous : null;
+  // BWS hitting = every count added from the last Fall Ball version to the newest BWS version.
+  const latestBws = bws.at(-1);
+  if (latestBws && beforeBws) {
+    const { players, invalid } = counts(latestBws.snapshot, "cumulative_fall", null);
+    if (!invalid) { const { rows, withheld } = addedCounts(latestBws.snapshot, players, beforeBws);
+      bwsHitting = { week: 0, source: "qpa_fall_2026", label: "Boxer World Series", detail: `BWS games · sheet saved through ${shortDate(latestBws.last)}`, rows, withheld }; }
+  }
+  let bwsPitching: GameWeek | null = null;
+  if (pitchingLatest) {
+    const { players, invalid } = counts(pitchingLatest, "pitching_event", "fall-2026-bws");
+    if (!invalid && players.size) bwsPitching = { week: 0, source: "pitching_fall_2026", label: "Boxer World Series", detail: `BWS pitching totals · sheet saved ${shortDate(pacificDay(pitchingLatest.fetched_at))}`,
+      rows: [...players].flatMap(([code, metrics]) => [...metrics].map(([metric, item], i) => row("pitching_fall_2026", pitchingLatest, code, metric, item.value, item.unit, "pitching_event", "fall-2026-bws", i))), withheld: 0 };
+  }
+  return { hitting, pitching, bws: { hitting: bwsHitting, pitching: bwsPitching } };
 }

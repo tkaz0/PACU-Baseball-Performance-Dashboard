@@ -1,7 +1,7 @@
 import { coachingGames, type CoachingPlayer } from "@/lib/coaching-tools";
 import { gameValue } from "@/lib/game-metrics";
 import { gameSampleText, isEarlyGameSample } from "@/lib/game-opportunities";
-import { fallBallWeekDate, type GameWeek } from "@/lib/game-weeks";
+import { fallBallWeekDate, type GameWeek, type GameWeekSet } from "@/lib/game-weeks";
 import { TOP_PERFORMER_METRICS, topPerformers, type TopDiscipline } from "@/lib/top-performers";
 
 export type SpotlightStat = { label: string; value: string };
@@ -44,4 +44,16 @@ export function playersOfTheWeek(players: WeekPlayer[] | null, weeks: { hitting:
     const pitching = pitchingWeek ? weekLeader(players, pitchingWeek, "pitching") : null;
     return hitting || pitching ? [{ week: number, label: `Week ${number}`, date: fallBallWeekDate(number), hitting, pitching }] : [];
   });
+}
+
+export type BwsAwards = { mvp: SpotlightCard | null; cyYoung: SpotlightCard | null };
+/**
+ * Owner request (October 27): Boxer World Series MVP (hitting) and Cy Young (pitching) replace Players of the Week
+ * for BWS results. Same equal-weight Top Performer blend and five-complete-line minimum, on BWS counts only;
+ * ties are disclosed, never broken. Leaders so far while the series is still being played.
+ */
+export function bwsAwards(players: WeekPlayer[] | null, bws: GameWeekSet["bws"] | null | undefined): BwsAwards | null {
+  if (!players || !bws) return null;
+  const mvp = bws.hitting ? weekLeader(players, bws.hitting, "hitting") : null, cyYoung = bws.pitching ? weekLeader(players, bws.pitching, "pitching") : null;
+  return mvp || cyYoung ? { mvp, cyYoung } : null;
 }

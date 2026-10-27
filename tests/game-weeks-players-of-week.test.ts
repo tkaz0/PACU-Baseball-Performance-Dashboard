@@ -84,3 +84,25 @@ describe("weekly profile trend", () => {
     expect(html).not.toContain("Each column uses only");
   });
 });
+
+describe("Boxer World Series awards", () => {
+  // Fictional BWS update: QPA saved after October 23 and a separate BWS pitching block.
+  const bwsTotals = Object.fromEntries(players.map((p, i) => [p.code, Object.fromEntries(Object.entries(week2Totals[p.code]).map(([k, v]) => [k, v + (k === "pa" ? 8 : k === "base_hit" ? (i === 1 ? 6 : 1) : k === "ab" ? 7 : k === "qpa" ? (i === 1 ? 8 : 2) : k === "bb" ? 1 : 0)]))]));
+  const withBws = [...snapshots, qpa("q4", "2026-10-26T18:00:00Z", bwsTotals), pitch("p2", "2026-10-27T22:00:00Z", {
+    "fall-2026-week-1": Object.fromEntries(players.map((p, i) => [p.code, pitchLine(9, 3 + i, 1 + (i % 2), 3 + i, i)])),
+    "fall-2026-bws": Object.fromEntries(players.map((p, i) => [p.code, pitchLine(9, i === 4 ? 1 : 6, i === 4 ? 1 : 2, i === 4 ? 8 : 3, i === 4 ? 0 : 3)])),
+  })];
+  it("keeps BWS results out of Fall Ball weeks and ranks MVP and Cy Young on BWS counts only", async () => {
+    const weeks = gameWeeks(withBws);
+    expect(weeks.hitting.map(w => w.week)).toEqual([1, 2]);
+    expect(weeks.pitching.map(w => w.week)).toEqual([1]);
+    expect(new Set(weeks.bws.hitting!.rows.filter(r => r.metric === "pa").map(r => r.value))).toEqual(new Set([8]));
+    const { bwsAwards } = await import("@/lib/home-spotlight");
+    const awards = bwsAwards(players, weeks.bws)!;
+    expect(awards.mvp?.code).toBe("SYN-1");
+    expect(awards.cyYoung?.code).toBe("SYN-4");
+    const html = renderToStaticMarkup(createElement(HomeSpotlight, { weeks: playersOfTheWeek(players, weeks), awards }));
+    expect(html).toContain("BWS MVP"); expect(html).toContain("BWS Cy Young"); expect(html).toContain("Fall Ball Players of the Week");
+    expect(html).not.toContain("Week 3");
+  });
+});

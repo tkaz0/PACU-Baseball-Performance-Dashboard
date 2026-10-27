@@ -18,7 +18,7 @@ import { loadWeeklySourceStatus } from "@/lib/weekly-source-checks";
 import { HomeSpotlight } from "@/components/home-spotlight";
 import { HomeTrending } from "@/components/home-trending";
 import { trendingPlayers } from "@/lib/home-trending";
-import { playersOfTheWeek } from "@/lib/home-spotlight";
+import { playersOfTheWeek, bwsAwards } from "@/lib/home-spotlight";
 import { loadGameWeeks } from "@/lib/game-weeks-server";
 import { loadDesignNavigation } from "@/lib/design-navigation-server";
 import { loadFallBallWeeks } from "@/lib/fall-ball-weeks-server";
@@ -65,7 +65,7 @@ async function StreamedTrending({weeks}:{weeks:ReturnType<typeof loadGameWeeks>|
 
 async function StreamedSpotlight({weeks,photos,staff}:{weeks:ReturnType<typeof loadGameWeeks>|Promise<null>;photos:Promise<Map<string,string>>;staff:boolean}){
   const [weekly,headshots]=await Promise.all([weeks,photos]);
-  return weekly?<HomeSpotlight weeks={playersOfTheWeek(weekly.players,weekly.weeks)} headshots={Object.fromEntries(headshots)} showRankingLink={staff}/>:null;
+  return weekly?<HomeSpotlight weeks={playersOfTheWeek(weekly.players,weekly.weeks)} awards={bwsAwards(weekly.players,weekly.weeks.bws)} headshots={Object.fromEntries(headshots)} showRankingLink={staff}/>:null;
 }
 async function StreamedLeaderboards({boards,photos}:{boards:Promise<Awaited<ReturnType<typeof loadHomeLeaderboards>>|null>;photos:Promise<Map<string,string>>}){
   const [leaderboards,headshots]=await Promise.all([boards,photos]);

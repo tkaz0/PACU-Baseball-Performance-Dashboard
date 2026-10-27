@@ -57,3 +57,5 @@
 .namePlate small { display: block; margin-top: 2px; color: var(--text-secondary); font-size: 12px; }
 .card .headline { justify-content: center; }
 .card .headline strong { font-size: 48px; }
+.card[data-bws] .ribbon { background: #d4a72c; color: #111318; }
+.card[data-bws] .photoBand { background: linear-gradient(160deg, #8a6a12, #c8102e 70%); }
