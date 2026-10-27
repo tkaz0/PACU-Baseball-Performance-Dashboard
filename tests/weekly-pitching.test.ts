@@ -32,3 +32,18 @@ describe("reviewed weekly pitching",()=>{
  it("requires null dates only for reserved reviewed weeks",()=>{expect(validPitchingPeriod("fall-2026-week-1",null)).toBe(true);for(const [id,date]of [["fictional-game",null],["fall-2026-week-0",null],["fall-2026-week-1","2026-09-14"],["fictional-game","2026-09-31"]])expect(validPitchingPeriod(id,date)).toBe(false);expect(pitchingPeriodLabel("fall-2026-week-1",null)).toBe("Fall Ball · Week 1");});
  it("shows cumulative weekly overview without mixing dated games",()=>{const stats=fixture().run().observations.map(r=>({source:r.source,athlete_id:"fictional",metric:r.metric,value:r.value,unit:r.unit,scope:r.scope,event_id:r.eventId,played_on:r.playedOn,source_row:r.sourceRow,source_column:r.sourceColumn,derived_from:r.derivedFrom,snapshot_id:"fictional-snapshot",fetched_at:stamp,content_hash:"a".repeat(64)})) as SharedGameStat[];expect(gameOverviewMetrics(stats,[]).find(r=>r.metric==="strike_pct")).toMatchObject({value:60,eventId:"fall-2026-cumulative",playedOn:null});const week2=stats.map(r=>({...r,event_id:"fall-2026-week-2"}));expect(gameOverviewMetrics([...stats,...week2],[]).every(r=>r.eventId==="fall-2026-cumulative")).toBe(true);expect(gameOverviewMetrics([...stats,...stats.map(r=>({...r,event_id:"fictional-game",played_on:"2026-09-14"}))],[])).toEqual([]);});
 });
+
+it("keeps BWS separate and maps its S&M/HRD/WK columns without inventing earned runs",()=>{
+ const f=fixture();f.snapshot.fetchedAt="2026-10-27T22:00:00Z";f.snapshot.detailRows[0]=151;
+ for(const c of f.snapshot.cells){if(c.row===40)c.row=151;else if(c.row===39)c.row=150;else if(c.row===38){c.row=149;c.entered="FALL BALL BOXER WORLD SERIES PITCHING STATS";}}
+ f.snapshot.cells.find(c=>c.row===150&&c.column===24)!.entered="S&M";
+ f.snapshot.cells.find(c=>c.row===150&&c.column===25)!.entered="HRD";
+ f.snapshot.cells.push({row:150,column:26,entered:"WK"},{row:151,column:26,entered:4});
+ Object.assign(f.events[0],{headerRow:150,firstRow:151,lastRow:151,eventId:"fall-2026-bws"});
+ const parse=()=>parseGameSource(f.snapshot,{...f.snapshot,detailRows:[151]},[{sourceName:"Fictional Pitcher",athleteCode:"PAC-0001"}],f.events,Date.parse(f.snapshot.fetchedAt));
+ const p=parse();expect(p.canImport).toBe(true);expect(p.observations.find(r=>r.metric==="swing_miss")).toMatchObject({value:2,sourceColumn:24});expect(p.observations.find(r=>r.metric==="weak_contact")).toMatchObject({value:4,sourceColumn:26});expect(p.observations.some(r=>r.metric==="earned_runs")).toBe(false);
+ expect(validateGameImport(p,Date.parse(f.snapshot.fetchedAt)).observations).toHaveLength(6);expect(pitchingPeriodLabel("fall-2026-bws",null)).toContain("Boxer World Series");
+ expect(validPitchingPeriod("fall-2026-bws","2026-10-23")).toBe(false);expect(validPitchingPeriod("fall-2026-bws-other",null)).toBe(false);
+ for(const change of [{metric:"weak_contact",sourceColumn:24},{metric:"earned_runs",sourceColumn:26},{metric:"swing_miss",sourceColumn:24,eventId:"fall-2026-week-4"}])expect(()=>validateGameImport({...p,observations:[{...p.observations.find(r=>r.metric==="weak_contact")!,...change}]},Date.parse(f.snapshot.fetchedAt))).toThrow();
+ f.snapshot.cells.find(c=>c.row===149&&c.column===1)!.entered="FALL BALL WEEK 5 PITCHING STATS";expect(parse().canImport).toBe(false);
+});

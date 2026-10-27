@@ -120,3 +120,12 @@ it("names the comparison by BDL game week when both saves fall in different Fall
   const html = renderToStaticMarkup(createElement(TeamGameTrendDisplay, { trends, source: "pitching_fall_2026", metric: whip, updatedAt: "2026-10-12T18:00:00Z", compact: true }));
   for (const text of ["vs Week 2 · Sep 26", "through Week 2 (Sep 26 games; sheet saved Sep 28, 2026)", "through Week 3 (Oct 10 games", 'data-tone="bad"']) expect(html).toContain(text);
 });
+
+it("compares BWS-inclusive Fall totals by saved update without fabricating Week 5",()=>{
+ const observations=(eventId:string)=>[{athleteCode:"PAC-0001",metric:"pitches",value:20,unit:"count",scope:"pitching_event",eventId,playedOn:null},{athleteCode:"PAC-0001",metric:"strikes",value:10,unit:"count",scope:"pitching_event",eventId,playedOn:null}];
+ const trends=teamGameTrends([{id:"fictional-before",source:"pitching_fall_2026",fetched_at:"2026-10-18T00:00:00Z",observations:observations("fall-2026-week-4")},{id:"fictional-bws",source:"pitching_fall_2026",fetched_at:"2026-10-27T22:00:00Z",observations:[...observations("fall-2026-week-4"),...observations("fall-2026-bws")]}]);
+ expect(trends.pitchingWeeks?.["2026-10-27"]).toBeNull();expect(trends.pitchingTournamentDates).toEqual(["2026-10-27"]);
+ const m:TeamGameMetric={metric:"strike_pct",label:"Strike %",value:50,unit:"%",pending:false};
+ const change=teamWeekChange(trends,"pitching_fall_2026",m,"2026-10-27T22:00:00Z");expect(change).toMatchObject({tournament:true,previousDate:"2026-10-17",percent:0});expect(change?.currentWeek).toBeUndefined();
+ const html=renderToStaticMarkup(createElement(TeamGameTrendDisplay,{trends,source:"pitching_fall_2026",metric:m,updatedAt:"2026-10-27T22:00:00Z",compact:true}));expect(html).toContain("ongoing Boxer World Series");expect(html).not.toContain("Week 5");
+});

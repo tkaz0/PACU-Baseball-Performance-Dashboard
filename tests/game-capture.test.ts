@@ -41,3 +41,23 @@ describe("reviewed 43-column QPA grid",()=>{
   }
  });
 });
+
+it("uses the reviewed 989-row pitching grid and excludes only its known formula summaries",async()=>{
+ const {GAME_SOURCES,GAME_CAPTURE_SHAPES,PITCHING_BLOCKS}=await import("@/lib/game-source-config");
+ const {PITCHING_HEADERS}=await import("@/lib/game-source");
+ const contract={...GAME_SOURCES.pitching_fall_2026,spreadsheetId:"fictional-pitching-sheet"},shape=GAME_CAPTURE_SHAPES.pitching_fall_2026;
+ const input={source:contract.source,range:shape.range,fetchedAt:"2026-10-27T22:00:00Z",response:{spreadsheetId:contract.spreadsheetId,sheets:[{properties:{sheetId:0,title:"FALL",gridProperties:{rowCount:989,columnCount:31}},data:[{rowData:[]}]}]}};
+ const captured=normalizeGameCapture(input,contract,shape,Date.parse(input.fetchedAt));expect(captured.cells).toHaveLength(989*31);
+ const set=(row:number,column:number,entered?:string|number,formula?:string)=>Object.assign(captured.cells.find(c=>c.row===row&&c.column===column)!,{entered,...(formula?{formula}:{})});
+ for(const row of [2,...PITCHING_BLOCKS.map(b=>b.headerRow)])PITCHING_HEADERS.forEach((h,i)=>set(row,i+1,h));
+ const events=PITCHING_BLOCKS.map(b=>({...b,playedOn:null}));
+ for(const [i,b]of PITCHING_BLOCKS.entries())set(b.headerRow-1,1,i===4?"FALL BALL BOXER WORLD SERIES PITCHING STATS":`FALL BALL WEEK ${i+1} PITCHING STATS`);
+ set(2,26,"K% RK");set(7,18,1);set(146,27,undefined,"=SUM(C129:C144)");set(147,27,"Fictional footer note");set(183,28,undefined,"=SUM(C151:C181)");set(64,3,undefined,"=SUM(C40:C63)");
+ set(151,1,"Fictional Pitcher");set(151,3,20);set(150,24,"S&M");set(150,25,"HRD");set(150,26,"WK");
+ const snapshot={...captured,contentHash:"a".repeat(64)},ids=[{sourceName:"Fictional Pitcher",athleteCode:"PAC-0001"}];
+ expect(parseGameSource(snapshot,contract,ids,events,Date.parse(input.fetchedAt)).canImport).toBe(true);
+ set(64,3,1);
+ delete captured.cells.find(c=>c.row===64&&c.column===3)!.formula;
+ expect(parseGameSource(snapshot,contract,ids,events,Date.parse(input.fetchedAt)).issues.some(i=>i.code==="unreviewed_rows")).toBe(true);
+ input.response.sheets[0].properties.gridProperties.rowCount=1025;expect(()=>normalizeGameCapture(input,contract,shape,Date.parse(input.fetchedAt))).toThrow();
+});

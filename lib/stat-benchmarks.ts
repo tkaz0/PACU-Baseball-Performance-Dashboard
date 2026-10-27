@@ -105,7 +105,7 @@ export function collegePitchReference(metric:string,context:StatGuideContext) {
 export function ungradedMetric(metric:string):boolean {
   metric=benchmarkMetric(metric);
   if(metric==="pitching_k_bb")return false;
-  return ["innings_outs","earned_runs","hh_base_hit","hh_extra_base_hit","base_hit","punchies","bb_outcome","three_eight_hh","qpa","eight_plus_pitches","moving_runner","ab_control","fb","fb_k","ch","ch_k","bb_pitch_family","bb_pitch_family_k","baf","fps","weak_contact","hard_contact"].includes(metric)||/(?:^|_)(?:count|pa|ab|pitches|strikes|hits|rbi|pumps|sb|gdp|k|bb|h|r|hbp|sac_fly|sac_bunt)$/.test(metric)||Object.hasOwn(CHART_GUIDES,metric);
+  return ["swing_miss","innings_outs","earned_runs","hh_base_hit","hh_extra_base_hit","base_hit","punchies","bb_outcome","three_eight_hh","qpa","eight_plus_pitches","moving_runner","ab_control","fb","fb_k","ch","ch_k","bb_pitch_family","bb_pitch_family_k","baf","fps","weak_contact","hard_contact"].includes(metric)||/(?:^|_)(?:count|pa|ab|pitches|strikes|hits|rbi|pumps|sb|gdp|k|bb|h|r|hbp|sac_fly|sac_bunt)$/.test(metric)||Object.hasOwn(CHART_GUIDES,metric);
 }
 
 const CHART_GUIDES:Readonly<Record<string,string>>={

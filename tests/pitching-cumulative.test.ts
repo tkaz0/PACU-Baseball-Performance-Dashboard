@@ -20,3 +20,9 @@ it("uses roster roles for game source choices and rejects comparisons across unm
  expect(playerGameSources(base)).toEqual(["pitching_fall_2026"]);expect(playerGameSources({...base,position:"OF",playerType:"position"})).toEqual(["qpa_fall_2026"]);expect(playerGameSources({...base,playerType:"two_way"})).toHaveLength(2);
  const data:CoachingData={players:[base,{...base,id:"b",position:"OF",playerType:"position"}],readings:[],games:[]};expect(compareGames(data,"a","b",PITCHING_CUMULATIVE)).toEqual([]);
 });
+
+it("adds the distinct BWS aggregate once without treating it as a week or mixing dated games",()=>{
+ const week=rows(4,{pitches:10,strikes:8,innings_outs:3,k:1}),bws=rows(4,{pitches:30,strikes:12,innings_outs:6,k:2}).map(r=>({...r,event_id:"fall-2026-bws"}));
+ const c=cumulativePitching([...week,...bws]);expect(c.find(r=>r.metric==="pitches")?.value).toBe(40);expect(c.find(r=>r.metric==="strike_pct")?.value).toBe(50);
+ expect(cumulativePitching([...week,...bws,...rows(4,{pitches:1}).map(r=>({...r,event_id:"fictional-bws-game",played_on:"2026-10-23"}))])).toEqual([]);
+});

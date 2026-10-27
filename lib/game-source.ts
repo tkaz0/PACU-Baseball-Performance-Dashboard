@@ -28,6 +28,8 @@ export const QPA_HEADERS = ["Player", "PA's", "QPAs", "QPA Checker", "AB's", "AB
 export const PITCHING_HEADERS = ["Name", "", "Pitches", "Strikes", "K%", "FB", "FB K", "FB K%", "BB", "BB K", "BB K%", "CH", "CH K", "CH K%", "BAF", "FPS", "FPS%", "Inn", "H", "R", "BB", "HBP", "K"] as const;
 const QPA_RAW = [[2,"pa"],[3,"qpa"],[5,"ab"],[9,"hh_base_hit"],[10,"hh_extra_base_hit"],[11,"pumps"],[12,"base_hit"],[13,"three_eight_hh"],[14,"eight_plus_pitches"],[15,"bb"],[16,"rbi"],[17,"sac_bunt"],[18,"moving_runner"],[19,"hbp"],[20,"punchies"],[23,"ab_control"],[27,"sb"],[28,"gdp"],[29,"sac_fly"]] as const;
 const PITCHING_RAW = [[3,"pitches"],[4,"strikes"],[6,"fb"],[7,"fb_k"],[9,"bb_pitch_family"],[10,"bb_pitch_family_k"],[12,"ch"],[13,"ch_k"],[15,"baf"],[16,"fps"],[19,"h"],[20,"r"],[21,"bb_outcome"],[22,"hbp"],[23,"k"],[24,"weak_contact"],[25,"hard_contact"],[26,"earned_runs"]] as const;
+// October 27 owner review: BWS X/Y/Z are swings-and-misses/hard/weak contact.
+const PITCHING_BWS_RAW = [...PITCHING_RAW.filter(([column])=>column<24),[24,"swing_miss"],[25,"hard_contact"],[26,"weak_contact"]] as const;
 const normalize = (value: string) => value.trim().replace(/\s+/g," ").toLocaleLowerCase("en-US");
 const canonicalFormula = (formula: string) => formula.replace(/\s+/g, "").toUpperCase();
 const validDate = (value: string) => /^2026-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0,10) === value && value >= "2026-09-01" && value <= "2026-12-31";
@@ -44,15 +46,21 @@ export function pitchingWeek(eventId: unknown): number | null {
   const match = typeof eventId === "string" ? /^fall-2026-week-([1-5])$/.exec(eventId) : null;
   return match ? Number(match[1]) : null;
 }
+export const PITCHING_BWS = "fall-2026-bws";
+/** Reviewed non-overlapping Fall Ball weeks and BWS totals; never an inferred game. */
+export function isPitchingAggregate(eventId: unknown): boolean {
+  return pitchingWeek(eventId) !== null || eventId === PITCHING_BWS;
+}
 export function validPitchingPeriod(eventId: unknown, playedOn: unknown): boolean {
   if(eventId === "fall-2026-cumulative")return false; // Display projection, never an importable source period.
   if (typeof eventId !== "string" || !/^[A-Za-z0-9_-]{1,80}$/.test(eventId)) return false;
-  if (pitchingWeek(eventId) !== null) return playedOn === null;
-  if (eventId.startsWith("fall-2026-week-")) return false;
+  if (isPitchingAggregate(eventId)) return playedOn === null;
+  if (eventId.startsWith("fall-2026-week-") || eventId.startsWith("fall-2026-bws")) return false;
   return typeof playedOn === "string" && validDate(playedOn);
 }
 export function pitchingPeriodLabel(eventId: string | null, playedOn: string | null): string {
   if(eventId === "fall-2026-cumulative" && playedOn === null)return "Fall 2026 · Cumulative";
+  if(eventId === PITCHING_BWS && playedOn === null)return "Boxer World Series · Tournament Totals";
   const week = pitchingWeek(eventId);
   if (week !== null && playedOn === null) return `Fall Ball · Week ${week}`;
   return playedOn ? new Date(`${playedOn}T12:00:00Z`).toLocaleDateString("en-US", {month:"short",day:"numeric",year:"numeric",timeZone:"UTC"}) : "Period unavailable";
@@ -98,6 +106,7 @@ export function parseGameSource(snapshot: GameSourceSnapshot, contract: Reviewed
   // Keep this exception bounded to the existing top summary and its exact ranking header.
   const aeHeader=cells.get(key(2,31));
   const aeHeaderBlank=!aeHeader || ((aeHeader.entered===undefined||aeHeader.entered==="") && (aeHeader.effective===undefined||aeHeader.effective==="") && !aeHeader.formula && !aeHeader.error);
+  const bwsLayout = normalize(text(149,1)) === "fall ball boxer world series pitching stats";
   const summaryRankingCell = (cell:GameSourceCell) => !qpa && normalize(text(2,26))==="k% rk" && (
     (cell.row>=3 && cell.row<=33 && (
       (cell.column>=26 && cell.column<=29) ||
@@ -105,9 +114,11 @@ export function parseGameSource(snapshot: GameSourceSnapshot, contract: Reviewed
     )) ||
     // October 17 owner review: two summary formulas and one footer note, not raw stats.
     (cell.column===27 && (
-      ([35,182].includes(cell.row) && !!cell.formula && cell.entered===undefined) ||
-      (cell.row===183 && typeof cell.entered==="string" && !/^\s*\d+(?:\.\d+)?\s*$/.test(cell.entered) && !cell.formula && !cell.error)
-    ))
+      ([35,182,...(bwsLayout?[146]:[])].includes(cell.row) && !!cell.formula && cell.entered===undefined) ||
+      ([183,...(bwsLayout?[147]:[])].includes(cell.row) && typeof cell.entered==="string" && !/^\s*\d+(?:\.\d+)?\s*$/.test(cell.entered) && !cell.formula && !cell.error)
+    )) ||
+    // Reviewed rearrangement: a top-summary innings entry and the BWS footer formula.
+    (bwsLayout && ((cell.row===7 && cell.column===18 && typeof cell.entered==="number" && !cell.formula && !cell.error) || (cell.row===183 && cell.column===28 && !!cell.formula && cell.entered===undefined)))
   );
   for(const cell of cells.values()) if(cell.column>(qpa?29:26)&&!summaryRankingCell(cell)&&(cell.entered!==undefined||cell.effective!==undefined||cell.formula||cell.error)) problem("unreviewed_columns", "Source content appeared outside the reviewed columns. Review the changed source layout before syncing.",cell.row,cell.column);
   const rawColumns=new Set<number>((qpa?QPA_RAW:PITCHING_RAW).map(([column])=>column));
@@ -127,17 +138,20 @@ export function parseGameSource(snapshot: GameSourceSnapshot, contract: Reviewed
     eventIds.add(event.eventId); checkHeader(event.headerRow,PITCHING_HEADERS);
     const week = pitchingWeek(event.eventId);
     if (week !== null && normalize(text(event.headerRow-1,1)) !== `fall ball week ${week} pitching stats`) problem("week_label", "The reviewed week does not match the source block title.",event.headerRow-1,1);
-    const contactPresent = [...cells.values()].some(c=>c.row>=event.headerRow&&c.row<=event.lastRow&&c.column>=24&&c.column<=25&&(c.entered!==undefined||c.formula||c.error));
-    // October 12 owner confirmation: Week 3 X/Y retain Wk/Hrd meanings despite blank headers.
-    const reviewedBlankContactHeaders = event.eventId==="fall-2026-week-3" && event.headerRow===112 && [24,25].every(column=>{
+    if(event.eventId === PITCHING_BWS && (normalize(text(event.headerRow-1,1)) !== "fall ball boxer world series pitching stats" || Date.parse(snapshot.fetchedAt) < Date.parse("2026-10-23T07:00:00Z"))) problem("tournament_label", "BWS totals need the reviewed tournament title and an observed source capture.",event.headerRow-1,1);
+    const bws = event.eventId === PITCHING_BWS;
+    const contactPresent = [...cells.values()].some(c=>c.row>=event.headerRow&&c.row<=event.lastRow&&c.column>=24&&c.column<=(bws?26:25)&&(c.entered!==undefined||c.formula||c.error));
+    // Week 3 retained its confirmed blank X/Y headers when its rows moved.
+    const reviewedBlankContactHeaders = event.eventId==="fall-2026-week-3" && [112,98].includes(event.headerRow) && [24,25].every(column=>{
       const cell=cells.get(key(event.headerRow,column));
       return !!cell && (cell.entered===undefined||cell.entered==="") && (cell.effective===undefined||cell.effective==="") && !cell.formula && !cell.error;
     });
-    if (contactPresent) for (const [column,header] of [[24,"Wk"],[25,"Hrd"]] as const) {
-      if (!reviewedBlankContactHeaders && normalize(text(event.headerRow,column))!==normalize(header)) problem("header", "Review the weak/hard-contact column headers.",event.headerRow,column);
+    const contactHeaders = bws ? [[24,"S&M"],[25,"HRD"],[26,"WK"]] as const : [[24,"Wk"],[25,"Hrd"]] as const;
+    if (contactPresent) for (const [column,header] of contactHeaders) {
+      if (!reviewedBlankContactHeaders && normalize(text(event.headerRow,column))!==normalize(header)) problem("header", "Review the pitching contact-count column headers.",event.headerRow,column);
       for(let row=event.firstRow;row<=event.lastRow;row++) if(!cells.has(key(row,column))) problem("coverage", "Read the complete contact-count columns.",row,column);
     }
-    const earnedPresent=[...cells.values()].some(c=>c.row>=event.headerRow&&c.row<=event.lastRow&&c.column===26&&(c.entered!==undefined||c.formula||c.error));
+    const earnedPresent=!bws&&[...cells.values()].some(c=>c.row>=event.headerRow&&c.row<=event.lastRow&&c.column===26&&(c.entered!==undefined||c.formula||c.error));
     if(earnedPresent){
       if(normalize(text(event.headerRow,26))!=="er") problem("header","Earned runs require the ER header in column Z.",event.headerRow,26);
       for(let row=event.firstRow;row<=event.lastRow;row++) if(!cells.has(key(row,26))) problem("coverage","Read the complete earned-run column.",row,26);
@@ -152,7 +166,8 @@ export function parseGameSource(snapshot: GameSourceSnapshot, contract: Reviewed
   for (const row of [...rows].sort((a,b)=>a-b)) {
     const athleteCode = byName.get(normalize(text(row,1)));
     if (athleteCode === "exclude") { problem("excluded_identity", "This source player is explicitly excluded from dashboard imports.", row, 1, "review"); continue; }
-    const raw = qpa ? QPA_RAW : PITCHING_RAW;
+    const event = qpa ? undefined : eventByRow.get(row);
+    const raw = qpa ? QPA_RAW : event?.eventId===PITCHING_BWS ? PITCHING_BWS_RAW : PITCHING_RAW;
     const values = new Map<number,number>();
     let touched = false;
     for (const [column] of raw) {
@@ -180,7 +195,6 @@ export function parseGameSource(snapshot: GameSourceSnapshot, contract: Reviewed
     if (!touched) continue;
     result.populatedRows++;
     if (!athleteCode) { problem("unmapped_identity", "This populated source row needs an exact reviewed athlete mapping.",row,1); continue; }
-    const event = qpa ? undefined : eventByRow.get(row);
     if (!qpa && !event) { problem("unmapped_event", "This populated pitching row needs a reviewed week or game date.",row); continue; }
     const identityKey = `${athleteCode}:${event?.eventId ?? "cumulative"}`;
     if (seenIdentities.has(identityKey)) { problem("duplicate_identity", "Two source rows resolve to the same athlete and event/season.",row,1); continue; }
@@ -188,10 +202,10 @@ export function parseGameSource(snapshot: GameSourceSnapshot, contract: Reviewed
     const add = (metric: string,label: string,value: number,column: number,unit: "count" | "%"="count",derivedFrom: number[] = []) => result.observations.push({ athleteCode, metric, label, value, unit, scope: qpa ? "cumulative_fall" : "pitching_event", eventId: event?.eventId ?? null, playedOn: event?.playedOn ?? null, source, sourceRow: row, sourceColumn: column, derivedFrom });
     if(innings&&!innings.formula&&!innings.error&&inningsToOuts(innings.entered)!==null) add("innings_outs","Innings Pitched (outs)",inningsToOuts(innings.entered)!,18,"count",[18]);
     for (const [column,metric] of raw) if (values.has(column)) {
-      const label = qpa ? QPA_HEADERS[column-1] : column === 9 ? "BB (pitch family)" : column === 21 ? "BB (outcome)" : column === 24 ? "Weak Contact" : column === 25 ? "Hard Contact" : column === 26 ? "Earned Runs" : PITCHING_HEADERS[column-1];
+      const label = qpa ? QPA_HEADERS[column-1] : column === 9 ? "BB (pitch family)" : column === 21 ? "BB (outcome)" : metric === "weak_contact" ? "Weak Contact" : metric === "hard_contact" ? "Hard Contact" : metric === "swing_miss" ? "Swings & Misses" : metric === "earned_runs" ? "Earned Runs" : PITCHING_HEADERS[column-1];
       add(metric,label,values.get(column)!,column);
     }
-    if(!qpa&&values.has(26)&&values.has(20)&&values.get(26)!>values.get(20)!) problem("earned_runs", "Earned runs cannot exceed total runs allowed.",row,26);
+    if(!qpa&&event?.eventId!==PITCHING_BWS&&values.has(26)&&values.has(20)&&values.get(26)!>values.get(20)!) problem("earned_runs", "Earned runs cannot exceed total runs allowed.",row,26);
     const hhFormula = qpa ? cells.get(key(row,21))?.formula : undefined;
     if (hhFormula && canonicalFormula(hhFormula) !== `=(I${row}+M${row}+J${row}+K${row})/(E${row}-T${row}-Q${row})`) problem("hh_formula", "The QPA hard-hit formula changed; review before syncing.", row,21);
     const numerator = qpa ? 3 : 4, denominator = qpa ? 2 : 3, rateColumn = qpa ? 8 : 5;

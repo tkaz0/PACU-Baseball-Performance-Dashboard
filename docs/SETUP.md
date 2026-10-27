@@ -528,3 +528,6 @@ October 14 profile visual refresh is app-only: no migration, environment variabl
 October 14 Astra review: application-only reliability and presentation fixes; no migration, configuration, source edit or account change is required. Deploy after the standard checks. Profile headers reuse existing authorized Fall summaries across all tabs; original session history remains unchanged.
 
 October 14 Exit Meetings update is app-only: the default Meeting Handout is designed for one front-and-back Letter sheet. Choose Detailed Report for weekly, Pitch+ and Contact Allowed breakdowns; long notes and historical meeting content can add continuation pages. Existing saved snapshots are read unchanged. No migration, source refresh or new environment variable is required.
+
+
+October 27 BWS pitching: apply `202610270001_bws_pitching.sql` after the compatible application update. Tests cover the 989-row reviewed layout, BWS null-date identity and exact X/Y/Z metric provenance, retained weekly counts, cumulative JS/SQL agreement, staff-only mutation, own-player reads and immutable retry/missing-entry safeguards. BWS is a separate tournament aggregate, not Week 5.

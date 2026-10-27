@@ -29,6 +29,7 @@ beforeAll(async()=>{
  await db.exec(readFileSync(new URL("202609280006_qpa_sac_fly_at_bats.sql",dir),"utf8"));
  await db.exec(readFileSync(new URL("202610090005_eight_plus_pitch_pct.sql",dir),"utf8"));
  await db.exec(readFileSync(new URL("202610120001_game_ops.sql",dir),"utf8"));
+ await db.exec(readFileSync(new URL("202610270001_bws_pitching.sql",dir),"utf8"));
  await db.exec("create or replace function private.game_sync_now() returns timestamptz language sql stable set search_path='' as $$select '2026-09-15T12:00:00Z'::timestamptz$$;");
  for(const[id,role]of[[admin,"admin"],[coach,"coach"],[player,"player"],[unlinked,"player"]]){await db.query("insert into auth.users values($1)",[id]);await db.query("insert into public.app_accounts(user_id,is_active) values($1,true)",[id]);await db.query("insert into public.account_roles(user_id,role) values($1,$2)",[id,role]);}
  for(const[id,code]of[[a,"PAC-0001"],[b,"PAC-0002"]]){await db.query("insert into public.athletes(id,athlete_code,first_name,last_name) values($1,$2,'Fictional','Player')",[id,code]);await db.query("insert into public.athlete_seasons(athlete_id,season) values($1,'2026-27')",[id]);}
@@ -220,4 +221,25 @@ it("accounts for legacy sacrifice flies consistently without rewriting source ob
  const corrected=await asUser(player,async()=>(await db.query<{r:Record<string,unknown>[]}>("select public.game_leaderboards() r")).rows[0].r);
  expect(corrected.find(r=>r.metric==="batting_avg")).toMatchObject({value:.5,opportunities:4});
  expect(corrected.find(r=>r.metric==="batting_obp")).toMatchObject({value:.4,opportunities:5});
+});
+
+
+it("imports the reviewed BWS aggregate with exact contact columns and keeps Fall totals consistent",async()=>{
+ await db.exec("create or replace function private.game_sync_now() returns timestamptz language sql stable set search_path='' as $$select '2026-10-27T23:00:00Z'::timestamptz$$;");
+ try {
+  const pitch=(metric:string,sourceColumn:number,value:number,eventId="fall-2026-bws")=>row({metric,sourceColumn,value,scope:"pitching_event",eventId,playedOn:null,sourceRow:eventId==="fall-2026-bws"?151:40,derivedFrom:metric==="innings_outs"?[18]:[]});
+  const current=[pitch("pitches",3,20),pitch("strikes",4,10),pitch("innings_outs",18,3),pitch("k",23,1),pitch("bb_outcome",21,1),pitch("h",19,1),pitch("r",20,1),pitch("swing_miss",24,5),pitch("hard_contact",25,1),pitch("weak_contact",26,2)];
+  const weekly=current.filter(r=>r.metric!=="swing_miss").map(r=>({...r,eventId:"fall-2026-week-4",sourceRow:129,sourceColumn:r.metric==="weak_contact"?24:r.sourceColumn}));
+  const payload=[...weekly,...current];
+  for(const invalid of [current.map(r=>r.metric==="weak_contact"?{...r,sourceColumn:24}:r),current.map(r=>({...r,playedOn:"2026-10-23"})),[pitch("earned_runs",26,1)],[pitch("swing_miss",24,1,"fall-2026-week-4")]]){
+   await asUser(coach,async()=>{await expect(save(invalid,"c".repeat(64),"2026-10-27T22:00:00Z","pitching_fall_2026")).rejects.toThrow();});
+  }
+  await asUser(player,async()=>{await expect(save(payload,"a".repeat(64),"2026-10-27T22:00:00Z","pitching_fall_2026")).rejects.toThrow("Active import staff");});
+  const receipt=await asUser(coach,()=>save(payload,"a".repeat(64),"2026-10-27T22:00:00Z","pitching_fall_2026"));expect(receipt.observations).toBe(19);
+  const saved=await asUser(player,()=>read(a));expect(saved.filter(r=>r.event_id==="fall-2026-bws")).toHaveLength(10);expect(saved.every(r=>r.played_on===null)).toBe(true);
+  const boards=await asUser(player,async()=>(await db.query<{r:Record<string,unknown>[]}>("select public.game_leaderboards() r")).rows[0].r);
+  expect(boards.find(r=>r.metric==="pitches")).toMatchObject({value:40,eventId:"fall-2026-cumulative"});expect(boards.find(r=>r.metric==="pitching_whip")).toMatchObject({value:2,opportunities:6});expect(boards.find(r=>r.metric==="weak_contact_pct")?.value).toBeCloseTo(200/3);
+  await asUser(coach,async()=>{await expect(save(current,"b".repeat(64),"2026-10-27T22:01:00Z","pitching_fall_2026")).rejects.toThrow("Previously recorded source entries are missing");});
+  expect(await asUser(coach,()=>save(payload,"a".repeat(64),"2026-10-27T22:00:00Z","pitching_fall_2026"))).toMatchObject({changed:false,snapshot_id:receipt.snapshot_id});
+ } finally {await db.exec("create or replace function private.game_sync_now() returns timestamptz language sql stable set search_path='' as $$select '2026-09-15T12:00:00Z'::timestamptz$$;");}
 });

@@ -67,6 +67,7 @@ export const STAT_DEFINITIONS: Readonly<Record<string, string>> = {
   avg_fastball_spin: "Average fastball rotation rate, in revolutions per minute. Only fastballs belong in this metric; a higher spin value is not automatically a better pitch.",
   weak_contact_pct: "Of the balls the team marked weak or hard in this pitching period, the share marked weak. Higher ranks first. Balls without one of those labels are not counted.",
   hard_contact_pct: "Of the balls the team marked weak or hard in this pitching period, the share marked hard. Lower ranks first. This uses the team’s scoring labels, not a Statcast exit-speed cutoff.",
+  swing_miss: "Swings and misses recorded in the BWS pitching sheet’s S&M column. This is a count; total swings are not available, so it is not a whiff percentage.",
   weak_contact: "Weak-contact count recorded in the Pitching sheet’s Wk column for this period. This is a count, not a contact rate.",
   hard_contact: "Hard-contact count recorded in the Pitching sheet’s Hrd column for this period. The team’s scoring definition applies; this is not a Statcast exit-velocity threshold.",
   strike_pct: "Strikes divided by total pitches, multiplied by 100. This measures pitch-level strike frequency, not strikeouts.",

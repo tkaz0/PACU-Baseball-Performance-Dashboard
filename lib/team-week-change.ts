@@ -12,6 +12,7 @@ export type TeamWeekChange = {
   tone: "good" | "bad" | "neutral";
   /** Pitching's reviewed source weeks, rather than calendar weeks of sheet saves. */
   currentWeek?: number; previousWeek?: number;
+  tournament?: boolean;
 };
 
 /** Compare saved Fall-to-date rates, not games inferred from cumulative changes. */
@@ -33,7 +34,8 @@ export function teamWeekChange(trends: TeamGameTrends, source: SharedGameStat["s
   // Owner choice (October 12): if last week had no saved update, compare with the latest earlier one.
   let previousDate = lastWeek ?? before.at(-1);
   let currentWeek: number | undefined, previousWeek: number | undefined;
-  if (source === "pitching_fall_2026" && trends.pitchingWeeks) {
+  const tournament=source==="pitching_fall_2026" && !!trends.pitchingTournamentDates?.includes(currentDate);
+  if (source === "pitching_fall_2026" && trends.pitchingWeeks && !tournament) {
     const coverage = trends.pitchingWeeks;
     const week = coverage[currentDate];
     if (!week) return null;
@@ -56,6 +58,7 @@ export function teamWeekChange(trends: TeamGameTrends, source: SharedGameStat["s
   if (percent !== null && !Number.isFinite(percent)) return null;
   return { currentDate, previousDate, previousValue: previous.value, percent, direction, tone,
     fallback: currentWeek !== undefined ? previousWeek !== currentWeek - 1 : !lastWeek,
+    ...(tournament ? {tournament:true} : {}),
     ...(currentWeek !== undefined ? { currentWeek, previousWeek } : {}) };
 }
 
@@ -64,7 +67,7 @@ const shortDay = (date: string) => new Date(`${date}T12:00:00Z`).toLocaleDateStr
 export function weekChangeSince(change: TeamWeekChange): { since: string; byWeek: boolean; before: { week: number; date: string } | null; now: { week: number; date: string } | null } {
   const dates = fallBallWeekDates();
   const before = change.previousWeek !== undefined ? dates[change.previousWeek] ? { week: change.previousWeek, date: dates[change.previousWeek] } : null : fallBallWeekThrough(change.previousDate);
-  const now = change.currentWeek !== undefined ? dates[change.currentWeek] ? { week: change.currentWeek, date: dates[change.currentWeek] } : null : fallBallWeekThrough(change.currentDate);
+  const now = change.tournament ? null : change.currentWeek !== undefined ? dates[change.currentWeek] ? { week: change.currentWeek, date: dates[change.currentWeek] } : null : fallBallWeekThrough(change.currentDate);
   const byWeek = !!before && !!now && before.week !== now.week;
   return { since: byWeek ? `Week ${before!.week} · ${shortDay(before!.date)}` : change.fallback ? shortDay(change.previousDate) : "last week", byWeek, before, now };
 }

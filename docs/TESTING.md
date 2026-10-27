@@ -574,3 +574,6 @@ Cover tied podium ranks and filtered non-medal ranks, top-player dates/counts/la
 ## October 14 exit meeting handouts
 
 The server PDF builders were retired in favor of the browser-printed two-page sheet. `exit-meeting-handout.test.ts` renders a fictional report and checks two pages (front and back), headline tiles, percentile bars that exclude body measurements, insights, week-by-week values, talking points or writing lines, and that the permanent PAC code is not printed. `exit-meeting-compact.test.ts` checks that weekly rates, Pitch+ and Contact Allowed stay on the handout without changing the source report; `exit-meeting-access.test.ts` covers the report loader's access guards and failure behavior.
+
+
+October 27 BWS pitching: apply `202610270001_bws_pitching.sql` after the compatible application update. Tests cover the 989-row reviewed layout, BWS null-date identity and exact X/Y/Z metric provenance, retained weekly counts, cumulative JS/SQL agreement, staff-only mutation, own-player reads and immutable retry/missing-entry safeguards. BWS is a separate tournament aggregate, not Week 5.

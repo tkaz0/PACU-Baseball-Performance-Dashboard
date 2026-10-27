@@ -1,3 +1,4 @@
+import { isPitchingAggregate } from "@/lib/game-source";
 import { qpaBattingCounts, qpaSheetAB } from "@/lib/qpa-at-bats";
 import { battingPowerParts } from "@/lib/advanced-game-stats";
 import type { SharedGameStat } from "@/lib/game-server";
@@ -24,7 +25,7 @@ export function teamGameSummary(stats: readonly SharedGameStat[], source: Shared
   const rows = stats.filter(row => row.source === source);
   const qpa = source === "qpa_fall_2026", groups = new Map<string, Counts>();
   let valid = new Set(rows.map(r => r.snapshot_id)).size <= 1 && new Set(rows.map(r => r.content_hash)).size <= 1;
-  if(!qpa && rows.some(r=>r.event_id?.startsWith("fall-2026-week-")) && rows.some(r=>!r.event_id?.startsWith("fall-2026-week-")))valid=false;
+  if(!qpa && rows.some(r=>isPitchingAggregate(r.event_id)) && rows.some(r=>!isPitchingAggregate(r.event_id)))valid=false;
   for (const row of rows) {
     const key = JSON.stringify([row.athlete_id, row.event_id]);
     const values = groups.get(key) ?? new Map<string, number>();

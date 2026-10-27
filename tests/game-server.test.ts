@@ -13,3 +13,9 @@ describe("protected game read projection",()=>{
  it.each([{athlete_id:b},{source:"constructor"},{private_email:"fictional@example.com"},{metric:"unknown"},{source_column:3},{derived_from:[3,2]},{value:NaN},{value:-1},{content_hash:""},{fetched_at:"2026-09-15T12:00:00Z"},{played_on:"2026-09-13"}])("rejects extra, cross-player or invalid provider rows %#",async change=>{rpc.mockResolvedValue({data:[{...row(),...change}],error:null});await expect(loadGameStats(access())).rejects.toThrow();});
  it("rejects oversized, duplicate and failed reads rather than showing partial success",async()=>{for(const data of [null,{},[row(),row()],Array(10001).fill(row())]){rpc.mockResolvedValue({data,error:null});await expect(loadGameStats(access())).rejects.toThrow();}rpc.mockResolvedValue({data:[],error:{message:"fictional"}});await expect(loadGameStats(access())).rejects.toThrow();});
 });
+
+it("reads BWS weak contact only from its reviewed column without weakening own-athlete scope",async()=>{
+ vi.setSystemTime(new Date("2026-10-27T23:00:00Z"));const bws={...row(),source:"pitching_fall_2026",scope:"pitching_event",event_id:"fall-2026-bws",played_on:null,source_row:151,source_column:26,metric:"weak_contact",fetched_at:"2026-10-27T22:00:00Z"};
+ rpc.mockResolvedValue({data:[bws],error:null});expect(await loadGameStats(access())).toEqual([bws]);
+ for(const change of [{source_column:24},{metric:"earned_runs"},{athlete_id:b}]){rpc.mockResolvedValue({data:[{...bws,...change}],error:null});await expect(loadGameStats(access())).rejects.toThrow();}
+});

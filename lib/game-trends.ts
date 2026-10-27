@@ -1,3 +1,4 @@
+import { isPitchingAggregate, PITCHING_BWS } from "@/lib/game-source";
 import { teamGameSummary } from "@/lib/team-game-stats";
 import type { SharedGameStat } from "@/lib/game-server";
 
@@ -8,6 +9,8 @@ export type TeamGameTrends = Partial<Record<SharedGameStat["source"], Record<str
   snapshotDates?: Partial<Record<SharedGameStat["source"], string[]>>;
   /** Actual reviewed weekly coverage, independent of the day staff saved the sheet. */
   pitchingWeeks?: Record<string, number | null>;
+  /** Reviewed BWS versions use saved-update comparisons, never a fabricated Week 5. */
+  pitchingTournamentDates?: string[];
 };
 export type GameSnapshotRow = { id: string; source: SharedGameStat["source"]; fetched_at: string; observations: unknown };
 
@@ -37,6 +40,7 @@ export function teamGameTrends(snapshots: readonly GameSnapshotRow[]): TeamGameT
     if (snapshot.source === "pitching_fall_2026") {
       const observations = Array.isArray(snapshot.observations) ? snapshot.observations as Observation[] : [];
       const weeks = observations.map(o => o?.scope === "pitching_event" && o.playedOn === null && typeof o.eventId === "string" ? /^fall-2026-week-([1-5])$/.exec(o.eventId) : null);
+      if(observations.length && observations.every(o=>o?.scope==="pitching_event" && o.playedOn===null && isPitchingAggregate(o.eventId)) && observations.some(o=>o.eventId===PITCHING_BWS)) (result.pitchingTournamentDates??=[]).push(date);
       // Empty, dated or mixed histories cannot establish a weekly baseline.
       (result.pitchingWeeks ??= {})[date] = weeks.length && weeks.every(Boolean) ? Math.max(...weeks.map(w => Number(w![1]))) : null;
     }

@@ -1,5 +1,5 @@
 import type { SharedGameStat } from "@/lib/game-server";
-import { pitchingWeek, validPitchingPeriod } from "@/lib/game-source";
+import { isPitchingAggregate, validPitchingPeriod } from "@/lib/game-source";
 export const PITCHING_CUMULATIVE = "fall-2026-cumulative";
 /** Read-only display projection. Never import these rows or sum successive source snapshots. */
 export function cumulativePitching(stats:readonly SharedGameStat[]):SharedGameStat[]{
@@ -11,9 +11,9 @@ export function cumulativePitching(stats:readonly SharedGameStat[]):SharedGameSt
   const group=periods.get(row.event_id!)??[];if(group.some(r=>r.metric===row.metric)||group.some(r=>r.played_on!==row.played_on))return [];
   group.push(row);periods.set(row.event_id!,group);
  }
- // Weekly totals can overlap dated games. Without a reviewed partition, never add the two series together.
- const weekly=rows.some(r=>pitchingWeek(r.event_id)!==null);
- if(weekly&&rows.some(r=>pitchingWeek(r.event_id)===null))return [];
+ // The reviewed BWS series follows Fall Ball. Arbitrary dated games can overlap either aggregate.
+ const aggregate=rows.some(r=>isPitchingAggregate(r.event_id));
+ if(aggregate&&rows.some(r=>!isPitchingAggregate(r.event_id)))return [];
  const result:SharedGameStat[]=[],fetched=rows.map(r=>r.fetched_at).sort().at(-1)!;
  for(const metric of new Set(rows.filter(r=>r.unit==="count").map(r=>r.metric))){
   const parts=[...periods.values()].map(group=>group.find(r=>r.metric===metric));
