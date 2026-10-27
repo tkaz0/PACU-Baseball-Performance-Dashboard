@@ -46,14 +46,36 @@ export function playersOfTheWeek(players: WeekPlayer[] | null, weeks: { hitting:
   });
 }
 
-export type BwsAwards = { mvp: SpotlightCard | null; cyYoung: SpotlightCard | null };
+/** Owner minimums (October 27): BWS races count hitters with 4+ PA and pitchers with 2+ IP in the series. */
+export const BWS_RACE_MINIMUM = { hitting: { metric: "pa", count: 4, label: "4 PA" }, pitching: { metric: "innings_outs", count: 6, label: "2 IP" } } as const;
+export type RaceEntry = SpotlightCard & { rank: number; score: number };
+export type BwsRace = { entries: RaceEntry[]; qualified: number; minimum: string };
+export type BwsRaces = { mvp: BwsRace | null; cyYoung: BwsRace | null };
+function race(players: WeekPlayer[], week: GameWeek, discipline: TopDiscipline): BwsRace {
+  const rule = BWS_RACE_MINIMUM[discipline];
+  const enough = new Set(week.rows.filter(row => row.metric === rule.metric && row.value >= rule.count).map(row => row.athlete_id));
+  const ids = new Map(players.map(player => [player.code, player.id]));
+  const rows = week.rows.flatMap(row => enough.has(row.athlete_id) && ids.has(row.athlete_id) ? [{ ...row, athlete_id: ids.get(row.athlete_id)! }] : []);
+  const ranked = topPerformers({ players, games: coachingGames(rows) }, discipline).filter(row => row.rank !== null && row.score !== null).sort((a, b) => a.rank! - b.rank!);
+  // Top three places; ties beyond three spots are disclosed by the Tied label rather than listed.
+  const entries = ranked.filter(row => row.rank! <= 3).slice(0, 3).flatMap((top): RaceEntry[] => {
+    const metrics = TOP_PERFORMER_METRICS[discipline].map(metric => ({ metric, game: top.stats[metric.key] }));
+    const [first, ...rest] = metrics;
+    if (!first.game) return [];
+    return [{ key: `${discipline}:bws:${top.player.code}`, discipline, week: week.week, weekLabel: week.label, detail: week.detail, rank: top.rank!, score: top.score!,
+      name: top.player.name, code: top.player.code, profileId: (top.player as WeekPlayer).profileId ?? null, tied: ranked.filter(r => r.rank === top.rank).length > 1,
+      headline: { label: first.metric.label, value: gameValue(first.game.value, first.game.unit) },
+      stats: rest.flatMap(({ metric, game }) => game ? [{ label: metric.label, value: gameValue(game.value, game.unit) }] : []),
+      sample: gameSampleText(first.game.source, first.game.metric, first.game.opportunities), early: false }];
+  });
+  return { entries, qualified: new Set(rows.map(row => row.athlete_id)).size, minimum: rule.label };
+}
 /**
- * Owner request (October 27): Boxer World Series MVP (hitting) and Cy Young (pitching) replace Players of the Week
- * for BWS results. Same equal-weight Top Performer blend and five-complete-line minimum, on BWS counts only;
- * ties are disclosed, never broken. Leaders so far while the series is still being played.
+ * Owner request (October 27): while the Boxer World Series is being played, MVP (hitting) and Cy Young (pitching)
+ * are races, not awards: the top three on the same equal-weight Top Performer blend using BWS counts only,
+ * among players who reached the minimum. The blend still needs five complete qualified lines. Ties are disclosed.
  */
-export function bwsAwards(players: WeekPlayer[] | null, bws: GameWeekSet["bws"] | null | undefined): BwsAwards | null {
-  if (!players || !bws) return null;
-  const mvp = bws.hitting ? weekLeader(players, bws.hitting, "hitting") : null, cyYoung = bws.pitching ? weekLeader(players, bws.pitching, "pitching") : null;
-  return mvp || cyYoung ? { mvp, cyYoung } : null;
+export function bwsRaces(players: WeekPlayer[] | null, bws: GameWeekSet["bws"] | null | undefined): BwsRaces | null {
+  if (!players || !bws || (!bws.hitting && !bws.pitching)) return null;
+  return { mvp: bws.hitting ? race(players, bws.hitting, "hitting") : null, cyYoung: bws.pitching ? race(players, bws.pitching, "pitching") : null };
 }

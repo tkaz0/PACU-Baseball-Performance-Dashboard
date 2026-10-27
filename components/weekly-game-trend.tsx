@@ -3,7 +3,7 @@ import { StatInfo } from "@/components/stat-info";
 import { gameValue } from "@/lib/game-metrics";
 import { gameSampleText } from "@/lib/game-opportunities";
 import { gameOverviewMetrics } from "@/lib/game-overview";
-import type { GameWeek } from "@/lib/game-weeks";
+import type { GameWeek, GameWeekSet } from "@/lib/game-weeks";
 
 const HITTING = ["qpa_pct", "batting_avg", "batting_obp", "batting_ops","batting_est_slg", "batting_est_iso", "batting_k_pct"];
 const PITCHING = ["pitching_whip", "pitching_k_bb", "pitching_r9", "strike_pct", "pitching_k9"];
@@ -32,13 +32,15 @@ function Table({ title, metrics, data }: { title: string; metrics: string[]; dat
           <td className="text-right">{points.length >= 2 ? <Sparkline points={points} width={90} height={28} label={`${label} by week`} direction={direction === "lower" ? "lower" : direction === "higher" ? "higher" : "neutral"} format={value => gameValue(value, data.map(line => line.values.get(metric)?.unit).find(Boolean) ?? "")} noun="weeks"/> : <span className="text-xs text-[var(--text-secondary)]">—</span>}</td></tr>; })}</tbody></table></div></div>;
 }
 
-export function WeeklyGameTrend({ weeks, athleteId }: { weeks: { hitting: GameWeek[]; pitching: GameWeek[] } | null; athleteId: string }) {
+export function WeeklyGameTrend({ weeks, athleteId }: { weeks: { hitting: GameWeek[]; pitching: GameWeek[]; bws?: GameWeekSet["bws"] } | null; athleteId: string }) {
   if (!weeks) return null;
-  const hitting = lines(weeks.hitting, athleteId), pitching = lines(weeks.pitching, athleteId);
+  // Owner request (October 27): the Boxer World Series is its own column after the Fall Ball weeks.
+  const bwsColumn = (week: GameWeek | null | undefined) => week ? [{ ...week, week: 99, label: "BWS" }] : [];
+  const hitting = lines([...weeks.hitting, ...bwsColumn(weeks.bws?.hitting)], athleteId), pitching = lines([...weeks.pitching, ...bwsColumn(weeks.bws?.pitching)], athleteId);
   if (!hitting.length && !pitching.length) return null;
   return <section className="mt-5 rounded-xl border border-[var(--line-subtle)] bg-[var(--surface-panel)] p-4 sm:p-5" aria-label="Week by week game stats" data-testid="weekly-game-trend">
     <h2 className="m-0 text-xl font-bold">Week by Week</h2>
-    <p className="muted mb-0 mt-1 text-xs">Pitching columns use the sheet&apos;s separate weekly totals. Hitting columns show the added QPA counts between saved updates, so they may not line up with exact calendar weeks.{hitting.length > 0 && <> {weeks.hitting.map(week => `${week.label}: ${week.detail}`).join(" · ")}.</>}</p>
+    <p className="muted mb-0 mt-1 text-xs">Pitching columns use the sheet&apos;s separate weekly totals. Hitting columns show the added QPA counts between saved updates, so they may not line up with exact calendar weeks.{hitting.length > 0 && <> {weeks.hitting.map(week => `${week.label}: ${week.detail}`).join(" · ")}.</>}{(weeks.bws?.hitting || weeks.bws?.pitching) && <> BWS is the Boxer World Series (October 23–31) on its own, not a Fall Ball week.</>}</p>
     <Table title="Hitting" metrics={HITTING} data={hitting}/>
     <Table title="Pitching" metrics={PITCHING} data={pitching}/>
     <p className="muted mb-0 mt-2 text-xs">One week is a small sample; a single game can swing these rates.</p>
