@@ -26,8 +26,8 @@ function RaceColumn({ name, race, headshots }: { name: string; race: BwsRace; he
     {chasers.length > 0 && <ol className={styles.chasers} aria-label={`${name} contenders`}>{chasers.map(c => <li key={c.code}>
       <span className={styles.chaserRank}>{c.rank}</span><PlayerAvatar name={c.name} path={headshots[c.code]} size={28} className={styles.historyAvatar}/>
       <span className={styles.who}>{c.profileId ? <Link prefetch={false} href={`/athletes/${c.profileId}`}>{c.name}</Link> : <span className={styles.plainName}>{c.name}</span>}{c.tied && <em>Tied</em>}</span>
-      <b>{c.headline.value} {c.headline.label}</b></li>)}</ol>}
-    <p className={styles.basis}>{leader.sample ? `${leader.sample} in the BWS · ` : ""}Race score {leader.score.toFixed(0)}/100 among players with {race.minimum}+</p>
+      <b>{c.headline.value} <small>{c.discipline === "hitting" ? "bases" : "runners"}</small></b></li>)}</ol>}
+    <p className={styles.basis}>{leader.sample ? `${leader.sample} in the BWS · ` : ""}Ranked by series value among players with {race.minimum}+</p>
   </article>;
 }
 
@@ -61,6 +61,6 @@ export function HomeSpotlight({ weeks, races = null, headshots = {}, showRanking
       <strong>{week.label}</strong>
       {[week.hitting, week.pitching].map((card, index) => <span key={index}>{card ? <><PlayerAvatar name={card.name} path={headshots[card.code]} size={28} className={styles.historyAvatar}/><span className={styles.who}><small>{index === 0 ? "Hitter" : "Pitcher"}</small>{card.profileId ? <Link prefetch={false} href={`/athletes/${card.profileId}`}>{card.name}</Link> : <span className={styles.plainName}>{card.name}</span>}{card.tied && <em>Tied</em>}</span><b>{card.headline.value} {card.headline.label}</b></> : <small>{index === 0 ? "Hitter" : "Pitcher"} · not ranked</small>}</span>)}
     </li>)}</ol></div>}
-    <p className={styles.note}>{bws ? "BWS races use the same blend on Boxer World Series counts only (pitching: the sheet's BWS totals; hitting: QPA counts added since the last Fall Ball update), among hitters with 4+ PA and pitchers with 2+ IP. They become awards when the series ends. " : ""}Each week uses the Top Performer blend (hitters: PAC Production+, QPA%, OPS; pitchers: WHIP, K/BB, Runs/9), with at least five complete lines. Pitching uses separate weekly totals; hitting uses added QPA counts between saved updates, which may not line up with exact calendar weeks. {showRankingLink && <Link prefetch={false} href="/top-performers">Fall rankings<ArrowRight size={13}/></Link>}</p>
+    <p className={styles.note}>{bws ? "BWS races rank series value against the team's BWS average: MVP by bases above average ((TB + BB + HBP) above the team rate for the same PA, doubles/triples as doubles) and Cy Young by baserunners prevented (team H + BB per inning times IP, minus his H + BB), among hitters with 4+ PA and pitchers with 2+ IP. Pitching uses the sheet's BWS totals; hitting uses QPA counts added since the last Fall Ball update. They become awards when the series ends. Fall Ball weeks: " : ""}Each week uses the Top Performer blend (hitters: PAC Production+, QPA%, OPS; pitchers: WHIP, K/BB, Runs/9), with at least five complete lines. Pitching uses separate weekly totals; hitting uses added QPA counts between saved updates, which may not line up with exact calendar weeks. {showRankingLink && <Link prefetch={false} href="/top-performers">Fall rankings<ArrowRight size={13}/></Link>}</p>
   </section>;
 }

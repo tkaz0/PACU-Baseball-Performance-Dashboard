@@ -119,3 +119,22 @@ describe("Boxer World Series races", () => {
     expect(renderToStaticMarkup(createElement(HomeSpotlight, { weeks: [], races }))).toContain("five players reach 4 PA");
   });
 });
+
+describe("BWS series value", () => {
+  it("ranks MVP by bases above the team rate and Cy Young by baserunners prevented", async () => {
+    const { bwsRaces } = await import("@/lib/home-spotlight");
+    const hitter = (code: string, pa: number, h: number, hr: number, bb: number, qpa: number) => ["pa", "base_hit", "pumps", "bb", "hh_extra_base_hit", "hbp", "ab", "qpa", "punchies", "sac_fly"].map((metric, i) => ({ athlete_id: code, metric, value: [pa, h, hr, bb, 0, 0, pa - bb, qpa, 1, 0][i], unit: "count", source: "qpa_fall_2026" }));
+    const pitcher = (code: string, outs: number, h: number, bb: number) => ["innings_outs", "h", "bb_outcome", "k", "r", "pitches", "strikes"].map((metric, i) => ({ athlete_id: code, metric, value: [outs, h, bb, 3, 1, 40, 25][i], unit: "count", source: "pitching_fall_2026" }));
+    const roster = Array.from({ length: 6 }, (_, i) => ({ id: `SYN-${i}`, code: `SYN-${i}`, name: `Fictional ${i}`, profileId: null, position: "SS", secondaryPosition: "P", playerType: "two_way", academicClass: "", bats: "R", throws: "R" }));
+    // SYN-0: 3 HR in 10 PA but low QPA; SYN-1: steady singles and high QPA. Team: 60 PA, 60 bases + walks.
+    const hitting = [hitter("SYN-0", 10, 5, 3, 1, 5), hitter("SYN-1", 10, 6, 0, 2, 9), ...[2, 3, 4, 5].map(i => hitter(`SYN-${i}`, 10, 3, 0, 1, 5))].flat();
+    const pitching = [pitcher("SYN-0", 15, 2, 1), pitcher("SYN-1", 6, 0, 0), ...[2, 3, 4, 5].map(i => pitcher(`SYN-${i}`, 9, 4, 2))].flat();
+    const week = (source: string, rows: object[]) => ({ week: 0, source, label: "Boxer World Series", detail: "BWS", rows, withheld: 0 }) as never;
+    const races = bwsRaces(roster, { hitting: week("qpa_fall_2026", hitting), pitching: week("pitching_fall_2026", pitching) })!;
+    // Team production 15 + 8 + 4×4 = 39 over 60 PA = .65; SYN-0 produced 15 → 15 − 6.5 = +8.5.
+    expect(races.mvp!.entries.map(e => [e.code, e.score])).toEqual([["SYN-0", 8.5], ["SYN-1", 1.5], ["SYN-2", -2.5]]);
+    // Team (H + BB) 3 + 0 + 4×6 = 27 over 57 outs; SYN-0 prevents 27/57 × 15 − 3 ≈ +4.1 over five innings.
+    expect(races.cyYoung!.entries[0]).toMatchObject({ code: "SYN-0", score: 4.1, headline: { label: "baserunners prevented", value: "+4.1" } });
+    expect(races.cyYoung!.entries[1].code).toBe("SYN-1");
+  });
+});
