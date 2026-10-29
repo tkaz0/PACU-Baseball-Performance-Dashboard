@@ -56,6 +56,19 @@ it("uses the reviewed 989-row pitching grid and excludes only its known formula 
  set(151,1,"Fictional Pitcher");set(151,3,20);set(150,24,"S&M");set(150,25,"HRD");set(150,26,"WK");
  const snapshot={...captured,contentHash:"a".repeat(64)},ids=[{sourceName:"Fictional Pitcher",athleteCode:"PAC-0001"}];
  expect(parseGameSource(snapshot,contract,ids,events,Date.parse(input.fetchedAt)).canImport).toBe(true);
+ for(const row of [186,187]){
+  set(row,28,undefined,"=SUM(C151:C181)");
+  expect(parseGameSource(snapshot,contract,ids,events,Date.parse(input.fetchedAt)).canImport).toBe(true);
+  const cell=captured.cells.find(c=>c.row===row&&c.column===28)!;
+  delete cell.formula;cell.entered=1;
+  expect(parseGameSource(snapshot,contract,ids,events,Date.parse(input.fetchedAt)).issues.some(i=>i.code==="unreviewed_columns"&&i.row===row)).toBe(true);
+  delete cell.entered;cell.effective=1;
+  expect(parseGameSource(snapshot,contract,ids,events,Date.parse(input.fetchedAt)).canImport).toBe(false);
+  delete cell.effective;
+ }
+ set(185,28,undefined,"=SUM(C151:C181)");
+ expect(parseGameSource(snapshot,contract,ids,events,Date.parse(input.fetchedAt)).canImport).toBe(false);
+ delete captured.cells.find(c=>c.row===185&&c.column===28)!.formula;
  set(64,3,1);
  delete captured.cells.find(c=>c.row===64&&c.column===3)!.formula;
  expect(parseGameSource(snapshot,contract,ids,events,Date.parse(input.fetchedAt)).issues.some(i=>i.code==="unreviewed_rows")).toBe(true);

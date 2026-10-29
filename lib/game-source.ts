@@ -117,8 +117,8 @@ export function parseGameSource(snapshot: GameSourceSnapshot, contract: Reviewed
       ([35,182,...(bwsLayout?[146]:[])].includes(cell.row) && !!cell.formula && cell.entered===undefined) ||
       ([183,...(bwsLayout?[147]:[])].includes(cell.row) && typeof cell.entered==="string" && !/^\s*\d+(?:\.\d+)?\s*$/.test(cell.entered) && !cell.formula && !cell.error)
     )) ||
-    // Reviewed rearrangement: a top-summary innings entry and the BWS footer formula.
-    (bwsLayout && ((cell.row===7 && cell.column===18 && typeof cell.entered==="number" && !cell.formula && !cell.error) || (cell.row===183 && cell.column===28 && !!cell.formula && cell.entered===undefined)))
+    // Reviewed rearrangement and October 29 owner-confirmed BWS footer formulas.
+    (bwsLayout && ((cell.row===7 && cell.column===18 && typeof cell.entered==="number" && !cell.formula && !cell.error) || ([183,186,187].includes(cell.row) && cell.column===28 && !!cell.formula && cell.entered===undefined)))
   );
   for(const cell of cells.values()) if(cell.column>(qpa?29:26)&&!summaryRankingCell(cell)&&(cell.entered!==undefined||cell.effective!==undefined||cell.formula||cell.error)) problem("unreviewed_columns", "Source content appeared outside the reviewed columns. Review the changed source layout before syncing.",cell.row,cell.column);
   const rawColumns=new Set<number>((qpa?QPA_RAW:PITCHING_RAW).map(([column])=>column));
