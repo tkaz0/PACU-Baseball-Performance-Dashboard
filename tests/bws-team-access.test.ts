@@ -27,8 +27,8 @@ it("blocks preview, coach and player readers before database access",async()=>{
   }
   expect(mock.rpc).not.toHaveBeenCalled();
 });
-it("shows BWS Team navigation only to administrators outside View as, and no Draft Board link",()=>{
+it("no longer shows BWS Team or Draft Board in navigation",()=>{
   for(const roles of [["admin"],["coach"],["player"]] as ("admin"|"coach"|"player")[][]){
-    for(const isPreview of [false,true]){const html=renderToStaticMarkup(createElement(Sidebar,{roles,athleteId:null,isPreview}));expect(html.includes('href="/admin/bws-team"')).toBe(roles.includes("admin")&&!isPreview);expect(html).not.toContain('href="/admin/draft-board"');}
+    for(const isPreview of [false,true]){const html=renderToStaticMarkup(createElement(Sidebar,{roles,athleteId:null,isPreview}));expect(html).not.toContain('href="/admin/bws-team"');expect(html).not.toContain('href="/admin/draft-board"');}
   }
 });
