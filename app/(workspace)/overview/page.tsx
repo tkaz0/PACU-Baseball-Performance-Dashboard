@@ -11,10 +11,9 @@ import { loadTeamHeadshots } from "@/lib/headshots-server";
 import { loadHomeSnapshot, loadHomeActivity } from "@/lib/home-server";
 import { loadHomeLeaderboards } from "@/lib/home-leaderboards-server";
 import { loadDashboardVisit } from "@/lib/personal-dashboard-server";
-import { HomeSpotlight } from "@/components/home-spotlight";
+import { StreamedHomeSpotlight } from "@/components/streamed-home-spotlight";
 import { HomeTrending } from "@/components/home-trending";
 import { trendingPlayers } from "@/lib/home-trending";
-import { playersOfTheWeek, bwsRaces } from "@/lib/home-spotlight";
 import { loadGameWeeks } from "@/lib/game-weeks-server";
 import { loadDesignNavigation } from "@/lib/design-navigation-server";
 import { loadFallBallWeeks } from "@/lib/fall-ball-weeks-server";
@@ -45,7 +44,7 @@ export default async function Overview({searchParams}:{searchParams:Promise<{pre
   ]);
   return <><AccessPreviewNotice status={params.preview} isPreview={!!access.preview}/>{failed.length>0&&<p role="status" className="muted mb-4 text-sm">Some Home sections are temporarily unavailable ({failed.join(", ")}). Refresh to try again.</p>}<DashboardHome
     streamedTrend={staff||ownTrends?(source,metric,updatedAt)=><Suspense fallback={null}><TeamGameTrend trends={trendsPromise} source={source} metric={metric} updatedAt={updatedAt}/></Suspense>:undefined}
-    spotlight={canSeeBoards?<Suspense fallback={<SkeletonCards count={2} tall label="Loading Players of the Week"/>}><StreamedSpotlight weeks={weeksPromise} photos={photosPromise} staff={staff}/></Suspense>:undefined}
+    spotlight={canSeeBoards?<Suspense fallback={<SkeletonCards count={2} tall label="Loading Players of the Week"/>}><StreamedHomeSpotlight weeks={weeksPromise} photos={photosPromise} staff={staff}/></Suspense>:undefined}
     trending={staff?<Suspense fallback={<SkeletonPanel rows={3} label="Loading Trending Up"/>}><StreamedTrending weeks={weeksPromise}/></Suspense>:undefined}
     leaderboardsSlot={<Suspense fallback={<HomeLeaderboardPlaceholder/>}><StreamedLeaderboards boards={leaderboardsPromise} photos={photosPromise}/></Suspense>}
     playerWeek={ownTrends&&summary?<Suspense fallback={null}><PlayerWeek trends={trendsPromise} activity={activityPromise} batting={summary.batting} pitching={summary.pitching}/></Suspense>:undefined}
@@ -57,10 +56,6 @@ async function StreamedTrending({weeks}:{weeks:ReturnType<typeof loadGameWeeks>|
   return <HomeTrending groups={weekly?trendingPlayers(weekly.players,weekly.weeks):null}/>;
 }
 
-async function StreamedSpotlight({weeks,photos,staff}:{weeks:ReturnType<typeof loadGameWeeks>|Promise<null>;photos:Promise<Map<string,string>>;staff:boolean}){
-  const [weekly,headshots]=await Promise.all([weeks,photos]);
-  return weekly?<HomeSpotlight weeks={playersOfTheWeek(weekly.players,weekly.weeks)} races={bwsRaces(weekly.players,weekly.weeks.bws)} headshots={Object.fromEntries(headshots)} showRankingLink={staff}/>:null;
-}
 async function StreamedLeaderboards({boards,photos}:{boards:Promise<Awaited<ReturnType<typeof loadHomeLeaderboards>>|null>;photos:Promise<Map<string,string>>}){
   const [leaderboards,headshots]=await Promise.all([boards,photos]);
   return <HomeLeaderboardCards leaderboards={leaderboards} headshots={Object.fromEntries(headshots)}/>;
