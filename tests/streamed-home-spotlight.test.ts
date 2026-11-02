@@ -12,6 +12,6 @@ it.each([false, true])("shows a recoverable status for a failed weekly read (sta
 });
 
 it("keeps a successful empty source quiet instead of reporting a failure", async () => {
-  const html = renderToStaticMarkup(await StreamedHomeSpotlight({ weeks: Promise.resolve({ players: [], weeks: gameWeeks([]) }), photos: Promise.resolve(new Map()), staff: true }));
+  const html = renderToStaticMarkup(await StreamedHomeSpotlight({ weeks: Promise.resolve({ players: [], weeks: gameWeeks([]), champions: null }), photos: Promise.resolve(new Map()), staff: true }));
   expect(html).toBe("");
 });
