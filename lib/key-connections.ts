@@ -4,6 +4,8 @@ import { analyticsVariables, linearFit, pairAnalytics, readingsForPeriod, type A
  * Owner-requested October 19: a fixed list of stat pairs Analytics tracks week to week. Each pair uses
  * the same Fall readings and pairing as the scatterplot (any test date in the period), plus sample
  * minimums for cumulative game stats so tiny samples do not swing the score. Descriptive only.
+ * November 2: fastball spin → Strike % and bat speed → OPS were removed (not connecting); max bat
+ * speed → GDP, Vertical Bat Angle → QPA % and muscle mass → K % were added.
  */
 type Match = { metric: string; unit?: string; source: (source: string) => boolean };
 export type ConnectionPair = { key: string; title: string; why: string; x: Match; y: Match; status: "strong" | "watch" };
@@ -22,8 +24,9 @@ export const CONNECTION_PAIRS: readonly ConnectionPair[] = [
   { key: "muscle_bat_speed", status: "strong", title: "Muscle mass → bat speed", why: "Strength work showing up in swing speed.", x: { metric: "muscle_mass", unit: "lb", source: renpho }, y: { metric: "avg_bat_speed", unit: "mph", source: blastFall } },
   { key: "blast_game_bat_speed", status: "strong", title: "Practice → in-game bat speed", why: "Blast practice swings carry over to Full Swing in games.", x: { metric: "avg_bat_speed", unit: "mph", source: blastFall }, y: { metric: "avg_bat_speed", unit: "mph", source: inGameFullSwing } },
   { key: "max_ev_hh", status: "watch", title: "Max EV → HH %", why: "Full Swing and the QPA sheet agreeing on hard contact.", x: { metric: "max_exit_velocity", unit: "mph", source: inGameFullSwing }, y: { metric: "batting_hh_pct", source: qpaSheet } },
-  { key: "fb_spin_strike", status: "watch", title: "Fastball spin → Strike %", why: "Early sign that high-spin arms throw fewer strikes.", x: { metric: "classified_avg_spin", unit: "rpm", source: inGameFourSeam }, y: { metric: "strike_pct", source: pitchingSheet } },
-  { key: "bat_speed_ops", status: "watch", title: "Bat speed → OPS", why: "Not connected yet; watch whether practice speed starts showing up in game results.", x: { metric: "avg_bat_speed", unit: "mph", source: blastFall }, y: { metric: "batting_ops", source: qpaSheet } },
+  { key: "bat_speed_gdp", status: "strong", title: "Max bat speed → GDP", why: "The hardest swingers hit into the most double plays (holds per PA too); check their ground-ball rate.", x: { metric: "max_bat_speed", unit: "mph", source: inGameFullSwing }, y: { metric: "qpa_game_gdp", source: qpaSheet } },
+  { key: "vba_qpa", status: "watch", title: "Vertical Bat Angle → QPA %", why: "A steeper bat at impact (more negative) goes with more quality at-bats, separate from bat speed.", x: { metric: "blast_vertical_bat_angle", unit: "deg", source: blastFall }, y: { metric: "qpa_game_qpa_pct", source: qpaSheet } },
+  { key: "muscle_k_pct", status: "watch", title: "Muscle mass → K %", why: "Bigger hitters strike out more, and the size is not yet showing up in OPS.", x: { metric: "muscle_mass", unit: "lb", source: renpho }, y: { metric: "batting_k_pct", source: qpaSheet } },
 ];
 
 /** Hitters need 15+ PA and pitchers 9+ outs (3 IP) on the cumulative game sheets. */
