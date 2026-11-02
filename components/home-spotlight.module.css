@@ -34,6 +34,8 @@
 .history li b { margin-left: auto; font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .history li em { color: var(--text-secondary); font-size: 12px; font-style: normal; }
 .note { margin: 10px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+.note summary { width: fit-content; cursor: pointer; min-height: 44px; padding-block: 12px; color: var(--text-primary); font-weight: 700; }
+.note > p { margin: 0; max-width: 84ch; line-height: 1.7; }
 .note a { display: inline-flex; align-items: center; gap: 3px; color: var(--accent-readable); font-weight: 700; text-decoration: none; }
 @media (max-width: 640px) { .history li { grid-template-columns: 1fr; gap: 6px; } }
 .history li .plainName { overflow: hidden; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }

@@ -1,5 +1,13 @@
 # Verification and repeatable tests
 
+## November 2 dashboard review
+
+- `tests/coaching-fall-summary.test.ts` checks that pair and group comparisons use matching Fall best/average bases, retain date windows for session fallbacks, and never highlight a winner across incompatible averaging periods.
+- `tests/game-weeks-players-of-week.test.ts` checks the Pacific-calendar transition from BWS races to provisional leaders and the collapsed scoring explanation. Passing the series end date does not finalize awards.
+- `tests/section-navigation.test.ts` checks section selection and permitted fragments. Browser verification also covers opening Player Breakdown through the Players link and a direct hash, scroll highlighting, and clearing Analytics player search/reset at desktop and phone widths.
+
+These changes do not modify source observations, account access or scheduled imports.
+
 ## Checks that require no Supabase credentials
 
 ```sh

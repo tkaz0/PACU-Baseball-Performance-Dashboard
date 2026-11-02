@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { gameWeeks } from "@/lib/game-weeks";
@@ -64,6 +64,10 @@ describe("players of the week", () => {
     expect(html).not.toMatch(/href="\/athletes\/(?!fictional-3)/);
     expect(html).not.toContain('href="/top-performers"');
     expect(html).toContain("which may not line up with exact calendar weeks");
+    expect(html).toContain("How these leaders are ranked");
+    expect(html).toMatch(/<details[^>]*><summary>How these leaders are ranked<\/summary>/);
+    const staffHtml = renderToStaticMarkup(createElement(HomeSpotlight, { weeks, showRankingLink: true }));
+    expect(staffHtml).toMatch(/<\/details><p[^>]*><a[^>]*href="\/top-performers"/);
   });
   it("shows nothing without five complete weekly lines", () => {
     const few = players.slice(0, 4);
@@ -86,6 +90,7 @@ describe("weekly profile trend", () => {
 });
 
 describe("Boxer World Series races", () => {
+  afterEach(() => vi.useRealTimers());
   // Fictional BWS update: QPA saved after October 23 and a separate BWS pitching block.
   const bwsTotals = Object.fromEntries(players.map((p, i) => [p.code, Object.fromEntries(Object.entries(week2Totals[p.code]).map(([k, v]) => [k, v + (k === "pa" ? (i === 5 ? 3 : 8) : k === "base_hit" ? (i === 1 ? 6 : i === 5 ? 3 : 1) : k === "ab" ? (i === 5 ? 3 : 7) : k === "qpa" ? (i === 1 ? 8 : i === 5 ? 3 : 2) : k === "bb" ? (i === 5 ? 0 : 1) : 0)]))]));
   const withBws = [...snapshots, qpa("q4", "2026-10-26T18:00:00Z", bwsTotals), pitch("p2", "2026-10-27T22:00:00Z", {
@@ -93,6 +98,8 @@ describe("Boxer World Series races", () => {
     "fall-2026-bws": Object.fromEntries(players.map((p, i) => [p.code, pitchLine(i === 0 ? 3 : 9, i === 4 ? 1 : 6, i === 4 ? 1 : 2, i === 4 ? 8 : 3 + i, i === 4 ? 0 : 3)])),
   })];
   it("keeps BWS results out of Fall Ball weeks and ranks the races among qualified players", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-29T12:00:00Z"));
     const weeks = gameWeeks(withBws);
     expect(weeks.hitting.map(w => w.week)).toEqual([1, 2]);
     expect(weeks.pitching.map(w => w.week)).toEqual([1]);
@@ -110,6 +117,25 @@ describe("Boxer World Series races", () => {
     expect(html).not.toContain("BWS MVP<"); expect(html).toContain("Fall Ball Players of the Week");
     const trend = renderToStaticMarkup(createElement(WeeklyGameTrend, { weeks: gameWeeks(withBws.map(s => ({ ...s, observations: (s.observations as { athleteCode: string }[]).filter(o => o.athleteCode === "SYN-1") }))), athleteId: "fictional" }));
     expect(trend).toContain(">BWS<");
+  });
+  it("changes to provisional leaders after October 31 in Pacific time without declaring awards", async () => {
+    const { bwsRaces } = await import("@/lib/home-spotlight");
+    const races = bwsRaces(players, gameWeeks(withBws).bws)!;
+    const before = JSON.stringify(races);
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-01T06:59:59Z")); // Still October 31 in Pacific time.
+    const active = renderToStaticMarkup(createElement(HomeSpotlight, { weeks: [], races }));
+    expect(active).toContain("Races in progress");
+    vi.setSystemTime(new Date("2026-11-01T07:00:00Z"));
+    const ended = renderToStaticMarkup(createElement(HomeSpotlight, { weeks: [], races }));
+    expect(ended).toContain("MVP Leaders");
+    expect(ended).toContain("Cy Young Leaders");
+    expect(ended).toContain("Through saved series results");
+    expect(ended).toContain("award selections are confirmed separately");
+    expect(ended).not.toContain("Races in progress");
+    expect(ended).not.toContain("Series ends Oct 31");
+    expect(ended).not.toContain("They become awards");
+    expect(JSON.stringify(races)).toBe(before);
   });
   it("waits for five qualified players before naming a leader", async () => {
     const { bwsRaces } = await import("@/lib/home-spotlight");

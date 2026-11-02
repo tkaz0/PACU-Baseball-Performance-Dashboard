@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Trophy } from "lucide-react";
 import { PlayerAvatar } from "@/components/player-avatar";
+import { pacificTestingDate } from "@/lib/testing-checklist";
 import type { BwsRace, BwsRaces, SpotlightCard, SpotlightWeek } from "@/lib/home-spotlight";
 import styles from "./home-spotlight.module.css";
 
@@ -12,7 +13,7 @@ function RaceColumn({ name, race, headshots }: { name: string; race: BwsRace; he
   const [leader, ...chasers] = race.entries;
   if (!leader) return <article className={styles.card} data-bws>
     <div className={styles.photoBand}><span className={styles.ribbon}>BWS</span><p className={styles.title}><Trophy size={14} aria-hidden="true"/>{name}</p></div>
-    <p className={styles.raceEmpty}>The race opens when five players reach {race.minimum} in the series ({race.qualified} so far).</p>
+    <p className={styles.raceEmpty}>Leaders appear when five players reach {race.minimum} in the series ({race.qualified} so far).</p>
   </article>;
   return <article className={styles.card} data-spotlight={leader.discipline} data-bws>
     <div className={styles.photoBand}>
@@ -36,14 +37,16 @@ export function HomeSpotlight({ weeks, races = null, headshots = {}, showRanking
   // During the Boxer World Series its MVP and Cy Young races are featured; Fall Ball weeks move to the list.
   const bws = !!races && !!(races.mvp || races.cyYoung);
   if (!weeks.length && !bws) return null;
+  // Passing the scheduled end date does not confirm that every result is saved or an award is final.
+  const afterSeries = bws && pacificTestingDate() > "2026-10-31";
   const [latest, ...rest] = weeks;
   const earlier = bws ? weeks : rest;
   const featured = !bws && latest ? [latest.hitting, latest.pitching].filter((card): card is SpotlightCard => !!card) : [];
-  return <section aria-label={bws ? "Boxer World Series races" : "Players of the week"} data-testid="home-spotlight">
-    <div className={styles.heading}>{bws ? <><p>Boxer World Series · Races in progress · Series ends Oct 31</p><h2>BWS MVP &amp; Cy Young Race</h2></> : <><p>Fall Ball · {latest.label}{latest.date ? ` · ${latest.date}` : ""}</p><h2>Players of the Week</h2></>}</div>
+  return <section aria-label={bws ? `Boxer World Series ${afterSeries ? "leaders" : "races"}` : "Players of the week"} data-testid="home-spotlight">
+    <div className={styles.heading}>{bws ? <><p>Boxer World Series · {afterSeries ? "Through saved series results" : "Races in progress · Series ends Oct 31"}</p><h2>BWS MVP &amp; Cy Young {afterSeries ? "Leaders" : "Race"}</h2></> : <><p>Fall Ball · {latest.label}{latest.date ? ` · ${latest.date}` : ""}</p><h2>Players of the Week</h2></>}</div>
     {bws ? <div className={styles.grid}>
-      {races!.mvp && <RaceColumn name="MVP Race" race={races!.mvp} headshots={headshots}/>}
-      {races!.cyYoung && <RaceColumn name="Cy Young Race" race={races!.cyYoung} headshots={headshots}/>}
+      {races!.mvp && <RaceColumn name={afterSeries ? "MVP Leaders" : "MVP Race"} race={races!.mvp} headshots={headshots}/>}
+      {races!.cyYoung && <RaceColumn name={afterSeries ? "Cy Young Leaders" : "Cy Young Race"} race={races!.cyYoung} headshots={headshots}/>}
     </div> :
     <div className={styles.grid}>{featured.map(card => <article key={card.key} className={styles.card} data-spotlight={card.discipline}>
       {/* Trading-card frame: photo band with a week ribbon, name plate, then the headline stat. */}
@@ -61,6 +64,7 @@ export function HomeSpotlight({ weeks, races = null, headshots = {}, showRanking
       <strong>{week.label}</strong>
       {[week.hitting, week.pitching].map((card, index) => <span key={index}>{card ? <><PlayerAvatar name={card.name} path={headshots[card.code]} size={28} className={styles.historyAvatar}/><span className={styles.who}><small>{index === 0 ? "Hitter" : "Pitcher"}</small>{card.profileId ? <Link prefetch={false} href={`/athletes/${card.profileId}`}>{card.name}</Link> : <span className={styles.plainName}>{card.name}</span>}{card.tied && <em>Tied</em>}</span><b>{card.headline.value} {card.headline.label}</b></> : <small>{index === 0 ? "Hitter" : "Pitcher"} · not ranked</small>}</span>)}
     </li>)}</ol></div>}
-    <p className={styles.note}>{bws ? "BWS races rank series value against the team's BWS average: MVP by bases above average ((TB + BB + HBP) above the team rate for the same PA, doubles/triples as doubles) and Cy Young by baserunners prevented (team H + BB per inning times IP, minus his H + BB), among hitters with 4+ PA and pitchers with 2+ IP. Pitching uses the sheet's BWS totals; hitting uses QPA counts added since the last Fall Ball update. They become awards when the series ends. Fall Ball weeks: " : ""}Each week uses the Top Performer blend (hitters: PAC Production+, QPA%, OPS; pitchers: WHIP, K/BB, Runs/9), with at least five complete lines. Pitching uses separate weekly totals; hitting uses added QPA counts between saved updates, which may not line up with exact calendar weeks. {showRankingLink && <Link prefetch={false} href="/top-performers">Fall rankings<ArrowRight size={13}/></Link>}</p>
+    <details className={styles.note}><summary>How these leaders are ranked</summary><p>{bws ? "BWS standings rank series value against the team's BWS average: MVP by bases above average ((TB + BB + HBP) above the team rate for the same PA, doubles/triples as doubles) and Cy Young by baserunners prevented (team H + BB per inning times IP, minus his H + BB), among hitters with 4+ PA and pitchers with 2+ IP. Pitching uses the sheet's BWS totals; hitting uses QPA counts added since the last Fall Ball update. Standings reflect saved results; award selections are confirmed separately. Fall Ball weeks: " : ""}Each week uses the Top Performer blend (hitters: PAC Production+, QPA%, OPS; pitchers: WHIP, K/BB, Runs/9), with at least five complete lines. Pitching uses separate weekly totals; hitting uses added QPA counts between saved updates, which may not line up with exact calendar weeks.</p></details>
+    {showRankingLink && <p className={styles.note}><Link prefetch={false} href="/top-performers">Fall rankings<ArrowRight size={13}/></Link></p>}
   </section>;
 }

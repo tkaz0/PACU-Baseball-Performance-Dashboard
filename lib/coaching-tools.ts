@@ -88,6 +88,18 @@ export function comparableTests(data:CoachingData,athleteId:string,key:string,to
  return {latest:latest[0],previous:conflict?null:previous[0]??null,conflict};
 }
 export const daysBetween=(a:string,b:string)=>Math.abs(Date.parse(a)-Date.parse(b))/86400000;
+/** Full-Fall summaries compare across the season; session fallbacks still need matching test dates. */
+export function testComparisonBasis(result:TestResult):"fall-best"|"fall-average"|"session" {
+ return result.fall?.basis==="best"?"fall-best":result.fall?.basis==="average"&&result.fall.pooled?"fall-average":"session";
+}
+export function comparableTestResults(results:readonly TestResult[],maxGap:number):boolean {
+ if(results.length<2||results.some(result=>!result.latest))return false;
+ const bases=results.map(testComparisonBasis);
+ if(new Set(bases).size!==1)return false;
+ if(bases[0]!=="session")return true;
+ const dates=results.map(result=>result.latest!.date).sort();
+ return daysBetween(dates[0],dates.at(-1)!)<=maxGap;
+}
 export function progressTone(metric:string,change:number):"positive"|"negative"|"neutral" {
  if(change===0)return "neutral";
  const direction=metric==="body_fat_pct"?"lower":["muscle_mass","body_score"].includes(metric)?"higher":COACHING_METRICS.find(m=>m.key===metric)?.direction??"neutral";
@@ -114,7 +126,8 @@ export function compareTests(data:CoachingData,a:string,b:string,category:Coachi
   const first=eligibleA?withFallSummary(data,comparableTests(data,a,variable.key,today),a,variable.key,today):{latest:null,previous:null,conflict:false};
   const second=eligibleB?withFallSummary(data,comparableTests(data,b,variable.key,today),b,variable.key,today):{latest:null,previous:null,conflict:false};
   const gap=first.latest&&second.latest?daysBetween(first.latest.date,second.latest.date):null;
-  return {...variable,first:first.latest,second:second.latest,fallA:first.fall,fallB:second.fall,reviewA:first.conflict&&!first.latest,reviewB:second.conflict&&!second.latest,eligibleA,eligibleB,gap,comparable:a!==b&&gap!==null&&gap<=maxGap};
+  const basisMismatch=!!first.latest&&!!second.latest&&testComparisonBasis(first)!==testComparisonBasis(second);
+  return {...variable,first:first.latest,second:second.latest,fallA:first.fall,fallB:second.fall,reviewA:first.conflict&&!first.latest,reviewB:second.conflict&&!second.latest,eligibleA,eligibleB,gap,basisMismatch,comparable:a!==b&&comparableTestResults([first,second],maxGap)};
  }).filter(row=>(row.eligibleA||row.eligibleB)&&(row.first||row.second||row.reviewA||row.reviewB));
 }
 export function compareGames(data:CoachingData,a:string,b:string,event:string){

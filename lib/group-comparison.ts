@@ -1,4 +1,4 @@
-import { coachingEligible, coachingVariables, comparableTests, daysBetween, fallSummaryContext, withFallSummary, playerGameSources, type CoachingData, type CoachingPlayer, type CoachingCategory } from "@/lib/coaching-tools";
+import { coachingEligible, coachingVariables, comparableTests, comparableTestResults, daysBetween, fallSummaryContext, withFallSummary, playerGameSources, type CoachingData, type CoachingPlayer, type CoachingCategory, type TestResult } from "@/lib/coaching-tools";
 import { PLAYER_METRICS } from "@/lib/player-performance";
 import { arsenalComparisonFields, arsenalComparisonValue } from "@/lib/player-comparison-arsenal";
 import { classifiedPitchSource } from "@/lib/imports/classified-pitch-results";
@@ -58,13 +58,13 @@ export function buildGroupComparison(data:CoachingData,selectedIds:string[],cate
   for(const variable of coachingVariables(selectedData,category,today)){
    let group=groups.find(g=>g.kind==="testing"&&g.source===variable.source);
    if(!group){group=makeGroup(`test:${variable.source}`,pitchSourceLabel(variable.source),variable.source,"testing",players);groups.push(group);}
-   const dates:string[]=[];let hasValue=false,review=false;
+   const results:TestResult[]=[];let hasValue=false,review=false;
    for(const row of group.rows){const player=players.find(p=>p.id===row.playerId)!,eligible=coachingEligible(player,variable.metric),result=eligible?withFallSummary(selectedData,comparableTests(selectedData,player.id,variable.key,today),player.id,variable.key,today):null;
     const latest=result?.latest;const conflict=!!result?.conflict&&!latest;review ||= conflict;
     row.cells[variable.key]=latest?{value:latest.value,eligible,review:false,...(result?.fall?fallSummaryContext(result.fall,leaderboardTestDate(result.fall.bestDate)):{context:`Tested ${leaderboardTestDate(latest.date)}`,sample:""})}:empty(eligible,conflict);
-    if(latest){dates.push(latest.date);hasValue=true;}
+    if(latest&&result){results.push(result);hasValue=true;}
    }
-   if(hasValue||review)group.columns.push({...variable,direction:PLAYER_METRICS.find(m=>m.key===variable.metric)?.direction??"neutral",comparable:!review&&comparableDates(dates,maxGap)});
+   if(hasValue||review)group.columns.push({...variable,direction:PLAYER_METRICS.find(m=>m.key===variable.metric)?.direction??"neutral",comparable:!review&&comparableTestResults(results,maxGap)});
   }
   if(category==="Throwing"){
    const own=(p:CoachingPlayer)=>{const entries=data.arsenals?.filter(a=>a.athleteId===p.id)??[];return coachingEligible(p,"max_pitch_velocity")&&entries.length===1?entries[0].pitches.filter(pitch=>{const parsed=classifiedPitchSource(pitch.source);return parsed&&parsed.pitchType===pitch.pitchType&&parsed.category===pitch.category;}):[];};
