@@ -15,6 +15,17 @@ function fixture(pitching=false) {
   return{contract,snapshot,set,events,run:()=>parseGameSource(snapshot,contract,identities,events)};
 }
 describe("source-grounded Fall game adapters",()=>{
+  it("ignores the November 2 reviewed BWS summary columns without changing observations",()=>{
+    const f=fixture(true);f.set(3,20);const before=f.run().observations;
+    f.snapshot.cells.push({row:149,column:1,entered:"FALL BALL BOXER WORLD SERIES PITCHING STATS"},{row:2,column:26,entered:"K% RK"},{row:2,column:27,entered:"FPS% RK"},{row:2,column:28,entered:"KK/B"},
+      {row:151,column:28,formula:"=W151/U151",effective:2},{row:179,column:28,formula:"=W179/U179",error:"DIVIDE_BY_ZERO"},{row:151,column:29,entered:1},{row:179,column:29,entered:28});
+    expect(f.run().canImport).toBe(true);expect(f.run().observations).toEqual(before);
+    for(const cell of [{row:180,column:29,entered:1},{row:152,column:28,entered:2},{row:152,column:29,effective:1},{row:151,column:30,entered:1}]){
+      f.snapshot.cells.push(cell);expect(f.run().issues.some(i=>i.code==="unreviewed_columns")).toBe(true);f.snapshot.cells.pop();
+    }
+    f.snapshot.cells.find(c=>c.row===2&&c.column===28)!.entered="Different field";
+    expect(f.run().canImport).toBe(false);
+  });
   it("ignores reviewed top-summary rankings without importing them as weekly counts",()=>{
     const f=fixture(true);f.set(3,20);
     f.snapshot.cells.push({row:2,column:26,entered:"K% RK"},{row:3,column:26,entered:1},{row:33,column:29,entered:"Fictional note"});

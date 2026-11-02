@@ -107,7 +107,16 @@ export function parseGameSource(snapshot: GameSourceSnapshot, contract: Reviewed
   const aeHeader=cells.get(key(2,31));
   const aeHeaderBlank=!aeHeader || ((aeHeader.entered===undefined||aeHeader.entered==="") && (aeHeader.effective===undefined||aeHeader.effective==="") && !aeHeader.formula && !aeHeader.error);
   const bwsLayout = normalize(text(149,1)) === "fall ball boxer world series pitching stats";
+  // November 2 owner review: these added headers and BWS rankings are summary-only.
+  const bwsSummaryRanks = bwsLayout && normalize(text(2,27)) === "fps% rk" && normalize(text(2,28)) === "kk/b";
   const summaryRankingCell = (cell:GameSourceCell) => !qpa && normalize(text(2,26))==="k% rk" && (
+    (bwsSummaryRanks && (
+      (cell.row===2 && [27,28].includes(cell.column) && !cell.formula && !cell.error) ||
+      (cell.row>=151 && cell.row<=179 && (
+        (cell.column===28 && !!cell.formula && cell.entered===undefined) ||
+        (cell.column===29 && Number.isSafeInteger(cell.entered) && (cell.entered as number)>=0 && !cell.formula && !cell.error)
+      ))
+    )) ||
     (cell.row>=3 && cell.row<=33 && (
       (cell.column>=26 && cell.column<=29) ||
       (cell.column===31 && !!cell.formula && cell.entered===undefined && aeHeaderBlank)
