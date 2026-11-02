@@ -13,11 +13,13 @@ const text = (value: unknown, max = 100) => typeof value === "string" && value.l
  * Every linked player and staff account: the narrow weekly-ranking projection (eligible names, codes,
  * roster roles and count observations). Peer profile ids arrive null for players, so no peer links render.
  */
-export const loadGameWeeks = cache(async (access: Pick<Awaited<ReturnType<typeof requireAccess>>, "supabase" | "roles" | "athleteId">): Promise<{ players: WeekPlayer[]; weeks: ReturnType<typeof gameWeeks> } | null> => {
+export const loadGameWeeks = cache(async (access: Pick<Awaited<ReturnType<typeof requireAccess>>, "supabase" | "roles" | "athleteId">): Promise<{ players: WeekPlayer[]; weeks: ReturnType<typeof gameWeeks>; champions: string[] | null } | null> => {
   const staff = access.roles.some(role => role === "admin" || role === "coach");
   if (!staff && !(access.roles.includes("player") && access.athleteId)) return null;
   await loadFallBallWeeks(access);
-  const { data, error } = await access.supabase.rpc("team_game_week_inputs");
+  const [{ data, error }, champs] = await Promise.all([access.supabase.rpc("team_game_week_inputs"), access.supabase.rpc("bws_champion_codes")]);
+  // Champion PAC codes (November 2): a missing or failed reader keeps the series standings instead of awards.
+  const champions = !champs.error && Array.isArray(champs.data) && champs.data.length > 0 && champs.data.every(code => text(code, 40)) ? champs.data as string[] : null;
   if (error || !data || typeof data !== "object" || !Array.isArray(data.players) || !Array.isArray(data.snapshots)) throw new Error("Weekly game stats could not be loaded.");
   const players: WeekPlayer[] = [];
   for (const row of data.players) {
@@ -28,7 +30,7 @@ export const loadGameWeeks = cache(async (access: Pick<Awaited<ReturnType<typeof
   }
   const snapshots = data.snapshots as GameSnapshotRow[];
   if (snapshots.some(row => !row || typeof row.id !== "string" || !["qpa_fall_2026", "pitching_fall_2026"].includes(row.source) || typeof row.fetched_at !== "string" || !Number.isFinite(Date.parse(row.fetched_at)) || !Array.isArray(row.observations))) throw new Error("Weekly game stats could not be loaded.");
-  return { players, weeks: gameWeeks(snapshots) };
+  return { players, weeks: gameWeeks(snapshots), champions };
 });
 
 /** Own-player (or staff-selected) week-by-week lines through the scoped reader; failure shows no trend. */

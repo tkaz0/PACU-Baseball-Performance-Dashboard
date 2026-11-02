@@ -51,7 +51,8 @@ export const BWS_RACE_MINIMUM = { hitting: { metric: "pa", count: 4, label: "4 P
 /** `score` is the series value (bases above average or baserunners prevented), rounded to one decimal. */
 export type RaceEntry = SpotlightCard & { rank: number; score: number };
 export type BwsRace = { entries: RaceEntry[]; qualified: number; minimum: string };
-export type BwsRaces = { mvp: BwsRace | null; cyYoung: BwsRace | null };
+/** `final`: the series is over and the awards go to the champion team (November 2 owner request). */
+export type BwsRaces = { mvp: BwsRace | null; cyYoung: BwsRace | null; final: boolean };
 const pitchesRole = (player: WeekPlayer) => { const type = player.playerType.trim().toLowerCase(); return ["pitcher", "two_way"].includes(type) || [player.position, player.secondaryPosition].some(p => p?.trim().toUpperCase() === "P"); };
 const inDiscipline = (player: WeekPlayer, discipline: TopDiscipline) => discipline === "pitching" ? pitchesRole(player) : !pitchesRole(player) || player.playerType.trim().toLowerCase() === "two_way";
 /**
@@ -78,15 +79,18 @@ function seriesValues(players: WeekPlayer[], week: GameWeek, discipline: TopDisc
   const rate = lines.reduce((t, l) => t + l.produced, 0) / Math.max(1, lines.reduce((t, l) => t + l.chances, 0));
   return lines.map(l => ({ ...l, value: discipline === "hitting" ? l.produced - rate * l.chances : rate * l.chances - l.produced }));
 }
-function race(players: WeekPlayer[], week: GameWeek, discipline: TopDiscipline): BwsRace {
+function race(players: WeekPlayer[], week: GameWeek, discipline: TopDiscipline, champions: ReadonlySet<string> | null): BwsRace {
   const rule = BWS_RACE_MINIMUM[discipline];
   const enough = new Set(week.rows.filter(row => row.metric === rule.metric && row.value >= rule.count).map(row => row.athlete_id));
-  const values = seriesValues(players, week, discipline).filter(v => enough.has(v.player.code)).sort((a, b) => b.value - a.value || a.player.name.localeCompare(b.player.name));
+  const qualified = seriesValues(players, week, discipline).filter(v => enough.has(v.player.code));
+  // Awards: the series value still uses the whole BWS rate and the five-qualified rule, then only the champion
+  // team's players are ranked.
+  const values = (qualified.length >= 5 && champions ? qualified.filter(v => champions.has(v.player.code)) : qualified).sort((a, b) => b.value - a.value || a.player.name.localeCompare(b.player.name));
   // Card stats keep the usual rates (PAC Production+ / QPA% / OPS, WHIP / K/BB / Runs/9) for the qualified group.
   const ids = new Map(players.map(player => [player.code, player.id]));
   const games = coachingGames(week.rows.flatMap(row => enough.has(row.athlete_id) && ids.has(row.athlete_id) ? [{ ...row, athlete_id: ids.get(row.athlete_id)! }] : []));
   const round = (v: number) => Math.round(v * 10) / 10, rankOf = (v: number) => 1 + values.filter(x => round(x.value) > round(v)).length;
-  const entries = values.length >= 5 ? values.slice(0, 3).map((top): RaceEntry => {
+  const entries = qualified.length >= 5 ? values.slice(0, 3).map((top): RaceEntry => {
     const stats = TOP_PERFORMER_METRICS[discipline].flatMap(metric => { const g = games.filter(x => x.athleteId === top.player.id && x.metric === metric.key && x.source === week.source); return g.length === 1 ? [{ label: metric.label, value: gameValue(g[0].value, g[0].unit), game: g[0] }] : []; });
     const value = round(top.value), unit = discipline === "hitting" ? "bases above average" : "baserunners prevented";
     return { key: `${discipline}:bws:${top.player.code}`, discipline, week: week.week, weekLabel: week.label, detail: week.detail, rank: rankOf(top.value), score: value,
@@ -95,7 +99,7 @@ function race(players: WeekPlayer[], week: GameWeek, discipline: TopDiscipline):
       stats: stats.map(({ label, value }) => ({ label, value })),
       sample: stats[0] ? gameSampleText(stats[0].game.source, stats[0].game.metric, stats[0].game.opportunities) : null, early: false };
   }) : [];
-  return { entries, qualified: values.length, minimum: rule.label };
+  return { entries, qualified: qualified.length, minimum: rule.label };
 }
 /**
  * Owner choices (October 27–29): while the Boxer World Series is played, MVP (hitting) and Cy Young (pitching) are
@@ -103,7 +107,8 @@ function race(players: WeekPlayer[], week: GameWeek, discipline: TopDiscipline):
  * 4+ BWS PA and pitchers with 2+ BWS IP; at least five qualified players are needed. Fall Ball Players of the Week keep
  * the equal-weight Top Performer blend.
  */
-export function bwsRaces(players: WeekPlayer[] | null, bws: GameWeekSet["bws"] | null | undefined): BwsRaces | null {
+export function bwsRaces(players: WeekPlayer[] | null, bws: GameWeekSet["bws"] | null | undefined, championCodes: readonly string[] | null = null): BwsRaces | null {
   if (!players || !bws || (!bws.hitting && !bws.pitching)) return null;
-  return { mvp: bws.hitting ? race(players, bws.hitting, "hitting") : null, cyYoung: bws.pitching ? race(players, bws.pitching, "pitching") : null };
+  const champions = championCodes?.length ? new Set(championCodes) : null;
+  return { mvp: bws.hitting ? race(players, bws.hitting, "hitting", champions) : null, cyYoung: bws.pitching ? race(players, bws.pitching, "pitching", champions) : null, final: !!champions };
 }

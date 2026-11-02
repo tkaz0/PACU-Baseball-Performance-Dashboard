@@ -10,5 +10,5 @@ export async function StreamedHomeSpotlight({ weeks, photos, staff }: {
 }) {
   const [weekly, headshots] = await Promise.all([weeks, photos]);
   if (weekly === null) return <p role="status" className="panel muted text-sm">BWS and weekly leaders are temporarily unavailable. Refresh to try again.</p>;
-  return <HomeSpotlight weeks={playersOfTheWeek(weekly.players, weekly.weeks)} races={bwsRaces(weekly.players, weekly.weeks.bws)} headshots={Object.fromEntries(headshots)} showRankingLink={staff}/>;
+  return <HomeSpotlight weeks={playersOfTheWeek(weekly.players, weekly.weeks)} races={bwsRaces(weekly.players, weekly.weeks.bws, weekly.champions)} headshots={Object.fromEntries(headshots)} showRankingLink={staff}/>;
 }

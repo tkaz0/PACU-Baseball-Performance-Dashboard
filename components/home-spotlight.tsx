@@ -8,8 +8,8 @@ import styles from "./home-spotlight.module.css";
 const title = (card: SpotlightCard) => card.discipline === "hitting" ? "Hitter of the Week" : "Pitcher of the Week";
 
 /** Weekly leaders from the existing Top Performer blend applied to each week's counts; no new score. */
-/** One BWS race: the leader as a trading card, then the next contenders. Not an award until the series ends. */
-function RaceColumn({ name, race, headshots }: { name: string; race: BwsRace; headshots: Readonly<Record<string, string>> }) {
+/** One BWS race (or, once final, award): the leader as a trading card, then the next contenders or runners-up. */
+function RaceColumn({ name, race, headshots, final = false }: { name: string; race: BwsRace; headshots: Readonly<Record<string, string>>; final?: boolean }) {
   const [leader, ...chasers] = race.entries;
   if (!leader) return <article className={styles.card} data-bws>
     <div className={styles.photoBand}><span className={styles.ribbon}>BWS</span><p className={styles.title}><Trophy size={14} aria-hidden="true"/>{name}</p></div>
@@ -18,17 +18,17 @@ function RaceColumn({ name, race, headshots }: { name: string; race: BwsRace; he
   return <article className={styles.card} data-spotlight={leader.discipline} data-bws>
     <div className={styles.photoBand}>
       <span className={styles.ribbon}>BWS</span>
-      <p className={styles.title}><Trophy size={14} aria-hidden="true"/>{name}<span>{leader.tied ? "Tied for the lead" : "Leading"}</span></p>
+      <p className={styles.title}><Trophy size={14} aria-hidden="true"/>{name}<span>{final ? (leader.tied ? "Co-winner" : "Winner") : leader.tied ? "Tied for the lead" : "Leading"}</span></p>
       <PlayerAvatar name={leader.name} path={headshots[leader.code]} size={104} eager className={styles.cardPhoto}/>
     </div>
     <div className={styles.namePlate}><h3>{leader.profileId ? <Link prefetch={false} href={`/athletes/${leader.profileId}`}>{leader.name}</Link> : leader.name}</h3><small>{leader.detail}</small></div>
     <div className={styles.headline}><strong>{leader.headline.value}</strong><span>{leader.headline.label}</span></div>
     {!!leader.stats.length && <dl className={styles.stats}>{leader.stats.map(stat => <div key={stat.label}><dt>{stat.label}</dt><dd>{stat.value}</dd></div>)}</dl>}
-    {chasers.length > 0 && <ol className={styles.chasers} aria-label={`${name} contenders`}>{chasers.map(c => <li key={c.code}>
+    {chasers.length > 0 && <ol className={styles.chasers} aria-label={`${name} ${final ? "runners-up" : "contenders"}`}>{chasers.map(c => <li key={c.code}>
       <span className={styles.chaserRank}>{c.rank}</span><PlayerAvatar name={c.name} path={headshots[c.code]} size={28} className={styles.historyAvatar}/>
       <span className={styles.who}>{c.profileId ? <Link prefetch={false} href={`/athletes/${c.profileId}`}>{c.name}</Link> : <span className={styles.plainName}>{c.name}</span>}{c.tied && <em>Tied</em>}</span>
       <b>{c.headline.value} <small>{c.discipline === "hitting" ? "bases" : "runners"}</small></b></li>)}</ol>}
-    <p className={styles.basis}>{leader.sample ? `${leader.sample} in the BWS · ` : ""}Ranked by series value among players with {race.minimum}+</p>
+    <p className={styles.basis}>{leader.sample ? `${leader.sample} in the BWS · ` : ""}{final ? `Final · series value among the champion team's players with ${race.minimum}+` : `Ranked by series value among players with ${race.minimum}+`}</p>
   </article>;
 }
 
@@ -38,15 +38,15 @@ export function HomeSpotlight({ weeks, races = null, headshots = {}, showRanking
   const bws = !!races && !!(races.mvp || races.cyYoung);
   if (!weeks.length && !bws) return null;
   // Passing the scheduled end date does not confirm that every result is saved or an award is final.
-  const afterSeries = bws && pacificTestingDate() > "2026-10-31";
+  const final = bws && races!.final, afterSeries = bws && !final && pacificTestingDate() > "2026-10-31";
   const [latest, ...rest] = weeks;
   const earlier = bws ? weeks : rest;
   const featured = !bws && latest ? [latest.hitting, latest.pitching].filter((card): card is SpotlightCard => !!card) : [];
-  return <section aria-label={bws ? `Boxer World Series ${afterSeries ? "leaders" : "races"}` : "Players of the week"} data-testid="home-spotlight">
-    <div className={styles.heading}>{bws ? <><p>Boxer World Series · {afterSeries ? "Through saved series results" : "Races in progress · Series ends Oct 31"}</p><h2>BWS MVP &amp; Cy Young {afterSeries ? "Leaders" : "Race"}</h2></> : <><p>Fall Ball · {latest.label}{latest.date ? ` · ${latest.date}` : ""}</p><h2>Players of the Week</h2></>}</div>
+  return <section aria-label={bws ? `Boxer World Series ${final ? "awards" : afterSeries ? "leaders" : "races"}` : "Players of the week"} data-testid="home-spotlight">
+    <div className={styles.heading}>{bws ? <><p>Boxer World Series · {final ? "Final · Champions" : afterSeries ? "Through saved series results" : "Races in progress · Series ends Oct 31"}</p><h2>BWS MVP &amp; Cy Young{final ? "" : afterSeries ? " Leaders" : " Race"}</h2></> : <><p>Fall Ball · {latest.label}{latest.date ? ` · ${latest.date}` : ""}</p><h2>Players of the Week</h2></>}</div>
     {bws ? <div className={styles.grid}>
-      {races!.mvp && <RaceColumn name={afterSeries ? "MVP Leaders" : "MVP Race"} race={races!.mvp} headshots={headshots}/>}
-      {races!.cyYoung && <RaceColumn name={afterSeries ? "Cy Young Leaders" : "Cy Young Race"} race={races!.cyYoung} headshots={headshots}/>}
+      {races!.mvp && <RaceColumn name={final ? "BWS MVP" : afterSeries ? "MVP Leaders" : "MVP Race"} race={races!.mvp} headshots={headshots} final={final}/>}
+      {races!.cyYoung && <RaceColumn name={final ? "BWS Cy Young" : afterSeries ? "Cy Young Leaders" : "Cy Young Race"} race={races!.cyYoung} headshots={headshots} final={final}/>}
     </div> :
     <div className={styles.grid}>{featured.map(card => <article key={card.key} className={styles.card} data-spotlight={card.discipline}>
       {/* Trading-card frame: photo band with a week ribbon, name plate, then the headline stat. */}
@@ -64,7 +64,7 @@ export function HomeSpotlight({ weeks, races = null, headshots = {}, showRanking
       <strong>{week.label}</strong>
       {[week.hitting, week.pitching].map((card, index) => <span key={index}>{card ? <><PlayerAvatar name={card.name} path={headshots[card.code]} size={28} className={styles.historyAvatar}/><span className={styles.who}><small>{index === 0 ? "Hitter" : "Pitcher"}</small>{card.profileId ? <Link prefetch={false} href={`/athletes/${card.profileId}`}>{card.name}</Link> : <span className={styles.plainName}>{card.name}</span>}{card.tied && <em>Tied</em>}</span><b>{card.headline.value} {card.headline.label}</b></> : <small>{index === 0 ? "Hitter" : "Pitcher"} · not ranked</small>}</span>)}
     </li>)}</ol></div>}
-    <details className={styles.note}><summary>How these leaders are ranked</summary><p>{bws ? "BWS standings rank series value against the team's BWS average: MVP by bases above average ((TB + BB + HBP) above the team rate for the same PA, doubles/triples as doubles) and Cy Young by baserunners prevented (team H + BB per inning times IP, minus his H + BB), among hitters with 4+ PA and pitchers with 2+ IP. Pitching uses the sheet's BWS totals; hitting uses QPA counts added since the last Fall Ball update. Standings reflect saved results; award selections are confirmed separately. Fall Ball weeks: " : ""}Each week uses the Top Performer blend (hitters: PAC Production+, QPA%, OPS; pitchers: WHIP, K/BB, Runs/9), with at least five complete lines. Pitching uses separate weekly totals; hitting uses added QPA counts between saved updates, which may not line up with exact calendar weeks.</p></details>
+    <details className={styles.note}><summary>How these leaders are ranked</summary><p>{bws ? `BWS standings rank series value against the team's BWS average: MVP by bases above average ((TB + BB + HBP) above the team rate for the same PA, doubles/triples as doubles) and Cy Young by baserunners prevented (team H + BB per inning times IP, minus his H + BB), among hitters with 4+ PA and pitchers with 2+ IP. Pitching uses the sheet's BWS totals; hitting uses QPA counts added since the last Fall Ball update. ${final ? "The awards go to the series champions: the series value uses every BWS player's rate, then only the champion team's players are ranked." : "Standings reflect saved results; award selections are confirmed separately."} Fall Ball weeks: ` : ""}Each week uses the Top Performer blend (hitters: PAC Production+, QPA%, OPS; pitchers: WHIP, K/BB, Runs/9), with at least five complete lines. Pitching uses separate weekly totals; hitting uses added QPA counts between saved updates, which may not line up with exact calendar weeks.</p></details>
     {showRankingLink && <p className={styles.note}><Link prefetch={false} href="/top-performers">Fall rankings<ArrowRight size={13}/></Link></p>}
   </section>;
 }

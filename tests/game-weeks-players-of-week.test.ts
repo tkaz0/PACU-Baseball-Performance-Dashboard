@@ -162,5 +162,17 @@ describe("BWS series value", () => {
     // Team (H + BB) 3 + 0 + 4×6 = 27 over 57 outs; SYN-0 prevents 27/57 × 15 − 3 ≈ +4.1 over five innings.
     expect(races.cyYoung!.entries[0]).toMatchObject({ code: "SYN-0", score: 4.1, headline: { label: "baserunners prevented", value: "+4.1" } });
     expect(races.cyYoung!.entries[1].code).toBe("SYN-1");
+    expect(races.final).toBe(false);
+    // Final awards: same league-wide values, but only the champion team's players are ranked.
+    const awards = bwsRaces(roster, { hitting: week("qpa_fall_2026", hitting), pitching: week("pitching_fall_2026", pitching) }, ["SYN-1", "SYN-3", "SYN-5"])!;
+    expect(awards.final).toBe(true);
+    expect(awards.mvp!.entries.map(e => [e.code, e.score, e.rank])).toEqual([["SYN-1", 1.5, 1], ["SYN-3", -2.5, 2], ["SYN-5", -2.5, 2]]);
+    expect(awards.cyYoung!.entries[0]).toMatchObject({ code: "SYN-1", rank: 1 });
+    expect(awards.mvp!.qualified).toBe(6);
+    const html = renderToStaticMarkup(createElement(HomeSpotlight, { weeks: [], races: awards }));
+    expect(html).toContain("BWS MVP");
+    expect(html).toContain("Winner");
+    expect(html).toContain("champion team");
+    expect(html).not.toContain("Race");
   });
 });
