@@ -11,6 +11,20 @@ import type { BwsAward } from "@/lib/game-weeks-server";
 import page from "./exit-meeting.module.css";
 import sheet from "./exit-meeting-handout.module.css";
 
+export type PrintReadiness = { issues: string[] | null; pendingRates: string[]; hittingSaved: string | null; pitchingSaved: string | null };
+const savedAt = (at: string | null) => at ? new Date(at).toLocaleString("en-US", { timeZone: "America/Los_Angeles", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "not saved";
+/** Before printing: are the game sheets synced and every team and player game stat available? */
+function Readiness({ readiness }: { readiness: PrintReadiness }) {
+  const ok = readiness.issues !== null && readiness.issues.length === 0 && readiness.pendingRates.length === 0;
+  return <div role="status" data-testid="print-readiness" style={{ marginBottom: 14, padding: "12px 14px", borderRadius: 12, border: `1px solid ${ok ? "#2f9e6b" : "#d08a1f"}`, background: ok ? "color-mix(in srgb, #2f9e6b 10%, transparent)" : "color-mix(in srgb, #d08a1f 10%, transparent)", fontSize: 13, lineHeight: 1.5 }}>
+    <strong>{ok ? "✓ Ready to print: every game stat is available." : "⚠ Not every stat is available yet."}</strong>
+    <div>Hitting sheet saved {savedAt(readiness.hittingSaved)} · Pitching sheet saved {savedAt(readiness.pitchingSaved)} (Pacific)</div>
+    {readiness.issues === null ? <div>Sheet counts could not be checked. Refresh to try again.</div> : readiness.issues.length > 0 && <div>Sheet rows to fix ({readiness.issues.length}): {readiness.issues.join(", ")}. <Link href="/game-stats/review">Open Data Review</Link></div>}
+    {readiness.pendingRates.length > 0 && <div>Team rates waiting on those rows: {readiness.pendingRates.join(", ")}.</div>}
+    {!ok && <div>Fix the source rows, let the next sheet sync run, then reload this page before printing.</div>}
+  </div>;
+}
+
 type Loaded = { report: ExitMeetingReport; headshot: string | null };
 type Slot = { status: "waiting" | "loading" | "ready" | "failed"; data?: Loaded; error?: string };
 const today = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
@@ -45,7 +59,7 @@ const PrintedHandout = memo(function PrintedHandout({ data, meetingDate, awards 
  * browser can save a single PDF. Each handout is two pages, so double-sided printing keeps players apart.
  * Talking points stay blank writing lines; nothing is saved.
  */
-export function ExitMeetingPrintAll({ players, teamSheet, teamUnavailable = [] }: { players: { id: string; name: string }[]; teamSheet?: ReactNode; teamUnavailable?: string[] }) {
+export function ExitMeetingPrintAll({ players, teamSheet, teamUnavailable = [], readiness }: { players: { id: string; name: string }[]; teamSheet?: ReactNode; teamUnavailable?: string[]; readiness?: PrintReadiness }) {
   const [includeTeam, setIncludeTeam] = useState(!!teamSheet);
   const bundleRef = useRef<HTMLDivElement>(null);
   const [pdf, setPdf] = useState<{ done: number; total: number } | null>(null);
@@ -77,6 +91,7 @@ export function ExitMeetingPrintAll({ players, teamSheet, teamUnavailable = [] }
   return <div className={page.workspace}>
     <header className={page.hero}><div><span className={page.eyebrow}>COACHING / EXIT MEETINGS</span><h1>Print All Handouts</h1><p>Every current player&apos;s front-and-back handout in one print job. Choose “Save as PDF” to download a single file. The <Link prefetch={false} href="/exit-meetings/team" className="text-link">Team Review Sheet</Link> prints first.</p></div></header>
     <section className={page.setup} style={{ position: "static" }} aria-label="Print all controls">
+      {readiness && <Readiness readiness={readiness}/>}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "end" }}>
         <label className={page.selectLabel} style={{ marginTop: 0 }}>Meeting Date<input type="date" value={meetingDate} onChange={e => setMeetingDate(e.target.value)}/></label>
         <button className={page.download} style={{ width: "auto", padding: "13px 22px" }} disabled={!ready.length || !done} onClick={() => window.print()}><Printer size={18}/> Print / Save as PDF ({ready.length} players)</button>
