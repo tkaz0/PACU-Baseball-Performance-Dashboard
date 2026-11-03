@@ -21,6 +21,15 @@ async function swapToSameOriginPhotos(root: HTMLElement): Promise<() => void> {
   return () => { for (const [img, src] of swapped) { img.src = src; img.style.visibility = ""; } };
 }
 
+/**
+ * Drawing options for one letter page. includeQueryParams is required: every photo is the same proxy path with a
+ * different ?src=, and without it the image library caches the first photo and reuses it for every player.
+ */
+export function pageImageOptions(fontEmbedCSS: string) {
+  return { width: 816, height: 1056, pixelRatio: 2, quality: 0.85, backgroundColor: "#ffffff", fontEmbedCSS, imagePlaceholder: BLANK, includeQueryParams: true,
+    style: { zoom: "1", transform: "none", margin: "0", borderRadius: "0", boxShadow: "none" } };
+}
+
 export async function downloadBundlePdf(root: HTMLElement, filename: string, onProgress: (done: number, total: number) => void): Promise<number> {
   const pages = [...root.querySelectorAll<HTMLElement>("[data-pdf-page]")];
   if (!pages.length) throw new Error("No pages to save.");
@@ -31,8 +40,7 @@ export async function downloadBundlePdf(root: HTMLElement, filename: string, onP
     const pdf = new jsPDF({ unit: "in", format: "letter", orientation: "portrait", compress: true });
     for (let i = 0; i < pages.length; i++) {
       // Letter page at 96 px/in, drawn at 2x for crisp print text.
-      const options = { width: 816, height: 1056, pixelRatio: 2, quality: 0.85, backgroundColor: "#ffffff", fontEmbedCSS, imagePlaceholder: BLANK,
-        style: { zoom: "1", transform: "none", margin: "0", borderRadius: "0", boxShadow: "none" } };
+      const options = pageImageOptions(fontEmbedCSS);
       // Owner request: if photos break a page, draw it again without photos (initials only) rather than failing.
       const image = await toJpeg(pages[i], options).catch(async () => {
         const photos = [...pages[i].querySelectorAll<HTMLImageElement>("img")];
