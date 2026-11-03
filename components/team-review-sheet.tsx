@@ -34,7 +34,7 @@ function Leaders({ rows, discipline, headshots }: { rows: TopPerformerRow[]; dis
   if (!rows.length) return <p className={styles.empty}>Needs five complete lines to rank.</p>;
   return <ol className={styles.leaders}>{rows.map(row => <li key={row.player.id}>
     <span className={styles.rank}>{row.rank}</span>
-    <PlayerAvatar name={row.player.name} path={headshots[row.player.code]} size={26}/>
+    <PlayerAvatar name={row.player.name} path={headshots[row.player.code]} size={22}/>
     <span className={styles.leaderName}>{row.player.name}<small>{TOP_PERFORMER_METRICS[discipline].map(m => { const s = row.stats[m.key]; return s ? `${m.label} ${gameValue(s.value, s.unit)}` : null; }).filter(Boolean).join(" · ")}</small></span>
     <span className={styles.score}>{row.score?.toFixed(1)}<small>{(() => { const key = discipline === "hitting" ? "qpa_pct" : "pitching_whip"; const s = row.stats[key]; return s ? gameSampleText(s.source, s.metric, s.opportunities) : ""; })()}</small></span>
   </li>)}</ol>;
@@ -116,9 +116,9 @@ export function TeamReviewSheet({ data }: { data: TeamReviewData }) {
         </div>
         <section>
           <h2>Fall Testing Records</h2>
-          {data.records.length ? <ul className={styles.records}>{data.records.map(r => <li key={r.key}><span>{r.label}<small>{r.category}</small></span><b>{r.value}</b><em>{r.holders.map(h => h.name).join(", ")}</em></li>)}</ul> : <p className={styles.empty}>No testing records saved.</p>}
+          {data.records.length ? <ul className={styles.records}>{data.records.map(r => <li key={r.key} title={r.category}><span>{r.label}</span><b>{r.value}</b><em>{r.holders.map(h => h.name).join(", ")}</em></li>)}</ul> : <p className={styles.empty}>No testing records saved.</p>}
         </section>
-        <section className={styles.notes}><h2>Team Goals for the Winter</h2>{Array.from({ length: 4 }, (_, i) => <span key={i}/>)}</section>
+        <section className={styles.notes}><h2>Team Goals for the Winter</h2>{Array.from({ length: 3 }, (_, i) => <span key={i}/>)}</section>
         <p className={styles.method}>Team rates pool every player&apos;s counts (never averages of player rates); pending rates show —. Hitting weeks are counts added between saved QPA updates and may not match calendar weeks exactly; pitching weeks are the sheet&apos;s weekly blocks. SLG/ISO/OPS count doubles and triples as doubles. Grades compare Pacific&apos;s Fall rates with NWC team seasons and are dashboard bands, not official grades; Fall games face Pacific teammates, not conference opponents. Top Performer scores blend team percentiles equally (hitters PAC Production+, QPA%, OPS; pitchers WHIP, K/BB, Runs/9).</p>
       </div>
       <p className={styles.foot}><span>Fall 2026 team review · Back</span><span>Independent project · Not an official university application</span></p>

@@ -1,4 +1,4 @@
-import { fallBallWeekDate, type GameWeekSet } from "@/lib/game-weeks";
+import { fallBallWeekDates, type GameWeekSet } from "@/lib/game-weeks";
 import { formatInnings } from "@/lib/pitching-stats";
 import { formatTeamGameMetric, teamGameSummary, type TeamGameSummary } from "@/lib/team-game-stats";
 import type { ReportCardArea } from "@/lib/team-report-card";
@@ -30,7 +30,7 @@ const short = (date: string) => new Date(`${date}T12:00:00Z`).toLocaleDateString
  */
 export function teamReviewTrends(weeks: GameWeekSet | null, fall: { batting: TeamGameSummary | null; pitching: TeamGameSummary | null }, labels: Record<string, string>) {
   const numbers = [...new Set([...(weeks?.hitting ?? []), ...(weeks?.pitching ?? [])].map(w => w.week))].sort((a, b) => a - b);
-  const columns: TeamReviewColumn[] = numbers.map(week => { const date = fallBallWeekDate(week); return { key: `week-${week}`, label: `Wk ${week}`, detail: date ? short(date) : null }; });
+  const columns: TeamReviewColumn[] = numbers.map(week => { const date = fallBallWeekDates()[week]; return { key: `week-${week}`, label: `Wk ${week}`, detail: date ? short(date) : null }; });
   const summaries = numbers.map(week => ({
     batting: (() => { const w = weeks?.hitting.find(x => x.week === week); return w ? teamGameSummary(w.rows, "qpa_fall_2026") : null; })(),
     pitching: (() => { const w = weeks?.pitching.find(x => x.week === week); return w ? teamGameSummary(w.rows, "pitching_fall_2026") : null; })(),
