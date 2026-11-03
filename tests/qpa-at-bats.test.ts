@@ -42,3 +42,14 @@ it("requires the exact legacy accounting pattern and never fills missing counts"
  expect(qpaAtBatAdjustments(mixed)).toEqual([]);
  expect(battingRates(mixed)).toEqual([]);
 });
+it("recognizes the same legacy SF accounting on lines with sacrifice bunts (sheet AB + BB + HBP + Sac Bunt = PA)", () => {
+ const bunt = { ...line, pa: 9, ab: 6, bb: 1, hbp: 1, sac_bunt: 1, sac_fly: 1 };
+ const counts = qpaBattingCounts(new Map(Object.entries(bunt)));
+ expect(counts.get("ab")).toBe(5); expect(qpaSheetAB(counts)).toBe(6);
+ const data = rows(bunt);
+ expect(reviewGameData(data, [])).toEqual([]);
+ expect(obpNeedsReview(data)).toBe(false);
+ expect(battingRates(data).find(r => r.metric === "batting_obp")?.value).toBeCloseTo(4 / 8);
+ for (const changes of [{ pa: 10 }, { sac_bunt: 0 }, { sac_bunt: 2 }]) expect(qpaBattingCounts(new Map(Object.entries({ ...bunt, ...changes }))).get("ab")).toBe(6);
+ const missing = new Map(Object.entries(bunt)); missing.delete("sac_bunt"); expect(qpaBattingCounts(missing).get("ab")).toBe(6);
+});
