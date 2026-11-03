@@ -16,9 +16,9 @@ export default async function LeaderboardsPage({ searchParams }: { searchParams:
   const query = await searchParams;
   if(query.group === "games") {
     // Confirmed Fall Ball game dates set the optional qualified minimum, the same count badges use.
-    const [rows] = await Promise.all([loadGameLeaderboards(access), loadFallBallWeeks(access)]);
+    const [rows, headshots] = await Promise.all([loadGameLeaderboards(access), loadTeamHeadshots(access).catch(() => new Map<string, string>()), loadFallBallWeeks(access)]);
     const weeks = fallBallWeeksPlayed(pacificTestingDate());
-    return <><PageHeading section="Team" title="Leaderboards" description="Fall 2026 · Team game rankings."/><GameLeaderboard rows={rows} discipline={query.discipline==="pitching"?"pitching":"hitting"} qualified={query.qualified==="1"} weeks={weeks} staff={canImportPresentedAccess(access)} ownId={canImportPresentedAccess(access) ? null : access.athleteId}/></>;
+    return <><PageHeading section="Team" title="Leaderboards" description="Fall 2026 · Team game rankings."/><GameLeaderboard rows={rows} discipline={query.discipline==="pitching"?"pitching":"hitting"} qualified={query.qualified==="1"} weeks={weeks} staff={canImportPresentedAccess(access)} ownId={canImportPresentedAccess(access) ? null : access.athleteId} headshots={Object.fromEntries(headshots)}/></>;
   }
   const group = LEADERBOARD_GROUPS.find(group => group === query.group) ?? "physicality";
   const session = query.session === "practice" || (group === "throwing" && query.session !== "in_game") ? "practice" : "in_game";

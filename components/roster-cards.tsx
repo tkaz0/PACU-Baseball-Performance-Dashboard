@@ -21,7 +21,7 @@ export function RosterCards({ athletes, season, headshots = {}, stats = {} }: { 
           {s?.primary_position && <span className={`${styles.chip} ${styles.position}`}>{s.primary_position}</span>}
           {s?.academic_class && <span className={styles.class}>{s.academic_class}</span>}
         </span>
-        {(stats[a.id] ?? []).length > 0 && <span className={styles.stats}>{stats[a.id].map(stat => <span key={stat.label} className={styles.stat}><b>{stat.value}</b><small>{stat.label}{stat.sample ? ` · ${stat.sample}` : ""}</small></span>)}</span>}
+        {(stats[a.id] ?? []).length > 0 && <span className={styles.stats}>{stats[a.id].map(stat => <span key={stat.label} className={styles.stat}><b>{stat.value}</b><small className={styles.statLabel}>{stat.label}</small>{stat.sample && <small>{stat.sample}</small>}</span>)}</span>}
       </span>
     </Link></li>;
   })}</ul>;

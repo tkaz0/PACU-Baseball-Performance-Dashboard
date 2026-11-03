@@ -77,7 +77,7 @@ export function CoachThisWeek({ digest, reviewCount }: { digest: ReturnType<type
 function SeasonInReview({ staff }: { staff: boolean }) {
   const links = [
     { href: "/records", title: "Team Records", detail: "Fall 2026 bests", icon: Medal },
-    { href: "/leaderboards", title: "Final Leaderboards", detail: "Every Fall ranking", icon: Trophy },
+    { href: "/leaderboards", title: "Leaderboards", detail: "Final Fall rankings", icon: Trophy },
     { href: "/game-stats", title: staff ? "Team Game Stats" : "Game Stats", detail: "Final Fall totals", icon: Activity },
     ...(staff ? [
       { href: "/top-performers", title: "Top Performers", detail: "Final Fall blend", icon: Award },

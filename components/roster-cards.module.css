@@ -14,5 +14,6 @@
 .stats { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 2px; }
 .stat { display: flex; flex-direction: column; }
 .stat b { font-family: var(--font-display, inherit); font-size: 20px; line-height: 1.05; font-variant-numeric: tabular-nums; }
-.stat small { color: var(--text-secondary); font-size: 12px; }
+.stat small { color: var(--text-secondary); font-size: 12px; line-height: 1.35; white-space: nowrap; }
+.stat .statLabel { margin-top: 2px; color: var(--text-primary); font-weight: 700; letter-spacing: .04em; }
 @media (max-width: 650px) { .grid { grid-template-columns: 1fr; gap: 8px; } .card { padding: 12px 14px; } .number { font-size: 56px; } }

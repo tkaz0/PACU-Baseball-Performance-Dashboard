@@ -111,9 +111,9 @@
 .podium li[data-medal="bronze"] { --medal: #b87333; }
 .podium li[data-place="1"] { padding-top: 22px; padding-bottom: 16px; background: linear-gradient(180deg, color-mix(in srgb, var(--medal) 18%, transparent), var(--surface-raised, rgba(127,127,127,.08))); }
 .podium[data-staggered="true"] { grid-template-columns: 1fr 1.15fr 1fr; align-items: end; }
-.podium[data-staggered="true"] li[data-place="1"] { order: 2; }
-.podium[data-staggered="true"] li[data-place="2"] { order: 1; }
-.podium[data-staggered="true"] li[data-place="3"] { order: 3; }
+.podium[data-staggered="true"] li[data-slot="1"] { order: 2; }
+.podium[data-staggered="true"] li[data-slot="2"] { order: 1; }
+.podium[data-staggered="true"] li[data-slot="3"] { order: 3; }
 .podiumContext { align-self: end; }
 .podiumContext:empty { display: none; }
 .podiumRank { position: absolute; top: -12px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 800; color: #111; background: var(--medal); }

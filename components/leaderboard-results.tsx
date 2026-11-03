@@ -29,8 +29,9 @@ function ResultContext({ row, metric }: { row: LeaderboardRow; metric: Leaderboa
 const MEDAL = ["gold", "silver", "bronze"] as const;
 /** Only full-team medal ranks receive a podium; every player tied at a medal rank stays visible. */
 function Podium({ rows, metric, unit, headshots, tiedRanks, ownId }: { rows: LeaderboardRow[]; metric: LeaderboardMetricDefinition; unit: string; headshots: Readonly<Record<string, string>>; tiedRanks: ReadonlySet<number>; ownId?: string | null }) {
-  const staggered = rows.length === 3 && rows.every((row, index) => row.rank === index + 1);
-  return <ol className={styles.podium} data-staggered={staggered} aria-label={`Top ${rows.length} on ${leaderboardMetricLabel(metric)}`}>{rows.map(row => <li key={row.athleteCode} data-place={row.rank} data-medal={MEDAL[row.rank - 1]} data-own={(!!ownId && row.profileId === ownId) || undefined}>
+  // Three podium spots always use the classic 2-1-3 layout (ties keep their shared rank numbers); larger tie groups stay in order.
+  const staggered = rows.length === 3;
+  return <ol className={styles.podium} data-staggered={staggered} aria-label={`Top ${rows.length} on ${leaderboardMetricLabel(metric)}`}>{rows.map((row, index) => <li key={row.athleteCode} data-place={row.rank} data-medal={MEDAL[row.rank - 1]} data-slot={index + 1} data-own={(!!ownId && row.profileId === ownId) || undefined}>
     <span className={styles.podiumRank} aria-label={`${tiedRanks.has(row.rank) ? "Tied for rank" : "Rank"} ${row.rank}`}>{row.rank}</span>
     <PlayerAvatar name={row.name} path={headshots[row.athleteCode]} size={row.rank === 1 ? 64 : 52} eager className={styles.podiumPhoto}/>
     <span className={styles.podiumName}>{row.profileId ? <Link href={`/athletes/${row.profileId}`} prefetch={false}>{row.name}</Link> : row.name}</span>

@@ -21,14 +21,14 @@ function RaceColumn({ name, race, headshots, final = false }: { name: string; ra
       <p className={styles.title}><Trophy size={14} aria-hidden="true"/>{name}<span>{final ? (leader.tied ? "Co-winner" : "Winner") : leader.tied ? "Tied for the lead" : "Leading"}</span></p>
       <PlayerAvatar name={leader.name} path={headshots[leader.code]} size={104} eager className={styles.cardPhoto}/>
     </div>
-    <div className={styles.namePlate}><h3>{leader.profileId ? <Link prefetch={false} href={`/athletes/${leader.profileId}`}>{leader.name}</Link> : leader.name}</h3><small>{leader.detail}</small></div>
+    <div className={styles.namePlate}><h3>{leader.profileId ? <Link prefetch={false} href={`/athletes/${leader.profileId}`}>{leader.name}</Link> : leader.name}</h3><small>{final ? "2026 Boxer World Series · Champions" : leader.detail}</small></div>
     <div className={styles.headline}><strong>{leader.headline.value}</strong><span>{leader.headline.label}</span></div>
     {!!leader.stats.length && <dl className={styles.stats}>{leader.stats.map(stat => <div key={stat.label}><dt>{stat.label}</dt><dd>{stat.value}</dd></div>)}</dl>}
     {chasers.length > 0 && <ol className={styles.chasers} aria-label={`${name} ${final ? "runners-up" : "contenders"}`}>{chasers.map(c => <li key={c.code}>
       <span className={styles.chaserRank}>{c.rank}</span><PlayerAvatar name={c.name} path={headshots[c.code]} size={28} className={styles.historyAvatar}/>
       <span className={styles.who}>{c.profileId ? <Link prefetch={false} href={`/athletes/${c.profileId}`}>{c.name}</Link> : <span className={styles.plainName}>{c.name}</span>}{c.tied && <em>Tied</em>}</span>
       <b>{c.headline.value} <small>{c.discipline === "hitting" ? "bases" : "runners"}</small></b></li>)}</ol>}
-    <p className={styles.basis}>{leader.sample ? `${leader.sample} in the BWS · ` : ""}{final ? `Final · series value among the champion team's players with ${race.minimum}+` : `Ranked by series value among players with ${race.minimum}+`}</p>
+    <p className={styles.basis}>{leader.sample ? `${leader.sample} in the BWS · ` : ""}{final ? `Final · ranked among the champion team's players with ${race.minimum} or more` : `Ranked by series value among players with ${race.minimum} or more`}</p>
   </article>;
 }
 
@@ -65,6 +65,6 @@ export function HomeSpotlight({ weeks, races = null, headshots = {}, showRanking
       {[week.hitting, week.pitching].map((card, index) => <span key={index}>{card ? <><PlayerAvatar name={card.name} path={headshots[card.code]} size={28} className={styles.historyAvatar}/><span className={styles.who}><small>{index === 0 ? "Hitter" : "Pitcher"}</small>{card.profileId ? <Link prefetch={false} href={`/athletes/${card.profileId}`}>{card.name}</Link> : <span className={styles.plainName}>{card.name}</span>}{card.tied && <em>Tied</em>}</span><b>{card.headline.value} {card.headline.label}</b></> : <small>{index === 0 ? "Hitter" : "Pitcher"} · not ranked</small>}</span>)}
     </li>)}</ol></div>}
     <details className={styles.note}><summary>How these leaders are ranked</summary><p>{bws ? `BWS standings rank series value against the team's BWS average: MVP by bases above average ((TB + BB + HBP) above the team rate for the same PA, doubles/triples as doubles) and Cy Young by baserunners prevented (team H + BB per inning times IP, minus his H + BB), among hitters with 4+ PA and pitchers with 2+ IP. Pitching uses the sheet's BWS totals; hitting uses QPA counts added since the last Fall Ball update. ${final ? "The awards go to the series champions: the series value uses every BWS player's rate, then only the champion team's players are ranked." : "Standings reflect saved results; award selections are confirmed separately."} Fall Ball weeks: ` : ""}Each week uses the Top Performer blend (hitters: PAC Production+, QPA%, OPS; pitchers: WHIP, K/BB, Runs/9), with at least five complete lines. Pitching uses separate weekly totals; hitting uses added QPA counts between saved updates, which may not line up with exact calendar weeks.</p></details>
-    {showRankingLink && <p className={styles.note}><Link prefetch={false} href="/top-performers">Fall rankings<ArrowRight size={13}/></Link></p>}
+    {showRankingLink && !final && <p className={styles.note}><Link prefetch={false} href="/top-performers">Fall rankings<ArrowRight size={13}/></Link></p>}
   </section>;
 }
