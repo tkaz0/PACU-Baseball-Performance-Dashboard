@@ -43,3 +43,13 @@ it("leaves writing lines when there are no talking points and skips the pitching
   expect(html).not.toContain(">Pitching<");
   expect(html).toContain("Coach Talking Points");
 });
+it("shows a final BWS award ribbon, Pacific-day dates and short insight dates", () => {
+  const base = report();
+  const late = { ...base, generatedAt: "2026-11-03T05:30:00Z", lastGameUpdate: "2026-11-03T04:00:00Z", jumps: [{ label: "Max Distance", detail: "110.0 ft → 306.0 ft · 2026-09-11 to 2026-09-26", percentile: null }] };
+  const html = renderToStaticMarkup(createElement(ExitMeetingHandout, { report: late, meetingDate: "2026-11-04", talkingPoints: "", awards: ["mvp"] }));
+  expect(html).toContain("BWS MVP · 2026 Boxer World Series");
+  expect(html).toContain("Generated Nov 2, 2026");
+  expect(html).toContain("Game stats through Nov 2, 2026");
+  expect(html).toContain("Sep 11 to Sep 26");
+  expect(renderToStaticMarkup(createElement(ExitMeetingHandout, { report: base, meetingDate: "2026-11-04", talkingPoints: "" }))).not.toContain("Boxer World Series");
+});

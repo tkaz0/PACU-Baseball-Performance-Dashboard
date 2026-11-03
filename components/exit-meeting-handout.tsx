@@ -27,6 +27,12 @@ const BODY = new Set(["height", "weight", "muscle_mass", "body_score", "body_fat
 const section = (report: ExitMeetingReport, id: string) => report.sections.find(s => s.id === id);
 const rowsOf = (s?: ExitMeetingSection) => s?.rows ?? [];
 const byKey = (rows: ExitMeetingRow[], key: string) => rows.find(r => r.metricKey === key);
+const PACIFIC_DAY = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit" });
+/** The Pacific calendar day of a saved timestamp (a late-evening save is not tomorrow's date). */
+const pacificDay = (stamp: string) => { const at = new Date(stamp); return Number.isFinite(at.getTime()) ? PACIFIC_DAY.format(at) : stamp.slice(0, 10); };
+/** ISO dates inside saved insight text read as "Sep 26". */
+const shortDates = (text: string) => text.replace(/\b(\d{4})-(\d\d)-(\d\d)\b/g, (_, y, m, d) => new Date(Date.UTC(+y, +m - 1, +d, 12)).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }));
+const AWARD_NAMES = { mvp: "BWS MVP", cy_young: "BWS Cy Young" } as const;
 const day = (value: string) => /^\d{4}-\d\d-\d\d$/.test(value) ? new Date(`${value}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }) : value;
 
 function Ring({ value, size = 46 }: { value: number | null; size?: number }) {
@@ -102,10 +108,10 @@ function Arsenal({ rows }: { rows: ExitMeetingRow[] }) {
 }
 
 function Insights({ title, tone, items, empty }: { title: string; tone: string; items: ExitMeetingReport["strengths"]; empty: string }) {
-  return <section className={styles.insight} data-tone={tone}><h3>{title}</h3>{items.length ? <ul>{items.map((item, i) => <li key={`${item.label}-${i}`}><b>{item.label}</b>{item.percentile !== null && <span>{ordinal(Math.round(item.percentile))}</span>}<small>{item.detail}</small></li>)}</ul> : <p className={styles.empty}>{empty}</p>}</section>;
+  return <section className={styles.insight} data-tone={tone}><h3>{title}</h3>{items.length ? <ul>{items.map((item, i) => <li key={`${item.label}-${i}`}><b>{item.label}</b>{item.percentile !== null && <span>{ordinal(Math.round(item.percentile))}</span>}<small>{shortDates(item.detail)}</small></li>)}</ul> : <p className={styles.empty}>{empty}</p>}</section>;
 }
 
-export function ExitMeetingHandout({ report, meetingDate, talkingPoints, headshot }: { report: ExitMeetingReport; meetingDate: string; talkingPoints: string; headshot?: string | null }) {
+export function ExitMeetingHandout({ report, meetingDate, talkingPoints, headshot, awards = [] }: { report: ExitMeetingReport; meetingDate: string; talkingPoints: string; headshot?: string | null; awards?: readonly (keyof typeof AWARD_NAMES)[] }) {
   const games = [...rowsOf(section(report, "game-qpa_fall_2026")), ...rowsOf(section(report, "game-pitching_fall_2026"))];
   const testing = [...rowsOf(section(report, "hitting-in_game")), ...rowsOf(section(report, "blast-fall")), ...rowsOf(section(report, "testing"))];
   const hitTiles = HITTING_HEADLINE.flatMap(key => byKey(games, key) ? [byKey(games, key)!] : []), pitchTiles = PITCHING_HEADLINE.flatMap(key => byKey(games, key) ? [byKey(games, key)!] : []);
@@ -150,7 +156,8 @@ export function ExitMeetingHandout({ report, meetingDate, talkingPoints, headsho
         <div className={styles.heroMain}>
           <PlayerAvatar name={report.name} path={headshot} size={104} eager className={styles.photo}/>
           <div className={styles.identity}><h1>{report.name}</h1><p>{[report.jersey, report.position, report.academicClass, report.batsThrows].filter(Boolean).join(" · ")}</p>
-            <p className={styles.heroFacts}>{report.lastTested && <span>Last tested {day(report.lastTested)}</span>}{report.lastGameUpdate && <span>Game stats through {day(report.lastGameUpdate.slice(0, 10))}</span>}</p></div>
+            <p className={styles.heroFacts}>{report.lastTested && <span>Last tested {day(report.lastTested)}</span>}{report.lastGameUpdate && <span>Game stats through {day(pacificDay(report.lastGameUpdate))}</span>}</p>
+            {awards.length > 0 && <p className={styles.awards}>{awards.map(key => <span key={key}><span aria-hidden="true">🏆</span>{AWARD_NAMES[key]} · 2026 Boxer World Series</span>)}</p>}</div>
           {report.jersey && <span className={styles.watermark} aria-hidden="true">{report.jersey.replace("#", "")}</span>}
         </div>
       </header>
@@ -201,7 +208,7 @@ export function ExitMeetingHandout({ report, meetingDate, talkingPoints, headsho
       </div>
       {report.missing.length > 0 && <p className={styles.missing}>Still to add: {report.missing.join(" · ")}</p>}
       <p className={styles.method}>Percentiles compare at least five eligible teammates on the same stat, source, unit and period; body measurements are positions, not grades. Hitting doubles/triples count as doubles; PAC Production+ is a custom team index (100 = team). Pitch+ is a Pacific outcome grade, not Stuff+. Week trends use each week&apos;s own counts. Missing results stay blank.</p>
-      </div><footer className={styles.pageFoot}><span>Back · Generated {day(report.generatedAt.slice(0, 10))}</span><span>Private · Coaches and the player only</span></footer>
+      </div><footer className={styles.pageFoot}><span>Back · Generated {day(pacificDay(report.generatedAt))}</span><span>Private · Coaches and the player only</span></footer>
     </article>
   </div>;
 }

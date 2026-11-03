@@ -4,6 +4,7 @@ import { ExitMeetingError, loadExitMeetingReport } from "@/lib/exit-meeting-serv
 import { ExitMeetingWorkspace } from "@/components/exit-meeting-workspace";
 import { loadExitMeetingHistory, loadSavedExitMeeting } from "@/lib/exit-meeting-history-server";
 import { loadAthleteHeadshot } from "@/lib/headshots-server";
+import { loadBwsAwards, type BwsAward } from "@/lib/game-weeks-server";
 import type { SavedExitMeeting, ExitMeetingHistory } from "@/lib/exit-meeting-history";
 import { notFound } from "next/navigation";
 
@@ -16,14 +17,17 @@ export default async function ExitMeetingsPage({ searchParams }: { searchParams:
   let saved: SavedExitMeeting | null = null;
   let history: ExitMeetingHistory = {items:[],hasMore:false};
   let headshot: string | null = null;
+  let awards: BwsAward[] = [];
   if(query.meeting&&!query.athlete)notFound();
   if (query.athlete) {
     try {
       const [result,previous,photo] = await Promise.all([query.meeting ? loadSavedExitMeeting(access,query.athlete,query.meeting) : loadExitMeetingReport(access,query.athlete),loadExitMeetingHistory(access,query.athlete),loadAthleteHeadshot(access,query.athlete).catch(()=>null)]);
       history=previous; headshot=photo;
       if(query.meeting){saved=result as SavedExitMeeting;report=saved.report;}else{report=result as Awaited<ReturnType<typeof loadExitMeetingReport>>;}
+      // Final BWS awards are loaded live like the photo; saved snapshot contents are unchanged.
+      awards = await loadBwsAwards(access, report.code).catch(() => []);
     }
     catch (error) { if (error instanceof ExitMeetingError && [400, 404].includes(error.status)) notFound(); throw error; }
   }
-  return <ExitMeetingWorkspace key={`${query.athlete ?? "none"}:${query.meeting ?? "current"}`} players={players} selectedId={query.athlete ?? ""} report={report} saved={saved} history={history} headshot={headshot} />;
+  return <ExitMeetingWorkspace key={`${query.athlete ?? "none"}:${query.meeting ?? "current"}`} players={players} selectedId={query.athlete ?? ""} report={report} saved={saved} history={history} headshot={headshot} awards={awards} />;
 }

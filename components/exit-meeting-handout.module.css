@@ -21,6 +21,8 @@
 .identity h1 { margin: 0; font-family: var(--font-display, inherit); font-size: 46px; font-weight: 900; line-height: .95; text-transform: uppercase; letter-spacing: .01em; color: #fff; }
 .identity p { margin: 6px 0 0; font-size: 14px; font-weight: 700; color: #fde8ec; }
 .heroFacts { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px !important; font-weight: 600 !important; color: #f8c9d2 !important; }
+.awards { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px !important; }
+.awards > span { display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px; border-radius: 999px; background: #e0a526; color: #2a1a00 !important; font-size: 12px; font-weight: 800; letter-spacing: .02em; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .watermark { position: absolute; right: -6px; bottom: -40px; font-family: var(--font-display, inherit); font-size: 190px; font-weight: 900; line-height: 1; color: #fff; opacity: .1; pointer-events: none; }
 
 /* Headline tiles */
