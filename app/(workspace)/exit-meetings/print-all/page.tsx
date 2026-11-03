@@ -18,7 +18,9 @@ export default async function PrintAllHandoutsPage() {
   const names = new Map(players.map(p => [p.id, p.name]));
   const issues = stats && logs ? reviewGameData(stats, logs) : null;
   const latest = (source: string) => stats?.filter(s => s.source === source).map(s => s.fetched_at).sort().at(-1) ?? null;
-  const pendingRates = [...(team.data.batting?.rates ?? []), ...(team.data.pitching?.rates ?? [])].filter(r => r.pending).map(r => r.label);
+  const pendingRates = [...(team.data.batting?.rates ?? []), ...(team.data.pitching?.rates ?? [])]
+    // Weak/hard contact are recorded for only some pitching lines and are not printed on the sheets.
+    .filter(r => r.pending && r.metric !== "weak_contact_pct" && r.metric !== "hard_contact_pct").map(r => r.label);
   const readiness: PrintReadiness = {
     issues: issues === null ? null : [...new Set(issues.map(i => names.get(i.athleteId) ?? "A player"))],
     pendingRates, hittingSaved: latest("qpa_fall_2026"), pitchingSaved: latest("pitching_fall_2026"),
