@@ -70,7 +70,7 @@ export function ExitMeetingPrintAll({ players }: { players: { id: string; name: 
   const done = ready.length + failed.length === players.length;
   const pct = players.length ? Math.round((ready.length + failed.length) / players.length * 100) : 100;
   return <div className={page.workspace}>
-    <header className={page.hero}><div><span className={page.eyebrow}>COACHING / EXIT MEETINGS</span><h1>Print All Handouts</h1><p>Every current player&apos;s front-and-back handout in one print job. Choose “Save as PDF” to download a single file.</p></div></header>
+    <header className={page.hero}><div><span className={page.eyebrow}>COACHING / EXIT MEETINGS</span><h1>Print All Handouts</h1><p>Every current player&apos;s front-and-back handout in one print job. Choose “Save as PDF” to download a single file. The <Link prefetch={false} href="/exit-meetings/team" className="text-link">Team Review Sheet</Link> prints separately.</p></div></header>
     <section className={page.setup} style={{ position: "static" }} aria-label="Print all controls">
       <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "end" }}>
         <label className={page.selectLabel} style={{ marginTop: 0 }}>Meeting Date<input type="date" value={meetingDate} onChange={e => setMeetingDate(e.target.value)}/></label>
