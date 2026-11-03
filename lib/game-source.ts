@@ -108,8 +108,13 @@ export function parseGameSource(snapshot: GameSourceSnapshot, contract: Reviewed
   const aeHeaderBlank=!aeHeader || ((aeHeader.entered===undefined||aeHeader.entered==="") && (aeHeader.effective===undefined||aeHeader.effective==="") && !aeHeader.formula && !aeHeader.error);
   const bwsLayout = normalize(text(149,1)) === "fall ball boxer world series pitching stats";
   // November 2 owner review: these added headers and BWS rankings are summary-only.
-  const bwsSummaryRanks = bwsLayout && normalize(text(2,27)) === "fps% rk" && normalize(text(2,28)) === "kk/b";
+  const bwsSummaryRanks = bwsLayout && normalize(text(2,27)) === "fps% rk" && ["kk/b","k/fp"].includes(normalize(text(2,28)));
+  // November 3 owner review: K/FP replaces KK/B; AD is an overall summary rank.
+  const overallSummaryRanks = bwsSummaryRanks && normalize(text(2,28)) === "k/fp" && normalize(text(2,30)) === "ovr rk";
   const summaryRankingCell = (cell:GameSourceCell) => !qpa && normalize(text(2,26))==="k% rk" && (
+    (overallSummaryRanks && cell.column===30 && !cell.formula && !cell.error && (
+      cell.row===2 || (cell.row>=3 && cell.row<=33 && Number.isSafeInteger(cell.entered) && (cell.entered as number)>=0)
+    )) ||
     (bwsSummaryRanks && (
       (cell.row===2 && [27,28].includes(cell.column) && !cell.formula && !cell.error) ||
       (cell.row>=151 && cell.row<=179 && (
