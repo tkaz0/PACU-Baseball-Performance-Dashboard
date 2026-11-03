@@ -43,7 +43,7 @@ export function HomeSpotlight({ weeks, races = null, headshots = {}, showRanking
   const earlier = bws ? weeks : rest;
   const featured = !bws && latest ? [latest.hitting, latest.pitching].filter((card): card is SpotlightCard => !!card) : [];
   return <section aria-label={bws ? `Boxer World Series ${final ? "awards" : afterSeries ? "leaders" : "races"}` : "Players of the week"} data-testid="home-spotlight">
-    <div className={styles.heading}>{bws ? <><p>Boxer World Series · {final ? "Final · Champions" : afterSeries ? "Through saved series results" : "Races in progress · Series ends Oct 31"}</p><h2>BWS MVP &amp; Cy Young{final ? "" : afterSeries ? " Leaders" : " Race"}</h2></> : <><p>Fall Ball · {latest.label}{latest.date ? ` · ${latest.date}` : ""}</p><h2>Players of the Week</h2></>}</div>
+    <div className={styles.heading}>{bws ? <><p>{final ? "Fall 2026 Final · Boxer World Series Champions" : afterSeries ? "Boxer World Series · Through saved series results" : "Boxer World Series · Races in progress · Series ends Oct 31"}</p><h2>BWS MVP &amp; Cy Young{final ? "" : afterSeries ? " Leaders" : " Race"}</h2></> : <><p>Fall Ball · {latest.label}{latest.date ? ` · ${latest.date}` : ""}</p><h2>Players of the Week</h2></>}</div>
     {bws ? <div className={styles.grid}>
       {races!.mvp && <RaceColumn name={final ? "BWS MVP" : afterSeries ? "MVP Leaders" : "MVP Race"} race={races!.mvp} headshots={headshots} final={final}/>}
       {races!.cyYoung && <RaceColumn name={final ? "BWS Cy Young" : afterSeries ? "Cy Young Leaders" : "Cy Young Race"} race={races!.cyYoung} headshots={headshots} final={final}/>}

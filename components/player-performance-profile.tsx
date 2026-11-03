@@ -41,6 +41,7 @@ import { seasonDesignNavigation } from "@/lib/design-navigation";
 import { getPlayerProfileLayout, getSessionPerformance, profileShowsPitching, withoutUnclassifiedPitchVelocity, withoutWeeklyBlastCards } from "@/lib/player-profile-layout";
 import { formatHeight, formatMetricNumber } from "@/lib/measurement-display";
 import { isTimedMetric, type getPlayerPerformance, type PlayerMetricCard, type PlayerMetricReading } from "@/lib/player-performance";
+import { FALL_SPAN_LABEL } from "@/lib/season";
 
 export type PlayerPerformanceProfileProps = {
   selectedTab?: ProfileTabId; navigationPath?: string; detail?: ProfileDetail;
@@ -139,7 +140,7 @@ function SessionMeasurements({ quick=false, performance, season, context, discip
   const hasData = hitting.length + throwing.length > 0;
   if((hasBlast || hasArsenal) && !hasData)return null;
   return <section className={presentation.sessionMeasurements} aria-label={context === "in_game" ? "In-Game measurements" : "Practice measurements"}>
-    <header className={presentation.sessionHeading}><div><p>{context === "in_game" ? "In-Game" : "Practice"} <span aria-hidden="true">/</span> Fall to Date</p><h2>{context === "in_game" ? "Games & Intrasquad" : (hasBlast ? "Other Practice & Testing" : "Practice & Testing")}</h2></div><span className={presentation.seasonBadge}>Fall 2026</span></header>
+    <header className={presentation.sessionHeading}><div><p>{context === "in_game" ? "In-Game" : "Practice"} <span aria-hidden="true">/</span> {FALL_SPAN_LABEL}</p><h2>{context === "in_game" ? "Games & Intrasquad" : (hasBlast ? "Other Practice & Testing" : "Practice & Testing")}</h2></div><span className={presentation.seasonBadge}>Fall 2026</span></header>
     {!hasData && <p className={presentation.emptyState}>{context === "in_game" ? "No game or intrasquad test results yet." : "No practice measurements recorded yet."}</p>}
     <div className={presentation.sessionDisciplines} data-two-way={hitting.length > 0 && pitchingCards.length > 0}>
     <MetricGroup id={`${context}-hitting`} title="Hitting" cards={hitting} teamAverages={teamAverages} quick={quick} />

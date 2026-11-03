@@ -8,7 +8,7 @@ import { PlayerAvatar } from "@/components/player-avatar";
 import { SkeletonCards } from "@/components/skeleton";
 import { countLabel } from "@/lib/game-opportunities";
 import Link from "next/link";
-import { ArrowUpRight, ArrowRight, Activity, Upload, UsersRound, ChartNoAxesCombined, Trophy, Crosshair, UserRound, ClipboardCheck, FolderOpen, FileChartColumn, DraftingCompass, Target } from "lucide-react";
+import { ArrowUpRight, ArrowRight, Activity, Upload, UsersRound, ChartNoAxesCombined, Trophy, Crosshair, UserRound, ClipboardCheck, FolderOpen, FileChartColumn, DraftingCompass, Target, Medal, TrendingUp, Award } from "lucide-react";
 import { PacificLogo } from "@/components/pacific-brand";
 import { StatInfo } from "@/components/stat-info";
 import { formatTeamGameMetric, teamGameMetricStatus, type TeamGameMetric, type TeamGameSummary } from "@/lib/team-game-stats";
@@ -17,6 +17,7 @@ import type { HomeSummary } from "@/lib/home-summary";
 import type { DesignNavigation } from "@/lib/design-navigation";
 import type { coachUpdateDigest } from "@/lib/coach-update-digest";
 import type { HomeLeaderboard, HomeRank } from "@/lib/home-leaderboards";
+import { FALL_2026_FINAL } from "@/lib/season";
 import styles from "./dashboard-home.module.css";
 import type { VisitDigest } from "@/lib/dashboard-visit-digest";
 
@@ -72,6 +73,21 @@ export function CoachThisWeek({ digest, reviewCount }: { digest: ReturnType<type
     </div>
   </section>;
 }
+/** Season-final Home (owner request, November 2): links to the finished Fall in one row. Same pages and access as the nav. */
+function SeasonInReview({ staff }: { staff: boolean }) {
+  const links = [
+    { href: "/records", title: "Team Records", detail: "Fall 2026 bests", icon: Medal },
+    { href: "/leaderboards", title: "Final Leaderboards", detail: "Every Fall ranking", icon: Trophy },
+    { href: "/game-stats", title: staff ? "Team Game Stats" : "Game Stats", detail: "Final Fall totals", icon: Activity },
+    ...(staff ? [
+      { href: "/top-performers", title: "Top Performers", detail: "Final Fall blend", icon: Award },
+      { href: "/leaderboards/movers", title: "Biggest Jumps", detail: "Testing improvements", icon: TrendingUp },
+    ] : []),
+  ];
+  return <section aria-label="Season in review"><div className={styles.blockHeading}><div><p className={styles.kicker}>Fall 2026 Final</p><h2>Season in Review</h2></div></div>
+    <nav className={styles.quickLinks} aria-label="Season in review">{links.map(({ href, title, detail, icon: Icon }) => <Link prefetch={false} key={href} href={href}><span className={styles.actionIcon}><Icon size={18}/></span><span><strong>{title}</strong><small>{detail}</small></span><ArrowUpRight className={styles.actionArrow} size={14}/></Link>)}</nav>
+  </section>;
+}
 export function DashboardHome({ playerWeek, leaderboardsSlot, spotlight, trending, staff, athleteId, summary, designNavigation, leaderboards = [], headshots = {}, gameTrends = {}, streamedTrend }: { playerWeek?:ReactNode; leaderboardsSlot?:ReactNode; spotlight?:ReactNode; trending?:ReactNode; streamedTrend?: (source: "qpa_fall_2026" | "pitching_fall_2026", metric: TeamGameMetric, updatedAt: string | null) => ReactNode; gameTrends?: TeamGameTrends; headshots?: Readonly<Record<string, string>>; staff: boolean; athleteId: string | null; designNavigation?: DesignNavigation; summary: (HomeSummary & { visitDigest?:VisitDigest; coachDigest?: ReturnType<typeof coachUpdateDigest> }) | null; leaderboards?: HomeLeaderboard[] }) {
   const profile = athleteId ? `/athletes/${athleteId}` : null;
   const actions = [...(staff ? [
@@ -90,18 +106,21 @@ export function DashboardHome({ playerWeek, leaderboardsSlot, spotlight, trendin
   ];
   return <div className={styles.home}>
     <header className={styles.welcome}>
-      <div className={styles.welcomeTitle}><div className={styles.homeMark}><span className={styles.markOnDark}><PacificLogo variant="university" tone="dark" decorative/></span><span className={styles.markOnLight}><PacificLogo variant="university" tone="light" decorative/></span></div><div><p className={styles.kicker}>Boxer Baseball <span>/</span> Fall 2026</p><h1>{staff ? "Team Dashboard" : "My Dashboard"}</h1><p>{staff ? "Your team, at a glance." : "Your work. Your progress. Your next step."}</p></div></div>
+      <div className={styles.welcomeTitle}><div className={styles.homeMark}><span className={styles.markOnDark}><PacificLogo variant="university" tone="dark" decorative/></span><span className={styles.markOnLight}><PacificLogo variant="university" tone="light" decorative/></span></div><div><p className={styles.kicker}>Boxer Baseball <span>/</span> {FALL_2026_FINAL ? "Fall 2026 Final" : "Fall 2026"}</p><h1>{staff ? "Team Dashboard" : "My Dashboard"}</h1><p>{FALL_2026_FINAL ? staff ? "Fall 2026 is complete. Here’s how the season finished." : "Your Fall 2026, start to finish." : staff ? "Your team, at a glance." : "Your work. Your progress. Your next step."}</p></div></div>
       <Link prefetch={false} href={staff ? "/roster" : profile ?? "/settings"} className={styles.heroAction}>{staff ? "Explore Roster" : profile ? "Open My Profile" : "Account Settings"}<ArrowUpRight size={17}/></Link>
     </header>
     {!staff && playerWeek}
     {spotlight}
-    {staff && trending}
+    {/* Season final: the report card and final team numbers lead; Trending Up becomes the Week 4 → BWS finish below them. */}
+    {staff && !FALL_2026_FINAL && trending}
     {staff && summary && <TeamReportCard compact href="/game-stats" areas={teamReportCard(summary.batting, summary.pitching)}/>}
     {!summary ? staff ? <section className={styles.panel}><h2>Team summary unavailable</h2><p className={styles.empty}>Saved results are unaffected. Refresh to try again.</p></section> : <section className={styles.panel}><h2>Your profile is being connected</h2><p className={styles.empty}>Your administrator will link your account to the correct player profile. Your results will appear here once it is connected.</p></section> : <>
-      <section aria-label="Fall game summary"><div className={styles.blockHeading}><div><p className={styles.kicker}>Competition</p><h2>{staff ? "Team Advanced Performance" : "My Advanced Performance"}</h2></div><Link prefetch={false} href="/game-stats" className={styles.panelLink}>All Game Stats<ArrowRight size={15}/></Link></div><div className={styles.gameGrid}>{(staff || summary.batting.entries > 0) && <GameSnapshot summary={summary.batting} kind="Hitting" trends={gameTrends.qpa_fall_2026} streamedTrend={streamedTrend ? metric=>streamedTrend("qpa_fall_2026",metric,summary.batting.updatedAt) : undefined}/>}{(staff || summary.pitching.entries > 0) && <GameSnapshot summary={summary.pitching} kind="Pitching" trends={gameTrends.pitching_fall_2026} streamedTrend={streamedTrend ? metric=>streamedTrend("pitching_fall_2026",metric,summary.pitching.updatedAt) : undefined}/>}{!staff && !summary.batting.entries && !summary.pitching.entries && <p className={styles.empty}>Your game stats will appear after your first verified Fall update.</p>}</div></section>
+      <section aria-label="Fall game summary"><div className={styles.blockHeading}><div><p className={styles.kicker}>{FALL_2026_FINAL ? "Fall 2026 Final" : "Competition"}</p><h2>{FALL_2026_FINAL ? staff ? "Final Team Performance" : "My Final Fall Performance" : staff ? "Team Advanced Performance" : "My Advanced Performance"}</h2></div><Link prefetch={false} href="/game-stats" className={styles.panelLink}>All Game Stats<ArrowRight size={15}/></Link></div><div className={styles.gameGrid}>{(staff || summary.batting.entries > 0) && <GameSnapshot summary={summary.batting} kind="Hitting" trends={gameTrends.qpa_fall_2026} streamedTrend={streamedTrend ? metric=>streamedTrend("qpa_fall_2026",metric,summary.batting.updatedAt) : undefined}/>}{(staff || summary.pitching.entries > 0) && <GameSnapshot summary={summary.pitching} kind="Pitching" trends={gameTrends.pitching_fall_2026} streamedTrend={streamedTrend ? metric=>streamedTrend("pitching_fall_2026",metric,summary.pitching.updatedAt) : undefined}/>}{!staff && !summary.batting.entries && !summary.pitching.entries && <p className={styles.empty}>Your game stats will appear after your first verified Fall update.</p>}</div></section>
+      {FALL_2026_FINAL && <SeasonInReview staff={staff}/>}
+      {staff && FALL_2026_FINAL && trending}
       {!staff && <nav className={styles.quickLinks} aria-label="Home shortcuts">{actions.map(({ href, title, detail, icon: Icon }) => <Link prefetch={false} key={href} href={href}><span className={styles.actionIcon}><Icon size={18}/></span><span><strong>{title}</strong><small>{detail}</small></span><ArrowUpRight className={styles.actionArrow} size={14}/></Link>)}</nav>}
         <div className={styles.leadersColumn}>
-      <section aria-label="Featured team leaderboards"><div className={styles.blockHeading}><div><p className={styles.kicker}>Around the Team</p><h2>Performance Leaders</h2></div><Link prefetch={false} href="/leaderboards" className={styles.panelLink}>All Leaderboards<ArrowRight size={15}/></Link></div>{leaderboardsSlot ?? <HomeLeaderboardCards leaderboards={leaderboards} headshots={headshots}/>}</section>
+      <section aria-label="Featured team leaderboards"><div className={styles.blockHeading}><div><p className={styles.kicker}>{FALL_2026_FINAL ? "Fall 2026 Final" : "Around the Team"}</p><h2>{FALL_2026_FINAL ? "Fall Leaders" : "Performance Leaders"}</h2></div><Link prefetch={false} href="/leaderboards" className={styles.panelLink}>All Leaderboards<ArrowRight size={15}/></Link></div>{leaderboardsSlot ?? <HomeLeaderboardCards leaderboards={leaderboards} headshots={headshots}/>}</section>
         </div>
     </>}
   </div>;

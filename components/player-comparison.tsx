@@ -18,6 +18,7 @@ import type { StatGuideContext } from "@/lib/stat-benchmarks";
 import { StatInfo } from "@/components/stat-info";
 import { PlayerAvatar } from "@/components/player-avatar";
 import styles from "./coaching-tools.module.css";
+import { FALL_SPAN_LABEL } from "@/lib/season";
 /** Mirrored magnitude bars from the center, scaled to the larger of the two values; only for comparable positive results. */
 function MirrorBar({value,max,side,lead}:{value:number|null|undefined;max:number;side:"a"|"b";lead:boolean}){
  if(value==null||!Number.isFinite(value)||value<0||max<=0)return null;
@@ -39,7 +40,7 @@ export function PlayerComparison({data,today,headshots={}}:{data:CoachingData;to
  const allTests=selected&&category!=="Game Stats"?compareTests(data,first.id,second.id,category as CoachingCategory,today,maxGap):[];
  const tests=withoutCoveredPitchVelocity(allTests,arsenals);
  const sharedSources=first&&second?playerGameSources(first).filter(s=>playerGameSources(second).includes(s)):[];
- const choices=sharedSources.map(source=>({id:source==="qpa_fall_2026"?"":PITCHING_CUMULATIVE,label:source==="qpa_fall_2026"?"Hitting · Fall to Date":"Pitching · Fall to Date"}));
+ const choices=sharedSources.map(source=>({id:source==="qpa_fall_2026"?"":PITCHING_CUMULATIVE,label:source==="qpa_fall_2026"?`Hitting · ${FALL_SPAN_LABEL}`:`Pitching · ${FALL_SPAN_LABEL}`}));
  const selectedEvent=choices.some(c=>c.id===event)?event:choices[0]?.id??"";
  const games=selected&&category==="Game Stats"?compareGames(data,first.id,second.id,selectedEvent):[];
 

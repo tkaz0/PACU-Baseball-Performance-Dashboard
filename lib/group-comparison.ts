@@ -8,6 +8,7 @@ import { gameOpportunityLabel, countLabel} from "@/lib/game-opportunities";
 import { formatInnings } from "@/lib/pitching-stats";
 import { PITCHING_CUMULATIVE } from "@/lib/pitching-cumulative";
 import { leaderboardTestDate } from "@/lib/leaderboards";
+import { FALL_SPAN_LABEL } from "@/lib/season";
 
 export type GroupPreset={id:string;label:string;playerIds:string[]};
 export type GroupComparisonCell={value:number|null;eligible:boolean;review:boolean;context:string;sample:string};
@@ -38,7 +39,7 @@ export function buildGroupComparison(data:CoachingData,selectedIds:string[],cate
  const groups:GroupComparisonGroup[]=[];
  if(category==="Game Stats"){
   const source=gameSource==="qpa"?"qpa_fall_2026":"pitching_fall_2026",event=gameSource==="qpa"?"":PITCHING_CUMULATIVE;
-  const group=makeGroup(source,gameSource==="qpa"?"Hitting · Fall to Date":"Pitching · Fall to Date",source,"game",players);
+  const group=makeGroup(source,gameSource==="qpa"?`Hitting · ${FALL_SPAN_LABEL}`:`Pitching · ${FALL_SPAN_LABEL}`,source,"game",players);
   const readings=data.games.filter(r=>ids.has(r.athleteId)&&r.source===source&&r.eventId===event&&Number.isFinite(r.value));
   const keys=[...new Set(readings.map(r=>JSON.stringify([r.metric,r.unit])))].sort((a,b)=>{const ma=JSON.parse(a)[0],mb=JSON.parse(b)[0];return (gameOrder.includes(ma)?gameOrder.indexOf(ma):999)-(gameOrder.includes(mb)?gameOrder.indexOf(mb):999)||a.localeCompare(b);});
   for(const key of keys){

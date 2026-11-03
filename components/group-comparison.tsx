@@ -9,6 +9,7 @@ import { StatInfo } from "@/components/stat-info";
 import { coachingValue, playerGameSources, type CoachingCategory, type CoachingData } from "@/lib/coaching-tools";
 import { buildGroupComparison, groupPresets, type GroupComparisonGroup, type GroupComparisonColumn } from "@/lib/group-comparison";
 import styles from "./group-comparison.module.css";
+import { FALL_SPAN_LABEL } from "@/lib/season";
 
 export function visibleGroupColumns(group:GroupComparisonGroup|undefined,saved:string[]|undefined):string[]{
  if(!group)return [];
@@ -88,7 +89,7 @@ export function GroupComparison({data,today}:{data:CoachingData;today:string}) {
   <CoachingTabs games value={category} onChange={value=>{setCategory(value as CoachingCategory|"Game Stats");setGroupId("");}}/>
   {model.players.length>=2?<>
    <div className={styles.controls}>
-    {category==="Game Stats"?<label className={styles.field}>Game Stats<select aria-label="Group game stats source" value={effectiveSource} onChange={event=>{setGameSource(event.target.value as "qpa"|"pitching");setGroupId("");}}>{availableSources.map(source=><option key={source} value={source}>{source==="qpa"?"Hitting":"Pitching"} · Fall to Date</option>)}</select></label>:<label className={styles.field}>Test Date Window<select value={maxGap} onChange={event=>setMaxGap(Number(event.target.value))}>{[7,14,30,60].map(days=><option key={days} value={days}>{days} days</option>)}</select></label>}
+    {category==="Game Stats"?<label className={styles.field}>Game Stats<select aria-label="Group game stats source" value={effectiveSource} onChange={event=>{setGameSource(event.target.value as "qpa"|"pitching");setGroupId("");}}>{availableSources.map(source=><option key={source} value={source}>{source==="qpa"?"Hitting":"Pitching"} · {FALL_SPAN_LABEL}</option>)}</select></label>:<label className={styles.field}>Test Date Window<select value={maxGap} onChange={event=>setMaxGap(Number(event.target.value))}>{[7,14,30,60].map(days=><option key={days} value={days}>{days} days</option>)}</select></label>}
     {model.groups.length>1&&<label className={`${styles.field} ${styles.sourceField}`}>Results<select aria-label="Group comparison results" value={group?.id??""} onChange={event=>setGroupId(event.target.value)}>{model.groups.map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select></label>}
     {group&&<details className={styles.metricMenu}><summary><SlidersHorizontal size={14}/>Stats <span>{visibleColumns.length}</span></summary><div className={styles.metricChoices}>{group.columns.map(column=><label key={column.key}><input type="checkbox" checked={visibleColumns.includes(column.key)} disabled={visibleColumns.length===1&&visibleColumns.includes(column.key)} onChange={()=>toggleColumn(column.key)}/>{column.label}</label>)}</div></details>}
     <label className={styles.detailToggle}><input type="checkbox" checked={showDetails} onChange={event=>setShowDetails(event.target.checked)}/>Show Dates & Details</label>

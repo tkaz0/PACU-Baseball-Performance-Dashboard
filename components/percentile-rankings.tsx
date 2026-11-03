@@ -7,6 +7,7 @@ import type { GameOverviewMetric } from "@/lib/game-overview";
 import { isTimedMetric, type PlayerMetricCard } from "@/lib/player-performance";
 import { StatInfo } from "@/components/stat-info";
 import styles from "./percentile-rankings.module.css";
+import { PER_WEEK_PHRASE } from "@/lib/season";
 
 export type RankingRow = { key: string; label: string; value: string; percentile: number; sampleSize: number; notQualified?: string; metric: string; game: boolean; guide: { value: number; unit: string; source: string; eventId?: string } };
 
@@ -59,7 +60,7 @@ export function PercentileRankings({ cards, games }: { cards: readonly PlayerMet
         <h3>{group.title}</h3>
         <ul>{group.rows.map(row => <li key={row.key} className={styles.row} {...(row.game ? { "data-ranking-game-metric": row.metric } : { "data-ranking-metric": row.metric })}>
           <span className={styles.label}>{row.label}<StatInfo metric={row.metric} label={row.label} value={row.guide.value} unit={row.guide.unit} source={row.guide.source} period="fall_2026" eventId={row.guide.eventId} percentile={row.percentile}/></span>
-          {row.notQualified ? <span className={styles.notQualified} title={`Percentiles rank players with at least ${row.notQualified} so far`}>Not qualified · needs {row.notQualified}</span>
+          {row.notQualified ? <span className={styles.notQualified} title={`Percentiles rank players with at least ${row.notQualified}`}>Not qualified · needs {row.notQualified}</span>
           : <span className={styles.track} role="img" aria-label={`${row.label}: ${ordinal(row.percentile)} percentile of ${row.sampleSize} ${row.game ? "qualified " : ""}players`}>
             <span className={styles.fill} style={{ width: `${row.percentile}%`, background: percentileColor(row.percentile).backgroundColor }} />
             <span className={styles.bubble} style={{ left: `${row.percentile}%`, ...percentileColor(row.percentile) }}>{Math.round(row.percentile)}</span>
@@ -68,6 +69,6 @@ export function PercentileRankings({ cards, games }: { cards: readonly PlayerMet
         </li>)}</ul>
       </div>)}
     </div>
-    <p className={styles.note}>Each bar ranks this player against Pacific teammates with the same stat, source and period (at least five players). Game stats rank only qualified players: 2 PA or 1 IP per Fall Ball week so far. Body size and spin are descriptive positions and are not graded here.</p>
+    <p className={styles.note}>Each bar ranks this player against Pacific teammates with the same stat, source and period (at least five players). Game stats rank only qualified players: 2 PA or 1 IP {PER_WEEK_PHRASE}. Body size and spin are descriptive positions and are not graded here.</p>
   </section>;
 }

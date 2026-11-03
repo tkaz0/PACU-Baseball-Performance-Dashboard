@@ -4,6 +4,7 @@ import { StatInfo } from "@/components/stat-info";
 import { TEAM_HISTORY_SPAN } from "@/lib/stat-benchmarks";
 import type { ReportCardArea } from "@/lib/team-report-card";
 import styles from "./team-report-card.module.css";
+import { FALL_SPAN_LABEL } from "@/lib/season";
 
 const FIFTH_NAMES = ["Bottom fifth", "Fourth fifth", "Middle fifth", "Second fifth", "Top fifth"];
 
@@ -24,7 +25,7 @@ export function TeamReportCard({ areas, compact = false, href, id }: { areas: re
   if (!areas.length) return null;
   const strengths = areas.filter(a => a.level >= 3), focus = areas.filter(a => a.level <= 1);
   return <section id={id} className={styles.panel} aria-label="Team report card" data-testid="team-report-card">
-    <header className={styles.header}><div><p className={styles.eyebrow}>Fall 2026 · vs NWC teams {TEAM_HISTORY_SPAN}</p><h2>Team Report Card</h2></div>{href && <Link prefetch={false} href={href} className={styles.link}>Full report card<ArrowRight size={14}/></Link>}</header>
+    <header className={styles.header}><div><p className={styles.eyebrow}>{FALL_SPAN_LABEL} · vs NWC teams {TEAM_HISTORY_SPAN}</p><h2>Team Report Card</h2></div>{href && <Link prefetch={false} href={href} className={styles.link}>Full report card<ArrowRight size={14}/></Link>}</header>
     <div className={compact ? styles.compact : styles.layout}>
       <ul className={styles.grades}>{areas.map(area => <li key={area.key} data-grade={area.grade} data-area={area.key}>
         <span className={styles.letter}>{area.grade}</span>

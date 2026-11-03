@@ -4,6 +4,7 @@ import { StatInfo } from "@/components/stat-info";
 import { Sparkline } from "@/components/charts/sparkline";
 import { gameValue } from "@/lib/game-metrics";
 import type { TrendingGroup } from "@/lib/home-trending";
+import { FALL_2026_FINAL } from "@/lib/season";
 import styles from "./home-trending.module.css";
 
 function changeText(change: number, digits: number) {
@@ -13,8 +14,8 @@ function changeText(change: number, digits: number) {
 
 /** Receives only the compact staff result, not the underlying weekly observations. */
 export function HomeTrending({ groups }: { groups: readonly TrendingGroup[] | null }) {
-  return <section className={styles.panel} aria-label="Trending Up" data-testid="home-trending">
-    <header className={styles.heading}><div><h2><TrendingUp size={20} aria-hidden="true"/>Trending Up</h2><p>Game results · biggest changes in the latest two available weeks</p></div><Link prefetch={false} href="/game-stats">Game Stats<ArrowRight size={14} aria-hidden="true"/></Link></header>
+  return <section className={styles.panel} aria-label={FALL_2026_FINAL ? "Finished Strong" : "Trending Up"} data-testid="home-trending">
+    <header className={styles.heading}><div><h2><TrendingUp size={20} aria-hidden="true"/>{FALL_2026_FINAL ? "Finished Strong" : "Trending Up"}</h2><p>{FALL_2026_FINAL ? "Game results · biggest gains from Week 4 to the Boxer World Series" : "Game results · biggest changes in the latest two available weeks"}</p></div><Link prefetch={false} href="/game-stats">Game Stats<ArrowRight size={14} aria-hidden="true"/></Link></header>
     {groups === null ? <p className={styles.note} role="status">Weekly changes are temporarily unavailable. Refresh to try again.</p> : <>
       <div className={styles.grid}>{groups.map(group => <article key={group.kind} aria-label={`${group.kind === "hitting" ? "Hitting" : "Pitching"} improvements`}>
         <div className={styles.groupTitle}><h3>{group.kind === "hitting" ? "Hitting · OPS ↑" : "Pitching · WHIP ↓"}<StatInfo metric={group.metric} label={group.label}/></h3>{group.beforeLabel && group.afterLabel && <span title={`${group.beforeDetail} → ${group.afterDetail}`}>{group.beforeLabel} → {group.afterLabel}</span>}</div>

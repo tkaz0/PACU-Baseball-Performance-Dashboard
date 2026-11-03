@@ -10,6 +10,7 @@ import { StatInfo } from "@/components/stat-info";
 import type { SharedGameStat } from "@/lib/game-server";
 import styles from "./athlete-game-stats.module.css";
 import type { CSSProperties } from "react";
+import { FALL_SPAN_LABEL } from "@/lib/season";
 
 const labels: Record<string, string> = {pa:"PA",qpa:"QPA",qpa_pct:"QPA %",ab:"AB",pitches:"Pitches",strikes:"Strikes",strike_pct:"Strike %",bb_outcome:"BB",h:"Hits",r:"Runs",k:"K",hbp:"HBP",fb:"FB",fb_k:"FB K",bb_pitch_family:"BB (pitch family)",bb_pitch_family_k:"BB K (pitch family)",ch:"CH",ch_k:"CH K",baf:"BAF",fps:"FPS",hh_base_hit:"HH Base Hit",hh_extra_base_hit:"HH Extra Base Hit",pumps:"HR",base_hit:"Hits",three_eight_hh:"3–8 HH",eight_plus_pitches:"8+ pitches",bb:"BB",rbi:"RBI",sac_bunt:"Sac Bunt",moving_runner:"Moving Runner",punchies:"Punchies",ab_control:"AB Control",sb:"SB",gdp:"GDP",sac_fly:"Sac Fly",swing_miss:"Swings & Misses",weak_contact:"Weak Contact",hard_contact:"Hard Contact",earned_runs:"Earned Runs",innings_outs:"IP"};
 const updated = (rows: readonly SharedGameStat[]) => new Date(rows.map(row => row.fetched_at).sort().at(-1)!).toLocaleDateString("en-US", {month:"short",day:"numeric",year:"numeric",timeZone:"America/Los_Angeles"});
@@ -42,14 +43,14 @@ export function AthleteGameStats({stats,comparisons=[],showDetails=true}:{stats:
   const otherPitching=pitching.filter(row=>!pitchingTotals.includes(row.metric)&&!["strike_pct","earned_runs"].includes(row.metric));
   return <section className={styles.panel} aria-label="Fall 2026 game statistics">{!stats.length?<div className={styles.empty}><h2>Game Results Will Appear Here</h2><p>No recorded Fall 2026 results yet. Results appear after the next verified team-sheet update.</p></div>:<>
     <div className={styles.disciplines}>
-    {qpa.length>0&&<section className={styles.discipline} aria-label="Cumulative hitting statistics"><header className={styles.header}><div><h3>Hitting · Fall to Date</h3><p>Sheet changed {updated(qpa)}</p></div><Samples rows={qpa} source="qpa_fall_2026" metric="batting_bb_pct"/></header>
+    {qpa.length>0&&<section className={styles.discipline} aria-label="Cumulative hitting statistics"><header className={styles.header}><div><h3>Hitting · {FALL_SPAN_LABEL}</h3><p>Sheet changed {updated(qpa)}</p></div><Samples rows={qpa} source="qpa_fall_2026" metric="batting_bb_pct"/></header>
       <StatSheet title="Production" source="qpa_fall_2026" items={production}/>
       <StatSheet title="Rates" source="qpa_fall_2026" items={rateItems(rateKeys)}/>
       <StatSheet title="Counting Stats" source="qpa_fall_2026" items={recorded(qpa,["pumps","sb","gdp"])}/>
       <HittingProductionChart production={hittingProduction(qpa)}/>
       {rates.some(rate=>rate.metric.startsWith("batting_est_")||["batting_production_plus","batting_hr_pct"].includes(rate.metric))&&<p className={styles.note}>Power stats count doubles/triples as doubles; doubles and triples share the same recorded category. PAC Production+ compares production with the team (100 = average); it is not wRC+.</p>}
     </section>}
-    {pitching.length>0&&<section className={styles.discipline} aria-label="Cumulative pitching statistics"><header className={styles.header}><div><h3>Pitching · Fall to Date</h3><p>Sheet changed {updated(pitching)}</p></div><Samples rows={pitching} source="pitching_fall_2026" metric="strike_pct" eventId={eventId}/></header>
+    {pitching.length>0&&<section className={styles.discipline} aria-label="Cumulative pitching statistics"><header className={styles.header}><div><h3>Pitching · {FALL_SPAN_LABEL}</h3><p>Sheet changed {updated(pitching)}</p></div><Samples rows={pitching} source="pitching_fall_2026" metric="strike_pct" eventId={eventId}/></header>
       <StatSheet title="Pitching Rates" source="pitching_fall_2026" eventId={eventId} items={pitchRates}/>
       <StatSheet title="Pitching Totals" source="pitching_fall_2026" eventId={eventId} items={recorded(pitching,pitchingTotals)}/>
       <StatSheet title="Contact Allowed" source="pitching_fall_2026" eventId={eventId} items={contact.map(rate=>({metric:rate.metric,label:rate.label,value:rate.value,unit:rate.unit,display:rate.value===null?"—":`${rate.value.toFixed(1)}%`}))}/>
