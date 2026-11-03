@@ -56,8 +56,8 @@ export type TeamStatLeader = { metric: string; label: string; value: string; nam
 const LEADER_LABELS: Record<string, string> = { pumps: "Home Runs", sb: "Stolen Bases", k: "Strikeouts", strike_pct: "Strike %" };
 /** Rate leaders come only from qualified players (the Qualified leaderboard minimum); counting stats include everyone. */
 export const TEAM_LEADER_METRICS = {
-  hitting: { rates: ["batting_avg", "batting_obp", "batting_ops", "batting_est_iso", "qpa_pct", "batting_bb_pct", "batting_k_pct"], counts: ["pumps", "sb"] },
-  pitching: { rates: ["pitching_whip", "pitching_k9", "pitching_k_bb", "pitching_bb9", "pitching_r9", "strike_pct"], counts: ["k"] },
+  hitting: { rates: ["batting_avg", "batting_ops", "batting_est_iso", "qpa_pct", "batting_bb_pct"], counts: ["pumps", "sb"] },
+  pitching: { rates: ["pitching_whip", "pitching_k9", "pitching_k_bb", "pitching_bb9", "strike_pct"], counts: ["k"] },
 } as const;
 
 /**

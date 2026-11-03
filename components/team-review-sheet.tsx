@@ -24,9 +24,10 @@ export type TeamReviewData = {
 
 const day = (date: string) => new Date(`${date}T12:00:00Z`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
 
+const SHORT_LABELS: Record<string, string> = { pitching_fb_strike_pct: "FB Strike %", pitching_breaking_strike_pct: "BRK Strike %", pitching_ch_strike_pct: "CH Strike %", batting_8plus_pct: "8+ Pitch PA %" };
 function StatGrid({ summary, metrics, totals }: { summary: TeamGameSummary | null; metrics: readonly string[]; totals: [string, string][] }) {
   return <>
-    <dl className={styles.statGrid}>{metrics.map(metric => { const rate = summary?.rates.find(r => r.metric === metric); const cell = teamRate(summary, metric); return cell && <div key={metric}><dt>{rate?.label ?? metric}</dt><dd data-pending={cell.pending || undefined}>{cell.value}</dd></div>; })}</dl>
+    <dl className={styles.statGrid}>{metrics.map(metric => { const rate = summary?.rates.find(r => r.metric === metric); const cell = teamRate(summary, metric); return cell && <div key={metric}><dt>{SHORT_LABELS[metric] ?? rate?.label ?? metric}</dt><dd data-pending={cell.pending || undefined}>{cell.value}</dd></div>; })}</dl>
     <p className={styles.totals}>{totals.map(([metric, label]) => <span key={metric}><b>{teamCount(summary, metric)}</b> {label}</span>)}</p>
   </>;
 }
@@ -80,7 +81,7 @@ export function TeamReviewSheet({ data, bundle = false }: { data: TeamReviewData
             <StatGrid summary={data.batting} metrics={["batting_ops", "batting_avg", "batting_obp", "batting_est_slg", "batting_est_iso", "batting_est_wobacon", "qpa_pct", "batting_hh_pct", "batting_k_pct", "batting_bb_pct", "batting_8plus_pct", "batting_sb_per_pa"]} totals={[["pa", "PA"], ["base_hit", "H"], ["pumps", "HR"], ["sb", "SB"]]}/>
           </section>
           <section className={styles.panel}><h2>Pitching · Fall Final</h2>
-            <StatGrid summary={data.pitching} metrics={["pitching_whip", "pitching_k_bb", "pitching_k9", "pitching_bb9", "pitching_r9", "strike_pct", "pitching_fb_strike_pct", "pitching_breaking_strike_pct", "pitching_ch_strike_pct", "weak_contact_pct", "hard_contact_pct"]} totals={[["innings_outs", "IP"], ["k", "K"], ["bb_outcome", "BB"], ["pitches", "pitches"]]}/>
+            <StatGrid summary={data.pitching} metrics={["pitching_whip", "pitching_k_bb", "pitching_k9", "pitching_bb9", "pitching_r9", "strike_pct", "pitching_fb_strike_pct", "pitching_breaking_strike_pct", "pitching_ch_strike_pct"]} totals={[["innings_outs", "IP"], ["k", "K"], ["bb_outcome", "BB"], ["pitches", "pitches"]]}/>
           </section>
         </div>
         <div className={styles.twoCol}>

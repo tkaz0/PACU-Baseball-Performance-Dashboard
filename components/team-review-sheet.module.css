@@ -108,3 +108,12 @@
   .sheet[data-bundle] { position: static; }
   .sheet[data-bundle] .page:last-child { break-after: page; page-break-after: always; }
 }
+
+/* Front page density (stat grids, report card, leaders) so the expanded stats fit one sheet. */
+.hero + .body { gap: 10px; }
+.hero + .body .statGrid { gap: 3px 8px; }
+.hero + .body .statGrid dd { font-size: 18px; }
+.hero + .body .grade { padding: 5px 9px; }
+.hero + .body .grade b { width: 26px; height: 26px; font-size: 17px; }
+.hero + .body .panel { padding: 8px 12px; }
+.page .leaderTable th, .page .leaderTable td { padding: 2px 4px; }

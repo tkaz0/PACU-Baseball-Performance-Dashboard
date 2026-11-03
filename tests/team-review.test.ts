@@ -55,7 +55,7 @@ describe("team review sheet", () => {
       row("PAC-0002", "batting_k_pct", 20, "%"), row("PAC-0003", "batting_k_pct", 10, "%"), row("PAC-0001", "pumps", 3, "count")];
     const leaders = teamStatLeaders(rows, "hitting", new Set(["PAC-0002", "PAC-0003"]), {});
     expect(leaders.find(l => l.metric === "batting_avg")).toMatchObject({ value: ".400", names: ["Fictional PAC-0002", "Fictional PAC-0003"], sample: null });
-    expect(leaders.find(l => l.metric === "batting_k_pct")).toMatchObject({ value: "10.0%", names: ["Fictional PAC-0003"] });
+    
     expect(leaders.find(l => l.metric === "pumps")).toMatchObject({ label: "Home Runs", value: "3", names: ["Fictional PAC-0001"] });
   });
 });
