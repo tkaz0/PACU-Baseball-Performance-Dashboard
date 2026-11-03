@@ -13,13 +13,10 @@ export type TeamWeekChange = {
   /** Pitching's reviewed source weeks, rather than calendar weeks of sheet saves. */
   currentWeek?: number; previousWeek?: number;
   tournament?: boolean;
-  /** Season-final view: compared with the team through Week 1 rather than the previous week. */
-  season?: boolean;
 };
 
 /** Compare saved Fall-to-date rates, not games inferred from cumulative changes. */
-export function teamWeekChange(trends: TeamGameTrends, source: SharedGameStat["source"], metric: TeamGameMetric, updatedAt: string | null, options: { season?: boolean } = {}): TeamWeekChange | null {
-  if (options.season) return teamSeasonChange(trends, source, metric, updatedAt);
+export function teamWeekChange(trends: TeamGameTrends, source: SharedGameStat["source"], metric: TeamGameMetric, updatedAt: string | null): TeamWeekChange | null {
   if (!updatedAt || !Number.isFinite(Date.parse(updatedAt)) || metric.pending || metric.value === null || !Number.isFinite(metric.value) || metric.value < 0) return null;
   const currentDate = pacificDay(updatedAt);
   const dates = [...new Set(trends.snapshotDates?.[source] ?? [])].sort();
@@ -74,41 +71,12 @@ export function teamWeekChange(trends: TeamGameTrends, source: SharedGameStat["s
     ...(currentWeek !== undefined ? { currentWeek, previousWeek } : {}) };
 }
 
-/**
- * Owner request (November 2, season final): the final Fall totals compared with the team through Week 1, the
- * last saved version covering only Week 1 (QPA: the final save before Week 2's game date; pitching: the last
- * version whose reviewed weekly blocks end at Week 1). Missing Week 1 history shows no badge, never another week.
- */
-export function teamSeasonChange(trends: TeamGameTrends, source: SharedGameStat["source"], metric: TeamGameMetric, updatedAt: string | null): TeamWeekChange | null {
-  if (!updatedAt || !Number.isFinite(Date.parse(updatedAt)) || metric.pending || metric.value === null || !Number.isFinite(metric.value) || metric.value < 0) return null;
-  const currentDate = pacificDay(updatedAt);
-  const dates = [...new Set(trends.snapshotDates?.[source] ?? [])].sort();
-  if (dates.at(-1) !== currentDate) return null;
-  const points = trends[source]?.[metric.metric] ?? [];
-  const current = points.find(p => p.date === currentDate);
-  if (!current || current.value !== metric.value) return null;
-  const tournamentDates = new Set(trends.pitchingTournamentDates ?? []);
-  const previousDate = source === "pitching_fall_2026"
-    ? dates.filter(date => date < currentDate && !tournamentDates.has(date) && trends.pitchingWeeks?.[date] === 1).at(-1)
-    : dates.filter(date => date < currentDate && date < BWS_START && fallBallWeekThrough(date)?.week === 1).at(-1);
-  if (!previousDate) return null;
-  const previous = points.find(p => p.date === previousDate);
-  if (!previous || !Number.isFinite(previous.value) || previous.value < 0) return null;
-  const difference = metric.value - previous.value;
-  const direction = difference > 0 ? "up" : difference < 0 ? "down" : "same";
-  const preference = metric.metric.startsWith("pitching_") && metric.metric.endsWith("strike_pct") || metric.metric === "batting_sb_per_pa" ? "higher" : gameDirection(source, metric.metric);
-  const tone = direction === "same" || preference === "neutral" ? "neutral" : (direction === "up") === (preference === "higher") ? "good" : "bad";
-  const percent = previous.value === 0 ? difference === 0 ? 0 : null : difference / previous.value * 100;
-  if (percent !== null && !Number.isFinite(percent)) return null;
-  return { currentDate, previousDate, previousValue: previous.value, percent, direction, tone, fallback: false, season: true, previousWeek: 1 };
-}
-
 const shortDay = (date: string) => new Date(`${date}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
 /** Owner choice: name comparisons by BDL game week (e.g. "Week 2 · Sep 26"), not the day the sheet was saved. */
 export function weekChangeSince(change: TeamWeekChange): { since: string; byWeek: boolean; before: { week: number; date: string } | null; now: { week: number; date: string } | null } {
   const dates = fallBallWeekDates();
   const before = change.previousWeek !== undefined ? dates[change.previousWeek] ? { week: change.previousWeek, date: dates[change.previousWeek] } : null : fallBallWeekThrough(change.previousDate);
-  if (change.tournament || change.season) {
+  if (change.tournament) {
     const through = change.previousWeek !== undefined ? { week: change.previousWeek, date: dates[change.previousWeek] ?? "" } : fallBallWeekThrough(change.previousDate);
     return { since: through ? `Week ${through.week}${through.date ? ` · ${shortDay(through.date)}` : ""}` : shortDay(change.previousDate), byWeek: false, before: through, now: null };
   }

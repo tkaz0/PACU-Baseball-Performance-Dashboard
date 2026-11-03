@@ -24,7 +24,7 @@ it("compares Week 4 with Week 3 even when both pitching updates were saved in th
     pitching_fall_2026: { pitching_whip: [{ date: "2026-09-28", value: 2 }, { date: "2026-10-13", value: 1.5 }, { date: "2026-10-17", value: 1.2 }] },
   };
   const m: TeamGameMetric = { metric: "pitching_whip", label: "WHIP", value: 1.2, unit: "decimal", pending: false };
-  const props = { trends, source: "pitching_fall_2026" as const, metric: m, updatedAt: "2026-10-18T00:00:00Z", compact: true, season: false };
+  const props = { trends, source: "pitching_fall_2026" as const, metric: m, updatedAt: "2026-10-18T00:00:00Z", compact: true };
   const change = teamWeekChange(trends, props.source, m, props.updatedAt)!;
   expect(change).toMatchObject({ previousDate: "2026-10-13", previousWeek: 3, currentWeek: 4, tone: "good", fallback: false });
   expect(change.percent).toBeCloseTo(-20);
@@ -58,7 +58,7 @@ it("never uses a current-week update, and falls back to the latest earlier updat
   const change = teamWeekChange(trends, source, metric(), "2026-10-14T16:00:00Z")!;
   expect(change).toMatchObject({ previousDate: "2026-09-29", fallback: true, direction: "up" });
   expect(change.percent).toBeCloseTo(10);
-  const html = renderToStaticMarkup(createElement(TeamGameTrendDisplay, { trends, source, metric: metric(), updatedAt: "2026-10-14T16:00:00Z", compact: true, season: false }));
+  const html = renderToStaticMarkup(createElement(TeamGameTrendDisplay, { trends, source, metric: metric(), updatedAt: "2026-10-14T16:00:00Z", compact: true }));
   expect(html).toContain("vs Week 2 · Sep 26"); expect(html).toContain("No update was saved last week");
   trends.snapshotDates![source] = ["2026-10-12", "2026-10-14"];
   trends[source]!.batting_avg = [{ date: "2026-10-12", value: .31 }, { date: "2026-10-14", value: .33 }];
@@ -103,21 +103,21 @@ it("handles a zero baseline, unchanged results, declines and tiny movements hone
   expect(teamWeekChange(history("batting_avg", 0, .33), source, metric(), at)).toMatchObject({ percent: null, direction: "up" });
   expect(teamWeekChange(history("batting_avg", 0, 0), source, metric(0), at)).toMatchObject({ percent: 0, direction: "same", tone: "neutral" });
   expect(teamWeekChange(history("batting_avg", .4, .33), source, metric(), at)).toMatchObject({ direction: "down", tone: "bad" });
-  const html = renderToStaticMarkup(createElement(TeamGameTrendDisplay, { trends: history("batting_avg", .33, .33001), source, metric: metric(.33001), updatedAt: at, compact: true, season: false }));
+  const html = renderToStaticMarkup(createElement(TeamGameTrendDisplay, { trends: history("batting_avg", .33, .33001), source, metric: metric(.33001), updatedAt: at, compact: true }));
   expect(html).toContain("&lt;0.1%"); expect(html).not.toContain("0.0%");
 });
 it("renders a compact tappable badge with relative change and actual dates, without the full chart", () => {
-  const html = renderToStaticMarkup(createElement(TeamGameTrendDisplay, { trends: history(), source, metric: metric(), updatedAt: at, compact: true, season: false }));
+  const html = renderToStaticMarkup(createElement(TeamGameTrendDisplay, { trends: history(), source, metric: metric(), updatedAt: at, compact: true }));
   for (const text of ["<details", "<summary", "10.0%", "vs Week 2 · Sep 26", "Oct 9, 2026", "Oct 12, 2026", "not percentage points", 'data-tone="good"']) expect(html).toContain(text);
   expect(html).not.toContain("<svg");
   expect(renderToStaticMarkup(createElement(TeamGameTrendDisplay, { trends: {}, source, metric: metric(), updatedAt: at, compact: true }))).toBe("");
-  const zero = renderToStaticMarkup(createElement(TeamGameTrendDisplay, { trends: history("batting_avg", 0, .33), source, metric: metric(), updatedAt: at, season: false }));
+  const zero = renderToStaticMarkup(createElement(TeamGameTrendDisplay, { trends: history("batting_avg", 0, .33), source, metric: metric(), updatedAt: at }));
   expect(zero).toContain("New"); expect(zero).not.toContain("Infinity");
 });
 it("names the comparison by BDL game week when both saves fall in different Fall Ball weeks", () => {
   const trends: TeamGameTrends = { snapshotDates: { pitching_fall_2026: ["2026-09-28", "2026-10-12"] }, pitching_fall_2026: { pitching_whip: [{ date: "2026-09-28", value: 1.5 }, { date: "2026-10-12", value: 1.65 }] } };
   const whip: TeamGameMetric = { metric: "pitching_whip", label: "WHIP", value: 1.65, unit: "decimal", pending: false };
-  const html = renderToStaticMarkup(createElement(TeamGameTrendDisplay, { trends, source: "pitching_fall_2026", metric: whip, updatedAt: "2026-10-12T18:00:00Z", compact: true, season: false }));
+  const html = renderToStaticMarkup(createElement(TeamGameTrendDisplay, { trends, source: "pitching_fall_2026", metric: whip, updatedAt: "2026-10-12T18:00:00Z", compact: true }));
   for (const text of ["vs Week 2 · Sep 26", "through Week 2 (Sep 26 games; sheet saved Sep 28, 2026)", "through Week 3 (Oct 10 games", 'data-tone="bad"']) expect(html).toContain(text);
 });
 
@@ -127,23 +127,5 @@ it("compares BWS-inclusive Fall totals by saved update without fabricating Week 
  expect(trends.pitchingWeeks?.["2026-10-27"]).toBeNull();expect(trends.pitchingTournamentDates).toEqual(["2026-10-27"]);
  const m:TeamGameMetric={metric:"strike_pct",label:"Strike %",value:50,unit:"%",pending:false};
  const change=teamWeekChange(trends,"pitching_fall_2026",m,"2026-10-27T22:00:00Z");expect(change).toMatchObject({tournament:true,previousDate:"2026-10-17",previousWeek:4,percent:0});expect(change?.currentWeek).toBeUndefined();
- const html=renderToStaticMarkup(createElement(TeamGameTrendDisplay,{trends,source:"pitching_fall_2026",metric:m,updatedAt:"2026-10-27T22:00:00Z",compact:true,season:false}));expect(html).toContain("vs Week 4");expect(html).toContain("with the Boxer World Series added");expect(html).not.toContain("Week 5");
-});
-
-it("season-final badges compare final totals with the team through Week 1 for both sheets", () => {
-  // Fictional: Week 1 (Sep 12) saved Sep 20, Week 2 saved Sep 29, final (with BWS) saved Nov 1.
-  const qpa: TeamGameTrends = { snapshotDates: { [source]: ["2026-09-14", "2026-09-20", "2026-09-29", "2026-11-01"] },
-    [source]: { batting_avg: [{ date: "2026-09-14", value: .2 }, { date: "2026-09-20", value: .25 }, { date: "2026-09-29", value: .28 }, { date: "2026-11-01", value: .3 }] } };
-  const change = teamWeekChange(qpa, source, metric(.3), "2026-11-01T20:00:00Z", { season: true })!;
-  expect(change).toMatchObject({ season: true, previousDate: "2026-09-20", previousWeek: 1, tone: "good" });
-  expect(change.percent).toBeCloseTo(20);
-  const html = renderToStaticMarkup(createElement(TeamGameTrendDisplay, { trends: qpa, source, metric: metric(.3), updatedAt: "2026-11-01T20:00:00Z", compact: true, season: true }));
-  expect(html).toContain("since Week 1 · Sep 12"); expect(html).toContain("final Fall 2026");
-  const pitching: TeamGameTrends = { snapshotDates: { pitching_fall_2026: ["2026-09-15", "2026-09-28", "2026-10-27"] },
-    pitchingWeeks: { "2026-09-15": 1, "2026-09-28": 2, "2026-10-27": null }, pitchingTournamentDates: ["2026-10-27"],
-    pitching_fall_2026: { pitching_whip: [{ date: "2026-09-15", value: 2 }, { date: "2026-09-28", value: 1.6 }, { date: "2026-10-27", value: 1.5 }] } };
-  const whip: TeamGameMetric = { metric: "pitching_whip", label: "WHIP", value: 1.5, unit: "decimal", pending: false };
-  expect(teamWeekChange(pitching, "pitching_fall_2026", whip, "2026-10-27T22:00:00Z", { season: true })).toMatchObject({ previousDate: "2026-09-15", percent: -25, tone: "good" });
-  // No saved Week 1 version in the history window: no badge rather than another week.
-  expect(teamWeekChange({ ...qpa, snapshotDates: { [source]: ["2026-09-29", "2026-11-01"] } }, source, metric(.3), "2026-11-01T20:00:00Z", { season: true })).toBeNull();
+ const html=renderToStaticMarkup(createElement(TeamGameTrendDisplay,{trends,source:"pitching_fall_2026",metric:m,updatedAt:"2026-10-27T22:00:00Z",compact:true}));expect(html).toContain("vs Week 4");expect(html).toContain("with the Boxer World Series added");expect(html).not.toContain("Week 5");
 });
