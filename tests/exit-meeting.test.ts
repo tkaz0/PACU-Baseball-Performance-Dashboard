@@ -95,6 +95,12 @@ describe("exit meeting report",()=>{
   const meeting=buildExitMeetingReport({athlete:fictionalExitAthlete,measurements:[],batches:[],percentileOverrides:[],games:[],comparisons:[],movement:null,generatedAt:"2026-09-27T12:00:00Z",weeks:{hitting:[week(1,counts(1)),week(2,counts(2))],pitching:[]}},"meeting");
   const weeks=meeting.sections.find(s=>s.id==="weeks-qpa_fall_2026");
   expect(weeks?.rows.map(r=>r.metricKey)).toEqual(expect.arrayContaining(["batting_ops","batting_obp"]));expect(weeks?.rows.find(r=>r.metricKey==="batting_ops")?.trend).toHaveLength(2);
+  // Every handout hitting stat gets a weekly trend; PAC Production+ uses each week's own team baseline.
+  const withPlus=buildExitMeetingReport({athlete:fictionalExitAthlete,measurements:[],batches:[],percentileOverrides:[],games:[],comparisons:[],movement:null,generatedAt:"2026-09-27T12:00:00Z",weeks:{hitting:[week(1,counts(1)),week(2,counts(2))],pitching:[]},weekProduction:{1:80,2:120}},"meeting");
+  const plusRows=withPlus.sections.find(s=>s.id==="weeks-qpa_fall_2026")!.rows;
+  expect(plusRows.find(r=>r.metricKey==="batting_production_plus")).toMatchObject({value:"120",sample:"5 PA"});
+  expect(plusRows.find(r=>r.metricKey==="batting_production_plus")?.trend).toHaveLength(2);
+  expect(plusRows.map(r=>r.metricKey)).toEqual(expect.arrayContaining(["batting_est_slg","batting_bb_pct"]));
   // The Boxer World Series is its own latest column after the Fall Ball weeks.
   const withBws=buildExitMeetingReport({athlete:fictionalExitAthlete,measurements:[],batches:[],percentileOverrides:[],games:[],comparisons:[],movement:null,generatedAt:"2026-11-02T12:00:00Z",weeks:{hitting:[week(1,counts(1)),week(2,counts(2))],pitching:[],bws:{hitting:{...week(0,counts(4)),label:"Boxer World Series"},pitching:null}}},"meeting");
   const ops=withBws.sections.find(s=>s.id==="weeks-qpa_fall_2026")!.rows.find(r=>r.metricKey==="batting_ops")!;

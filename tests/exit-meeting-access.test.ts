@@ -5,7 +5,7 @@ vi.mock("@/lib/performance-server",()=>({loadAthletePerformance:mocks.performanc
 vi.mock("@/lib/game-server",()=>({loadGameStats:mocks.games}));
 vi.mock("@/lib/game-comparison-server",()=>({loadGameComparisons:mocks.comparisons}));
 vi.mock("@/lib/player-fall-summaries-server",()=>({loadPlayerFallSummaries:async()=>[]}));
-vi.mock("@/lib/game-weeks-server",()=>({loadAthleteGameWeeks:async()=>null}));
+vi.mock("@/lib/game-weeks-server",()=>({loadAthleteGameWeeks:async()=>null,loadGameWeeks:async()=>null}));
 vi.mock("@/lib/contacts-allowed-server",()=>({loadContactsAllowed:async()=>null}));
 vi.mock("@/lib/pitch-grades-server",()=>({loadOwnPitchGrades:async()=>null}));
 import { loadExitMeetingReport } from "@/lib/exit-meeting-server";

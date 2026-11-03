@@ -5,6 +5,7 @@
  */
 const PROXY = "/exit-meetings/headshot?src=";
 const nextFrame = () => new Promise(resolve => requestAnimationFrame(() => resolve(null)));
+const BLANK = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
 
 async function swapToSameOriginPhotos(root: HTMLElement): Promise<() => void> {
   const swapped: [HTMLImageElement, string][] = [];
@@ -14,7 +15,9 @@ async function swapToSameOriginPhotos(root: HTMLElement): Promise<() => void> {
     img.loading = "eager";
     img.src = PROXY + encodeURIComponent(img.src);
   }
-  await Promise.all(swapped.map(([img]) => img.decode().catch(() => { img.style.visibility = "hidden"; })));
+  // A photo that does not load within a few seconds is left out; the initials underneath show instead.
+  const timeout = () => new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 6000));
+  await Promise.all(swapped.map(([img]) => Promise.race([img.decode(), timeout()]).catch(() => { img.style.visibility = "hidden"; })));
   return () => { for (const [img, src] of swapped) { img.src = src; img.style.visibility = ""; } };
 }
 
@@ -28,8 +31,14 @@ export async function downloadBundlePdf(root: HTMLElement, filename: string, onP
     const pdf = new jsPDF({ unit: "in", format: "letter", orientation: "portrait", compress: true });
     for (let i = 0; i < pages.length; i++) {
       // Letter page at 96 px/in, drawn at 2x for crisp print text.
-      const image = await toJpeg(pages[i], { width: 816, height: 1056, pixelRatio: 2, quality: 0.85, backgroundColor: "#ffffff", fontEmbedCSS,
-        style: { zoom: "1", transform: "none", margin: "0", borderRadius: "0", boxShadow: "none" } });
+      const options = { width: 816, height: 1056, pixelRatio: 2, quality: 0.85, backgroundColor: "#ffffff", fontEmbedCSS, imagePlaceholder: BLANK,
+        style: { zoom: "1", transform: "none", margin: "0", borderRadius: "0", boxShadow: "none" } };
+      // Owner request: if photos break a page, draw it again without photos (initials only) rather than failing.
+      const image = await toJpeg(pages[i], options).catch(async () => {
+        const photos = [...pages[i].querySelectorAll<HTMLImageElement>("img")];
+        for (const img of photos) img.style.visibility = "hidden";
+        return toJpeg(pages[i], { ...options, filter: node => !(node instanceof HTMLImageElement) });
+      });
       if (i > 0) pdf.addPage("letter", "portrait");
       pdf.addImage(image, "JPEG", 0, 0, 8.5, 11, undefined, "FAST");
       onProgress(i + 1, pages.length);

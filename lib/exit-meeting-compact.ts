@@ -41,8 +41,9 @@ export function compactExitMeetingArsenal(readings: readonly Measurement[]): Exi
 }
 
 /** Meeting-first projection. All excluded detail remains in the explicit Detailed Report and saved sources. */
-/** Week-by-week rates kept on the handout (hitting OPS/QPA%/OBP, pitching WHIP/K-BB/Runs/9). */
-const weekly: ReadonlySet<string> = new Set(["batting_ops", "qpa_pct", "batting_obp", "pitching_whip", "pitching_k_bb", "pitching_r9"]);
+/** Week-by-week rates kept on the handout: every hitting and pitching stat its game tables show (November 2 owner request). */
+const weekly: ReadonlySet<string> = new Set(["batting_production_plus", "batting_ops", "qpa_pct", "batting_obp", "batting_avg", "batting_est_slg", "batting_est_iso", "batting_bb_pct", "batting_k_pct", "batting_hh_pct",
+  "pitching_whip", "pitching_k_bb", "pitching_r9", "strike_pct", "pitching_k9", "pitching_bb9"]);
 export function compactExitMeetingReport(report: ExitMeetingReport, classified: readonly Measurement[]): ExitMeetingReport {
   const sections: ExitMeetingSection[] = report.sections.flatMap(section => {
     let keys: ReadonlySet<string>;

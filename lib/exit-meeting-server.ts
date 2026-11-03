@@ -8,7 +8,9 @@ import { loadGameComparisons } from "@/lib/game-comparison-server";
 import { loadPlayerFallSummaries } from "@/lib/player-fall-summaries-server";
 import { loadContactsAllowed } from "@/lib/contacts-allowed-server";
 import { loadFullSwingContacts } from "@/lib/full-swing-contacts-server";
-import { loadAthleteGameWeeks } from "@/lib/game-weeks-server";
+import { loadAthleteGameWeeks, loadGameWeeks } from "@/lib/game-weeks-server";
+import { productionComparisons } from "@/lib/advanced-game-stats";
+import { BWS_WEEK } from "@/lib/exit-meeting";
 import { loadOwnPitchGrades } from "@/lib/pitch-grades-server";
 import { profileShowsPitching } from "@/lib/player-profile-layout";
 import { buildExitMeetingReport } from "@/lib/exit-meeting";
@@ -30,18 +32,25 @@ export async function loadExitMeetingReport(access: Access, athleteId: string) {
   const athlete = data as RosterAthlete;
   const season = athlete.athlete_seasons.find(s => s.season === "2026-27"), pitcher = profileShowsPitching(season);
   // Independent readers start together; optional sections omit themselves on failure rather than failing the report.
-  const [performance, games, comparisons, contacts, contactsAllowed, weeks] = await Promise.all([
+  const [performance, games, comparisons, contacts, contactsAllowed, weeks, teamWeeks] = await Promise.all([
     loadAthletePerformance(access, athlete), loadGameStats(access, athleteId), loadGameComparisons(access, athleteId),
     // In-game batted balls for the handout's batted-ball quality.
     loadFullSwingContacts(access, athleteId, "in_game").catch(() => null),
     pitcher ? loadContactsAllowed(access, athleteId).catch(() => null) : Promise.resolve(null),
     loadAthleteGameWeeks(access, athleteId).catch(() => null),
+    // Team weeks (request-cached; Print All shares one read) give each week's PAC Production+ team baseline.
+    loadGameWeeks(access).catch(() => null),
   ]);
+  const weekProduction: Record<number, number> = {};
+  for (const week of [...(teamWeeks?.weeks.hitting ?? []), ...(teamWeeks?.weeks.bws.hitting ? [{ ...teamWeeks.weeks.bws.hitting, week: BWS_WEEK }] : [])]) {
+    const value = productionComparisons(week.rows).get(athlete.athlete_code)?.value;
+    if (value !== undefined && Number.isFinite(value)) weekProduction[week.week] = value;
+  }
   const [fallSummaries, pitchGrades] = await Promise.all([
     loadPlayerFallSummaries(access, athlete.athlete_code, performance.measurements).catch(() => []),
     pitcher ? loadOwnPitchGrades(access, { id: athlete.id, code: athlete.athlete_code, name: `${athlete.preferred_name ?? athlete.first_name} ${athlete.last_name}`, academicClass: "", position: "", playerType: "", bats: "", throws: "" }, performance.measurements, contactsAllowed, games).catch(() => null) : Promise.resolve(null),
   ]);
-  const report = buildExitMeetingReport({ athlete, ...performance, games, comparisons, movement: null, contacts: contacts ?? [], fallSummaries, contactsAllowed, weeks, pitchGrades, generatedAt: new Date().toISOString() }, "meeting");
+  const report = buildExitMeetingReport({ athlete, ...performance, games, comparisons, movement: null, contacts: contacts ?? [], fallSummaries, contactsAllowed, weeks, weekProduction, pitchGrades, generatedAt: new Date().toISOString() }, "meeting");
   const unavailable = [...(pitcher && contactsAllowed === null ? ["Contact Allowed"] : []), ...(pitcher && pitchGrades === null ? ["Pitch+"] : []), ...(weeks === null ? ["Week by Week"] : []), ...(contacts === null ? ["Batted ball quality"] : [])];
   if (unavailable.length) report.notes.push(`Temporarily unavailable in this report: ${unavailable.join(", ")}. Other sections are complete.`);
   return report;

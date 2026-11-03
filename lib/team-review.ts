@@ -8,7 +8,7 @@ import { gameSampleText } from "@/lib/game-opportunities";
 export const TEAM_REVIEW_HITTING = ["batting_ops", "batting_obp", "batting_est_slg", "batting_est_iso", "qpa_pct", "batting_k_pct", "batting_bb_pct", "batting_hh_pct"] as const;
 export const TEAM_REVIEW_PITCHING = ["pitching_whip", "pitching_k_bb", "pitching_k9", "pitching_bb9", "pitching_r9", "strike_pct"] as const;
 
-export type TeamReviewCell = { value: string; pending: boolean };
+export type TeamReviewCell = { value: string; pending: boolean; raw: number | null };
 export type TeamReviewColumn = { key: string; label: string; detail: string | null };
 export type TeamReviewTrend = { metric: string; label: string; cells: (TeamReviewCell | null)[] };
 
@@ -16,7 +16,7 @@ export type TeamReviewTrend = { metric: string; label: string; cells: (TeamRevie
 export function teamRate(summary: TeamGameSummary | null, metric: string): TeamReviewCell | null {
   const rate = summary?.rates.find(r => r.metric === metric);
   if (!rate) return null;
-  return rate.pending || rate.value === null ? { value: "—", pending: true } : { value: formatTeamGameMetric(rate), pending: false };
+  return rate.pending || rate.value === null ? { value: "—", pending: true, raw: null } : { value: formatTeamGameMetric(rate), pending: false, raw: rate.value };
 }
 export function teamCount(summary: TeamGameSummary | null, metric: string): string {
   const count = summary?.counts.find(c => c.metric === metric);

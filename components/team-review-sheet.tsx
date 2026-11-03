@@ -8,6 +8,8 @@ import { teamCount, teamRate, teamReviewThemes, type TeamReviewColumn, type Team
 import type { ReportCardArea } from "@/lib/team-report-card";
 import type { TeamGameSummary } from "@/lib/team-game-stats";
 import { TOP_PERFORMER_METRICS, type TopPerformerRow } from "@/lib/top-performers";
+import { Sparkline } from "@/components/charts/sparkline";
+import { gameDirection } from "@/lib/game-metrics";
 import styles from "./team-review-sheet.module.css";
 
 export type TeamReviewData = {
@@ -49,8 +51,15 @@ function LeaderList({ rows }: { rows: TeamStatLeader[] }) {
 
 function Trend({ title, rows, columns }: { title: string; rows: TeamReviewTrend[]; columns: TeamReviewColumn[] }) {
   return <table className={styles.trend}>
-    <thead><tr><th scope="col">{title}</th>{columns.map(c => <th key={c.key} scope="col" data-final={c.key === "fall" || undefined}>{c.label}{c.detail && <small>{c.detail}</small>}</th>)}</tr></thead>
-    <tbody>{rows.map(row => <tr key={row.metric}><th scope="row">{row.label}</th>{row.cells.map((cell, i) => <td key={columns[i].key} data-final={columns[i].key === "fall" || undefined}>{cell?.value ?? "—"}</td>)}</tr>)}</tbody>
+    <thead><tr><th scope="col">{title}</th>{columns.map(c => <th key={c.key} scope="col" data-final={c.key === "fall" || undefined}>{c.label}{c.detail && <small>{c.detail}</small>}</th>)}<th scope="col">Trend</th></tr></thead>
+    <tbody>{rows.map(row => {
+      // Weekly points only (Fall Ball weeks, then BWS); the Fall total is not a week.
+      const points = row.cells.flatMap((cell, i) => columns[i].key !== "fall" && cell?.raw != null ? [{ date: columns[i].label, value: cell.raw }] : []);
+      const source = title === "Hitting" ? "qpa_fall_2026" : "pitching_fall_2026";
+      const direction = row.metric === "strike_pct" ? "higher" : gameDirection(source, row.metric);
+      return <tr key={row.metric}><th scope="row">{row.label}</th>{row.cells.map((cell, i) => <td key={columns[i].key} data-final={columns[i].key === "fall" || undefined}>{cell?.value ?? "—"}</td>)}
+        <td className={styles.trendCell}><Sparkline points={points} width={52} height={16} label={`Team ${row.label} by week`} noun="weeks" direction={direction}/></td></tr>;
+    })}</tbody>
   </table>;
 }
 

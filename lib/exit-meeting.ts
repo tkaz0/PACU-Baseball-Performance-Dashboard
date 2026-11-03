@@ -65,7 +65,8 @@ const row = (label: string, value: string, source: string, date: string, basis =
 const displayReading = (value: number, metric: string, unit: string, source: string) => metric === "height" ? formatHeight(value, unit) ?? `${value} ${unit}` : `${formatMetricNumber(value, metric, source, value.toLocaleString("en-US", { maximumFractionDigits: unit === "s" ? 3 : 2 }))}${unit === "%" ? "" : " "}${unit}`;
 export const exitMeetingPacificDate = (stamp: string) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(stamp));
 const dateOf = (rows: readonly SharedGameStat[]) => { const stamp = rows.map(r => r.fetched_at).sort().at(-1); return stamp ? exitMeetingPacificDate(stamp) : ""; };
-const WEEK_HITTING = ["batting_ops", "qpa_pct", "batting_obp", "batting_avg", "batting_k_pct"], WEEK_PITCHING = ["pitching_whip", "pitching_k_bb", "pitching_r9", "strike_pct", "pitching_k9"];
+// November 2 owner request: a week-by-week trend for every hitting and pitching stat the handout tables show.
+const WEEK_HITTING = ["batting_production_plus", "batting_ops", "qpa_pct", "batting_obp", "batting_avg", "batting_est_slg", "batting_est_iso", "batting_bb_pct", "batting_k_pct", "batting_hh_pct"], WEEK_PITCHING = ["pitching_whip", "pitching_k_bb", "pitching_r9", "strike_pct", "pitching_k9", "pitching_bb9"];
 const gameLabels: Record<string, string> = { pa: "Plate Appearances", qpa: "Quality Plate Appearances", ab: "At Bats", hh_base_hit: "HH Base Hit", hh_extra_base_hit: "HH Extra Base Hit", pumps: "Home Runs", base_hit: "Hits", three_eight_hh: "3-8 Hard Hit", eight_plus_pitches: "8+ Pitch Appearances", bb: "Walks", rbi: "RBI", sac_bunt: "Sacrifice Bunts", moving_runner: "Moved Runner", hbp: "Hit by Pitch", punchies: "Strikeouts", ab_control: "AB Control", sb: "Stolen Bases", gdp: "Grounded into Double Play", sac_fly: "Sacrifice Flies", qpa_pct: "QPA %", pitches: "Pitches", strikes: "Strikes", fb: "Fastball Family", fb_k: "Fastball Family Strikes", bb_pitch_family: "Breaking Balls", bb_pitch_family_k: "Breaking Ball Strikes", ch: "Changeups", ch_k: "Changeup Strikes", baf: "BAF (Sheet Label)", fps: "FPS (Sheet Label)", h: "Hits Allowed", r: "Runs Allowed", bb_outcome: "Walks Allowed", k: "Strikeouts", innings_outs: "Innings Pitched", weak_contact: "Weak Contacts", hard_contact: "Hard Contacts", strike_pct: "Strike %" };
 
 /** A shareable, numerical report projection. Never serialize source files, hashes, rows, emails, or staff-only notes. */
@@ -76,6 +77,8 @@ export function buildExitMeetingReport(input: {
   fallSummaries?: readonly PlayerFallSummary[];
   /** Own contact against (pitchers), own week-by-week sheet counts and own Pitch+ rows; null when unavailable. */
   contactsAllowed?: readonly AllowedContact[] | null; weeks?: { hitting: GameWeek[]; pitching: GameWeek[]; bws?: { hitting: GameWeek | null; pitching: GameWeek | null } } | null;
+  /** Each week's PAC Production+ (week number, BWS_WEEK for the series) against that week's pooled team rate. */
+  weekProduction?: Readonly<Record<number, number>>;
   pitchGrades?: { rows: readonly PitchGradeRow[]; computedAt: string } | null;
 }, format: ExitMeetingFormat = "meeting"): ExitMeetingReport {
   const { athlete } = input;
@@ -178,7 +181,10 @@ export function buildExitMeetingReport(input: {
   weekDates[BWS_WEEK] = BWS_TREND_DATE;
   for (const [source, list, metrics] of [["qpa_fall_2026", [...(input.weeks?.hitting ?? []), ...bwsWeek(input.weeks?.bws?.hitting)], WEEK_HITTING], ["pitching_fall_2026", [...(input.weeks?.pitching ?? []), ...bwsWeek(input.weeks?.bws?.pitching)], WEEK_PITCHING]] as const) {
     if (source === "qpa_fall_2026" ? !layout.showHitting : !pitchingRole) continue;
-    const lines = list.flatMap(week => { const rows = week.rows.map(r => ({ ...r, athlete_id: athlete.id })); const values = rows.length ? gameOverviewMetrics(rows, []) : []; return values.length ? [{ week, values }] : []; });
+    const lines = list.flatMap(week => { const rows = week.rows.map(r => ({ ...r, athlete_id: athlete.id })); const values = rows.length ? gameOverviewMetrics(rows, []) : [];
+      const production = source === "qpa_fall_2026" && values.length ? input.weekProduction?.[week.week] : undefined;
+      if (production !== undefined) values.unshift({ ...values[0], metric: "batting_production_plus", label: "PAC Production+", value: production, unit: "index", comparison: null, opportunities: rows.find(r => r.metric === "pa")?.value ?? null });
+      return values.length ? [{ week, values }] : []; });
     const latest = lines.at(-1);
     if (!latest) continue;
     add(`weeks-${source}`, `Week by Week · ${source === "qpa_fall_2026" ? "Hitting" : "Pitching"}`, `Each Fall Ball week's own counts, then the Boxer World Series on its own · Latest ${latest.week.label}${latest.week.week !== BWS_WEEK && fallBallWeekDate(latest.week.week) ? ` (${fallBallWeekDate(latest.week.week)})` : ""}`, metrics.flatMap(metric => {
@@ -219,7 +225,8 @@ export function buildExitMeetingReport(input: {
  * in-game Full Swing classified pitches. Summer body reports do not count as Fall testing.
  */
 /** BWS sorts after every Fall Ball week; its trend point sits at the series' last day. */
-const BWS_WEEK = 99, BWS_TREND_DATE = "2026-10-31";
+export const BWS_WEEK = 99;
+const BWS_TREND_DATE = "2026-10-31";
 export function missingFallResults(measurements: readonly Measurement[], role: { hitter: boolean; pitcher: boolean }, extra: { hittingGames: boolean; pitchingGames: boolean; blastIncomplete: boolean }): string[] {
   const fall = measurements.filter(r => r.measured_at >= "2026-09-01" && r.measured_at <= "2026-12-31");
   const has = (key: string, source?: (s: string) => boolean) => fall.some(r => normalizePlayerMetric(r.metric, r.unit)?.key === key && (!source || source(r.source)));

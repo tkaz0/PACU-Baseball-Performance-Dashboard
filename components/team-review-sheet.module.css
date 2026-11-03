@@ -114,3 +114,6 @@
 .hero + .body .grade b { width: 26px; height: 26px; font-size: 17px; }
 .hero + .body .panel { padding: 8px 12px; }
 .page .leaderTable th, .page .leaderTable td { padding: 2px 4px; }
+
+.page .trend .trendCell { width: 56px; padding: 0 0 0 4px; }
+.page .trend .trendCell svg { display: block; }
