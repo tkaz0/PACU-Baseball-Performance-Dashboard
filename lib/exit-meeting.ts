@@ -201,12 +201,36 @@ export function buildExitMeetingReport(input: {
   report.development.sort((a, b) => (a.percentile ?? 100) - (b.percentile ?? 100)); report.development = report.development.slice(0, 5);
   report.lastTested = report.sections.flatMap(s => s.rows).filter(r => r.basis !== "Updated snapshot").flatMap(r => /^2026-\d\d-\d\d$/.test(r.date) ? [r.date] : /^2026-\d\d-\d\d to 2026-\d\d-\d\d$/.test(r.date) ? [r.date.slice(-10)] : []).filter(d => d >= "2026-06-01" && d <= "2026-12-31").sort().at(-1) ?? null;
   report.lastGameUpdate = input.games.map(g => g.fetched_at).sort().at(-1) ?? null;
-  if (!report.sections.some(s => s.id === "physicality")) report.missing.push("Physicality measurements");
-  if (layout.showHitting && !gameMetrics.some(g => g.source === "qpa_fall_2026")) report.missing.push("Hitting game stats");
-  if (layout.showHitting && !report.sections.some(s => s.id === "blast-fall")) report.missing.push("Complete Blast Fall averages");
-  if (pitchingRole && !gameMetrics.some(g => g.source === "pitching_fall_2026")) report.missing.push("Pitching game stats");
-  if (pitchingRole && !report.sections.some(s => s.id.startsWith("arsenal-"))) report.missing.push("Classified pitch results");
-  if (!input.movement) report.missing.push("Movement screening");
+  report.missing.push(...missingFallResults(input.measurements, { hitter: layout.showHitting, pitcher: pitchingRole }, {
+    hittingGames: gameMetrics.some(g => g.source === "qpa_fall_2026"), pitchingGames: gameMetrics.some(g => g.source === "pitching_fall_2026"),
+    blastIncomplete: layout.showHitting && !report.sections.some(s => s.id === "blast-fall"),
+  }));
   report.notes.push("Percentiles compare at least five eligible teammates with the same metric, source, unit and period. Blue means a lower team rank; red means higher. A blank percentile means there is no verified comparison.", "Strengths are at or above the 75th team percentile; development areas are at or below the 25th, for directional baseball metrics only. They describe the saved sample and are conversation starters, not training prescriptions.", "Profile readings use latest saved results and best timed trials. They may differ from leaderboards using Fall-wide bests or weighted averages. Empty results stay missing; no zeros or estimates are added.");
   return format === "meeting" ? compactExitMeetingReport(report, pitchingRole ? classified : []) : report;
+}
+
+/**
+ * November 2 owner request: mark the Fall tests a player was expected to have but has no Fall 2026 result for.
+ * The battery is what the team actually ran this Fall, by role: everyone had a RENPHO body report; position and
+ * two-way players had grip, the timed runs, Blast and in-game Full Swing hitting; pitchers and two-way players had
+ * in-game Full Swing classified pitches. Summer body reports do not count as Fall testing.
+ */
+export function missingFallResults(measurements: readonly Measurement[], role: { hitter: boolean; pitcher: boolean }, extra: { hittingGames: boolean; pitchingGames: boolean; blastIncomplete: boolean }): string[] {
+  const fall = measurements.filter(r => r.measured_at >= "2026-09-01" && r.measured_at <= "2026-12-31");
+  const has = (key: string, source?: (s: string) => boolean) => fall.some(r => normalizePlayerMetric(r.metric, r.unit)?.key === key && (!source || source(r.source)));
+  const inGame = (s: string) => /^full swing · (game|intrasquad)\b/i.test(s.trim());
+  const missing: string[] = [];
+  if (!fall.some(r => /renpho/i.test(r.source))) missing.push("RENPHO body report");
+  if (role.hitter) {
+    for (const [key, label] of [["grip_dominant", "Dominant Grip"], ["grip_non_dominant", "Non-Dominant Grip"], ["home_to_first", "Home to 1st"], ["home_to_second", "Home to 2nd"], ["boxer_t", "Boxer T"], ["steal_start_12ft", "12 ft Steal Start"]] as const) if (!has(key)) missing.push(label);
+    if (!fall.some(r => /^blast motion/i.test(r.source.trim()))) missing.push("Blast swings");
+    else if (extra.blastIncomplete) missing.push("Blast Fall averages (reports need review)");
+    if (!has("max_exit_velocity", inGame) && !has("max_bat_speed", inGame)) missing.push("In-game Full Swing hitting");
+    if (!extra.hittingGames) missing.push("Hitting game stats");
+  }
+  if (role.pitcher) {
+    if (!fall.some(r => classifiedPitchSource(r.source) && inGame(r.source))) missing.push("In-game Full Swing pitches");
+    if (!extra.pitchingGames) missing.push("Pitching game stats");
+  }
+  return missing;
 }

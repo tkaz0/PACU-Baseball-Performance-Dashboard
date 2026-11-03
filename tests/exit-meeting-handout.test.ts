@@ -16,7 +16,7 @@ const report = (): ExitMeetingReport => ({ format: "meeting", name: "Fictional B
     { id: "blast-fall", title: "Blast", subtitle: "", rows: [row("Bat Speed (Practice)", "68.0 mph", "avg_bat_speed", null, { source: "Blast Motion · Practice" }), row("Attack Angle (Practice)", "9.0 deg", "blast_attack_angle", null, { source: "Blast Motion · Practice" })] },
     { id: "contact-in_game", title: "Contact", subtitle: "", rows: [row("Squared Up", "78.0%", "squared_up", null, { source: "Full Swing" })] },
     { id: "batted-ball-in_game", title: "Batted Ball", subtitle: "", rows: [row("Ground Ball", "40.0%", "bb_ground", null, { sample: "4 of 10 balls" }), row("Line Drive", "30.0%", "bb_line", null, { sample: "3 of 10 balls" }), row("Fly Ball", "30.0%", "bb_fly", null, { sample: "3 of 10 balls" })] },
-  ], missing: ["Movement screening"], notes: [] });
+  ], missing: ["Boxer T", "Blast swings"], notes: [] });
 it("renders a two-page sheet with headline tiles, percentile bars, insights, week trends and talking points", () => {
   const html = renderToStaticMarkup(createElement(ExitMeetingHandout, { report: report(), meetingDate: "2026-10-20", talkingPoints: "Fictional talking point" }));
   expect(html.match(/<article/g)).toHaveLength(2);
@@ -35,7 +35,7 @@ it("renders a two-page sheet with headline tiles, percentile bars, insights, wee
   // Practice Full Swing bat speed sits beside in-game results; Blast is named by device.
   expect(html).toContain("Max Bat Speed (Practice)"); expect(html).toContain("Bat Speed (Blast)");
   expect(html).toContain("Blast Swing"); expect(html).toContain("Attack Angle");
-  expect(html).toContain("Still to add: Movement screening");
+  expect(html).toContain("Not Recorded This Fall"); expect(html).toContain("Boxer T"); expect(html).toContain("Blast swings");
   expect(html).not.toContain("PAC-9999");
 });
 it("leaves writing lines when there are no talking points and skips the pitching panel for hitters", () => {

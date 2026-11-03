@@ -202,11 +202,11 @@ export function ExitMeetingHandout({ report, meetingDate, talkingPoints, headsho
           {runTests.length > 0 && <><h4>Speed &amp; Throwing</h4><ValueGrid rows={runTests}/></>}
         </Panel>
       </div>
+      {report.missing.length > 0 && <section className={styles.missingPanel} aria-label="Not recorded this Fall"><h3>Not Recorded This Fall</h3><ul>{report.missing.map(item => <li key={item}><span aria-hidden="true">✕</span>{item}</li>)}</ul></section>}
       <div className={styles.meeting}>
         <section className={styles.notes}><h3>Coach Talking Points</h3>{talkingPoints.trim() ? <p>{talkingPoints}</p> : <div className={styles.lines} aria-hidden="true">{Array.from({ length: 4 }, (_, i) => <span key={i}/>)}</div>}</section>
         <section className={styles.goals}><h3>Winter Focus</h3><ol>{Array.from({ length: 3 }, (_, i) => <li key={i}><span/></li>)}</ol><div className={styles.sign}><span>Player</span><span>Coach</span></div></section>
       </div>
-      {report.missing.length > 0 && <p className={styles.missing}>Still to add: {report.missing.join(" · ")}</p>}
       <p className={styles.method}>Percentiles compare at least five eligible teammates on the same stat, source, unit and period; body measurements are positions, not grades. Hitting doubles/triples count as doubles; PAC Production+ is a custom team index (100 = team). Pitch+ is a Pacific outcome grade, not Stuff+. Week trends use each week&apos;s own counts. Missing results stay blank.</p>
       </div><footer className={styles.pageFoot}><span>Back · Generated {day(pacificDay(report.generatedAt))}</span><span>Private · Coaches and the player only</span></footer>
     </article>

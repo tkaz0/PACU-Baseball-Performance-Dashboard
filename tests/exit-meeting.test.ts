@@ -101,3 +101,14 @@ describe("exit meeting report",()=>{
 export function fictionalExitReport(): ExitMeetingReport {
   return build({measurements:[reading("Body Fat Percentage",12,"%"),reading("Height",73,"in"),reading("Weight",190,"lb"),reading("Muscle Mass",160,"lb"),reading("RENPHO Body Score",88,"points"),reading("Average Bat Speed",67.43,"mph","Full Swing · Intrasquad"),reading("Average Exit Velocity",89.43,"mph","Full Swing · Intrasquad"),reading("Max Exit Velocity",105.2,"mph","Full Swing · Intrasquad"),reading("Home to 1st",4.12,"s","Player Metrics"),reading("Home to 1st",4.34,"s","Player Metrics","2026-09-15")],percentileOverrides:[comparison("body_fat_pct",12,10,"RENPHO","%"),comparison("avg_bat_speed",67.43,85,"Full Swing · Intrasquad","mph"),comparison("avg_exit_velocity",89.43,20,"Full Swing · Intrasquad","mph"),comparison("max_exit_velocity",105.2,90,"Full Swing · Intrasquad","mph")],contacts:[contact]});
 }
+
+describe("missing Fall results", async () => {
+  const { missingFallResults } = await import("@/lib/exit-meeting");
+  const m = (metric: string, unit: string, source: string, measured_at = "2026-09-15") => ({ id: metric + source, athlete_code: "PAC-9999", measured_at, source, metric, unit, value: 1 }) as never;
+  it("lists the role's Fall tests with no Fall result and ignores summer body reports", () => {
+    const hitter = missingFallResults([m("Weight", "lb", "RENPHO", "2026-07-01"), m("Dominant Grip", "lb", "Player Metrics"), m("Max Exit Velocity", "mph", "Full Swing · Intrasquad")], { hitter: true, pitcher: false }, { hittingGames: true, pitchingGames: false, blastIncomplete: false });
+    expect(hitter).toEqual(["RENPHO body report", "Non-Dominant Grip", "Home to 1st", "Home to 2nd", "Boxer T", "12 ft Steal Start", "Blast swings"]);
+    const pitcher = missingFallResults([m("Weight", "lb", "RENPHO")], { hitter: false, pitcher: true }, { hittingGames: false, pitchingGames: true, blastIncomplete: false });
+    expect(pitcher).toEqual(["In-game Full Swing pitches"]);
+  });
+});
