@@ -152,7 +152,7 @@ export function ExitMeetingHandout({ report, meetingDate, talkingPoints, headsho
 
   return <div className={styles.sheet} data-testid="exit-meeting-handout">
     {/* FRONT */}
-    <article className={styles.page} aria-label="Front"><div className={styles.pageBody} data-page-body>
+    <article className={styles.page} aria-label="Front" data-pdf-page><div className={styles.pageBody} data-page-body>
       <header className={styles.hero}>
         <div className={styles.heroBrand}><PacificLogo className={styles.logo} decorative/><span>Pacific Baseball · Fall 2026 Exit Meeting</span><time dateTime={meetingDate}>{day(meetingDate)}</time></div>
         <div className={styles.heroMain}>
@@ -177,7 +177,7 @@ export function ExitMeetingHandout({ report, meetingDate, talkingPoints, headsho
     </article>
 
     {/* BACK */}
-    <article className={styles.page} aria-label="Back"><div className={styles.pageBody} data-page-body>
+    <article className={styles.page} aria-label="Back" data-pdf-page><div className={styles.pageBody} data-page-body>
       <div className={styles.backHead}><PacificLogo className={styles.logoSmall} decorative/><h2>{report.name}</h2><span>Fall 2026 · Back</span></div>
       <div className={styles.columns}>
         {showHitting && <Panel title="Hitting" kicker="Fall game sheet · week trends">

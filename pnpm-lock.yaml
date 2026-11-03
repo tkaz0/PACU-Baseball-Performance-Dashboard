@@ -17,6 +17,9 @@ importers:
       '@tesseract.js-data/eng':
         specifier: 1.0.0
         version: 1.0.0
+      html-to-image:
+        specifier: 1.11.11
+        version: 1.11.11
       jspdf:
         specifier: 4.2.1
         version: 4.2.1
@@ -1649,6 +1652,9 @@ packages:
 
   hermes-parser@0.25.1:
     resolution: {integrity: sha512-6pEjquH3rqaI6cYAXYPcz9MS4rY6R4ngRgrgfDshRptUZIc3lw0MCIJIGDj9++mfySOuPTHB4nrSW99BCvOPIA==}
+
+  html-to-image@1.11.11:
+    resolution: {integrity: sha512-9gux8QhvjRO/erSnDPv28noDZcPZmYE7e1vFsBLKLlRlKDSqNJYebj6Qz1TGd5lsRV+X+xYyjCKjuZdABinWjA==}
 
   html2canvas@1.4.1:
     resolution: {integrity: sha512-fPU6BHNpsyIhr8yyMpTLLxAbkaK8ArIBcmZIRiBLiDhjeqvXolaEmDGmELFuX9I4xDcaKKcJl+TKZLqruBbmWA==}
@@ -4294,6 +4300,8 @@ snapshots:
   hermes-parser@0.25.1:
     dependencies:
       hermes-estree: 0.25.1
+
+  html-to-image@1.11.11: {}
 
   html2canvas@1.4.1:
     dependencies:

@@ -61,7 +61,7 @@ export function TeamReviewSheet({ data, bundle = false }: { data: TeamReviewData
   const cy = data.races?.final ? data.races.cyYoung?.entries.filter(e => e.rank === 1) ?? [] : [];
   const hitters = data.batting?.players ?? 0, pitchers = data.pitching?.players ?? 0;
   return <div className={styles.sheet} data-testid="team-review-sheet" data-bundle={bundle || undefined}>
-    <section className={styles.page} aria-label="Team review, front">
+    <section className={styles.page} aria-label="Team review, front" data-pdf-page>
       <header className={styles.hero}>
         <div className={styles.heroBrand}><PacificLogo className={styles.logo} decorative/><span>Pacific Baseball · Fall 2026 Team Review</span><time dateTime={data.generated}>{day(data.generated)}</time></div>
         <h1>Fall 2026 in Review</h1>
@@ -100,7 +100,7 @@ export function TeamReviewSheet({ data, bundle = false }: { data: TeamReviewData
       <p className={styles.foot}><span>Fall 2026 team review · Front</span><span>Independent project · Not an official university application</span></p>
     </section>
 
-    <section className={styles.page} aria-label="Team review, back">
+    <section className={styles.page} aria-label="Team review, back" data-pdf-page>
       <div className={styles.backHead}><PacificLogo className={styles.logoSmall} decorative/><h2>Team Review</h2><span>Fall 2026 · Back</span></div>
       <div className={styles.body}>
         <section>

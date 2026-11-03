@@ -2,7 +2,8 @@
 
 import { memo, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ArrowLeft, LoaderCircle, Printer, RotateCcw } from "lucide-react";
+import { ArrowLeft, Download, LoaderCircle, Printer, RotateCcw } from "lucide-react";
+import { downloadBundlePdf } from "@/lib/print-all-pdf";
 import { ExitMeetingHandout } from "@/components/exit-meeting-handout";
 import { HandoutFit } from "@/components/exit-meeting-handout-fit";
 import type { ExitMeetingReport } from "@/lib/exit-meeting";
@@ -46,6 +47,9 @@ const PrintedHandout = memo(function PrintedHandout({ data, meetingDate, awards 
  */
 export function ExitMeetingPrintAll({ players, teamSheet, teamUnavailable = [] }: { players: { id: string; name: string }[]; teamSheet?: ReactNode; teamUnavailable?: string[] }) {
   const [includeTeam, setIncludeTeam] = useState(!!teamSheet);
+  const bundleRef = useRef<HTMLDivElement>(null);
+  const [pdf, setPdf] = useState<{ done: number; total: number } | null>(null);
+  const [pdfError, setPdfError] = useState<string | null>(null);
   const [slots, setSlots] = useState<Record<string, Slot>>(() => Object.fromEntries(players.map(p => [p.id, { status: "waiting" } as Slot])));
   const [meetingDate, setMeetingDate] = useState(today);
   const started = useRef(false);
@@ -76,6 +80,13 @@ export function ExitMeetingPrintAll({ players, teamSheet, teamUnavailable = [] }
       <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "end" }}>
         <label className={page.selectLabel} style={{ marginTop: 0 }}>Meeting Date<input type="date" value={meetingDate} onChange={e => setMeetingDate(e.target.value)}/></label>
         <button className={page.download} style={{ width: "auto", padding: "13px 22px" }} disabled={!ready.length || !done} onClick={() => window.print()}><Printer size={18}/> Print / Save as PDF ({ready.length} players)</button>
+        <button className={page.download} style={{ width: "auto", padding: "13px 22px" }} disabled={!ready.length || !done || !!pdf} onClick={async () => {
+          if (!bundleRef.current) return;
+          setPdfError(null); setPdf({ done: 0, total: 0 });
+          try { await downloadBundlePdf(bundleRef.current, `Pacific-Baseball-Exit-Meetings-${meetingDate}.pdf`, (d, t) => setPdf({ done: d, total: t })); }
+          catch { setPdfError("The PDF could not be built. Try again, or use Print / Save as PDF."); }
+          finally { setPdf(null); }
+        }}>{pdf ? <><LoaderCircle className={page.spin} size={18}/> Building PDF… {pdf.done} of {pdf.total || "…"} pages</> : <><Download size={18}/> Download PDF</>}</button>
         {teamSheet && <label style={{ display: "inline-flex", gap: 8, alignItems: "center", fontSize: 13, fontWeight: 700 }}><input type="checkbox" checked={includeTeam} onChange={e => setIncludeTeam(e.target.checked)}/>Include Team Review Sheet first</label>}
         {failed.length > 0 && done && <button className={page.download} style={{ width: "auto", padding: "13px 22px", background: "#5b6270" }} onClick={() => run(failed.map(p => p.id))}><RotateCcw size={16}/> Retry {failed.length} failed</button>}
         <Link href="/exit-meetings" style={{ display: "inline-flex", gap: 6, alignItems: "center", fontSize: 12, fontWeight: 700 }}><ArrowLeft size={14}/> One player</Link>
@@ -85,9 +96,10 @@ export function ExitMeetingPrintAll({ players, teamSheet, teamUnavailable = [] }
           : <span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}><LoaderCircle className={page.spin} size={16}/>Loading handouts… {ready.length + failed.length} of {players.length}</span>}
         <div style={{ marginTop: 8, height: 6, borderRadius: 999, background: "var(--line-subtle)", overflow: "hidden" }}><div style={{ width: `${pct}%`, height: "100%", background: "#c8102e", transition: "width .3s" }}/></div>
         {includeTeam && teamUnavailable.length > 0 && <p style={{ margin: "8px 0 0", color: "#b4232f", fontWeight: 700 }}>Team sheet: {teamUnavailable.join(", ")} unavailable. Refresh before printing.</p>}
-        <small>{(ready.length + (includeTeam && teamSheet ? 1 : 0)) * 2} pages. Print double-sided (flip on the long edge) so each player is one sheet. Talking points print as blank lines; nothing is saved.</small>
+        {pdfError && <p style={{ margin: "8px 0 0", color: "#b4232f", fontWeight: 700 }}>{pdfError}</p>}
+        <small>Download PDF saves one file to print tomorrow (built in this browser; takes a minute or two). {(ready.length + (includeTeam && teamSheet ? 1 : 0)) * 2} pages. Print double-sided (flip on the long edge) so each player is one sheet. Talking points print as blank lines; nothing is saved.</small>
       </div>
     </section>
-    <div className={sheet.bundle}>{includeTeam && teamSheet}{ready.map(p => { const data = slots[p.id].data!; return <PrintedHandout key={p.id} data={data} meetingDate={meetingDate} awards={awards[data.report.code] ?? NO_AWARDS}/>; })}</div>
+    <div ref={bundleRef} className={sheet.bundle}>{includeTeam && teamSheet}{ready.map(p => { const data = slots[p.id].data!; return <PrintedHandout key={p.id} data={data} meetingDate={meetingDate} awards={awards[data.report.code] ?? NO_AWARDS}/>; })}</div>
   </div>;
 }
