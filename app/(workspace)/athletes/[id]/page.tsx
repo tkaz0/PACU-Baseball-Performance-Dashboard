@@ -26,7 +26,7 @@ import { loadGameComparisons } from "@/lib/game-comparison-server";
 import { AthleteGameStats } from "@/components/athlete-game-stats";
 import { loadGameStats } from "@/lib/game-server";
 import { playerSheetPitchMix } from "@/lib/sheet-pitch-mix";
-import { loadAthleteGameWeeks } from "@/lib/game-weeks-server";
+import { loadAthleteGameWeeks, loadBwsAwards } from "@/lib/game-weeks-server";
 import { loadContactsAllowed } from "@/lib/contacts-allowed-server";
 import { PitcherContactAllowed } from "@/components/pitcher-contact-allowed";
 import { OwnPitchGrades, PitcherPitchGrades } from "@/components/pitch-grades";
@@ -86,6 +86,8 @@ export default async function Profile({ params, searchParams }: { params: Promis
   const fullSwingGaps = canImportPresentedAccess(access) && (selectedTab === "hitting" || selectedTab === "pitching") ? loadMissingFullSwingWeeks(access).catch(() => null) : null;
   const sharedPromise = loadAthletePerformance(access,athlete);
   const allowedPromise = selectedTab === "pitching" && profileShowsPitching(season) ? loadContactsAllowed(access, athlete.id).catch(() => null) : Promise.resolve(null);
+  // Final BWS award badges (November 2); a failed weekly read just shows no badge.
+  const awardsPromise = !selectedTab || selectedTab === "overview" ? loadBwsAwards(access, athlete.athlete_code).catch(() => []) : Promise.resolve([]);
   const weeksPromise = selectedTab === "game-stats" ? loadAthleteGameWeeks(access, athlete.id).catch(() => null) : Promise.resolve(null);
   const [gameLogs, gameStats, gameComparisons, shared, teamAverages, movement, contacts, videos, annotations, blockCounts, headshot, fallSummaries, blastBatSpeedPercentile] = await Promise.all([
     staff && selectedTab === "game-stats" ? loadGameLogs(access, athlete.id) : Promise.resolve([]),
@@ -124,7 +126,7 @@ export default async function Profile({ params, searchParams }: { params: Promis
   return <>
     <AccessPreviewNotice status={query?.preview} isPreview={!!access.preview} />
     <div className="profile-toolbar">{staff ? <Link href="/roster" className="profile-back"><ArrowLeft size={15} />Team Roster</Link> : <span/>}<div className="profile-toolbar-actions">{canImportPresentedAccess(access) && <Link href="/imports" className="btn btn-secondary" title="Import Results"><Upload size={15} aria-hidden="true"/><span className="profile-toolbar-label">Import Results</span></Link>}<Link prefetch={false} href={`/graphics?athlete=${athlete.id}`} className="btn btn-secondary" title="Make Graphic"><ImageIcon size={15} aria-hidden="true"/><span className="profile-toolbar-label">Make Graphic</span></Link><Link prefetch={false} href={`/athletes/${athlete.id}/report`} className="btn btn-secondary" title="Player Report"><FileText size={15} aria-hidden="true"/><span className="profile-toolbar-label">Player Report</span></Link></div></div>
-    <PlayerPerformanceProfile fallStory={!selectedTab || selectedTab === "overview" ? <FallStory readings={readings} weekDates={fallBallWeekDates()} today={today}/> : undefined} tabNotice={tabNotice} blastBatSpeedPercentile={blastBatSpeedPercentile} detail={detail} selectedTab={selectedTab} navigationPath={`/athletes/${athlete.id}`}
+    <PlayerPerformanceProfile bwsAwards={await awardsPromise} fallStory={!selectedTab || selectedTab === "overview" ? <FallStory readings={readings} weekDates={fallBallWeekDates()} today={today}/> : undefined} tabNotice={tabNotice} blastBatSpeedPercentile={blastBatSpeedPercentile} detail={detail} selectedTab={selectedTab} navigationPath={`/athletes/${athlete.id}`}
       headshot={headshot}
       pitchDevelopment={selectedTab === "pitching" ? <PitchDevelopment groups={pitchDevelopmentGroups} context="in_game" contactsAvailable={allowed !== null}/> : undefined}
       practicePitchDevelopment={selectedTab === "practice" ? <PitchDevelopment groups={pitchDevelopmentGroups} context="practice"/> : undefined}

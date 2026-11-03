@@ -31,5 +31,11 @@ describe("award badges", () => {
     expect(html).not.toContain("BATTING_EST_ISO");
     expect(renderToStaticMarkup(createElement(AwardBadges, { rows: [row("qpa_pct", 50)] }))).toBe("");
   });
+  it("shows final BWS award honors first, even without percentile badges", () => {
+    const html = renderToStaticMarkup(createElement(AwardBadges, { rows: [row("qpa_pct", 50)], honors: ["mvp", "cy_young"] }));
+    expect(html).toContain("BWS MVP · 2026 Boxer World Series");
+    expect(html).toContain("BWS Cy Young · 2026 Boxer World Series");
+    expect(html.indexOf("BWS MVP")).toBeLessThan(html.indexOf("BWS Cy Young"));
+  });
 });
 

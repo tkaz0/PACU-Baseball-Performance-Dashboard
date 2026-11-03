@@ -52,12 +52,17 @@ export function SkillProfile({ rows, extra }: { rows: readonly RankingRow[]; ext
   </section>;
 }
 
-/** Team best = sole leader (100th percentile); Top 10% = 90th percentile and up. Exact from verified percentiles. */
-export function AwardBadges({ rows }: { rows: readonly RankingRow[] }) {
+const HONORS = { mvp: "BWS MVP", cy_young: "BWS Cy Young" } as const;
+/**
+ * Team best = sole leader (100th percentile); Top 10% = 90th percentile and up. Exact from verified percentiles.
+ * Honors (final BWS awards) come first and are not counted toward the six percentile badges.
+ */
+export function AwardBadges({ rows, honors = [] }: { rows: readonly RankingRow[]; honors?: readonly (keyof typeof HONORS)[] }) {
   const badges = rows.filter(row => row.percentile >= 90)
     .sort((a, b) => b.percentile - a.percentile || a.label.localeCompare(b.label)).slice(0, 6);
-  if (!badges.length) return null;
+  if (!badges.length && !honors.length) return null;
   return <ul className={styles.badges} aria-label="Team awards" data-testid="award-badges">
+    {honors.map(key => <li key={key} data-honor><span aria-hidden="true">🏆</span>{HONORS[key]} · 2026 Boxer World Series</li>)}
     {badges.map(row => <li key={row.key} data-best={row.percentile === 100 || undefined}>
       <span aria-hidden="true">{row.percentile === 100 ? "★" : "▲"}</span>{row.percentile === 100 ? "Team best" : "Top 10%"} · {row.label}
     </li>)}

@@ -4,6 +4,7 @@ import type { requireAccess } from "@/lib/auth";
 import type { GameSnapshotRow } from "@/lib/game-trends";
 import type { WeekPlayer } from "@/lib/home-spotlight";
 import { gameWeeks } from "@/lib/game-weeks";
+import { bwsRaces } from "@/lib/home-spotlight";
 import { canReadPresentedAthlete } from "@/lib/access-preview";
 import { UUID_PATTERN } from "@/lib/types";
 import { loadFallBallWeeks } from "@/lib/fall-ball-weeks-server";
@@ -40,4 +41,14 @@ export async function loadAthleteGameWeeks(access: Awaited<ReturnType<typeof req
   const { data, error } = await access.supabase.rpc("athlete_game_snapshot_history", { p_athlete_id: athleteId });
   if (error || !Array.isArray(data) || data.some(row => !row || typeof row.id !== "string" || !["qpa_fall_2026", "pitching_fall_2026"].includes(row.source) || typeof row.fetched_at !== "string" || !Number.isFinite(Date.parse(row.fetched_at)) || !Array.isArray(row.observations))) return null;
   return gameWeeks(data as GameSnapshotRow[]);
+}
+
+export type BwsAward = "mvp" | "cy_young";
+/** Final BWS awards won by one PAC code (winners and co-winners), from the same calculation as Home. */
+export async function loadBwsAwards(access: Parameters<typeof loadGameWeeks>[0], athleteCode: string): Promise<BwsAward[]> {
+  const weekly = await loadGameWeeks(access);
+  const races = weekly ? bwsRaces(weekly.players, weekly.weeks.bws, weekly.champions) : null;
+  if (!races?.final) return [];
+  const won = (race: typeof races.mvp) => !!race?.entries.some(entry => entry.rank === 1 && entry.code === athleteCode);
+  return [...(won(races.mvp) ? ["mvp" as const] : []), ...(won(races.cyYoung) ? ["cy_young" as const] : [])];
 }

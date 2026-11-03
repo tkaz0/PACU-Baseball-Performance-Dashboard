@@ -12,3 +12,4 @@
 .badges li[data-best] { border-color: #e0a526; background: color-mix(in srgb, #e0a526 16%, transparent); }
 .badges li span { color: var(--accent-readable); font-size: 12px; }
 .badges li[data-best] span { color: #e0a526; }
+.badges li[data-honor] { border-color: #e0a526; background: linear-gradient(135deg, color-mix(in srgb, #e0a526 30%, transparent), color-mix(in srgb, #e0a526 12%, transparent)); font-size: 13px; }
