@@ -4,7 +4,7 @@ import { ExitMeetingError, loadExitMeetingReport } from "@/lib/exit-meeting-serv
 import { ExitMeetingWorkspace } from "@/components/exit-meeting-workspace";
 import { loadExitMeetingHistory, loadSavedExitMeeting } from "@/lib/exit-meeting-history-server";
 import { loadAthleteHeadshot } from "@/lib/headshots-server";
-import { loadBwsAwards, type BwsAward } from "@/lib/game-weeks-server";
+import { loadBwsAwards, loadGameWeeks, type BwsAward } from "@/lib/game-weeks-server";
 import type { SavedExitMeeting, ExitMeetingHistory } from "@/lib/exit-meeting-history";
 import { notFound } from "next/navigation";
 
@@ -20,6 +20,8 @@ export default async function ExitMeetingsPage({ searchParams }: { searchParams:
   let awards: BwsAward[] = [];
   if(query.meeting&&!query.athlete)notFound();
   if (query.athlete) {
+    // Start the (request-cached) team weekly read now so the award lookup below does not add a round trip.
+    void loadGameWeeks(access).catch(() => null);
     try {
       const [result,previous,photo] = await Promise.all([query.meeting ? loadSavedExitMeeting(access,query.athlete,query.meeting) : loadExitMeetingReport(access,query.athlete),loadExitMeetingHistory(access,query.athlete),loadAthleteHeadshot(access,query.athlete).catch(()=>null)]);
       history=previous; headshot=photo;
