@@ -118,7 +118,6 @@ export function TeamReviewSheet({ data, bundle = false }: { data: TeamReviewData
           <h2>Fall Testing Records</h2>
           {data.records.length ? <ul className={styles.records}>{data.records.map(r => <li key={r.key} title={r.category}><span>{r.label}</span><b>{r.value}</b><em>{r.holders.map(h => h.name).join(", ")}</em></li>)}</ul> : <p className={styles.empty}>No testing records saved.</p>}
         </section>
-        <section className={styles.notes}><h2>Team Goals for the Winter</h2>{Array.from({ length: 2 }, (_, i) => <span key={i}/>)}</section>
         <p className={styles.method}>Team rates pool everyone&apos;s counts; — means pending or not recorded. Hitting weeks are counts added between saved QPA updates; pitching weeks are the sheet&apos;s weekly blocks. SLG/ISO/OPS count doubles and triples as doubles. Grades are dashboard bands against NWC team seasons, not official grades; Fall games face teammates. Top Performer scores blend team percentiles equally (hitters PAC Production+, QPA%, OPS; pitchers WHIP, K/BB, Runs/9).</p>
       </div>
       <p className={styles.foot}><span>Fall 2026 team review · Back</span><span>Independent project · Not an official university application</span></p>

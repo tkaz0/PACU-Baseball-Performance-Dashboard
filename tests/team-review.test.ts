@@ -46,7 +46,7 @@ describe("team review sheet", () => {
     const html = renderToStaticMarkup(createElement(TeamReviewSheet, { data: { generated: "2026-11-03", batting: null, pitching: null, reportCard: [],
       trends: teamReviewTrends(null, { batting: null, pitching: null }, {}), races: null, hittingLeaders: [], pitchingLeaders: [], qualifiedLabel: null, hitters: [], pitchers: [], records: [], headshots: {} } }));
     expect(html).toContain("Fall 2026 in Review"); expect(html).toContain("Week by Week");
-    expect(html).toContain("Needs five complete lines to rank."); expect(html).toContain("No testing records saved.");
+    expect(html).toContain("Needs five complete lines to rank."); expect(html).toContain("No testing records saved."); expect(html).not.toContain("Team Goals");
     expect(html.match(/aria-label="Team review, (front|back)"/g)).toHaveLength(2);
   });
   it("lists stat leaders: qualified players for rates (ties together), everyone for counts, lower-is-better reversed", () => {
