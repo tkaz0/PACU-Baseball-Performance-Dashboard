@@ -117,3 +117,4 @@
 
 .page .trend .trendCell { width: 56px; padding: 0 0 0 4px; }
 .page .trend .trendCell svg { display: block; }
+.sheet .page table tbody tr:hover > th, .sheet .page table tbody tr:hover > td { background: transparent !important; color: var(--ink) !important; }
