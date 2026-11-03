@@ -92,3 +92,7 @@
 .page .trendPair table th, .page .trendPair table td { padding: 3px 4px; font-size: 10.5px; }
 .page .trendPair thead th { font-size: 9px; }
 .page .trendPair thead th small { font-size: 8.5px; }
+.backHead + .body { gap: 9px; }
+.backHead + .body .records li { padding: 1px 0; }
+.backHead + .body .leaders { gap: 1px; }
+.backHead + .body .panel { padding: 8px 12px; }
