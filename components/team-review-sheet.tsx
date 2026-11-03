@@ -107,8 +107,10 @@ export function TeamReviewSheet({ data }: { data: TeamReviewData }) {
       <div className={styles.body}>
         <section>
           <h2>Week by Week <small>team rates from each week&apos;s counts; Fall = final totals</small></h2>
-          <Trend title="Hitting" rows={data.trends.hitting} columns={data.trends.columns}/>
-          <Trend title="Pitching" rows={data.trends.pitching} columns={data.trends.columns}/>
+          <div className={styles.trendPair}>
+            <Trend title="Hitting" rows={data.trends.hitting} columns={data.trends.columns}/>
+            <Trend title="Pitching" rows={data.trends.pitching} columns={data.trends.columns}/>
+          </div>
         </section>
         <div className={styles.twoCol}>
           <section className={styles.panel}><h2>Top Hitters <small>Top Performer score</small></h2><Leaders rows={data.hitters} discipline="hitting" headshots={data.headshots}/></section>
@@ -118,8 +120,8 @@ export function TeamReviewSheet({ data }: { data: TeamReviewData }) {
           <h2>Fall Testing Records</h2>
           {data.records.length ? <ul className={styles.records}>{data.records.map(r => <li key={r.key} title={r.category}><span>{r.label}</span><b>{r.value}</b><em>{r.holders.map(h => h.name).join(", ")}</em></li>)}</ul> : <p className={styles.empty}>No testing records saved.</p>}
         </section>
-        <section className={styles.notes}><h2>Team Goals for the Winter</h2>{Array.from({ length: 3 }, (_, i) => <span key={i}/>)}</section>
-        <p className={styles.method}>Team rates pool every player&apos;s counts (never averages of player rates); pending rates show —. Hitting weeks are counts added between saved QPA updates and may not match calendar weeks exactly; pitching weeks are the sheet&apos;s weekly blocks. SLG/ISO/OPS count doubles and triples as doubles. Grades compare Pacific&apos;s Fall rates with NWC team seasons and are dashboard bands, not official grades; Fall games face Pacific teammates, not conference opponents. Top Performer scores blend team percentiles equally (hitters PAC Production+, QPA%, OPS; pitchers WHIP, K/BB, Runs/9).</p>
+        <section className={styles.notes}><h2>Team Goals for the Winter</h2>{Array.from({ length: 2 }, (_, i) => <span key={i}/>)}</section>
+        <p className={styles.method}>Team rates pool everyone&apos;s counts; — means pending or not recorded. Hitting weeks are counts added between saved QPA updates; pitching weeks are the sheet&apos;s weekly blocks. SLG/ISO/OPS count doubles and triples as doubles. Grades are dashboard bands against NWC team seasons, not official grades; Fall games face teammates. Top Performer scores blend team percentiles equally (hitters PAC Production+, QPA%, OPS; pitchers WHIP, K/BB, Runs/9).</p>
       </div>
       <p className={styles.foot}><span>Fall 2026 team review · Back</span><span>Independent project · Not an official university application</span></p>
     </section>
