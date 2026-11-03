@@ -75,7 +75,7 @@ export function buildExitMeetingReport(input: {
   comparisons: readonly GameComparison[]; movement: MovementReport | null; contacts?: readonly SavedContact[]; generatedAt: string;
   fallSummaries?: readonly PlayerFallSummary[];
   /** Own contact against (pitchers), own week-by-week sheet counts and own Pitch+ rows; null when unavailable. */
-  contactsAllowed?: readonly AllowedContact[] | null; weeks?: { hitting: GameWeek[]; pitching: GameWeek[] } | null;
+  contactsAllowed?: readonly AllowedContact[] | null; weeks?: { hitting: GameWeek[]; pitching: GameWeek[]; bws?: { hitting: GameWeek | null; pitching: GameWeek | null } } | null;
   pitchGrades?: { rows: readonly PitchGradeRow[]; computedAt: string } | null;
 }, format: ExitMeetingFormat = "meeting"): ExitMeetingReport {
   const { athlete } = input;
@@ -172,13 +172,16 @@ export function buildExitMeetingReport(input: {
         ], "Ground ball below 10°, line drive 10–25°, fly ball 25–50°, pop-up above 50°. Middle is within 15° of center.");
     }
   }
-  const weekDates = fallBallWeekDates();
-  for (const [source, list, metrics] of [["qpa_fall_2026", input.weeks?.hitting ?? [], WEEK_HITTING], ["pitching_fall_2026", input.weeks?.pitching ?? [], WEEK_PITCHING]] as const) {
+  const weekDates: Record<number, string> = { ...fallBallWeekDates() };
+  // November 2 owner request: the Boxer World Series is its own last column after the Fall Ball weeks, never merged into one.
+  const bwsWeek = (week: GameWeek | null | undefined): GameWeek[] => week ? [{ ...week, week: BWS_WEEK, label: "BWS" }] : [];
+  weekDates[BWS_WEEK] = BWS_TREND_DATE;
+  for (const [source, list, metrics] of [["qpa_fall_2026", [...(input.weeks?.hitting ?? []), ...bwsWeek(input.weeks?.bws?.hitting)], WEEK_HITTING], ["pitching_fall_2026", [...(input.weeks?.pitching ?? []), ...bwsWeek(input.weeks?.bws?.pitching)], WEEK_PITCHING]] as const) {
     if (source === "qpa_fall_2026" ? !layout.showHitting : !pitchingRole) continue;
     const lines = list.flatMap(week => { const rows = week.rows.map(r => ({ ...r, athlete_id: athlete.id })); const values = rows.length ? gameOverviewMetrics(rows, []) : []; return values.length ? [{ week, values }] : []; });
     const latest = lines.at(-1);
     if (!latest) continue;
-    add(`weeks-${source}`, `Week by Week · ${source === "qpa_fall_2026" ? "Hitting" : "Pitching"}`, `Each Fall Ball week's own counts · Latest ${latest.week.label}${fallBallWeekDate(latest.week.week) ? ` (${fallBallWeekDate(latest.week.week)})` : ""}`, metrics.flatMap(metric => {
+    add(`weeks-${source}`, `Week by Week · ${source === "qpa_fall_2026" ? "Hitting" : "Pitching"}`, `Each Fall Ball week's own counts, then the Boxer World Series on its own · Latest ${latest.week.label}${latest.week.week !== BWS_WEEK && fallBallWeekDate(latest.week.week) ? ` (${fallBallWeekDate(latest.week.week)})` : ""}`, metrics.flatMap(metric => {
       const current = latest.values.find(v => v.metric === metric);
       if (!current) return [];
       const history = lines.flatMap(line => { const v = line.values.find(x => x.metric === metric), date = weekDates[line.week.week]; return v && date ? [{ date, value: v.value }] : []; });
@@ -215,6 +218,8 @@ export function buildExitMeetingReport(input: {
  * two-way players had grip, the timed runs, Blast and in-game Full Swing hitting; pitchers and two-way players had
  * in-game Full Swing classified pitches. Summer body reports do not count as Fall testing.
  */
+/** BWS sorts after every Fall Ball week; its trend point sits at the series' last day. */
+const BWS_WEEK = 99, BWS_TREND_DATE = "2026-10-31";
 export function missingFallResults(measurements: readonly Measurement[], role: { hitter: boolean; pitcher: boolean }, extra: { hittingGames: boolean; pitchingGames: boolean; blastIncomplete: boolean }): string[] {
   const fall = measurements.filter(r => r.measured_at >= "2026-09-01" && r.measured_at <= "2026-12-31");
   const has = (key: string, source?: (s: string) => boolean) => fall.some(r => normalizePlayerMetric(r.metric, r.unit)?.key === key && (!source || source(r.source)));

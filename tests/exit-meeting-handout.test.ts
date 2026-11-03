@@ -43,6 +43,12 @@ it("leaves writing lines when there are no talking points and skips the pitching
   expect(html).not.toContain(">Pitching<");
   expect(html).toContain("Coach Talking Points");
 });
+it("names the latest week column, including BWS", () => {
+  const base = report();
+  const withBws = { ...base, sections: base.sections.map(s => s.id === "weeks-qpa_fall_2026" ? { ...s, rows: s.rows.map(r => ({ ...r, basis: "BWS only · Earlier: Week 1 .800" })) } : s) };
+  expect(renderToStaticMarkup(createElement(ExitMeetingHandout, { report: withBws, meetingDate: "2026-11-04", talkingPoints: "" }))).toContain("1.100 BWS");
+  expect(renderToStaticMarkup(createElement(ExitMeetingHandout, { report: base, meetingDate: "2026-11-04", talkingPoints: "" }))).toContain("1.100 latest wk");
+});
 it("shows a final BWS award ribbon, Pacific-day dates and short insight dates", () => {
   const base = report();
   const late = { ...base, generatedAt: "2026-11-03T05:30:00Z", lastGameUpdate: "2026-11-03T04:00:00Z", jumps: [{ label: "Max Distance", detail: "110.0 ft → 306.0 ft · 2026-09-11 to 2026-09-26", percentile: null }] };
@@ -51,5 +57,5 @@ it("shows a final BWS award ribbon, Pacific-day dates and short insight dates", 
   expect(html).toContain("Generated Nov 2, 2026");
   expect(html).toContain("Game stats through Nov 2, 2026");
   expect(html).toContain("Sep 11 to Sep 26");
-  expect(renderToStaticMarkup(createElement(ExitMeetingHandout, { report: base, meetingDate: "2026-11-04", talkingPoints: "" }))).not.toContain("Boxer World Series");
+  expect(renderToStaticMarkup(createElement(ExitMeetingHandout, { report: base, meetingDate: "2026-11-04", talkingPoints: "" }))).not.toContain("2026 Boxer World Series");
 });

@@ -95,6 +95,10 @@ describe("exit meeting report",()=>{
   const meeting=buildExitMeetingReport({athlete:fictionalExitAthlete,measurements:[],batches:[],percentileOverrides:[],games:[],comparisons:[],movement:null,generatedAt:"2026-09-27T12:00:00Z",weeks:{hitting:[week(1,counts(1)),week(2,counts(2))],pitching:[]}},"meeting");
   const weeks=meeting.sections.find(s=>s.id==="weeks-qpa_fall_2026");
   expect(weeks?.rows.map(r=>r.metricKey)).toEqual(expect.arrayContaining(["batting_ops","batting_obp"]));expect(weeks?.rows.find(r=>r.metricKey==="batting_ops")?.trend).toHaveLength(2);
+  // The Boxer World Series is its own latest column after the Fall Ball weeks.
+  const withBws=buildExitMeetingReport({athlete:fictionalExitAthlete,measurements:[],batches:[],percentileOverrides:[],games:[],comparisons:[],movement:null,generatedAt:"2026-11-02T12:00:00Z",weeks:{hitting:[week(1,counts(1)),week(2,counts(2))],pitching:[],bws:{hitting:{...week(0,counts(4)),label:"Boxer World Series"},pitching:null}}},"meeting");
+  const ops=withBws.sections.find(s=>s.id==="weeks-qpa_fall_2026")!.rows.find(r=>r.metricKey==="batting_ops")!;
+  expect(ops.basis).toMatch(/^BWS only · Earlier: Week 1 .*, Week 2 /);expect(ops.trend).toHaveLength(3);expect(ops.trend!.at(-1)!.date).toBe("2026-10-31");
  });
 });
 

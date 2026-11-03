@@ -63,6 +63,8 @@ function PercentileBars({ rows }: { rows: { label: string; group: string; row: E
   </li>; })}</ol>;
 }
 
+/** The latest column's own name ("BWS" or "Wk 4"); older saved snapshots without one read "latest wk". */
+const latestWeekLabel = (row: ExitMeetingRow) => { const name = /^(BWS|Week \d+) only/.exec(row.basis)?.[1]; return name === "BWS" ? "BWS" : name ? name.replace("Week ", "Wk ") : "latest wk"; };
 function StatTable({ rows, weeks, empty }: { rows: ExitMeetingRow[]; weeks: ExitMeetingRow[]; empty: string }) {
   if (!rows.length) return <p className={styles.empty}>{empty}</p>;
   return <table className={styles.table}><thead><tr><th>Stat</th><th className={styles.num}>Fall</th><th className={styles.num}>Pctl</th><th>By Week</th></tr></thead>
@@ -70,7 +72,7 @@ function StatTable({ rows, weeks, empty }: { rows: ExitMeetingRow[]; weeks: Exit
       <td><b>{row.label}</b>{row.sample && <small>{row.sample}</small>}</td>
       <td className={styles.num}><strong>{row.value}</strong></td>
       <td className={styles.num}>{row.percentile === null ? "—" : <span className={styles.pctChip} style={percentileColor(row.percentile)}>{Math.round(row.percentile)}</span>}</td>
-      <td>{week?.trend && week.trend.length >= 2 ? <span className={styles.trend}><Sparkline points={week.trend} width={84} height={22} label={`${row.label} by week`} noun="weeks" direction={row.metricKey && LOWER_BETTER.has(row.metricKey) ? "lower" : "higher"}/><small>{week.value} latest wk</small></span> : <small className={styles.muted}>—</small>}</td>
+      <td>{week?.trend && week.trend.length >= 2 ? <span className={styles.trend}><Sparkline points={week.trend} width={84} height={22} label={`${row.label} by week`} noun="weeks" direction={row.metricKey && LOWER_BETTER.has(row.metricKey) ? "lower" : "higher"}/><small>{week.value} {latestWeekLabel(week)}</small></span> : <small className={styles.muted}>—</small>}</td>
     </tr>; })}</tbody></table>;
 }
 
@@ -207,7 +209,7 @@ export function ExitMeetingHandout({ report, meetingDate, talkingPoints, headsho
         <section className={styles.notes}><h3>Coach Talking Points</h3>{talkingPoints.trim() ? <p>{talkingPoints}</p> : <div className={styles.lines} aria-hidden="true">{Array.from({ length: 4 }, (_, i) => <span key={i}/>)}</div>}</section>
         <section className={styles.goals}><h3>Winter Focus</h3><ol>{Array.from({ length: 3 }, (_, i) => <li key={i}><span/></li>)}</ol><div className={styles.sign}><span>Player</span><span>Coach</span></div></section>
       </div>
-      <p className={styles.method}>Percentiles compare at least five eligible teammates on the same stat, source, unit and period; body measurements are positions, not grades. Hitting doubles/triples count as doubles; PAC Production+ is a custom team index (100 = team). Pitch+ is a Pacific outcome grade, not Stuff+. Week trends use each week&apos;s own counts. Missing results stay blank.</p>
+      <p className={styles.method}>Percentiles compare at least five eligible teammates on the same stat, source, unit and period; body measurements are positions, not grades. Hitting doubles/triples count as doubles; PAC Production+ is a custom team index (100 = team). Pitch+ is a Pacific outcome grade, not Stuff+. Week trends use each Fall Ball week&apos;s own counts, then the Boxer World Series (BWS) on its own. Missing results stay blank.</p>
       </div><footer className={styles.pageFoot}><span>Back · Generated {day(pacificDay(report.generatedAt))}</span><span>Private · Coaches and the player only</span></footer>
     </article>
   </div>;
