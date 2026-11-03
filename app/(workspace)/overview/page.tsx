@@ -28,11 +28,12 @@ export default async function Overview({searchParams}:{searchParams:Promise<{pre
   const staff=canImportPresentedAccess(access);
   const failed:string[]=[], viewedAt=new Date().toISOString();
   const visitPromise=settle("visit tracking",failed,loadDashboardVisit(access,viewedAt),{since:null,viewedAt,record:false});
-  const activityPromise=visitPromise.then(visit=>loadHomeActivity(access,visit)).catch(()=>({ok:false as const}));
   // Streamed sections: Players of the Week and team leaders never hold up the rest of Home.
   const leaderboardsPromise=loadHomeLeaderboards(access).catch(()=>null);
   // Staff see team week-over-week changes; a linked player sees only their own.
   const ownTrends=!staff&&access.roles.includes("player")&&!!access.athleteId;
+  // Only the player Your Week card uses recent activity; staff Home no longer runs the full history read (November 3 speed pass).
+  const activityPromise=ownTrends?visitPromise.then(visit=>loadHomeActivity(access,visit)).catch(()=>({ok:false as const})):Promise.resolve({ok:false as const});
   const trendsPromise=staff?loadTeamGameTrends(access).catch(()=>({})):ownTrends?loadOwnGameTrends(access).catch(()=>({})):Promise.resolve({});
   const canSeeBoards=staff || (access.roles.includes("player") && !!access.athleteId);
   const weeksPromise=canSeeBoards?loadGameWeeks(access).catch(()=>null):Promise.resolve(null);
