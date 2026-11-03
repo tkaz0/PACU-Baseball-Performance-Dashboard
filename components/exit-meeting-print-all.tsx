@@ -10,33 +10,37 @@ import type { BwsAward } from "@/lib/game-weeks-server";
 import page from "./exit-meeting.module.css";
 import sheet from "./exit-meeting-handout.module.css";
 
-type Loaded = { report: ExitMeetingReport; headshot: string | null; awards: BwsAward[] };
+type Loaded = { report: ExitMeetingReport; headshot: string | null };
 type Slot = { status: "waiting" | "loading" | "ready" | "failed"; data?: Loaded; error?: string };
 const today = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Los_Angeles", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-const CONCURRENCY = 2, TRIES = 3;
+const NO_AWARDS: readonly BwsAward[] = [];
+// One request at a time, four players per request: the free database tier slows down under parallel team reads.
+const BATCH = 4, TRIES = 3;
+type BatchItem = { id: string; report?: ExitMeetingReport; headshot?: string | null; error?: string };
 
-async function loadOne(id: string): Promise<Loaded> {
-  let last = "This handout could not be loaded.";
+async function loadBatch(ids: string[], withAwards: boolean): Promise<{ items: BatchItem[]; awards?: Record<string, BwsAward[]> | null }> {
+  let last = "These handouts could not be loaded.";
   for (let attempt = 0; attempt < TRIES; attempt++) {
     try {
-      const response = await fetch(`/exit-meetings/report?athlete=${encodeURIComponent(id)}`, { cache: "no-store" });
+      const query = ids.map(id => `athlete=${encodeURIComponent(id)}`).join("&") + (withAwards ? "&awards=1" : "");
+      const response = await fetch(`/exit-meetings/report?${query}`, { cache: "no-store" });
       const body = await response.json().catch(() => null);
-      if (response.ok && body?.report) return body as Loaded;
+      if (response.ok && Array.isArray(body?.items)) return body;
       last = typeof body?.error === "string" ? body.error : last;
-      if (response.status === 400 || response.status === 403 || response.status === 404) break;
+      if (response.status === 400 || response.status === 401 || response.status === 403) break;
     } catch { /* network hiccup: retry */ }
-    await new Promise(resolve => setTimeout(resolve, 1500 * (attempt + 1)));
+    await new Promise(resolve => setTimeout(resolve, 2000 * (attempt + 1)));
   }
   throw new Error(last);
 }
 
 /** Memoized so each newly loaded handout does not re-render and re-fit every handout already on the page. */
-const PrintedHandout = memo(function PrintedHandout({ data, meetingDate }: { data: Loaded; meetingDate: string }) {
-  return <HandoutFit><ExitMeetingHandout report={data.report} meetingDate={meetingDate} talkingPoints="" headshot={data.headshot} awards={data.awards}/></HandoutFit>;
+const PrintedHandout = memo(function PrintedHandout({ data, meetingDate, awards }: { data: Loaded; meetingDate: string; awards: readonly BwsAward[] }) {
+  return <HandoutFit><ExitMeetingHandout report={data.report} meetingDate={meetingDate} talkingPoints="" headshot={data.headshot} awards={awards}/></HandoutFit>;
 });
 
 /**
- * Loads every current player's handout (two at a time, with retries), then prints them as one job so the
+ * Loads every current player's handout (four per request, one request at a time, with retries), then prints them as one job so the
  * browser can save a single PDF. Each handout is two pages, so double-sided printing keeps players apart.
  * Talking points stay blank writing lines; nothing is saved.
  */
@@ -44,16 +48,21 @@ export function ExitMeetingPrintAll({ players }: { players: { id: string; name: 
   const [slots, setSlots] = useState<Record<string, Slot>>(() => Object.fromEntries(players.map(p => [p.id, { status: "waiting" } as Slot])));
   const [meetingDate, setMeetingDate] = useState(today);
   const started = useRef(false);
+  const [awards, setAwards] = useState<Record<string, BwsAward[]>>({});
+  const awardsLoaded = useRef(false);
   const run = useCallback(async (ids: string[]) => {
-    const queue = [...ids];
-    const worker = async () => {
-      for (let id = queue.shift(); id; id = queue.shift()) {
-        setSlots(s => ({ ...s, [id!]: { status: "loading" } }));
-        try { const data = await loadOne(id); setSlots(s => ({ ...s, [id!]: { status: "ready", data } })); }
-        catch (error) { setSlots(s => ({ ...s, [id!]: { status: "failed", error: error instanceof Error ? error.message : "Could not load." } })); }
+    for (let at = 0; at < ids.length; at += BATCH) {
+      const batch = ids.slice(at, at + BATCH);
+      setSlots(s => ({ ...s, ...Object.fromEntries(batch.map(id => [id, { status: "loading" } as Slot])) }));
+      try {
+        const result = await loadBatch(batch, !awardsLoaded.current);
+        if (result.awards) { awardsLoaded.current = true; setAwards(result.awards); }
+        setSlots(s => ({ ...s, ...Object.fromEntries(batch.map(id => { const item = result.items.find(i => i.id === id);
+          return [id, item?.report ? { status: "ready", data: { report: item.report, headshot: item.headshot ?? null } } : { status: "failed", error: item?.error ?? "Could not load." }] as [string, Slot]; })) }));
+      } catch (error) {
+        setSlots(s => ({ ...s, ...Object.fromEntries(batch.map(id => [id, { status: "failed", error: error instanceof Error ? error.message : "Could not load." } as Slot])) }));
       }
-    };
-    await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+    }
   }, []);
   useEffect(() => { if (!started.current) { started.current = true; void run(players.map(p => p.id)); } }, [players, run]);
 
@@ -76,6 +85,6 @@ export function ExitMeetingPrintAll({ players }: { players: { id: string; name: 
         <small>{ready.length * 2} pages. Print double-sided (flip on the long edge) so each player is one sheet. Talking points print as blank lines; nothing is saved.</small>
       </div>
     </section>
-    <div className={sheet.bundle}>{ready.map(p => <PrintedHandout key={p.id} data={slots[p.id].data!} meetingDate={meetingDate}/>)}</div>
+    <div className={sheet.bundle}>{ready.map(p => { const data = slots[p.id].data!; return <PrintedHandout key={p.id} data={data} meetingDate={meetingDate} awards={awards[data.report.code] ?? NO_AWARDS}/>; })}</div>
   </div>;
 }

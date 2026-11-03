@@ -2,20 +2,27 @@ import { getAccess } from "@/lib/auth";
 import { canImportPresentedAccess } from "@/lib/access-preview";
 import { ExitMeetingError, loadExitMeetingReport } from "@/lib/exit-meeting-server";
 import { loadAthleteHeadshot } from "@/lib/headshots-server";
-import { loadBwsAwards, loadGameWeeks } from "@/lib/game-weeks-server";
+import { loadBwsAwardMap } from "@/lib/game-weeks-server";
 import { EXIT_MEETING_PRIVATE_HEADERS, exitMeetingErrorResponse } from "@/lib/exit-meeting-request";
 import { UUID_PATTERN } from "@/lib/types";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 export const maxDuration=60;
-/** One player's current handout projection for Print All (staff only); same readers and rules as the Exit Meetings page. */
+const MAX_PER_REQUEST=4;
+/**
+ * Current handout projections for Print All (staff only), up to four players per request built one after another
+ * so the request shares its team-wide reads. `awards=1` also returns the final BWS award winners once. Same readers
+ * and rules as the Exit Meetings page; nothing is saved.
+ */
 export async function GET(request:Request){
- try{
-  const {access}=await getAccess();if(!access)return exitMeetingErrorResponse("Sign in again to load handouts.",401);if(!canImportPresentedAccess(access))return exitMeetingErrorResponse("Exit meetings are available to coaches and admins.",403);
-  const athlete=new URL(request.url).searchParams.get("athlete")??"";if(!UUID_PATTERN.test(athlete))return exitMeetingErrorResponse("Choose a rostered player.",400);
-  void loadGameWeeks(access).catch(()=>null);
-  const [report,headshot]=await Promise.all([loadExitMeetingReport(access,athlete),loadAthleteHeadshot(access,athlete).catch(()=>null)]);
-  const awards=await loadBwsAwards(access,report.code).catch(()=>[]);
-  return Response.json({report,headshot,awards},{headers:EXIT_MEETING_PRIVATE_HEADERS});
- }catch(error){return error instanceof ExitMeetingError?exitMeetingErrorResponse(error.message,error.status):exitMeetingErrorResponse("This handout could not be loaded. Retry it.",503);}
+ const {access}=await getAccess();if(!access)return exitMeetingErrorResponse("Sign in again to load handouts.",401);if(!canImportPresentedAccess(access))return exitMeetingErrorResponse("Exit meetings are available to coaches and admins.",403);
+ const params=new URL(request.url).searchParams, ids=[...new Set(params.getAll("athlete"))];
+ if(!ids.length||ids.length>MAX_PER_REQUEST||!ids.every(id=>UUID_PATTERN.test(id)))return exitMeetingErrorResponse("Choose one to four rostered players.",400);
+ const items=[];
+ for(const id of ids){
+  try{const [report,headshot]=await Promise.all([loadExitMeetingReport(access,id),loadAthleteHeadshot(access,id).catch(()=>null)]);items.push({id,report,headshot});}
+  catch(error){items.push({id,error:error instanceof ExitMeetingError?error.message:"This handout could not be loaded. Retry it."});}
+ }
+ const awards=params.get("awards")==="1"?await loadBwsAwardMap(access).catch(()=>null):undefined;
+ return Response.json({items,...(awards===undefined?{}:{awards})},{headers:EXIT_MEETING_PRIVATE_HEADERS});
 }

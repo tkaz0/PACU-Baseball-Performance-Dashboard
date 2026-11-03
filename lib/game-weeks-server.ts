@@ -44,11 +44,17 @@ export async function loadAthleteGameWeeks(access: Awaited<ReturnType<typeof req
 }
 
 export type BwsAward = "mvp" | "cy_young";
-/** Final BWS awards won by one PAC code (winners and co-winners), from the same calculation as Home. */
-export async function loadBwsAwards(access: Parameters<typeof loadGameWeeks>[0], athleteCode: string): Promise<BwsAward[]> {
+/** Every final BWS award winner (winners and co-winners) by PAC code, from the same calculation as Home. */
+export async function loadBwsAwardMap(access: Parameters<typeof loadGameWeeks>[0]): Promise<Record<string, BwsAward[]>> {
   const weekly = await loadGameWeeks(access);
   const races = weekly ? bwsRaces(weekly.players, weekly.weeks.bws, weekly.champions) : null;
-  if (!races?.final) return [];
-  const won = (race: typeof races.mvp) => !!race?.entries.some(entry => entry.rank === 1 && entry.code === athleteCode);
-  return [...(won(races.mvp) ? ["mvp" as const] : []), ...(won(races.cyYoung) ? ["cy_young" as const] : [])];
+  const map: Record<string, BwsAward[]> = {};
+  if (!races?.final) return map;
+  for (const [award, race] of [["mvp", races.mvp], ["cy_young", races.cyYoung]] as const)
+    for (const entry of race?.entries ?? []) if (entry.rank === 1) (map[entry.code] ??= []).push(award);
+  return map;
+}
+/** Final BWS awards won by one PAC code. */
+export async function loadBwsAwards(access: Parameters<typeof loadGameWeeks>[0], athleteCode: string): Promise<BwsAward[]> {
+  return (await loadBwsAwardMap(access))[athleteCode] ?? [];
 }
