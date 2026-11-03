@@ -13,7 +13,8 @@ describe("staff-saved Fall Ball week dates", () => {
     setFallBallWeekDates({ 1: "not-a-date" });
     expect(fallBallWeekDate(4)).toBe("October 24th");
     setFallBallWeekDates(DEFAULT_FALL_BALL_WEEK_DATES);
-    expect(fallBallWeekDate(4)).toBeNull();
+    expect(fallBallWeekDate(4)).toBe("October 16th");
+    expect(fallBallWeekDate(5)).toBeNull();
   });
 });
 

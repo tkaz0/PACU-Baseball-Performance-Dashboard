@@ -18,7 +18,7 @@ function pacificDay(timestamp: string): string {
  * server loaders call `setFallBallWeekDates` with the saved rows before these helpers run.
  * Sheet updates for a week may be saved days later.
  */
-export const DEFAULT_FALL_BALL_WEEK_DATES: Readonly<Record<number, string>> = { 1: "2026-09-12", 2: "2026-09-26", 3: "2026-10-10" };
+export const DEFAULT_FALL_BALL_WEEK_DATES: Readonly<Record<number, string>> = { 1: "2026-09-12", 2: "2026-09-26", 3: "2026-10-10", 4: "2026-10-16" };
 let weekDates: Readonly<Record<number, string>> = DEFAULT_FALL_BALL_WEEK_DATES;
 /** Team-wide, non-sensitive dates; every request applies the same latest saved values. */
 export function setFallBallWeekDates(dates: Readonly<Record<number, string>>): void {

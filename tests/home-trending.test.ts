@@ -27,6 +27,18 @@ const weeks = () => ({ hitting: [week("hitting", 1, {"SYN-0": hit(2), "SYN-1": h
   pitching: [week("pitching", 1, {"SYN-0": pitch(5), "SYN-1": pitch(4)}), week("pitching", 2, {"SYN-0": pitch(2), "SYN-1": pitch(6)})] });
 
 describe("staff Trending Up", () => {
+  it("compares the Boxer World Series with the last Fall Ball week once BWS is saved", () => {
+    const bwsPitching = { ...week("pitching", 0, {"SYN-0": pitch(0), "SYN-1": pitch(9)}), label: "Boxer World Series" };
+    bwsPitching.rows = bwsPitching.rows.map(r => ({ ...r, event_id: "fall-2026-bws" }));
+    const bws = { hitting: { ...week("hitting", 0, {"SYN-0": hit(2), "SYN-1": hit(6)}), label: "Boxer World Series" }, pitching: bwsPitching };
+    const [hitting, pitching] = trendingPlayers(players, { ...weeks(), bws });
+    expect([hitting.beforeLabel, hitting.afterLabel]).toEqual(["Week 2", "BWS"]);
+    expect(hitting.players.map(p => p.code)).toEqual(["SYN-1"]);
+    expect(hitting.players[0].history.map(h => h.label)).toEqual(["Week 1", "Week 2", "BWS"]);
+    expect(pitching.players.map(p => p.code)).toEqual(["SYN-0"]);
+    // Without a saved BWS line, Fall Ball weeks still compare with each other.
+    expect(trendingPlayers(players, { ...weeks(), bws: { hitting: null, pitching: null } })[0].afterLabel).toBe("Week 2");
+  });
   it("compares individual weekly OPS and WHIP, keeps exact samples and improvement direction", () => {
     const [hitting, pitching] = trendingPlayers(players, weeks());
     expect(hitting.comparable).toBe(2);

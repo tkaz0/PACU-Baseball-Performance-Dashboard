@@ -66,10 +66,10 @@ it("never uses a current-week update, and falls back to the latest earlier updat
 });
 it("uses Pacific calendar weeks across UTC midnight and daylight saving time", () => {
   const trends = history();
-  trends.snapshotDates![source] = ["2026-10-25", "2026-10-26", "2026-11-01"];
-  trends[source]!.batting_avg = [{ date: "2026-10-25", value: .3 }, { date: "2026-10-26", value: .4 }, { date: "2026-11-01", value: .33 }];
-  // Monday UTC is still Sunday in Pacific after the DST transition.
-  expect(teamWeekChange(trends, source, metric(), "2026-11-02T07:30:00Z")).toMatchObject({ currentDate: "2026-11-01", previousDate: "2026-10-25" });
+  trends.snapshotDates![source] = ["2026-10-20", "2026-10-25", "2026-10-26", "2026-11-01"];
+  trends[source]!.batting_avg = [{ date: "2026-10-20", value: .31 }, { date: "2026-10-25", value: .3 }, { date: "2026-10-26", value: .4 }, { date: "2026-11-01", value: .33 }];
+  // Monday UTC is still Sunday in Pacific after the DST transition. During BWS the baseline is the last save before the series.
+  expect(teamWeekChange(trends, source, metric(), "2026-11-02T07:30:00Z")).toMatchObject({ currentDate: "2026-11-01", previousDate: "2026-10-20", tournament: true, fallback: false });
 });
 it("retains pending/empty snapshot days so earlier valid numbers cannot become the baseline", () => {
   const observation = (hits: number) => Object.entries({ ab: 4, base_hit: hits, pa: 4, bb: 0, hbp: 0, sac_fly: 0 }).map(([metric, value]) => ({ athleteCode: "SYN-001", metric, value, unit: "count", scope: "cumulative_fall" }));
@@ -126,6 +126,6 @@ it("compares BWS-inclusive Fall totals by saved update without fabricating Week 
  const trends=teamGameTrends([{id:"fictional-before",source:"pitching_fall_2026",fetched_at:"2026-10-18T00:00:00Z",observations:observations("fall-2026-week-4")},{id:"fictional-bws",source:"pitching_fall_2026",fetched_at:"2026-10-27T22:00:00Z",observations:[...observations("fall-2026-week-4"),...observations("fall-2026-bws")]}]);
  expect(trends.pitchingWeeks?.["2026-10-27"]).toBeNull();expect(trends.pitchingTournamentDates).toEqual(["2026-10-27"]);
  const m:TeamGameMetric={metric:"strike_pct",label:"Strike %",value:50,unit:"%",pending:false};
- const change=teamWeekChange(trends,"pitching_fall_2026",m,"2026-10-27T22:00:00Z");expect(change).toMatchObject({tournament:true,previousDate:"2026-10-17",percent:0});expect(change?.currentWeek).toBeUndefined();
- const html=renderToStaticMarkup(createElement(TeamGameTrendDisplay,{trends,source:"pitching_fall_2026",metric:m,updatedAt:"2026-10-27T22:00:00Z",compact:true}));expect(html).toContain("ongoing Boxer World Series");expect(html).not.toContain("Week 5");
+ const change=teamWeekChange(trends,"pitching_fall_2026",m,"2026-10-27T22:00:00Z");expect(change).toMatchObject({tournament:true,previousDate:"2026-10-17",previousWeek:4,percent:0});expect(change?.currentWeek).toBeUndefined();
+ const html=renderToStaticMarkup(createElement(TeamGameTrendDisplay,{trends,source:"pitching_fall_2026",metric:m,updatedAt:"2026-10-27T22:00:00Z",compact:true}));expect(html).toContain("vs Week 4");expect(html).toContain("with the Boxer World Series added");expect(html).not.toContain("Week 5");
 });
