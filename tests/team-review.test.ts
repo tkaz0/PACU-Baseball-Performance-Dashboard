@@ -3,7 +3,8 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { GameWeek } from "@/lib/game-weeks";
 import { teamGameSummary } from "@/lib/team-game-stats";
-import { teamReviewThemes, teamReviewTrends } from "@/lib/team-review";
+import { teamReviewThemes, teamReviewTrends, teamStatLeaders } from "@/lib/team-review";
+import type { GameLeaderboardRow } from "@/lib/game-metrics";
 import { TeamReviewSheet } from "@/components/team-review-sheet";
 import type { ReportCardArea } from "@/lib/team-report-card";
 
@@ -43,9 +44,18 @@ describe("team review sheet", () => {
   });
   it("renders two light pages with honest empty states", () => {
     const html = renderToStaticMarkup(createElement(TeamReviewSheet, { data: { generated: "2026-11-03", batting: null, pitching: null, reportCard: [],
-      trends: teamReviewTrends(null, { batting: null, pitching: null }, {}), races: null, weeks: [], hitters: [], pitchers: [], records: [], headshots: {} } }));
+      trends: teamReviewTrends(null, { batting: null, pitching: null }, {}), races: null, hittingLeaders: [], pitchingLeaders: [], qualifiedLabel: null, hitters: [], pitchers: [], records: [], headshots: {} } }));
     expect(html).toContain("Fall 2026 in Review"); expect(html).toContain("Week by Week");
     expect(html).toContain("Needs five complete lines to rank."); expect(html).toContain("No testing records saved.");
     expect(html.match(/aria-label="Team review, (front|back)"/g)).toHaveLength(2);
+  });
+  it("lists stat leaders: qualified players for rates (ties together), everyone for counts, lower-is-better reversed", () => {
+    const row = (code: string, metric: string, value: number, unit: string, opportunities = 20): GameLeaderboardRow => ({ metric, source: "qpa_fall_2026", eventId: "", playedOn: null, value, unit, rank: 1, name: `Fictional ${code}`, code, profileId: null, updatedAt: "2026-11-01T00:00:00Z", opportunities, percentile: null, sampleSize: 3 });
+    const rows = [row("PAC-0001", "batting_avg", .5, "avg", 2), row("PAC-0002", "batting_avg", .4, "avg"), row("PAC-0003", "batting_avg", .4, "avg"),
+      row("PAC-0002", "batting_k_pct", 20, "%"), row("PAC-0003", "batting_k_pct", 10, "%"), row("PAC-0001", "pumps", 3, "count")];
+    const leaders = teamStatLeaders(rows, "hitting", new Set(["PAC-0002", "PAC-0003"]), {});
+    expect(leaders.find(l => l.metric === "batting_avg")).toMatchObject({ value: ".400", names: ["Fictional PAC-0002", "Fictional PAC-0003"], sample: null });
+    expect(leaders.find(l => l.metric === "batting_k_pct")).toMatchObject({ value: "10.0%", names: ["Fictional PAC-0003"] });
+    expect(leaders.find(l => l.metric === "pumps")).toMatchObject({ label: "Home Runs", value: "3", names: ["Fictional PAC-0001"] });
   });
 });

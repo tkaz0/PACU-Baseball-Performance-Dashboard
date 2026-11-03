@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { ArrowLeft, LoaderCircle, Printer, RotateCcw } from "lucide-react";
 import { ExitMeetingHandout } from "@/components/exit-meeting-handout";
@@ -44,7 +44,8 @@ const PrintedHandout = memo(function PrintedHandout({ data, meetingDate, awards 
  * browser can save a single PDF. Each handout is two pages, so double-sided printing keeps players apart.
  * Talking points stay blank writing lines; nothing is saved.
  */
-export function ExitMeetingPrintAll({ players }: { players: { id: string; name: string }[] }) {
+export function ExitMeetingPrintAll({ players, teamSheet, teamUnavailable = [] }: { players: { id: string; name: string }[]; teamSheet?: ReactNode; teamUnavailable?: string[] }) {
+  const [includeTeam, setIncludeTeam] = useState(!!teamSheet);
   const [slots, setSlots] = useState<Record<string, Slot>>(() => Object.fromEntries(players.map(p => [p.id, { status: "waiting" } as Slot])));
   const [meetingDate, setMeetingDate] = useState(today);
   const started = useRef(false);
@@ -70,11 +71,12 @@ export function ExitMeetingPrintAll({ players }: { players: { id: string; name: 
   const done = ready.length + failed.length === players.length;
   const pct = players.length ? Math.round((ready.length + failed.length) / players.length * 100) : 100;
   return <div className={page.workspace}>
-    <header className={page.hero}><div><span className={page.eyebrow}>COACHING / EXIT MEETINGS</span><h1>Print All Handouts</h1><p>Every current player&apos;s front-and-back handout in one print job. Choose “Save as PDF” to download a single file. The <Link prefetch={false} href="/exit-meetings/team" className="text-link">Team Review Sheet</Link> prints separately.</p></div></header>
+    <header className={page.hero}><div><span className={page.eyebrow}>COACHING / EXIT MEETINGS</span><h1>Print All Handouts</h1><p>Every current player&apos;s front-and-back handout in one print job. Choose “Save as PDF” to download a single file. The <Link prefetch={false} href="/exit-meetings/team" className="text-link">Team Review Sheet</Link> prints first.</p></div></header>
     <section className={page.setup} style={{ position: "static" }} aria-label="Print all controls">
       <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "end" }}>
         <label className={page.selectLabel} style={{ marginTop: 0 }}>Meeting Date<input type="date" value={meetingDate} onChange={e => setMeetingDate(e.target.value)}/></label>
         <button className={page.download} style={{ width: "auto", padding: "13px 22px" }} disabled={!ready.length || !done} onClick={() => window.print()}><Printer size={18}/> Print / Save as PDF ({ready.length} players)</button>
+        {teamSheet && <label style={{ display: "inline-flex", gap: 8, alignItems: "center", fontSize: 13, fontWeight: 700 }}><input type="checkbox" checked={includeTeam} onChange={e => setIncludeTeam(e.target.checked)}/>Include Team Review Sheet first</label>}
         {failed.length > 0 && done && <button className={page.download} style={{ width: "auto", padding: "13px 22px", background: "#5b6270" }} onClick={() => run(failed.map(p => p.id))}><RotateCcw size={16}/> Retry {failed.length} failed</button>}
         <Link href="/exit-meetings" style={{ display: "inline-flex", gap: 6, alignItems: "center", fontSize: 12, fontWeight: 700 }}><ArrowLeft size={14}/> One player</Link>
       </div>
@@ -82,9 +84,10 @@ export function ExitMeetingPrintAll({ players }: { players: { id: string; name: 
         {done ? <strong>{failed.length ? `${ready.length} of ${players.length} handouts ready. ${failed.length} could not load: ${failed.map(p => p.name).join(", ")}.` : `All ${players.length} handouts are ready.`}</strong>
           : <span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}><LoaderCircle className={page.spin} size={16}/>Loading handouts… {ready.length + failed.length} of {players.length}</span>}
         <div style={{ marginTop: 8, height: 6, borderRadius: 999, background: "var(--line-subtle)", overflow: "hidden" }}><div style={{ width: `${pct}%`, height: "100%", background: "#c8102e", transition: "width .3s" }}/></div>
-        <small>{ready.length * 2} pages. Print double-sided (flip on the long edge) so each player is one sheet. Talking points print as blank lines; nothing is saved.</small>
+        {includeTeam && teamUnavailable.length > 0 && <p style={{ margin: "8px 0 0", color: "#b4232f", fontWeight: 700 }}>Team sheet: {teamUnavailable.join(", ")} unavailable. Refresh before printing.</p>}
+        <small>{(ready.length + (includeTeam && teamSheet ? 1 : 0)) * 2} pages. Print double-sided (flip on the long edge) so each player is one sheet. Talking points print as blank lines; nothing is saved.</small>
       </div>
     </section>
-    <div className={sheet.bundle}>{ready.map(p => { const data = slots[p.id].data!; return <PrintedHandout key={p.id} data={data} meetingDate={meetingDate} awards={awards[data.report.code] ?? NO_AWARDS}/>; })}</div>
+    <div className={sheet.bundle}>{includeTeam && teamSheet}{ready.map(p => { const data = slots[p.id].data!; return <PrintedHandout key={p.id} data={data} meetingDate={meetingDate} awards={awards[data.report.code] ?? NO_AWARDS}/>; })}</div>
   </div>;
 }

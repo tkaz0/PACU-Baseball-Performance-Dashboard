@@ -2,9 +2,9 @@ import { PacificLogo } from "@/components/pacific-brand";
 import { PlayerAvatar } from "@/components/player-avatar";
 import { gameValue } from "@/lib/game-metrics";
 import { gameSampleText } from "@/lib/game-opportunities";
-import type { BwsRaces, SpotlightWeek } from "@/lib/home-spotlight";
+import type { BwsRaces } from "@/lib/home-spotlight";
 import type { TeamRecord } from "@/lib/team-records";
-import { teamCount, teamRate, teamReviewThemes, type TeamReviewColumn, type TeamReviewTrend } from "@/lib/team-review";
+import { teamCount, teamRate, teamReviewThemes, type TeamReviewColumn, type TeamReviewTrend, type TeamStatLeader } from "@/lib/team-review";
 import type { ReportCardArea } from "@/lib/team-report-card";
 import type { TeamGameSummary } from "@/lib/team-game-stats";
 import { TOP_PERFORMER_METRICS, type TopPerformerRow } from "@/lib/top-performers";
@@ -15,7 +15,8 @@ export type TeamReviewData = {
   batting: TeamGameSummary | null; pitching: TeamGameSummary | null;
   reportCard: ReportCardArea[];
   trends: { columns: TeamReviewColumn[]; hitting: TeamReviewTrend[]; pitching: TeamReviewTrend[] };
-  races: BwsRaces | null; weeks: SpotlightWeek[];
+  races: BwsRaces | null;
+  hittingLeaders: TeamStatLeader[]; pitchingLeaders: TeamStatLeader[]; qualifiedLabel: string | null;
   hitters: TopPerformerRow[]; pitchers: TopPerformerRow[];
   records: TeamRecord[];
   headshots: Readonly<Record<string, string>>;
@@ -40,6 +41,11 @@ function Leaders({ rows, discipline, headshots }: { rows: TopPerformerRow[]; dis
   </li>)}</ol>;
 }
 
+function LeaderList({ rows }: { rows: TeamStatLeader[] }) {
+  if (!rows.length) return <p className={styles.empty}>No leaders available.</p>;
+  return <table className={styles.leaderTable}><tbody>{rows.map(row => <tr key={row.metric}><th scope="row">{row.label}</th><td>{row.names.join(", ")}{row.sample && <small> · {row.sample}</small>}</td><td>{row.value}</td></tr>)}</tbody></table>;
+}
+
 function Trend({ title, rows, columns }: { title: string; rows: TeamReviewTrend[]; columns: TeamReviewColumn[] }) {
   return <table className={styles.trend}>
     <thead><tr><th scope="col">{title}</th>{columns.map(c => <th key={c.key} scope="col" data-final={c.key === "fall" || undefined}>{c.label}{c.detail && <small>{c.detail}</small>}</th>)}</tr></thead>
@@ -48,17 +54,18 @@ function Trend({ title, rows, columns }: { title: string; rows: TeamReviewTrend[
 }
 
 /** Team exit-meeting sheet: two light letter pages printed alongside the player handouts. Presentation only. */
-export function TeamReviewSheet({ data }: { data: TeamReviewData }) {
+export function TeamReviewSheet({ data, bundle = false }: { data: TeamReviewData; bundle?: boolean }) {
   const { working, focus } = teamReviewThemes(data.reportCard);
   const mvp = data.races?.final ? data.races.mvp?.entries.filter(e => e.rank === 1) ?? [] : [];
   const cy = data.races?.final ? data.races.cyYoung?.entries.filter(e => e.rank === 1) ?? [] : [];
   const hitters = data.batting?.players ?? 0, pitchers = data.pitching?.players ?? 0;
-  return <div className={styles.sheet} data-testid="team-review-sheet">
+  return <div className={styles.sheet} data-testid="team-review-sheet" data-bundle={bundle || undefined}>
     <section className={styles.page} aria-label="Team review, front">
       <header className={styles.hero}>
         <div className={styles.heroBrand}><PacificLogo className={styles.logo} decorative/><span>Pacific Baseball · Fall 2026 Team Review</span><time dateTime={data.generated}>{day(data.generated)}</time></div>
         <h1>Fall 2026 in Review</h1>
         <p>{data.trends.columns.filter(c => c.key.startsWith("week-")).length} Fall Ball weeks{data.trends.columns.some(c => c.key === "bws") ? " + the Boxer World Series" : ""} · {hitters} hitters · {pitchers} pitchers with game stats</p>
+        {(mvp.length > 0 || cy.length > 0) && <p className={styles.heroAwards}>{mvp.length > 0 && <span>🏆 BWS MVP · {mvp.map(w => w.name).join(" & ")}</span>}{cy.length > 0 && <span>🏆 BWS Cy Young · {cy.map(w => w.name).join(" & ")}</span>}</p>}
         <span className={styles.watermark} aria-hidden="true">2026</span>
       </header>
       <div className={styles.body}>
@@ -70,10 +77,10 @@ export function TeamReviewSheet({ data }: { data: TeamReviewData }) {
         </section>
         <div className={styles.twoCol}>
           <section className={styles.panel}><h2>Hitting · Fall Final</h2>
-            <StatGrid summary={data.batting} metrics={["batting_ops", "batting_obp", "batting_est_slg", "batting_est_iso", "qpa_pct", "batting_k_pct", "batting_bb_pct", "batting_hh_pct"]} totals={[["pa", "PA"], ["base_hit", "H"], ["pumps", "HR"], ["sb", "SB"]]}/>
+            <StatGrid summary={data.batting} metrics={["batting_ops", "batting_avg", "batting_obp", "batting_est_slg", "batting_est_iso", "batting_est_wobacon", "qpa_pct", "batting_hh_pct", "batting_k_pct", "batting_bb_pct", "batting_8plus_pct", "batting_sb_per_pa"]} totals={[["pa", "PA"], ["base_hit", "H"], ["pumps", "HR"], ["sb", "SB"]]}/>
           </section>
           <section className={styles.panel}><h2>Pitching · Fall Final</h2>
-            <StatGrid summary={data.pitching} metrics={["pitching_whip", "pitching_k_bb", "pitching_k9", "pitching_bb9", "pitching_r9", "strike_pct"]} totals={[["innings_outs", "IP"], ["k", "K"], ["bb_outcome", "BB"], ["pitches", "pitches"]]}/>
+            <StatGrid summary={data.pitching} metrics={["pitching_whip", "pitching_k_bb", "pitching_k9", "pitching_bb9", "pitching_r9", "strike_pct", "pitching_fb_strike_pct", "pitching_breaking_strike_pct", "pitching_ch_strike_pct", "weak_contact_pct", "hard_contact_pct"]} totals={[["innings_outs", "IP"], ["k", "K"], ["bb_outcome", "BB"], ["pitches", "pitches"]]}/>
           </section>
         </div>
         <div className={styles.twoCol}>
@@ -85,18 +92,8 @@ export function TeamReviewSheet({ data }: { data: TeamReviewData }) {
           </section>
         </div>
         <section>
-          <h2>Awards</h2>
-          <div className={styles.awards}>
-            {[["BWS MVP", mvp], ["BWS Cy Young", cy]].map(([title, winners]) => <div key={title as string} className={styles.award}>
-              <span className={styles.trophy}>🏆 {title as string}</span>
-              {(winners as typeof mvp).length ? (winners as typeof mvp).map(w => <span key={w.code} className={styles.winner}><PlayerAvatar name={w.name} path={data.headshots[w.code]} size={30}/><b>{w.name}</b><small>{w.headline.value} {w.headline.label}</small></span>) : <small className={styles.empty}>Not final</small>}
-            </div>)}
-          </div>
-          <table className={styles.potw}>
-            <thead><tr><th scope="col">Players of the Week</th><th scope="col">Hitter</th><th scope="col">Pitcher</th></tr></thead>
-            <tbody>{[...data.weeks].sort((a, b) => a.week - b.week).map(w => <tr key={w.week}><th scope="row">{w.label}</th>
-              {[w.hitting, w.pitching].map((c, i) => <td key={i}>{c ? <>{c.name}{c.tied ? " (tied)" : ""} <small>{c.headline.value} {c.headline.label}</small></> : <small>Not ranked</small>}</td>)}</tr>)}</tbody>
-          </table>
+          <h2>Fall Stat Leaders <small>{data.qualifiedLabel ? `rates among qualified players (${data.qualifiedLabel}); counting stats include everyone` : "rates among qualified players; counting stats include everyone"}</small></h2>
+          <div className={styles.twoCol}><LeaderList rows={data.hittingLeaders}/><LeaderList rows={data.pitchingLeaders}/></div>
         </section>
       </div>
       <p className={styles.foot}><span>Fall 2026 team review · Front</span><span>Independent project · Not an official university application</span></p>

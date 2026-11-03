@@ -2,6 +2,8 @@ import { fallBallWeekDates, type GameWeekSet } from "@/lib/game-weeks";
 import { formatInnings } from "@/lib/pitching-stats";
 import { formatTeamGameMetric, teamGameSummary, type TeamGameSummary } from "@/lib/team-game-stats";
 import type { ReportCardArea } from "@/lib/team-report-card";
+import { GAME_METRIC_LABELS, gameDirection, gameValue, type GameLeaderboardRow } from "@/lib/game-metrics";
+import { gameSampleText } from "@/lib/game-opportunities";
 
 export const TEAM_REVIEW_HITTING = ["batting_ops", "batting_obp", "batting_est_slg", "batting_est_iso", "qpa_pct", "batting_k_pct", "batting_bb_pct", "batting_hh_pct"] as const;
 export const TEAM_REVIEW_PITCHING = ["pitching_whip", "pitching_k_bb", "pitching_k9", "pitching_bb9", "pitching_r9", "strike_pct"] as const;
@@ -48,4 +50,31 @@ export function teamReviewTrends(weeks: GameWeekSet | null, fall: { batting: Tea
 /** Report-card areas at B or better are strengths; D or F are focus areas. C stays in neither list. */
 export function teamReviewThemes(areas: readonly ReportCardArea[]) {
   return { working: areas.filter(a => a.level >= 3), focus: areas.filter(a => a.level <= 1).sort((a, b) => a.level - b.level) };
+}
+
+export type TeamStatLeader = { metric: string; label: string; value: string; names: string[]; sample: string | null };
+const LEADER_LABELS: Record<string, string> = { pumps: "Home Runs", sb: "Stolen Bases", k: "Strikeouts", strike_pct: "Strike %" };
+/** Rate leaders come only from qualified players (the Qualified leaderboard minimum); counting stats include everyone. */
+export const TEAM_LEADER_METRICS = {
+  hitting: { rates: ["batting_avg", "batting_obp", "batting_ops", "batting_est_iso", "qpa_pct", "batting_bb_pct", "batting_k_pct"], counts: ["pumps", "sb"] },
+  pitching: { rates: ["pitching_whip", "pitching_k9", "pitching_k_bb", "pitching_bb9", "pitching_r9", "strike_pct"], counts: ["k"] },
+} as const;
+
+/**
+ * The best Fall value per stat from the signed-in game leaderboard projection, ties listed together. Direction follows
+ * the leaderboard (lower K%, WHIP, BB/9 and Runs/9 lead). Pitching uses the cumulative Fall rows only.
+ */
+export function teamStatLeaders(rows: readonly GameLeaderboardRow[], discipline: "hitting" | "pitching", qualified: ReadonlySet<string>, labels: Record<string, string>): TeamStatLeader[] {
+  const source = discipline === "hitting" ? "qpa_fall_2026" : "pitching_fall_2026";
+  const pool = rows.filter(r => r.source === source && (discipline === "hitting" || r.eventId === "fall-2026-cumulative") && Number.isFinite(r.value));
+  const metrics = TEAM_LEADER_METRICS[discipline];
+  return [...metrics.rates.map(m => [m, true] as const), ...metrics.counts.map(m => [m, false] as const)].flatMap(([metric, rate]) => {
+    const candidates = pool.filter(r => r.metric === metric && (!rate || qualified.has(r.code)));
+    if (!candidates.length) return [];
+    const lower = gameDirection(source, metric) === "lower";
+    const best = candidates.reduce((b, r) => lower ? Math.min(b, r.value) : Math.max(b, r.value), lower ? Infinity : -Infinity);
+    const top = candidates.filter(r => Math.abs(r.value - best) < 1e-9).sort((a, b) => a.name.localeCompare(b.name));
+    return [{ metric, label: LEADER_LABELS[metric] ?? labels[metric] ?? GAME_METRIC_LABELS[metric] ?? metric, value: gameValue(best, top[0].unit), names: top.map(r => r.name),
+      sample: top.length === 1 && top[0].opportunities != null ? gameSampleText(top[0].source, top[0].metric, top[0].opportunities) : null }];
+  });
 }
