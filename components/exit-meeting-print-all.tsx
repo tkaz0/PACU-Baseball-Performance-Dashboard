@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, LoaderCircle, Printer, RotateCcw } from "lucide-react";
 import { ExitMeetingHandout } from "@/components/exit-meeting-handout";
@@ -29,6 +29,11 @@ async function loadOne(id: string): Promise<Loaded> {
   }
   throw new Error(last);
 }
+
+/** Memoized so each newly loaded handout does not re-render and re-fit every handout already on the page. */
+const PrintedHandout = memo(function PrintedHandout({ data, meetingDate }: { data: Loaded; meetingDate: string }) {
+  return <HandoutFit><ExitMeetingHandout report={data.report} meetingDate={meetingDate} talkingPoints="" headshot={data.headshot} awards={data.awards}/></HandoutFit>;
+});
 
 /**
  * Loads every current player's handout (two at a time, with retries), then prints them as one job so the
@@ -71,6 +76,6 @@ export function ExitMeetingPrintAll({ players }: { players: { id: string; name: 
         <small>{ready.length * 2} pages. Print double-sided (flip on the long edge) so each player is one sheet. Talking points print as blank lines; nothing is saved.</small>
       </div>
     </section>
-    <div className={sheet.bundle}>{ready.map(p => { const d = slots[p.id].data!; return <HandoutFit key={p.id}><ExitMeetingHandout report={d.report} meetingDate={meetingDate} talkingPoints="" headshot={d.headshot} awards={d.awards}/></HandoutFit>; })}</div>
+    <div className={sheet.bundle}>{ready.map(p => <PrintedHandout key={p.id} data={slots[p.id].data!} meetingDate={meetingDate}/>)}</div>
   </div>;
 }
