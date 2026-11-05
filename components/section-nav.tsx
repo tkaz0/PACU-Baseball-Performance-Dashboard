@@ -25,13 +25,16 @@ export function SectionNav({ items, label }: { items: readonly { id: string; lab
       // A one-pixel reading line just below the sticky bar works on both phone and desktop.
       const stickyTop = Number.parseFloat(getComputedStyle(nav.current).top) || 0;
       const line = Math.min(window.innerHeight - 1, stickyTop + nav.current.offsetHeight + 16);
-      observer = new IntersectionObserver(() => {
+      // Whole, non-negative pixels: a zero-height or tiny window would otherwise give "--1px", which throws and
+      // took down the whole page (seen November 5 in a hidden browser pane).
+      const top = Math.max(0, Math.round(line)), bottom = Math.max(0, Math.round(window.innerHeight - line - 1));
+      try { observer = new IntersectionObserver(() => {
         const id = activeSectionAt(targets.map(target => {
           const { top, bottom } = target.getBoundingClientRect();
           return { id: target.id, top, bottom };
         }), line);
         if (id) setActive(id);
-      }, { rootMargin: `-${line}px 0px -${Math.max(0, window.innerHeight - line - 1)}px 0px` });
+      }, { rootMargin: `-${top}px 0px -${bottom}px 0px` }); } catch { observer = undefined; return; }
       targets.forEach(target => observer!.observe(target));
     };
     observe();
