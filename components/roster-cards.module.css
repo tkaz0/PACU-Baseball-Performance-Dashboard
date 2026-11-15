@@ -30,6 +30,6 @@
   .card { padding: 0 10px 12px; }
   .band { height: 60px; margin: 0 -10px -44px; }
   .number { font-size: 60px; }
-  .name { font-size: 18px; }
+  .name { font-size: 18px; white-space: normal; overflow-wrap: anywhere; }
   .stat b { font-size: 20px; }
 }
