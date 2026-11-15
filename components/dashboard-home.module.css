@@ -106,3 +106,10 @@
   .heroStats>div:nth-child(odd){padding-left:0;border-left:0}
   .heroStats dd{font-size:34px}
 }
+/* The branded hero stays dark in every theme (its artwork and white type assume a dark banner). */
+:global(html[data-theme="light"]) .welcome{border:0;background:#0d0e12;color:#fff}
+:global(html[data-theme="light"]) .welcome .kicker{color:#f0c3ca}
+:global(html[data-theme="light"]) .welcomeTitle>div>p:last-child{color:#e2e5ec}
+:global(html[data-theme="light"]) .heroAction{border-color:#ffffff35;color:#fff;background:#ffffff0d}
+:global(html[data-theme="light"]) .markOnDark{display:contents}
+:global(html[data-theme="light"]) .markOnLight{display:none}
