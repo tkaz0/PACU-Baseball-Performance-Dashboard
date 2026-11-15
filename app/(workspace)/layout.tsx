@@ -1,3 +1,4 @@
+import { WelcomeSplash } from "@/components/welcome-splash";
 import { requireRenderAccess as requireAccess } from "@/lib/render-access";
 import { PlayerProfileGuide } from "@/components/player-profile-guide";
 import { Sidebar } from "@/components/sidebar";
@@ -22,6 +23,7 @@ export default async function WorkspaceLayout({ children }: { children: React.Re
   return <div className="workspace-shell">
     <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:bg-white focus:p-4">Skip to content</a>
     <Sidebar roles={roles} athleteId={athleteId} isPreview={!!preview} designNavigation={designNavigation} />
+    <WelcomeSplash/>
     <div className="app-body workspace-body">
       <header className="workspace-topbar">
         <p className="workspace-context"><span className="topbar-diamond" aria-hidden="true" />Boxer Baseball <span className="workspace-context-detail">/ Player Development</span></p>

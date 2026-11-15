@@ -10,11 +10,18 @@ export function HitterSprayMap({ contacts, bats, onSelect, videoKeys = new Set<s
   const radius=Math.max(400,Math.ceil(Math.max(...rows.map(row=>row.distance!))/100)*100);
   const scale=270/radius, originX=350,originY=330;
   const coords=(degrees:number,feet:number)=>({x:originX+Math.sin(degrees*Math.PI/180)*feet*scale,y:originY-Math.cos(degrees*Math.PI/180)*feet*scale});
+  const fan=(feet:number)=>`M ${originX} ${originY} L ${Array.from({length:37},(_,i)=>coords(-45+i*2.5,feet)).map(point=>`${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" L ")} Z`;
   const arc=(feet:number)=>{
     const parts=Array.from({length:49},(_,i)=>coords(-60+i*2.5,feet));
     return `M ${parts.map(point=>`${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" L ")}`;
   };
   return <div className="mt-4"><div className="overflow-x-auto"><svg viewBox="0 0 700 375" role="img" aria-label={`Spray plot of ${rows.length} balls using their recorded direction and distance; positive direction faces first base`} className="min-w-[530px] w-full rounded-xl bg-[var(--surface-raised)]">
+    {/* Field shading (presentation only): outfield grass, infield dirt and the infield grass square. */}
+    <path d={fan(Math.min(radius,390))} fill="rgb(56 142 86 / 20%)"/>
+    <path d={fan(Math.min(radius,390))} fill="url(#spray-mow)"/>
+    <path d={fan(INFIELD_DISTANCE_FEET)} fill="rgb(181 124 74 / 26%)"/>
+    <path d={`M ${originX} ${originY-74*scale} L ${originX+63*scale} ${originY-63*scale} L ${originX} ${originY-52*scale} L ${originX-63*scale} ${originY-63*scale} Z`} fill="rgb(56 142 86 / 30%)"/>
+    <defs><pattern id="spray-mow" width="22" height="22" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="11" height="22" fill="rgb(255 255 255 / 4%)"/></pattern></defs>
     <path d={`M ${coords(-45,radius).x} ${coords(-45,radius).y} L ${originX} ${originY} L ${coords(45,radius).x} ${coords(45,radius).y}`} fill="none" stroke="var(--text-secondary)" strokeWidth="1.5"/>
     {[100,200,300,400].filter(feet=>feet<=radius).map(feet=><g key={feet}><path d={arc(feet)} fill="none" stroke="var(--line-subtle)" strokeDasharray="4 5"/><text x={originX+5} y={coords(0,feet).y-4} fill="var(--text-secondary)" fontSize="11">{feet} ft</text></g>)}
     <path d={arc(INFIELD_DISTANCE_FEET)} fill="none" stroke="var(--accent-readable)" strokeWidth="1.5" strokeDasharray="5 5"/>

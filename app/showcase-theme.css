@@ -123,7 +123,82 @@ html[data-theme="light"] .workspace-main .eyebrow { color: var(--accent-readable
 html[data-theme="light"] .workspace-main th { color: #6a6f79; }
 html[data-theme="light"] .workspace-topbar { background: color-mix(in srgb, #ffffff 82%, transparent); }
 
+/* Leaderboard podiums: medal cards that match Team Records */
+.workspace-main [class*="leaderboard-module__podium"] li {
+  border: 1px solid color-mix(in srgb, var(--medal) 34%, var(--line-subtle)); border-top-width: 1px;
+  background: radial-gradient(ellipse 90% 70% at 50% 0%, color-mix(in srgb, var(--medal) 20%, transparent), transparent 72%), var(--surface-panel);
+  overflow: visible;
+}
+.workspace-main [class*="leaderboard-module__podium"] li::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; border-radius: 12px 12px 0 0; background: linear-gradient(90deg, color-mix(in srgb, var(--medal) 55%, #fff), var(--medal), color-mix(in srgb, var(--medal) 70%, #000)); }
+.workspace-main [class*="leaderboard-module__podiumRank"] {
+  top: -14px; width: 28px; height: 28px; font-family: var(--font-display); font-size: 15px;
+  background: radial-gradient(circle at 30% 25%, color-mix(in srgb, var(--medal) 45%, #fff), var(--medal) 60%, color-mix(in srgb, var(--medal) 65%, #000));
+  box-shadow: 0 4px 10px -3px color-mix(in srgb, var(--medal) 85%, transparent), inset 0 1px 0 rgb(255 255 255 / 45%);
+}
+.workspace-main [class*="leaderboard-module__podiumPhoto"] { box-shadow: 0 0 0 2px var(--surface-panel), 0 0 0 5px var(--medal), 0 12px 22px -12px rgb(0 0 0 / 70%); }
+.workspace-main [class*="leaderboard-module__podiumName"] { font-family: var(--font-display); font-size: 16px; text-transform: uppercase; letter-spacing: .01em; }
+
+/* Profile stat cards: a colored top edge by area and display-font numbers */
+.performance-metric-card { --area: var(--brand-red); position: relative; overflow: hidden; }
+.performance-metric-card[data-group="pitching"] { --area: #3f7fc9; }
+.performance-metric-card[data-group="throwing"] { --area: #2f9e8f; }
+.performance-metric-card[data-group="body"] { --area: #8a8f98; }
+.performance-metric-card::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; background: linear-gradient(90deg, var(--area), color-mix(in srgb, var(--area) 20%, transparent)); }
+.performance-metric-card:not(.border-dashed) { background: radial-gradient(ellipse 80% 60% at 100% 0%, color-mix(in srgb, var(--area) 8%, transparent), transparent 70%), var(--surface-panel) !important; }
+.performance-metric-card [class*="__metricValue"] { font-family: var(--font-display); font-size: 38px; font-weight: 800; letter-spacing: .005em; }
+@media (max-width: 600px) { .performance-metric-card [class*="__metricValue"] { font-size: 32px; } }
+
+/* Branded page banner (Team Game Stats) */
+.page-banner { position: relative; isolation: isolate; overflow: hidden; margin-bottom: 22px; padding: 30px 32px 24px; border-radius: 18px; color: #fff;
+  background: radial-gradient(ellipse 55% 120% at 100% 0%, #c8102e66, transparent 65%), radial-gradient(ellipse 45% 90% at 0% 100%, #c8102e26, transparent 70%), linear-gradient(115deg, #0d0e12 0%, #16101a 55%, #2a0a12 100%);
+  box-shadow: 0 24px 50px -30px rgb(0 0 0 / 70%); }
+.page-banner-top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.page-banner-eyebrow { margin: 0 0 8px; color: #f0c3ca; font-size: 12px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; }
+.page-banner .page-title { color: #fff; font-size: clamp(40px, 4.8vw, 64px); text-shadow: 0 2px 24px rgb(0 0 0 / 45%); }
+.page-banner-description { margin: 8px 0 0; color: #e2e5ec; font-size: 14px; }
+.page-banner-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.page-banner-actions .btn-secondary { border-color: #ffffff35 !important; background: #ffffff0d !important; color: #fff !important; }
+.page-banner-actions .btn-secondary:hover { background: #ffffff1c !important; }
+.page-banner-stats { display: flex; flex-wrap: wrap; gap: 14px 0; margin: 20px 0 0; padding-top: 16px; border-top: 1px solid #ffffff2e; }
+.page-banner-stats > div { padding: 0 26px; border-left: 1px solid #ffffff26; }
+.page-banner-stats > div:first-child { padding-left: 0; border-left: 0; }
+.page-banner-stats dt { color: #f0c3ca; font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+.page-banner-stats dd { margin: 5px 0 0; font-family: var(--font-display); font-size: clamp(30px, 3.2vw, 44px); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+@media (max-width: 700px) {
+  .page-banner { padding: 22px 20px 20px; }
+  .page-banner-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .page-banner-stats > div { padding: 0 0 0 14px; }
+  .page-banner-stats > div:nth-child(odd) { padding-left: 0; border-left: 0; }
+}
+
+/* Page transitions: each page fades in when it mounts (template.tsx) */
+.page-transition { min-width: 0; }
+@keyframes showcasePageIn { from { opacity: 0; } }
+@media (prefers-reduced-motion: no-preference) { .page-transition { animation: showcasePageIn .28s ease-out backwards; } }
+
+/* Signed-in welcome splash: once per browser session, skippable */
+.welcome-splash { display: none; }
+html[data-welcome] .welcome-splash {
+  position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; cursor: pointer; color: #fff;
+  background: radial-gradient(ellipse 70% 60% at 50% 40%, rgb(200 16 46 / 38%), transparent 70%), #0b0c10;
+  animation: showcaseSplashIn .35s ease-out both;
+}
+html[data-welcome="leaving"] .welcome-splash { animation: showcaseSplashOut .45s ease-in both; }
+.welcome-splash-inner { display: grid; justify-items: center; gap: 14px; padding: 24px; text-align: center; }
+.welcome-splash-ball { width: 46px; height: 46px; color: #ff6b7d; animation: showcaseSpin 1.2s linear infinite; }
+.welcome-splash-ball svg { display: block; width: 100%; height: 100%; }
+.welcome-splash-logo { width: 74px; animation: showcaseRise .5s .1s cubic-bezier(.2, .7, .2, 1) backwards; }
+.welcome-splash-quote { margin: 0; font-family: var(--font-display); font-size: clamp(44px, 7vw, 92px); font-weight: 800; line-height: .92; text-transform: uppercase; animation: showcaseRise .55s .2s cubic-bezier(.2, .7, .2, 1) backwards; }
+.welcome-splash-quote > span { display: block; }
+.welcome-splash-quote > span:last-child { color: #ff8d9a; }
+.welcome-splash-kicker { margin: 0; color: #c9ccd4; font-size: 12px; font-weight: 800; letter-spacing: .24em; text-transform: uppercase; animation: showcaseRise .5s .35s ease-out backwards; }
+@keyframes showcaseSplashIn { from { opacity: 0; } }
+@keyframes showcaseSplashOut { to { opacity: 0; visibility: hidden; } }
+@media (prefers-reduced-motion: reduce) { html[data-welcome] .welcome-splash { display: none; } }
+
 @media print {
-  .brand-backdrop { display: none; }
+  .brand-backdrop, .welcome-splash { display: none !important; }
+  .page-banner { background: none; box-shadow: none; }
+  .page-banner, .page-banner * { color: #000 !important; text-shadow: none !important; }
   .workspace-main * { animation: none !important; }
 }

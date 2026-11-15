@@ -11,8 +11,9 @@ import { AthleteGameStats } from "@/components/athlete-game-stats";
 import { TeamGameStats } from "@/components/team-game-stats";
 import { TeamReportCard } from "@/components/team-report-card";
 import { teamReportCard } from "@/lib/team-report-card";
-import { teamGameSummary } from "@/lib/team-game-stats";
+import { formatTeamGameMetric, teamGameSummary } from "@/lib/team-game-stats";
 import { PageHeading } from "@/components/page-heading";
+import { PageBanner } from "@/components/page-banner";
 import { TEAM_HISTORY_SPAN } from "@/lib/stat-benchmarks";
 import { loadFallBallWeeks } from "@/lib/fall-ball-weeks-server";
 import { SectionNav } from "@/components/section-nav";
@@ -37,7 +38,9 @@ export default async function GameStatsPage() {
       names = new Map((data ?? []).map(a => [a.id, `${a.first_name} ${a.last_name}`]));
     }
     const batting = teamGameSummary(stats, "qpa_fall_2026"), pitching = teamGameSummary(stats, "pitching_fall_2026"), today = pacificTestingDate();
-    return <><PageHeading section="Team" title="Team Game Stats" description="Fall 2026 · Cumulative hitting and pitching."><Link href="/game-stats/review" className="btn btn-secondary">Data Review</Link><Link href="/game-stats/weeks" className="btn btn-secondary">Fall Ball Weeks</Link></PageHeading><div className="mb-5"><ScaleLegend low="Poor" high="Elite" note={`Bands compare the team with Northwest Conference team-seasons from ${TEAM_HISTORY_SPAN}. Red marks the top band, as on Baseball Savant.`}/></div><DataFreshness source="the hitting sheet" weeks={weeksAfterUpdate(batting.updatedAt, weekDates, today)} updatedAt={batting.updatedAt}>Hitting rates and change badges stop at the last update.</DataFreshness><DataFreshness source="the pitching sheet" weeks={weeksAfterUpdate(pitching.updatedAt, weekDates, today)} updatedAt={pitching.updatedAt}>Pitching rates and change badges stop at the last update.</DataFreshness><SectionNav label="Team stats sections" items={ids.length ? SECTIONS : SECTIONS.slice(0, 3)}/><TeamReportCard id="team-report-card" areas={teamReportCard(batting,pitching)}/><TeamGameStats stats={stats} names={names} streamedTrend={(source,metric,updatedAt,compact)=><Suspense fallback={null}><TeamGameTrend trends={trends} source={source} metric={metric} updatedAt={updatedAt} compact={compact}/></Suspense>}/></>;
+    const bannerStat = (summary: typeof batting, key: string, label: string) => { const m = summary.rates.find(r => r.metric === key && !r.pending && r.value !== null); return m ? [{ label, value: formatTeamGameMetric(m) }] : []; };
+    const bannerStats = [...bannerStat(batting, "batting_ops", "Team OPS"), ...bannerStat(batting, "batting_obp", "Team OBP"), ...bannerStat(pitching, "pitching_whip", "Team WHIP"), ...bannerStat(pitching, "pitching_k9", "Team K/9"), ...bannerStat(pitching, "pitching_k_bb", "Team K/BB")];
+    return <><PageBanner section="Team" title="Team Game Stats" description="Fall 2026 · Cumulative hitting and pitching." stats={bannerStats}><Link href="/game-stats/review" className="btn btn-secondary">Data Review</Link><Link href="/game-stats/weeks" className="btn btn-secondary">Fall Ball Weeks</Link></PageBanner><div className="mb-5"><ScaleLegend low="Poor" high="Elite" note={`Bands compare the team with Northwest Conference team-seasons from ${TEAM_HISTORY_SPAN}. Red marks the top band, as on Baseball Savant.`}/></div><DataFreshness source="the hitting sheet" weeks={weeksAfterUpdate(batting.updatedAt, weekDates, today)} updatedAt={batting.updatedAt}>Hitting rates and change badges stop at the last update.</DataFreshness><DataFreshness source="the pitching sheet" weeks={weeksAfterUpdate(pitching.updatedAt, weekDates, today)} updatedAt={pitching.updatedAt}>Pitching rates and change badges stop at the last update.</DataFreshness><SectionNav label="Team stats sections" items={ids.length ? SECTIONS : SECTIONS.slice(0, 3)}/><TeamReportCard id="team-report-card" areas={teamReportCard(batting,pitching)}/><TeamGameStats stats={stats} names={names} streamedTrend={(source,metric,updatedAt,compact)=><Suspense fallback={null}><TeamGameTrend trends={trends} source={source} metric={metric} updatedAt={updatedAt} compact={compact}/></Suspense>}/></>;
   }
 
   // Player View follows the presented athlete even when the real account is an Admin.

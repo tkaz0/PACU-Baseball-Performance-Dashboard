@@ -4,7 +4,7 @@ import { percentileColor } from "@/lib/percentile-color";
 export type GraphicsFormat = "square" | "portrait" | "story" | "landscape";
 export type GraphicsTheme = "black" | "red" | "cream";
 export interface GraphicsCard {
-  kind: "player" | "spotlight" | "percentiles" | "arsenal" | "trend" | "leaderboard" | "comparison" | "dashboard" | "weekly";
+  kind: "player" | "trading" | "spotlight" | "percentiles" | "arsenal" | "trend" | "leaderboard" | "comparison" | "dashboard" | "weekly";
   title: string;
   subtitle: string;
   kicker?: string;
@@ -82,7 +82,7 @@ export function renderGraphics(card: GraphicsCard, options: GraphicsOptions): st
   const { width, height } = graphicsSize(options.format), p = palettes[options.theme] ?? palettes.black;
   const wide = width > height, margin = wide ? 76 : 64, inner = width - margin * 2;
   const rawMetrics = card.metrics ?? [];
-  const commonSample = ["player", "percentiles"].includes(card.kind) && rawMetrics.length > 1 && clean(rawMetrics[0].sample ?? "") && rawMetrics.every(metric => metric.sample === rawMetrics[0].sample) ? rawMetrics[0].sample : undefined;
+  const commonSample = ["player", "trading", "percentiles"].includes(card.kind) && rawMetrics.length > 1 && clean(rawMetrics[0].sample ?? "") && rawMetrics.every(metric => metric.sample === rawMetrics[0].sample) ? rawMetrics[0].sample : undefined;
   const metrics = commonSample ? rawMetrics.map(metric => ({ ...metric, sample: undefined })) : rawMetrics;
   const parts: string[] = [];
   const overflow = () => { throw new Error("These selected stats need a larger format. Choose Story or select fewer stats."); };
@@ -204,6 +204,35 @@ export function renderGraphics(card: GraphicsCard, options: GraphicsOptions): st
       const heroHeight = Math.max(220, body.h * .43);
       metricTile(metrics[0], { ...body, h: heroHeight }, true);
       grid(metrics.slice(1), { ...body, y: body.y + heroHeight + 18, h: body.h - heroHeight - 18 }, 2);
+    }
+  } else if (card.kind === "trading") {
+    // Trading-card frame: accent band with a faint position mark, then up to three big stat columns.
+    if (!metrics.length) empty(body, "No verified metrics available");
+    else {
+      if (metrics.length > 3) overflow();
+      rect(body, p.panel, 26, p.accent);
+      parts.push('<rect x="' + n(body.x + 2) + '" y="' + n(body.y + 2) + '" width="' + n(body.w - 4) + '" height="' + n(body.h - 4) + '" rx="24" fill="none" stroke="' + p.accent + '" stroke-width="4"/>');
+      const band: Box = { x: body.x + 18, y: body.y + 18, w: body.w - 36, h: Math.min(body.h * .4, 360) };
+      rect(band, p.accent, 16);
+      for (let x = band.x - band.h; x < band.x + band.w; x += 46) parts.push('<line x1="' + n(Math.max(band.x, x)) + '" y1="' + n(x < band.x ? band.y + (band.x - x) : band.y) + '" x2="' + n(Math.min(band.x + band.w, x + band.h)) + '" y2="' + n(x + band.h > band.x + band.w ? band.y + (band.x + band.w - x) : band.y + band.h) + '" stroke="' + p.accentInk + '" stroke-opacity=".12" stroke-width="6"/>');
+      const mark = clean((card.meta ?? "").split(" · ")[0] ?? "").toUpperCase();
+      if (mark) parts.push('<text x="' + n(band.x + band.w - 26) + '" y="' + n(band.y + band.h - 28) + '" font-size="' + n(Math.min(band.h * .78, 260)) + '" fill="' + p.accentInk + '" fill-opacity=".2" font-weight="900" text-anchor="end">' + escape(mark) + "</text>");
+      fit(card.title, band.x + 32, band.y + 62, band.w * .62, 40, 22, p.accentInk, 800);
+      const stats: Box = { x: body.x + 18, y: band.y + band.h + 22, w: body.w - 36, h: body.y + body.h - 18 - (band.y + band.h + 22) };
+      if (stats.h < 190) overflow();
+      const columns = metrics.length, cell = stats.w / columns;
+      metrics.forEach((metric, i) => {
+        const x = stats.x + i * cell, cx = x + cell / 2;
+        if (i) line(x, stats.y + 24, x, stats.y + stats.h - 24, p.line, 2);
+        const labelRows = wrap(metric.label, cell - 36, 26);
+        if (labelRows.length > 2) overflow();
+        labelRows.forEach((row, r) => text(row, cx, stats.y + 48 + r * 31, 26, p.muted, 700, "middle"));
+        const samples = detailLines(metric.sample, cell - 36, 19);
+        const top = stats.y + 60 + labelRows.length * 31, bottom = stats.y + stats.h - 24 - samples.length * 24;
+        const size = Math.min(columns === 1 ? 190 : 120, Math.max(30, (bottom - top) * .8));
+        fit(display(metric.value), cx, top + (bottom - top) / 2 + size * .36, cell - 36, size, 30, p.ink, 800, "middle");
+        drawLines(samples, cx, bottom + 20, 19, p.muted, "middle");
+      });
     }
   } else if (card.kind === "spotlight") {
     if (!metrics.length) empty(body, "No verified metric available");

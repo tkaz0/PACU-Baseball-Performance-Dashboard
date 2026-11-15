@@ -6,6 +6,7 @@ export type GraphicsTemplate = GraphicsCard["kind"];
 export const GRAPHICS_TEMPLATES: { id: GraphicsTemplate; label: string; description: string; staffOnly?: boolean }[] = [
   { id: "dashboard", label: "About PACU", description: "Share the dashboard." },
   { id: "player", label: "Player Card", description: "A player and their stats." },
+  { id: "trading", label: "Trading Card", description: "A player card with three big stats." },
   { id: "spotlight", label: "One Stat", description: "Put one number up front." },
   { id: "percentiles", label: "Team Percentiles", description: "Compare matching team results." },
   { id: "arsenal", label: "Pitch Arsenal", description: "Velocity and spin by pitch." },
@@ -58,7 +59,7 @@ export function graphicsMetricGroups(metrics: GraphicsMetric[]) {
 export function selectedGraphicsMetrics(data: GraphicsPlayerData | null, groupKey: string, keys: string[], template: GraphicsTemplate): GraphicsMetric[] {
   const available = (data?.metrics ?? []).filter(metric => graphicsGroupKey(metric) === groupKey && (template !== "percentiles" || metric.percentile !== null));
   const selected = available.filter(metric => keys.includes(metric.key));
-  return (selected.length ? selected : available).slice(0, template === "spotlight" ? 1 : 6);
+  return (selected.length ? selected : available).slice(0, template === "spotlight" ? 1 : template === "trading" ? 3 : 6);
 }
 const comparisonMatches = (first: GraphicsMetric, second: GraphicsMetric) => first.key === second.key && first.unit === second.unit && first.source === second.source && first.context === second.context;
 /** The UI may offer this intersection; the builder still requires every selected metric to match. */
@@ -130,7 +131,7 @@ export function buildGraphicsCard(options: GraphicsCardOptions): GraphicsCard | 
   }
   if (!metrics.length || new Set(metrics.map(graphicsGroupKey)).size !== 1) return null;
   const dates = [...new Set(metrics.map(metric => metric.date))].sort();
-  const base: GraphicsCard = { kind: template, title: headline || (template === "spotlight" ? "STAT SPOTLIGHT" : template === "percentiles" ? "TEAM PERCENTILES" : `${labels[metrics[0].category].toUpperCase()} STATS`), subtitle: "", ...identity,
+  const base: GraphicsCard = { kind: template, title: headline || (template === "spotlight" ? "STAT SPOTLIGHT" : template === "trading" ? "PACIFIC BOXERS" : template === "percentiles" ? "TEAM PERCENTILES" : `${labels[metrics[0].category].toUpperCase()} STATS`), subtitle: "", ...identity,
     kicker: graphicsContextLabel(metrics[0]), source: `${metrics[0].source} · ${metrics[0].context}`, updated: dates.join(" / "),
     metrics: metrics.map(metric => ({ label: metric.label, value: metric.formatted, percentile: metric.percentile, sample: compactGraphicsSample(metric.sample) })), captionDetails: metrics.map(metricDetail),
     footerNotes: [...metricNotes(metrics), ...(template === "percentiles" ? ["Percentiles compare matching Pacific team results, not national rankings. Body, spin and angle percentiles are descriptive."] : [])] };
