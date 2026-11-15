@@ -64,8 +64,14 @@ const renderCachedGameWeeks = cache(async (access: WeeksAccess): Promise<WeeksRe
   if (!staff && !(access.roles.includes("player") && access.athleteId)) return null;
   await loadFallBallWeeks(access);
   // Staff read only the versions they need; any problem falls back to the original projection RPC.
-  const inputs = (staff ? staffWeekInputs(access).then(data => ({ data, error: null })) : Promise.reject(new Error("player"))).catch(() => access.supabase.rpc("team_game_week_inputs"));
-  const [{ data, error }, champs] = await Promise.all([inputs, access.supabase.rpc("bws_champion_codes")]);
+  // Both reads run inside async functions so a failure (including a missing client) rejects into Promise.all
+  // instead of escaping as an unhandled rejection.
+  const readInputs = async () => {
+    if (staff) try { return { data: await staffWeekInputs(access), error: null }; } catch { /* fall back to the RPC */ }
+    return await access.supabase.rpc("team_game_week_inputs");
+  };
+  const readChampions = async () => await access.supabase.rpc("bws_champion_codes");
+  const [{ data, error }, champs] = await Promise.all([readInputs(), readChampions()]);
   // Champion PAC codes (November 2): a missing or failed reader keeps the series standings instead of awards.
   const champions = !champs.error && Array.isArray(champs.data) && champs.data.length > 0 && champs.data.every(code => text(code, 40)) ? champs.data as string[] : null;
   if (error || !data || typeof data !== "object" || !Array.isArray(data.players) || !Array.isArray(data.snapshots)) throw new Error("Weekly game stats could not be loaded.");
