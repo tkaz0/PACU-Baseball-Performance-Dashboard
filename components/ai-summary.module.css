@@ -1,0 +1,13 @@
+.card { margin-bottom: 16px; padding: 16px 18px; border: 1px solid var(--line-subtle); border-radius: 14px; background: linear-gradient(140deg, color-mix(in srgb, var(--accent-readable) 6%, var(--surface-panel)), var(--surface-panel) 65%); }
+.head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.title { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-display, inherit); font-size: 19px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; }
+.badge { padding: 2px 8px; border: 1px solid var(--line-subtle); border-radius: 999px; color: var(--text-secondary); font-size: 12px; font-weight: 700; }
+.button { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border: 1px solid color-mix(in srgb, var(--accent-readable) 50%, transparent); border-radius: 10px; background: color-mix(in srgb, var(--accent-readable) 12%, transparent); color: var(--text-primary); font-size: 13px; font-weight: 700; cursor: pointer; }
+.button:disabled { opacity: .7; cursor: progress; }
+.muted { margin: 10px 0 0; color: var(--text-secondary); font-size: 14px; }
+.error { margin: 10px 0 0; color: #e0566b; font-size: 14px; font-weight: 600; }
+.text { margin-top: 12px; display: grid; gap: 10px; font-size: 15px; line-height: 1.6; }
+.text p { margin: 0; white-space: pre-line; }
+.note { margin: 12px 0 0; color: var(--text-secondary); font-size: 12px; }
+.spin { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }

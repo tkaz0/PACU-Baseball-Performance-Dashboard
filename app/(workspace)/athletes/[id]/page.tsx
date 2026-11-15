@@ -57,6 +57,8 @@ import { weeksAfterUpdate } from "@/lib/data-freshness";
 import { teamGameSummary } from "@/lib/team-game-stats";
 import { loadMissingFullSwingWeeks } from "@/lib/full-swing-week-gaps-server";
 import { fallBallWeekDates } from "@/lib/game-weeks";
+import { AiSummary } from "@/components/ai-summary";
+import { aiEnabled } from "@/lib/ai-server";
 
 export default async function Profile({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ preview?: string; focus?: string; goal?: string; tab?: string | string[]; detail?: string | string[] }> }) {
   const access = await requireAccess();
@@ -126,7 +128,7 @@ export default async function Profile({ params, searchParams }: { params: Promis
   return <>
     <AccessPreviewNotice status={query?.preview} isPreview={!!access.preview} />
     <div className="profile-toolbar">{staff ? <Link href="/roster" className="profile-back"><ArrowLeft size={15} />Team Roster</Link> : <span/>}<div className="profile-toolbar-actions">{canImportPresentedAccess(access) && <Link href="/imports" className="btn btn-secondary" title="Import Results"><Upload size={15} aria-hidden="true"/><span className="profile-toolbar-label">Import Results</span></Link>}<Link prefetch={false} href={`/graphics?athlete=${athlete.id}`} className="btn btn-secondary" title="Make Graphic"><ImageIcon size={15} aria-hidden="true"/><span className="profile-toolbar-label">Make Graphic</span></Link><Link prefetch={false} href={`/athletes/${athlete.id}/report`} className="btn btn-secondary" title="Player Report"><FileText size={15} aria-hidden="true"/><span className="profile-toolbar-label">Player Report</span></Link></div></div>
-    <PlayerPerformanceProfile bwsAwards={await awardsPromise} fallStory={!selectedTab || selectedTab === "overview" ? <FallStory readings={readings} weekDates={fallBallWeekDates()} today={today}/> : undefined} tabNotice={tabNotice} blastBatSpeedPercentile={blastBatSpeedPercentile} detail={detail} selectedTab={selectedTab} navigationPath={`/athletes/${athlete.id}`}
+    <PlayerPerformanceProfile bwsAwards={await awardsPromise} fallStory={!selectedTab || selectedTab === "overview" ? <>{canImportPresentedAccess(access) && <AiSummary athleteId={athlete.id} enabled={aiEnabled()}/>}<FallStory readings={readings} weekDates={fallBallWeekDates()} today={today}/></> : undefined} tabNotice={tabNotice} blastBatSpeedPercentile={blastBatSpeedPercentile} detail={detail} selectedTab={selectedTab} navigationPath={`/athletes/${athlete.id}`}
       headshot={headshot}
       pitchDevelopment={selectedTab === "pitching" ? <PitchDevelopment groups={pitchDevelopmentGroups} context="in_game" contactsAvailable={allowed !== null}/> : undefined}
       practicePitchDevelopment={selectedTab === "practice" ? <PitchDevelopment groups={pitchDevelopmentGroups} context="practice"/> : undefined}
