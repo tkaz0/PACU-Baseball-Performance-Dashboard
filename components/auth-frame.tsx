@@ -1,13 +1,11 @@
 import { LockKeyhole, UserRound, Activity, Trophy } from "lucide-react";
 import { PacificBrand, PacificLogo } from "@/components/pacific-brand";
 import { AppearanceControl } from "@/components/appearance-control";
-import { SIGN_IN_PHOTO } from "@/lib/showcase-photos";
+import { BrandBackdrop } from "@/components/brand-backdrop";
 export function AuthFrame({ children }: { children: React.ReactNode }) {
   return <main className="login-grid">
     <section className="login-brand" aria-label="Pacific Baseball Performance">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="login-photo" src={SIGN_IN_PHOTO} alt="" aria-hidden="true" loading="eager" decoding="async" referrerPolicy="no-referrer"/>
-      <div className="login-scrim" aria-hidden="true"/>
+      <BrandBackdrop className="login-art"/>
       <PacificBrand className="login-wordmark" />
       <div className="login-statement">
         <p className="login-kicker">The Work. The Results.</p>

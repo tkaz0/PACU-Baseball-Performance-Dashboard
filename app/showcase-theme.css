@@ -1,21 +1,30 @@
 /*
  * Showcase polish (November 14 owner request, for recruit visits). Presentation only, loaded after
- * athletic-theme.css: sign-in photo splash, a bolder player card, styled photo placeholders, bigger
+ * athletic-theme.css: branded sign-in splash, a bolder player card, styled photo placeholders, bigger
  * headline numbers with quieter fine print, subtle load motion and a calmer sidebar.
  * No data, access, calculation or behavior changes.
  */
 
-/* Sign-in splash: goboxers.com action photo behind the quote */
-.login-photo { position: absolute; inset: 0; z-index: -3; width: 100%; height: 100%; object-fit: cover; object-position: 25% 30%; animation: showcaseHeroZoom 16s ease-out both; }
-.login-scrim { position: absolute; inset: 0; z-index: -2; pointer-events: none; background: linear-gradient(180deg, rgb(10 11 15 / 72%) 0%, rgb(10 11 15 / 55%) 38%, rgb(10 11 15 / 92%) 100%), linear-gradient(90deg, rgb(120 10 28 / 45%), transparent 70%); }
-.login-brand { background: #0b0c10; }
+/* Branded backdrop (Home hero and sign-in): field diagram, baseball seams and the athletics "P" */
+.brand-backdrop { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; color: #fff; }
+.brand-backdrop-field { position: absolute; right: -2%; bottom: -8%; width: min(62%, 720px); height: 125%; opacity: .13; }
+.brand-backdrop-ball { position: absolute; left: -70px; bottom: -110px; width: 260px; height: 260px; opacity: .06; color: #ff6b7d; animation: showcaseSpin 90s linear infinite; }
+.brand-backdrop-mark { position: absolute; right: 3%; top: 50%; height: 118%; width: auto; translate: 0 -50%; opacity: .07; filter: grayscale(1) brightness(3); }
+.brand-backdrop::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(135deg, rgb(255 255 255 / 2.2%) 0 2px, transparent 2px 14px); mask-image: linear-gradient(90deg, transparent 25%, #000); -webkit-mask-image: linear-gradient(90deg, transparent 25%, #000); }
+@keyframes showcaseSpin { to { rotate: 360deg; } }
+.login-brand { background: radial-gradient(ellipse 80% 60% at 100% 0%, rgb(200 16 46 / 40%), transparent 65%), radial-gradient(ellipse 60% 50% at 0% 100%, rgb(200 16 46 / 18%), transparent 70%), linear-gradient(160deg, #0d0e12 0%, #150f16 55%, #26090f 100%); }
 .login-brand::after { display: none; }
 .login-brand::before { background: var(--brand-red); z-index: 1; }
+.login-art .brand-backdrop-field { right: -12%; bottom: -4%; width: 95%; height: 70%; opacity: .1; }
+.login-art .brand-backdrop-mark { right: -6%; top: 34%; height: 62%; opacity: .06; }
+.login-art .brand-backdrop-ball { left: auto; right: 8%; top: 7%; bottom: auto; width: 180px; height: 180px; opacity: .07; }
 .login-quote { font-family: var(--font-display); font-weight: 800; text-transform: uppercase; letter-spacing: .005em; line-height: .92; font-size: clamp(56px, 6.4vw, 108px); text-shadow: 0 4px 30px rgb(0 0 0 / 50%); }
 .login-quote > span:last-child { color: #ff8d9a; }
 .login-features > div { background: rgb(12 13 17 / 55%); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); border-radius: 12px; }
-@media (max-width: 900px) { .login-photo { object-position: 50% 22%; } .login-scrim { background: linear-gradient(180deg, rgb(10 11 15 / 45%) 0%, rgb(10 11 15 / 62%) 45%, rgb(10 11 15 / 90%) 100%); } }
+@media (max-width: 900px) { .login-art .brand-backdrop-ball { width: 120px; height: 120px; } .login-art .brand-backdrop-field { height: 90%; } }
+@media (max-width: 700px) { .brand-backdrop-field { width: 110%; right: -30%; opacity: .1; } .brand-backdrop-mark { height: 70%; top: 30%; right: -8%; } }
 @media (max-width: 600px) { .login-quote { font-size: 52px; } }
+@media (prefers-reduced-motion: reduce) { .brand-backdrop-ball { animation: none; } }
 
 /* Player card header */
 .player-identity-card {
@@ -60,7 +69,6 @@ html .workspace-main .player-identity-card h1 { font-family: var(--font-display)
 /* Subtle load motion: cards rise in, bars grow, then no styles remain (fill-mode backwards). */
 @keyframes showcaseRise { from { opacity: 0; translate: 0 10px; } }
 @keyframes showcaseGrow { from { transform: scaleX(0); } }
-@keyframes showcaseHeroZoom { from { transform: scale(1.08); } to { transform: scale(1); } }
 @media (prefers-reduced-motion: no-preference) {
   .workspace-main :is(.player-identity-card, .panel, .leaderboard-card, .performance-metric-card, [class*="__rankCard"], [class*="__gameCard"], [class*="__heroTile"], [class*="__weekCard"]) { animation: showcaseRise .5s cubic-bezier(.2, .7, .2, 1) backwards; }
   .workspace-main :is([class*="__rankCard"], [class*="__gameCard"], .leaderboard-card):nth-child(2) { animation-delay: .06s; }
@@ -69,7 +77,6 @@ html .workspace-main .player-identity-card h1 { font-family: var(--font-display)
   .workspace-main :is([class*="Track"], [class*="track"]):not([class*="mirror"]) > :is(span, i)[style*="width"],
   .workspace-main :is([class*="__valueBar"], [class*="__spinBar"]) { transform-origin: left center; animation: showcaseGrow .8s .15s cubic-bezier(.2, .7, .2, 1) backwards; }
 }
-@media (prefers-reduced-motion: reduce) { .login-photo { animation: none; } }
 
 /* Card hover lift on desktop */
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
@@ -83,6 +90,6 @@ html .workspace-main .player-identity-card h1 { font-family: var(--font-display)
 .baseball-sidebar .workspace-nav-disclosure > summary { font-family: var(--font-display); letter-spacing: .16em; text-transform: uppercase; font-size: 13px; opacity: .85; }
 
 @media print {
-  .login-photo, .login-scrim { display: none; }
+  .brand-backdrop { display: none; }
   .workspace-main * { animation: none !important; }
 }
