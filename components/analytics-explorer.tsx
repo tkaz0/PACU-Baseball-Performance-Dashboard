@@ -17,7 +17,7 @@ function analyticsStatContext(variable: AnalyticsVariable, period: "fall" | "ear
 const COLORS=["#4996d5","#d5ae45","#dd8758","#90a657","#cf7fb6"];
 const number=(n:number)=>new Intl.NumberFormat("en-US",{maximumSignificantDigits:4}).format(n);
 const reading=(r:AnalyticsPoint["x"])=>r.metric==="height"?`${formatHeight(r.value,r.unit)??`${number(r.value)} ${r.unit}`} (${number(r.value)} ${r.unit})`:`${formatMetricNumber(r.value,r.metric,r.source,number(r.value))} ${r.unit}${r.basis==="latest-session" ? " · Latest Session" : ""}`;
-function Mark({index,cx,cy,size=6}:{index:number;cx:number;cy:number;size?:number}) {
+function Mark({index,cx,cy,size=7}:{index:number;cx:number;cy:number;size?:number}) {
   const common={fill:COLORS[index%COLORS.length],stroke:"var(--surface-panel)",strokeWidth:1.5};
   if(Math.floor(index/COLORS.length)%3===1)return <rect x={cx-size} y={cy-size} width={size*2} height={size*2} rx={1} {...common}/>;
   if(Math.floor(index/COLORS.length)%3===2)return <path d={`M${cx},${cy-size-2} L${cx+size+1},${cy+size} L${cx-size-1},${cy+size} Z`} {...common}/>;

@@ -5,6 +5,7 @@ import { SIDEBAR_BOOTSTRAP_SCRIPT } from "@/lib/sidebar-preference";
 import "./globals.css";
 import "./dashboard-presentation.css";
 import "./athletic-theme.css";
+import "./showcase-theme.css";
 import { Barlow_Condensed, Inter } from "next/font/google";
 
 // Modern Athletic type: self-hosted at build time, so browsers make no requests to Google.

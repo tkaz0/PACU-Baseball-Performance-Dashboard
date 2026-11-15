@@ -31,7 +31,7 @@ export function WorkspaceNavigation({ links }: { links: WorkspaceNavLink[] }) {
       <span className="flex min-w-0 items-center gap-2">{open ? <X size={18} aria-hidden="true" /> : <Menu size={18} aria-hidden="true" />}Menu</span><span className="truncate text-xs font-normal text-gray-300">{current?.label ?? "Workspace"}</span>
     </button>
     <nav id={id} className="workspace-nav" data-open={open} aria-label="Main navigation">
-      {groups.map(group => ["Data & Testing", "Administration"].includes(group.name) ? <details className="workspace-nav-disclosure" key={`${group.name}:${path}`} open={group.items.some(item => item.href === current?.href)}><summary>{group.name}<ChevronDown size={15} aria-hidden="true"/></summary><div className="workspace-nav-disclosure-links">{group.items.map(renderLink)}</div></details> : <div className="workspace-nav-section" key={group.name}>{group.name && <p className="workspace-nav-group">{group.name}</p>}{group.items.map(renderLink)}</div>)}
+      {groups.map(group => ["Coaching", "Data & Testing", "Administration"].includes(group.name) ? <details className="workspace-nav-disclosure" key={`${group.name}:${path}`} open={group.items.some(item => item.href === current?.href)}><summary>{group.name}<ChevronDown size={15} aria-hidden="true"/></summary><div className="workspace-nav-disclosure-links">{group.items.map(renderLink)}</div></details> : <div className="workspace-nav-section" key={group.name}>{group.name && <p className="workspace-nav-group">{group.name}</p>}{group.items.map(renderLink)}</div>)}
     </nav>
   </div>;
 }

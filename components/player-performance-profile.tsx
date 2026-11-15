@@ -1,6 +1,7 @@
 import { pacificTestingDate } from "@/lib/testing-checklist";
 import { recentPersonalBest } from "@/lib/personal-bests";
 import { profileHeaderResults } from "@/lib/profile-header-results";
+import { CountUp } from "@/components/count-up";
 import { PlayerAvatar } from "@/components/player-avatar";
 import type { TrendAnnotation } from "@/lib/trend-annotations";
 import { pitchSourceLabel } from "@/lib/pitch-display";
@@ -63,6 +64,11 @@ export type PlayerPerformanceProfileProps = {
   /** In-game pitch mix from the player's own pitching game-sheet family counts (October 17). */
   pitchSheetMix?: SheetPitchMix | null;
 };
+/** Hero highlight: the number counts up and its unit sits smaller beside it. */
+function HeroValue({ value }: { value: string }) {
+  const match = value.match(/^(.*\d\S*)\s+([A-Za-z%]+)$/);
+  return match ? <><CountUp value={match[1]}/> <span className="hero-unit">{match[2]}</span></> : <CountUp value={value}/>;
+}
 function measurementDate(value: string) {
   const date = new Date(`${value.slice(0, 10)}T12:00:00Z`);
   return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(date);
@@ -204,8 +210,8 @@ export function PlayerPerformanceProfile({ bwsAwards = [], fallStory, tabNotice,
       {selectedSeason?.jersey_number != null && <span className={presentation.jerseyWatermark} aria-hidden="true">{selectedSeason.jersey_number}</span>}
       <div className="flex flex-wrap items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><PacificLogo className="w-9 shrink-0" decorative /><p className="m-0 text-xs font-bold uppercase tracking-[.18em] text-[#e0e0e3]">Pacific Baseball<span className="mx-2 text-[#a4a4aa]" aria-hidden="true">/</span>Performance</p></div>{fictional && <span className="shrink-0 rounded border border-white/20 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-white">Fictional profile</span>}</div>
       <div className={presentation.identityMain}>
-        <div className={presentation.identityPlayer}><PlayerAvatar name={athleteName(athlete)} path={headshot} size={88} className="player-identity-photo" eager/><div className="min-w-0"><h1>{athleteName(athlete)}</h1><p className={presentation.identityRole}>{selectedSeason?.jersey_number != null && <span aria-label={`Jersey Number ${selectedSeason.jersey_number}`}>#{selectedSeason.jersey_number}</span>}{roleLabel === "Pitcher" && position.trim().toUpperCase() === "P" ? <span>Pitcher</span> : <>{position || "Position to be added"}{roleLabel && <span>{roleLabel}</span>}</>}</p></div></div>
-        {headerResults.length > 0 && <dl className={presentation.identityHighlights} style={{gridTemplateColumns:`repeat(${headerResults.length},minmax(0,1fr))`}} aria-label="Player highlights">{headerResults.map(result => <div key={result.key}><dt>{result.label}<StatInfo metric={result.key} label={result.label} {...result.guide}/></dt><dd>{result.value}</dd><small><span title={result.source}>{result.source.replace("Full Swing · ", "")}</span><br/><time dateTime={result.date}>{new Date(`${result.date}T12:00:00Z`).toLocaleDateString("en-US",{month:"short",day:"numeric",timeZone:"UTC"})}</time></small></div>)}</dl>}
+        <div className={presentation.identityPlayer}><PlayerAvatar name={athleteName(athlete)} path={headshot} size={136} className="player-identity-photo" eager/><div className="min-w-0"><h1>{athleteName(athlete)}</h1><p className={presentation.identityRole}>{selectedSeason?.jersey_number != null && <span aria-label={`Jersey Number ${selectedSeason.jersey_number}`}>#{selectedSeason.jersey_number}</span>}{roleLabel === "Pitcher" && position.trim().toUpperCase() === "P" ? <span>Pitcher</span> : <>{position || "Position to be added"}{roleLabel && <span>{roleLabel}</span>}</>}</p></div></div>
+        {headerResults.length > 0 && <dl className={presentation.identityHighlights} style={{gridTemplateColumns:`repeat(${headerResults.length},minmax(0,1fr))`}} aria-label="Player highlights">{headerResults.map(result => <div key={result.key}><dt>{result.label}<StatInfo metric={result.key} label={result.label} {...result.guide}/></dt><dd><HeroValue value={result.value}/></dd><small><span title={result.source}>{result.source.replace("Full Swing · ", "")}</span><br/><time dateTime={result.date}>{new Date(`${result.date}T12:00:00Z`).toLocaleDateString("en-US",{month:"short",day:"numeric",timeZone:"UTC"})}</time></small></div>)}</dl>}
       </div>
       <dl className={presentation.identityFacts}><div><dt className="text-xs uppercase tracking-wider text-[#a7a8af]">Bats / Throws</dt><dd className="m-0 mt-1.5 font-semibold">{display(selectedSeason?.bats)} / {display(selectedSeason?.throws)}</dd></div><div className={presentation.factOptional}><dt className="text-xs uppercase tracking-wider text-[#a7a8af]">Season</dt><dd className="m-0 mt-1.5 font-semibold">{selectedSeason?.season ?? "To be added"}</dd></div><div className={presentation.factOptional}><dt className="text-xs uppercase tracking-wider text-[#a7a8af]">PAC ID</dt><dd className="m-0 mt-1.5 font-mono font-semibold">{athlete.athlete_code}</dd></div><div><dt className="text-xs uppercase tracking-wider text-[#a7a8af]">{newerReport ? "Latest Report" : "Last Tested"}</dt><dd className="m-0 mt-1.5 font-semibold">{newerReport ? blastPeriodLabel(newerReport.start,newerReport.end) : lastTested ? <time dateTime={lastTested}>{measurementDate(lastTested)}</time> : "Not Yet Tested"}</dd></div></dl>
     </section>

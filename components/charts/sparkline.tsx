@@ -8,6 +8,7 @@ export function Sparkline({ points, width = 120, height = 34, label, lowerIsBett
   // Improving reads red (top of the team scale), worsening reads blue, unchanged is gray.
   const color = improving === null ? "var(--text-secondary)" : improving ? "var(--accent-readable)" : "var(--chart-blue, #367ea3)";
   return <svg className="sparkline" width={width} height={height} viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${label}: ${points.length} ${noun}, ${movement} from ${format(values[0])} to ${format(values.at(-1)!)}`}>
+    <polygon points={`${xy[0][0].toFixed(1)},${height} ${xy.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ")} ${xy.at(-1)![0].toFixed(1)},${height}`} fill={color} fillOpacity="0.12" stroke="none"/>
     <polyline points={xy.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ")} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"/>
     {xy.map(([x, y], i) => <circle key={points[i].date} cx={x} cy={y} r={i === xy.length - 1 ? 3.2 : 2} fill={i === xy.length - 1 ? color : "var(--surface-panel)"} stroke={color} strokeWidth="1.5"/>)}
   </svg>;

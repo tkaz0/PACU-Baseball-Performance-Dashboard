@@ -36,8 +36,7 @@ function Podium({ rows, metric, unit, headshots, tiedRanks, ownId }: { rows: Lea
     <PlayerAvatar name={row.name} path={headshots[row.athleteCode]} size={row.rank === 1 ? 64 : 52} eager className={styles.podiumPhoto}/>
     <span className={styles.podiumName}>{row.profileId ? <Link href={`/athletes/${row.profileId}`} prefetch={false}>{row.name}</Link> : row.name}</span>
     <span className={styles.podiumValue}><ResultValue row={row} metric={metric} unit={unit}/></span>
-    <span className={styles.podiumMeta}>{row.jerseyNumber !== null ? `#${row.jerseyNumber}` : row.athleteCode}{row.position ? ` · ${row.position}` : ""}</span>
-    <span className={styles.podiumMeta}><time dateTime={row.measuredAt}>{leaderboardTestDate(row.measuredAt)}</time></span>
+    <span className={styles.podiumMeta}>{row.jerseyNumber !== null ? `#${row.jerseyNumber}` : row.athleteCode}{row.position ? ` · ${row.position}` : ""} · <time dateTime={row.measuredAt}>{leaderboardTestDate(row.measuredAt)}</time></span>
     <div className={styles.podiumContext}><ResultContext row={row} metric={metric}/></div>
   </li>)}</ol>;
 }

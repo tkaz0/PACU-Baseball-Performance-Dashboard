@@ -1,0 +1,88 @@
+/*
+ * Showcase polish (November 14 owner request, for recruit visits). Presentation only, loaded after
+ * athletic-theme.css: sign-in photo splash, a bolder player card, styled photo placeholders, bigger
+ * headline numbers with quieter fine print, subtle load motion and a calmer sidebar.
+ * No data, access, calculation or behavior changes.
+ */
+
+/* Sign-in splash: goboxers.com action photo behind the quote */
+.login-photo { position: absolute; inset: 0; z-index: -3; width: 100%; height: 100%; object-fit: cover; object-position: 25% 30%; animation: showcaseHeroZoom 16s ease-out both; }
+.login-scrim { position: absolute; inset: 0; z-index: -2; pointer-events: none; background: linear-gradient(180deg, rgb(10 11 15 / 72%) 0%, rgb(10 11 15 / 55%) 38%, rgb(10 11 15 / 92%) 100%), linear-gradient(90deg, rgb(120 10 28 / 45%), transparent 70%); }
+.login-brand { background: #0b0c10; }
+.login-brand::after { display: none; }
+.login-brand::before { background: var(--brand-red); z-index: 1; }
+.login-quote { font-family: var(--font-display); font-weight: 800; text-transform: uppercase; letter-spacing: .005em; line-height: .92; font-size: clamp(56px, 6.4vw, 108px); text-shadow: 0 4px 30px rgb(0 0 0 / 50%); }
+.login-quote > span:last-child { color: #ff8d9a; }
+.login-features > div { background: rgb(12 13 17 / 55%); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); border-radius: 12px; }
+@media (max-width: 900px) { .login-photo { object-position: 50% 22%; } .login-scrim { background: linear-gradient(180deg, rgb(10 11 15 / 45%) 0%, rgb(10 11 15 / 62%) 45%, rgb(10 11 15 / 90%) 100%); } }
+@media (max-width: 600px) { .login-quote { font-size: 52px; } }
+
+/* Player card header */
+.player-identity-card {
+  border: 1px solid #45202a;
+  background:
+    radial-gradient(ellipse 60% 120% at 100% 0%, rgb(200 16 46 / 42%), transparent 62%),
+    radial-gradient(ellipse 40% 80% at 0% 100%, rgb(200 16 46 / 16%), transparent 70%),
+    linear-gradient(120deg, #14151b 0%, #1b1117 55%, #2c0b13 100%);
+  box-shadow: 0 30px 60px -36px rgb(200 16 46 / 60%), inset 0 1px 0 rgb(255 255 255 / 5%);
+}
+.player-identity-card .player-identity-photo {
+  width: clamp(96px, 10vw, 136px) !important; height: clamp(96px, 10vw, 136px) !important; font-size: clamp(30px, 3.4vw, 44px) !important;
+  box-shadow: 0 0 0 4px var(--brand-red), 0 0 0 8px rgb(255 255 255 / 9%), 0 22px 40px -14px rgb(0 0 0 / 85%);
+}
+html .workspace-main .player-identity-card h1 { font-family: var(--font-display); font-size: clamp(38px, 4.6vw, 66px); font-weight: 800; letter-spacing: .005em; line-height: .9; text-transform: uppercase; }
+.player-identity-card [aria-label^="Jersey Number"] { background: var(--brand-red) !important; border-color: var(--brand-red) !important; color: #fff !important; font-family: var(--font-display); font-size: 16px !important; letter-spacing: .02em !important; }
+.player-identity-card [class*="__jerseyWatermark"] { color: #ff4d5e; opacity: .1; }
+.player-identity-card dl[aria-label="Player highlights"] { border-color: rgb(255 255 255 / 12%); background: rgb(0 0 0 / 22%); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+.player-identity-card dl[aria-label="Player highlights"] dd { font-family: var(--font-display); font-size: clamp(28px, 3vw, 42px); font-weight: 800; letter-spacing: .005em; line-height: 1; }
+.player-identity-card dl[aria-label="Player highlights"] small { opacity: .72; }
+.player-identity-card dl[aria-label="Player highlights"] > div { position: relative; }
+.player-identity-card dl[aria-label="Player highlights"] > div::before { content: ""; position: absolute; left: 13px; right: 13px; top: 0; height: 2px; border-radius: 2px; background: linear-gradient(90deg, var(--brand-red), transparent); }
+
+/* Missing photos: a styled Pacific red badge instead of a gray circle */
+.player-avatar-initials {
+  position: absolute; inset: 0; display: grid; place-items: center; border-radius: inherit;
+  font-family: var(--font-display); font-weight: 800; letter-spacing: .03em; color: #fff;
+  background: radial-gradient(circle at 30% 22%, #e8355a 0%, #b80f2b 45%, #6e0816 100%);
+  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 16%), inset 0 -6px 12px rgb(0 0 0 / 22%);
+  text-shadow: 0 1px 2px rgb(0 0 0 / 35%);
+}
+
+/* Bigger headline numbers, quieter fine print */
+.workspace-main [class*="dashboard-home-module__"][class*="__rankValue"] { font-family: var(--font-display); font-size: 19px; font-weight: 800; letter-spacing: .005em; }
+.workspace-main [class*="dashboard-home-module__"][class*="__rankName"] { font-size: 13px; }
+.workspace-main [class*="dashboard-home-module__"]:is([class*="__rankSample"], [class*="__opportunities"], [class*="__chartCaption"]) { opacity: .8; }
+.workspace-main [class*="leaderboard-module__"][class*="__podiumValue"] { font-family: var(--font-display); font-size: 26px; letter-spacing: .005em; }
+.workspace-main [class*="leaderboard-module__"][class*="__podium"] li[data-place="1"] [class*="__podiumValue"] { font-size: 32px; }
+.workspace-main [class*="leaderboard-module__"][class*="__podiumMeta"] { opacity: .78; }
+.workspace-main [class*="leaderboard-module__"][class*="__podium"] li[data-place="1"] { box-shadow: 0 16px 30px -22px var(--medal); }
+
+/* Subtle load motion: cards rise in, bars grow, then no styles remain (fill-mode backwards). */
+@keyframes showcaseRise { from { opacity: 0; translate: 0 10px; } }
+@keyframes showcaseGrow { from { transform: scaleX(0); } }
+@keyframes showcaseHeroZoom { from { transform: scale(1.08); } to { transform: scale(1); } }
+@media (prefers-reduced-motion: no-preference) {
+  .workspace-main :is(.player-identity-card, .panel, .leaderboard-card, .performance-metric-card, [class*="__rankCard"], [class*="__gameCard"], [class*="__heroTile"], [class*="__weekCard"]) { animation: showcaseRise .5s cubic-bezier(.2, .7, .2, 1) backwards; }
+  .workspace-main :is([class*="__rankCard"], [class*="__gameCard"], .leaderboard-card):nth-child(2) { animation-delay: .06s; }
+  .workspace-main :is([class*="__rankCard"], [class*="__gameCard"], .leaderboard-card):nth-child(3) { animation-delay: .12s; }
+  .workspace-main :is([class*="__rankCard"], [class*="__gameCard"], .leaderboard-card):nth-child(n+4) { animation-delay: .18s; }
+  .workspace-main :is([class*="Track"], [class*="track"]):not([class*="mirror"]) > :is(span, i)[style*="width"],
+  .workspace-main :is([class*="__valueBar"], [class*="__spinBar"]) { transform-origin: left center; animation: showcaseGrow .8s .15s cubic-bezier(.2, .7, .2, 1) backwards; }
+}
+@media (prefers-reduced-motion: reduce) { .login-photo { animation: none; } }
+
+/* Card hover lift on desktop */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .workspace-main :is([class*="__rankCard"], .leaderboard-card, .performance-metric-card) { transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+  .workspace-main :is([class*="__rankCard"], .leaderboard-card, .performance-metric-card):hover { transform: translateY(-2px); box-shadow: 0 18px 36px -24px rgb(0 0 0 / 55%); border-color: color-mix(in srgb, var(--brand-red) 35%, var(--line-subtle)); }
+}
+
+/* Calmer sidebar: a stronger active link, quieter group disclosures */
+.baseball-sidebar .nav-link[aria-current="page"] { background: linear-gradient(90deg, var(--brand-red), rgb(200 16 46 / 55%)); border-color: transparent; color: #fff; box-shadow: 0 8px 18px -10px rgb(200 16 46 / 80%); }
+.baseball-sidebar .nav-link[aria-current="page"] svg { color: #fff; }
+.baseball-sidebar .workspace-nav-disclosure > summary { font-family: var(--font-display); letter-spacing: .16em; text-transform: uppercase; font-size: 13px; opacity: .85; }
+
+@media print {
+  .login-photo, .login-scrim { display: none; }
+  .workspace-main * { animation: none !important; }
+}

@@ -18,6 +18,8 @@ import type { DesignNavigation } from "@/lib/design-navigation";
 import type { coachUpdateDigest } from "@/lib/coach-update-digest";
 import type { HomeLeaderboard, HomeRank } from "@/lib/home-leaderboards";
 import { FALL_2026_FINAL } from "@/lib/season";
+import { HOME_HERO_PHOTO } from "@/lib/showcase-photos";
+import { CountUp } from "@/components/count-up";
 import styles from "./dashboard-home.module.css";
 import type { VisitDigest } from "@/lib/dashboard-visit-digest";
 
@@ -73,6 +75,17 @@ export function CoachThisWeek({ digest, reviewCount }: { digest: ReturnType<type
     </div>
   </section>;
 }
+/** Headline numbers across the hero photo; the same pooled team (or own) rates as the cards below. */
+function HeroStats({ summary, staff }: { summary: HomeSummary; staff: boolean }) {
+  const pick = (game: TeamGameSummary, key: string) => game.rates.find(m => m.metric === key && !m.pending && m.value !== null);
+  const stats = [pick(summary.batting, "batting_ops"), pick(summary.batting, "batting_est_iso"), pick(summary.pitching, "pitching_whip"), pick(summary.pitching, "pitching_k9")].filter((m): m is TeamGameMetric => !!m);
+  const players = summary.players;
+  if (!stats.length) return null;
+  return <dl className={styles.heroStats} aria-label={staff ? "Team headline stats" : "My headline stats"}>
+    {stats.map(m => <div key={m.metric}><dt>{staff ? "Team " : ""}{m.label}</dt><dd><CountUp value={formatTeamGameMetric(m)}/></dd></div>)}
+    {staff && players > 0 && <div><dt>Players</dt><dd><CountUp value={String(players)}/></dd></div>}
+  </dl>;
+}
 /** Season-final Home (owner request, November 2): links to the finished Fall in one row. Same pages and access as the nav. */
 function SeasonInReview({ staff }: { staff: boolean }) {
   const links = [
@@ -106,8 +119,11 @@ export function DashboardHome({ playerWeek, leaderboardsSlot, spotlight, trendin
   ];
   return <div className={styles.home}>
     <header className={styles.welcome}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img className={styles.heroPhoto} src={HOME_HERO_PHOTO} alt="" loading="eager" decoding="async" referrerPolicy="no-referrer" aria-hidden="true"/>
       <div className={styles.welcomeTitle}><div className={styles.homeMark}><span className={styles.markOnDark}><PacificLogo variant="university" tone="dark" decorative/></span><span className={styles.markOnLight}><PacificLogo variant="university" tone="light" decorative/></span></div><div><p className={styles.kicker}>Boxer Baseball <span>/</span> {FALL_2026_FINAL ? "Fall 2026 Final" : "Fall 2026"}</p><h1>{staff ? "Team Dashboard" : "My Dashboard"}</h1><p>{FALL_2026_FINAL ? staff ? "Fall 2026 is complete. Here’s how the season finished." : "Your Fall 2026, start to finish." : staff ? "Your team, at a glance." : "Your work. Your progress. Your next step."}</p></div></div>
       <Link prefetch={false} href={staff ? "/roster" : profile ?? "/settings"} className={styles.heroAction}>{staff ? "Explore Roster" : profile ? "Open My Profile" : "Account Settings"}<ArrowUpRight size={17}/></Link>
+      {summary && <HeroStats summary={summary} staff={staff}/>}
     </header>
     {!staff && playerWeek}
     {spotlight}
