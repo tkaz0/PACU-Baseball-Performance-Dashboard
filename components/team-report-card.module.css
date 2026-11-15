@@ -30,3 +30,24 @@ li[data-grade="F"] .letter { background: #367ea3; }
 .fifths i { height: 5px; border-radius: 3px; background: color-mix(in srgb, var(--text-secondary) 22%, transparent); }
 .fifths i[data-on] { background: var(--grade); box-shadow: 0 0 0 1px color-mix(in srgb, var(--grade) 40%, transparent); }
 .next { display: block; margin-top: 4px; color: var(--text-primary); font-size: 12px; font-weight: 600; }
+
+/* November 14 showcase: broadcast-style grade badges that pop in. Presentation only. */
+.panel { position: relative; overflow: hidden; background: radial-gradient(ellipse 50% 80% at 100% 0%, color-mix(in srgb, var(--accent-readable) 10%, transparent), transparent 70%), var(--surface-panel); }
+.panel::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; background: linear-gradient(90deg, #c8102e, #ff5a6e 40%, transparent); }
+.grades { gap: 10px; }
+.grades li { gap: 14px; padding: 12px 14px; border-radius: 12px; }
+.grades li .letter { position: relative; flex-basis: 54px; height: 54px; overflow: hidden; border-radius: 12px; font-size: 36px; line-height: 1; background: linear-gradient(160deg, color-mix(in srgb, var(--grade) 80%, #fff), var(--grade) 45%, color-mix(in srgb, var(--grade) 70%, #000)); box-shadow: 0 10px 20px -10px var(--grade), inset 0 1px 0 rgb(255 255 255 / 35%); text-shadow: 0 2px 6px rgb(0 0 0 / 30%); }
+.grades li .letter::after { content: ""; position: absolute; inset: -40% auto -40% -60%; width: 40%; transform: rotate(20deg); background: linear-gradient(90deg, transparent, rgb(255 255 255 / 45%), transparent); }
+.detail strong { font-family: var(--font-display, inherit); font-size: 18px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; }
+.compact .grades li .letter { flex-basis: 46px; height: 46px; font-size: 30px; }
+@keyframes gradePop { 0% { opacity: 0; transform: scale(.4) rotate(-8deg); } 70% { transform: scale(1.08) rotate(1deg); } 100% { opacity: 1; transform: none; } }
+@keyframes gradeShine { from { left: -60%; } to { left: 130%; } }
+@media (prefers-reduced-motion: no-preference) {
+  .grades li .letter { animation: gradePop .55s cubic-bezier(.2, .8, .3, 1.2) backwards; }
+  .grades li .letter::after { animation: gradeShine 1.1s .5s ease-out backwards; left: 130%; }
+  .grades li:nth-child(2) .letter { animation-delay: .07s; } .grades li:nth-child(3) .letter { animation-delay: .14s; }
+  .grades li:nth-child(4) .letter { animation-delay: .21s; } .grades li:nth-child(5) .letter { animation-delay: .28s; }
+  .grades li:nth-child(6) .letter { animation-delay: .35s; } .grades li:nth-child(n+7) .letter { animation-delay: .42s; }
+}
+@media (prefers-reduced-motion: reduce) { .grades li .letter::after { display: none; } }
+@media print { .grades li .letter, .grades li .letter::after { animation: none !important; } .grades li .letter::after { display: none; } }

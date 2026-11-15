@@ -10,10 +10,10 @@ export function TeamRecords({ records, headshots = {} }: { records: readonly Tea
   return <div className={styles.sections} data-testid="team-records">
     {TEAM_RECORD_CATEGORIES.map(category => { const rows = records.filter(record => record.category === category); return rows.length ? <section key={category} aria-label={category}>
       <h2 className={styles.heading}>{category}</h2>
-      <div className={styles.grid}>{rows.map(record => <article key={record.key} className={styles.card} data-record={record.key}>
-        <p className={styles.label}>{record.label}</p><p className={styles.context}>{record.context} · {record.players} {record.players === 1 ? "player" : "players"}</p>
+      <div className={styles.grid}>{rows.map(record => <article key={record.key} className={styles.card} data-record={record.key} data-shared={record.holders.length > 1 || undefined}>
+        <header className={styles.cardHead}><span className={styles.trophy} aria-hidden="true"><Trophy size={16}/></span><span><p className={styles.label}>{record.label}</p><p className={styles.context}>{record.context} · {record.players} {record.players === 1 ? "player" : "players"}</p></span></header>
         <strong className={styles.value}>{record.value}</strong>
-        <ul className={styles.holders}>{record.holders.map(holder => <li key={holder.code}><PlayerAvatar name={holder.name} path={headshots[holder.code]} size={32}/>
+        <ul className={styles.holders}>{record.holders.map(holder => <li key={holder.code}><PlayerAvatar name={holder.name} path={headshots[holder.code]} size={record.holders.length > 1 ? 40 : 56} className={styles.holderPhoto}/>
           <span><b>{holder.profileId ? <Link prefetch={false} href={`/athletes/${holder.profileId}`}>{holder.name}</Link> : holder.name}</b><small>{leaderboardTestDate(holder.measuredAt)}{holder.sample ? ` · ${holder.sample}` : ""}</small></span></li>)}</ul>
         {record.holders.length > 1 && <p className={styles.tied}>Shared record</p>}
       </article>)}</div>
