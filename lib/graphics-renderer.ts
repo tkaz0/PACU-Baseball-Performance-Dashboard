@@ -212,12 +212,11 @@ export function renderGraphics(card: GraphicsCard, options: GraphicsOptions): st
       if (metrics.length > 3) overflow();
       rect(body, p.panel, 26, p.accent);
       parts.push('<rect x="' + n(body.x + 2) + '" y="' + n(body.y + 2) + '" width="' + n(body.w - 4) + '" height="' + n(body.h - 4) + '" rx="24" fill="none" stroke="' + p.accent + '" stroke-width="4"/>');
-      const band: Box = { x: body.x + 18, y: body.y + 18, w: body.w - 36, h: Math.min(body.h * .4, 360) };
+      const band: Box = { x: body.x + 18, y: body.y + 18, w: body.w - 36, h: Math.min(body.h * .32, 300) };
       rect(band, p.accent, 16);
       for (let x = band.x - band.h; x < band.x + band.w; x += 46) parts.push('<line x1="' + n(Math.max(band.x, x)) + '" y1="' + n(x < band.x ? band.y + (band.x - x) : band.y) + '" x2="' + n(Math.min(band.x + band.w, x + band.h)) + '" y2="' + n(x + band.h > band.x + band.w ? band.y + (band.x + band.w - x) : band.y + band.h) + '" stroke="' + p.accentInk + '" stroke-opacity=".12" stroke-width="6"/>');
       const mark = clean((card.meta ?? "").split(" · ")[0] ?? "").toUpperCase();
       if (mark) parts.push('<text x="' + n(band.x + band.w - 26) + '" y="' + n(band.y + band.h - 28) + '" font-size="' + n(Math.min(band.h * .78, 260)) + '" fill="' + p.accentInk + '" fill-opacity=".2" font-weight="900" text-anchor="end">' + escape(mark) + "</text>");
-      fit(card.title, band.x + 32, band.y + 62, band.w * .62, 40, 22, p.accentInk, 800);
       const stats: Box = { x: body.x + 18, y: band.y + band.h + 22, w: body.w - 36, h: body.y + body.h - 18 - (band.y + band.h + 22) };
       if (stats.h < 190) overflow();
       const columns = metrics.length, cell = stats.w / columns;
